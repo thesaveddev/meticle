@@ -71,6 +71,20 @@ const setTracking = (orgId: string, enabled: boolean, userId: string) =>
     [enabled, orgId, userId],
   )
 
+/**
+ * Records this worker's own agreement to location being recorded.
+ *
+ * Since migration 133 collection requires a recorded decision, so a test that
+ * asserts coordinates are stored has to establish the agreement first. A carer
+ * with no decision gets `not_agreed` and no coordinates, which is the intended
+ * behaviour rather than something these tests should work around — the helper
+ * exists so the assertions stay about *what happens once someone has agreed*.
+ */
+const agreeLocation = (token: string) =>
+  request(app).post('/homecare/location-decision').set('Authorization', `Bearer ${token}`).send({
+    decision: 'agreed', notice_key: 'staff_location', notice_version: '1.1',
+  })
+
 async function latestVisit(orgId: string) {
   const result = await migrateQuery(
     `SELECT id, check_in_latitude, check_in_longitude, check_out_latitude, check_out_longitude, location_capture_skipped
@@ -136,6 +150,7 @@ describe('the location switch is a control, not a preference', () => {
     // switch to work. This is the half that must not regress: with tracking on,
     // a check-in with no fix is refused, exactly as before.
     const f = await fixture('require-coords')
+    await agreeLocation(f.carerToken)
     const visitId = (await latestVisit(f.orgId)).id
 
     const res = await request(app).post(`/homecare/visits/${visitId}/check-in`)
@@ -152,6 +167,7 @@ describe('the location switch is a control, not a preference', () => {
     expect((await latestVisit(f.orgId)).check_in_latitude).toBeNull()
 
     await setTracking(f.orgId, true, f.adminId)
+    await agreeLocation(f.carerToken)
     await request(app).post(`/homecare/visits/${visitId}/check-out`).set('Authorization', `Bearer ${f.carerToken}`)
       .send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 9 })
     const visit = await latestVisit(f.orgId)

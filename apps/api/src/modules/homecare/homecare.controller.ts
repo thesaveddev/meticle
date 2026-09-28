@@ -10,6 +10,7 @@ import { processEmailDsnWebhook } from '../../shared/utils/email.dsn';
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
 import { UserRole } from '@meticle/shared';
+import { STAFF_LOCATION_NOTICE_KEY, STAFF_LOCATION_NOTICE_VERSION } from './staffLocationNotice';
 
 function orgId(req: Request): string {
   const value = req.user?.organizationId;
@@ -1175,6 +1176,143 @@ export class HomecareController {
       notice_key, notice_version, app_version: app_version ?? null,
     });
     res.status(201).json({ notice_key, notice_version, accepted: true });
+  }
+
+  /* ─── Per-worker location decision ─────────────────────────── */
+
+  /**
+   * This worker's own decision about their location, and what it currently means.
+   *
+   * The mobile app calls this before deciding whether to ask the phone for a
+   * position at all, so the answer that matters is not "what did you decide" but
+   * "should this app collect anything right now" — which is also false when the
+   * employer has switched location off, and false when the worker has simply not
+   * been asked yet. `collects_location` answers that in one field, so a client
+   * cannot accidentally treat a refusal as a gap to fill.
+   */
+  static async getMyLocationDecision(req: Request, res: Response) {
+    const [decision, tracking] = await Promise.all([
+      migrateQuery(
+        'SELECT decision, notice_version, app_version, decided_at FROM staff_location_decisions WHERE user_id = $1',
+        [userId(req)],
+      ),
+      query('SELECT location_tracking_enabled FROM organizations WHERE id = $1', [orgId(req)]),
+    ]);
+    const row = decision.rows[0];
+    const orgEnabled = tracking.rows[0]?.location_tracking_enabled !== false;
+    const choice = (row?.decision as 'agreed' | 'declined' | undefined) ?? null;
+    res.json({
+      decision: choice,
+      notice_version: row?.notice_version ?? null,
+      app_version: row?.app_version ?? null,
+      decided_at: row?.decided_at ?? null,
+      organisation_collects_location: orgEnabled,
+      // False for a refusal, for a worker who has not answered, and for an
+      // employer who has switched location off. One boolean, because "am I about
+      // to be tracked" has one answer.
+      collects_location: orgEnabled && choice === 'agreed',
+      // What a client should stamp on a decision it is recording. The notice
+      // text is bundled with the mobile app, so the browser has no copy of it
+      // to read a version out of; it takes the version from here instead. That
+      // keeps "which notice were you shown" answerable without a second copy of
+      // the text drifting out of step with the first.
+      current_notice_key: STAFF_LOCATION_NOTICE_KEY,
+      current_notice_version: STAFF_LOCATION_NOTICE_VERSION,
+    });
+  }
+
+  /**
+   * Record a worker's decision, in either direction, at any time.
+   *
+   * Self-service and self-scoped: a worker may agree, decline, or change their
+   * mind, and there is no endpoint by which a manager can record it on their
+   * behalf. That is the point of the control — a decision recorded by the
+   * employer is not a decision by the worker, and a "consent" that an employer
+   * can enter on a staff member's behalf is not consent.
+   *
+   * The write upserts, so changing the answer replaces the current row rather
+   * than accumulating a history nobody reads. The history is in audit_logs,
+   * which records both directions, because "she declined last Tuesday and then
+   * agreed on Wednesday" is exactly the sequence a provider may have to explain.
+   */
+  static async setMyLocationDecision(req: Request, res: Response) {
+    const { decision, notice_key, notice_version, app_version } = req.body as {
+      decision: 'agreed' | 'declined'; notice_key: string; notice_version: string; app_version?: string;
+    };
+    const previous = await migrateQuery(
+      'SELECT decision FROM staff_location_decisions WHERE user_id = $1',
+      [userId(req)],
+    );
+    const saved = await migrateQuery(
+      `INSERT INTO staff_location_decisions (user_id, organization_id, decision, notice_key, notice_version, app_version, decided_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (user_id) DO UPDATE
+         SET decision = EXCLUDED.decision,
+             notice_key = EXCLUDED.notice_key,
+             notice_version = EXCLUDED.notice_version,
+             app_version = EXCLUDED.app_version,
+             decided_at = NOW()
+       RETURNING id, decision, decided_at`,
+      [userId(req), orgId(req), decision, notice_key, notice_version, app_version ?? null],
+    );
+    // Action names the direction, so a decline and a withdrawal are different
+    // events in the trail rather than two identical "update" rows. No location
+    // is in this payload, and none ever is — it records the decision, not the
+    // data it was about.
+    audit(req, decision === 'agreed' ? 'agree' : 'decline', 'staff_location_decision', saved.rows[0].id, {
+      previous_decision: previous.rows[0]?.decision ?? null,
+      decision,
+      notice_key,
+      notice_version,
+      app_version: app_version ?? null,
+    });
+    res.status(201).json({ decision: saved.rows[0].decision, decided_at: saved.rows[0].decided_at });
+  }
+
+  /**
+   * The evidence a provider needs: who has agreed, who has declined, who has
+   * not answered, over the workers who can actually be recorded.
+   *
+   * Denominator matters more than the counts. "3 of 2 agreed" is a bug report
+   * wearing a summary, so the total is the number of active workers who could
+   * be asked, and every worker without a row is counted as not yet answered
+   * rather than quietly omitted — otherwise an organisation could show a
+   * flattering "100% agreed" by having answered for four of its forty workers.
+   *
+   * Manager-readable and worker names included, because the question being asked
+   * is "who has agreed", and a count cannot answer it. It exposes a decision, not
+   * any position, and the worker-facing direction of the same data is their own
+   * row only.
+   */
+  static async getLocationDecisionSummary(req: Request, res: Response) {
+    const oid = orgId(req);
+    const result = await query(
+      `SELECT u.id AS user_id,
+              sp.first_name || ' ' || sp.last_name AS name,
+              d.decision,
+              d.notice_version,
+              d.decided_at
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+       LEFT JOIN staff_location_decisions d ON d.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+       ORDER BY name`,
+      [oid],
+    );
+    const workers = result.rows.map((w: any) => ({
+      user_id: w.user_id,
+      name: w.name,
+      decision: w.decision ?? null,
+      notice_version: w.notice_version ?? null,
+      decided_at: w.decided_at ?? null,
+    }));
+    res.json({
+      total: workers.length,
+      agreed: workers.filter(w => w.decision === 'agreed').length,
+      declined: workers.filter(w => w.decision === 'declined').length,
+      not_answered: workers.filter(w => w.decision === null).length,
+      workers,
+    });
   }
 
   /* ─── Location tracking kill switch ─────────────────────────── */

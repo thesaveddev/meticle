@@ -7,7 +7,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, measureVisitDistance, formatDistance } from '../services/location'
-import { getLocationThreshold, getLocationTrackingEnabled, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
+import { getLocationDecision, getLocationThreshold, getLocationTrackingEnabled, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconNavigate, IconTwoPerson, IconTransfer } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -141,6 +141,12 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [nextCallModal, setNextCallModal] = useState(false)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [locationThreshold, setLocationThreshold] = useState(500)
+  // Whether this worker's position may be collected at all: the employer's
+  // switch AND this worker's own answer. One flag, so the capture and the
+  // distance check below cannot come apart — a worker who said no must not be
+  // told they are "too far from the client" on the strength of a position the
+  // app was not entitled to take.
+  const [collectsLocation, setCollectsLocation] = useState(false)
   // Mirrors the organisation's switch. When it is off the app takes no position
   // at all: no permission prompt, no distance check, no coordinates sent. The
   // server is the authority on this — it refuses the map and ignores any
@@ -197,6 +203,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   useEffect(() => {
     if (session?.accessToken) {
       getLocationThreshold(session.accessToken).then(setLocationThreshold).catch(() => {})
+      getLocationDecision(session.accessToken)
+        .then(d => setCollectsLocation(Boolean(d?.collects_location)))
+        .catch(() => { /* Unreachable: collect nothing, which is the safe direction. */ })
       getLocationTrackingEnabled(session.accessToken).then(setLocationTrackingEnabled).catch(() => {})
       getRequirePhoto(session.accessToken).then(setRequirePhoto).catch(() => {})
     }
@@ -350,12 +359,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
     setBusy(true)
     try {
-      const location = locationTrackingEnabled ? await getVisitLocation() : null
+      const location = collectsLocation ? await getVisitLocation() : null
 
-      // Verify location on check-in AND check-out, when the organisation
-      // collects location at all. With tracking off there is no fix to check
-      // against, and the visit is still recorded.
-      if (locationTrackingEnabled && visit.person_latitude && visit.person_longitude && location && location.latitude && location.longitude) {
+      // Verify location on check-in AND check-out, but only when this worker's
+      // position may be collected at all. With tracking off, or with this worker
+      // having declined, there is no fix to check against — and the visit is
+      // still recorded, which is the whole point of honouring a refusal rather
+      // than refusing the check-in.
+      if (collectsLocation && visit.person_latitude && visit.person_longitude && location && location.latitude && location.longitude) {
         const distance = haversineDistance(
           location.latitude, location.longitude,
           visit.person_latitude, visit.person_longitude
@@ -383,7 +394,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       if (action === 'check-in') {
         setCheckedInAt(dateStamp())
         setCheckedInLocation(location?.latitude ? { latitude: location.latitude, longitude: location.longitude } : null)
-        setSuccess(result.synced ? `Checked in at ${dateStamp()}. Location recorded.` : 'Checked in offline. Will sync when you reconnect.')
+        // Say which of the two happened. "Location recorded" is a claim about
+        // the worker's position, and printing it for a worker who declined
+        // would be the app telling them it holds something it does not.
+        setSuccess(result.synced
+          ? (location?.latitude
+            ? `Checked in at ${dateStamp()}. Location recorded.`
+            : `Checked in at ${dateStamp()}. Your location was not recorded.`)
+          : 'Checked in offline. Will sync when you reconnect.')
       } else {
         setSuccess(result.synced ? `Call completed at ${dateStamp()}. Saved.` : 'Saved offline. Will sync when you reconnect.')
         if (nextVisit) {

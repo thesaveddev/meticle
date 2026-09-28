@@ -21,7 +21,8 @@ commercial or legal position rather than a code fact, it is marked ⚠️.
 | Name, email, phone, address, date of birth, profile photo | `users`, `staff_profiles` in `apps/api/src/shared/database/schema.sql` |
 | Client health records, care notes, body maps, risk assessments | `BodyMapScreen`, `ClientDetailScreen`, `NutritionScreen` |
 | Medication and safeguarding/incident records | `ReportIncidentScreen`, incident module |
-| Precise location at check-in and check-out | `expo-location`; `VisitScreen` check-in |
+| Precise location at check-in and check-out | `expo-location`; `VisitScreen` check-in. **Conditional** — collected only where the worker's employer has location recording switched on **and** that worker has agreed to it. A worker who declines, or who has not yet answered, has no position read, sent, stored or plotted |
+| The worker's own location decision (agreed / declined) | `StaffNoticeScreen`; `POST /homecare/location-decision`, `staff_location_decisions` (migration 133). No position is ever attached to it |
 | Photos and file attachments as evidence | `expo-image-picker`, chat file metadata |
 | Chat messages between staff | `ChatScreen` |
 | Payroll and mileage figures | `CarerTotalsScreen`, `services/payslip.ts` |
@@ -46,6 +47,17 @@ Top-level: **Your app collects or shares some of the required user data types: Y
 
 - **Is any of this collected for analytics or advertising?** No. There is no
   analytics or ads SDK in the mobile dependency tree.
+- **Precise location is declared as collected, and it is conditional.** The "Yes"
+  is correct — the app does collect it, for the workers it applies to. Two
+  conditions now sit in front of it, and a reviewer comparing the declaration to
+  the app's behaviour should be told both rather than discovering them: the
+  worker's employer must have location recording switched on, and that worker
+  must have agreed (migration 133, `DPIA` §5.3). A worker who has declined or has
+  not yet answered is not collected from — silence is not agreement. The app also
+  collects and stores **the worker's decision itself**, which is personal data
+  about an employee and is declared above; it holds no position. If the decision
+  is later found to need its own line on either form, that is a judgement for
+  whoever signs the declaration, not a code fact.
 - **Is data encrypted in transit?** Yes — all API traffic is HTTPS. The binary
   declares `ITSAppUsesNonExemptEncryption: false` in `apps/mobile/app.json`, so
   App Store Connect will not ask the encryption questions.

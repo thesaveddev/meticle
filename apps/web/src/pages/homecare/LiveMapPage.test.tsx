@@ -178,3 +178,63 @@ describe('the time a live-map pin shows', () => {
     expect(popup).not.toContain(clockTime(hoursAgo(0.03)))
   })
 })
+
+/**
+ * A missing pin has to say why. "No GPS" on its own blames the phone or the
+ * permission, and for a carer who deliberately said no it is the page making
+ * them look like the malfunction.
+ */
+describe('why a visit has no position', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    popups.length = 0
+    localStorage.clear()
+    localStorage.setItem('user', JSON.stringify({ id: 'm1', role: 'MANAGER' }))
+  })
+
+  const noPosition = (reason: string | null) =>
+    visit({ latitude: null, longitude: null, position_source: null, position_captured_at: null, location_skip_reason: reason })
+
+  it('names a worker who declined, rather than implying a broken phone', async () => {
+    serve([noPosition('worker_declined')])
+    renderPage()
+
+    expect(await screen.findByText('Declined by worker')).toBeInTheDocument()
+    expect(screen.queryByText('No GPS')).toBeNull()
+  })
+
+  it('distinguishes a worker who has not been asked from one who said no', async () => {
+    serve([noPosition('not_agreed')])
+    renderPage()
+
+    expect(await screen.findByText('No decision yet')).toBeInTheDocument()
+    // The two are different situations and collapsing them would hide an
+    // employer who has simply not got round to asking.
+    expect(screen.queryByText('Declined by worker')).toBeNull()
+  })
+
+  it('names the organisation switch when that is the reason', async () => {
+    serve([noPosition('organisation_disabled')])
+    renderPage()
+
+    expect(await screen.findByText('Org has location off')).toBeInTheDocument()
+  })
+
+  it('still says "No GPS" when the API gives no reason at all', async () => {
+    // A visit recorded before the reason column existed. Rendering nothing
+    // would leave a blank column, and rendering a reason nobody stored would
+    // be inventing one.
+    serve([noPosition(null)])
+    renderPage()
+
+    expect(await screen.findByText('No GPS')).toBeInTheDocument()
+  })
+
+  it('never claims a reason while a position exists', async () => {
+    serve([visit({ location_skip_reason: 'worker_declined' })])
+    renderPage()
+
+    expect(await screen.findByText('GPS recorded')).toBeInTheDocument()
+    expect(screen.queryByText('Declined by worker')).toBeNull()
+  })
+})

@@ -273,6 +273,22 @@ const staffNoticeSchema = z.object({
 router.get('/staff-notices/:noticeKey', asyncHandler(HomecareController.getStaffNotice));
 router.post('/staff-notices', validate(staffNoticeSchema), asyncHandler(HomecareController.acknowledgeStaffNotice));
 
+// Per-worker location decision. The read is available to any signed-in worker
+// because the mobile app has to know its own answer before it asks the phone
+// for a position; the write is self-scoped by the RLS policy on the table, so
+// there is no route by which one worker can record another's decision.
+const locationDecisionSchema = z.object({
+  decision: z.enum(['agreed', 'declined']),
+  notice_key: z.string().min(1).max(64),
+  notice_version: z.string().min(1).max(32),
+  app_version: z.string().max(32).optional(),
+});
+router.get('/location-decision', asyncHandler(HomecareController.getMyLocationDecision));
+router.post('/location-decision', validate(locationDecisionSchema), asyncHandler(HomecareController.setMyLocationDecision));
+// The evidence view. Managers only, and it carries decisions rather than any
+// position data, so a manager learns who agreed and not where anyone was.
+router.get('/location-decisions', requireRole(...managerRoles), asyncHandler(HomecareController.getLocationDecisionSummary));
+
 // Photo requirement on check-out
 const photoReqSchema = z.object({ require_photo_on_checkout: z.boolean() });
 router.patch('/settings/require-photo', requireRole(...managerRoles), validate(photoReqSchema), asyncHandler(HomecareController.updateRequirePhoto));

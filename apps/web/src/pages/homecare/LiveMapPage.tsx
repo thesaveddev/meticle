@@ -27,6 +27,7 @@ interface MapVisit {
   scheduled_end: string
   position_source: 'check_in' | 'check_out' | null
   position_captured_at: string | null
+  location_skip_reason: 'organisation_disabled' | 'worker_declined' | 'not_agreed' | null
   latitude: number | null
   longitude: number | null
   is_active: boolean
@@ -75,6 +76,25 @@ const ageLabel = (minutes: number): string => {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
   return rest ? `${hours}h ${rest}m ago` : `${hours}h ago`
+}
+
+/**
+ * Why there is no pin, when there is none.
+ *
+ * "No GPS" on its own reads as a broken phone or a carer who forgot to allow
+ * the permission — and both of those are the carer being at fault for a decision
+ * the employer or the carer themselves made. The API records the reason, so this
+ * page says it: a worker who declined is not a malfunction, and neither is one
+ * who has not been asked yet.
+ *
+ * Only shown when there is genuinely no position. The org switch is handled on
+ * its own page, so it is not repeated here unless a visit was actually recorded
+ * with the organisation reason against it.
+ */
+const SKIP_REASON_LABEL: Record<string, string> = {
+  worker_declined: 'Declined by worker',
+  not_agreed: 'No decision yet',
+  organisation_disabled: 'Org has location off',
 }
 
 /**
@@ -405,7 +425,17 @@ export default function LiveMapPage() {
                         {caption && <Typography variant="caption" sx={{ color: 'text.secondary' }}>{caption}</Typography>}
                       </>
                     ) : (
-                      <Chip label="No GPS" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', height: 20, fontSize: '0.65rem' }} />
+                      <>
+                        {v.location_skip_reason && SKIP_REASON_LABEL[v.location_skip_reason] ? (
+                          <Chip
+                            label={SKIP_REASON_LABEL[v.location_skip_reason]}
+                            size="small"
+                            sx={{ bgcolor: 'notice.muted.bg', color: 'text.secondary', height: 20, fontSize: '0.65rem' }}
+                          />
+                        ) : (
+                          <Chip label="No GPS" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', height: 20, fontSize: '0.65rem' }} />
+                        )}
+                      </>
                     )}
                   </Stack>
                 </Stack>

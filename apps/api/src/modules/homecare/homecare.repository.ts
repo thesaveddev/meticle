@@ -777,25 +777,76 @@ export async function isLocationTrackingEnabled(orgId: string): Promise<boolean>
   return result.rows[0]?.location_tracking_enabled !== false;
 }
 
+/** The worker's own recorded decision about their location, or null. */
+export type LocationDecision = 'agreed' | 'declined' | null;
+
+/**
+ * What one worker has decided about their location being recorded.
+ *
+ * Read from the database rather than trusted from the request, for the same
+ * reason as the organisation switch: a flag honoured in the client is a
+ * preference, and a preference is not what a refusal is.
+ *
+ * A worker with no row has not decided yet, which is not the same as having
+ * agreed. `null` is returned as-is so the caller can tell "declined" from
+ * "never asked", because the two get different reasons recorded on the visit
+ * and a provider needs to be able to tell a refusal from someone who has not
+ * got round to the question.
+ */
+export async function getWorkerLocationDecision(staffUserId: string): Promise<LocationDecision> {
+  const result = await query(
+    'SELECT decision FROM staff_location_decisions WHERE user_id = $1',
+    [staffUserId],
+  );
+  return (result.rows[0]?.decision as LocationDecision) ?? null;
+}
+
 /**
  * Works out what to do with the coordinates on a check-in or check-out.
  *
- * Three cases, and the difference between the last two is the whole point of
- * the switch:
+ * Four cases now, and the ordering is the whole control:
  *
- *   - tracking on, coordinates present  -> store them
- *   - tracking on, coordinates missing  -> refuse. The route schema has to let
- *     them be optional so an organisation with tracking off can omit them, which
- *     means this is the only place left that can insist they are there. Without
- *     it, making the fields optional would quietly delete the existing
- *     guarantee that every check-in was verified.
- *   - tracking off                     -> store nothing, and say so on the visit
+ *   - organisation off              -> store nothing, reason organisation_disabled
+ *   - this worker declined          -> store nothing, reason worker_declined
+ *   - this worker has not decided   -> store nothing, reason not_agreed
+ *   - agreed, coordinates present   -> store them
+ *   - agreed, coordinates missing   -> refuse
+ *
+ * The organisation switch is checked first because it is the outer control: if
+ * location is off for the provider then it is off for everyone, and a worker's
+ * agreement cannot switch it back on.
+ *
+ * The worker decision is checked before the coordinates are demanded, and that
+ * order matters. Demanding them first would turn "I declined" into a 400 that
+ * blocks the check-in — the app would be refusing to let a care worker start a
+ * shift because they exercised a choice the app was supposed to honour. A
+ * declined worker checks in with no coordinates and the visit is recorded
+ * normally, exactly as happens today when an organisation switches location off.
+ *
+ * A worker with no decision is treated the same as a refusal, because the
+ * alternative is collecting from people who have not agreed to anything, which
+ * would make the agreement record decorative. The cost of that choice falls on
+ * verification rather than on the visit, and the reason is recorded on the visit
+ * so it can be told apart from a device problem.
+ *
+ * The last case is unchanged from before: the route schema has to let the
+ * coordinates be optional so an organisation with tracking off can omit them,
+ * which means this is the only place left that can insist they are there.
  */
 function resolveLocation(
   trackingEnabled: boolean,
+  decision: LocationDecision,
   input: VisitExecutionInput
-): { lat: number | null; lon: number | null; accuracy: number | null; skipped: boolean } {
-  if (!trackingEnabled) return { lat: null, lon: null, accuracy: null, skipped: true };
+): { lat: number | null; lon: number | null; accuracy: number | null; skipped: boolean; skipReason: string | null } {
+  if (!trackingEnabled) {
+    return { lat: null, lon: null, accuracy: null, skipped: true, skipReason: 'organisation_disabled' };
+  }
+  if (decision === 'declined') {
+    return { lat: null, lon: null, accuracy: null, skipped: true, skipReason: 'worker_declined' };
+  }
+  if (decision !== 'agreed') {
+    return { lat: null, lon: null, accuracy: null, skipped: true, skipReason: 'not_agreed' };
+  }
   if (input.latitude == null || input.longitude == null) {
     throw new AppError(400, 'This visit needs a location. Ask the carer to allow location access, or contact support if the device is blocking it.');
   }
@@ -804,6 +855,7 @@ function resolveLocation(
     lon: input.longitude,
     accuracy: input.accuracy_meters ?? null,
     skipped: false,
+    skipReason: null,
   };
 }
 
@@ -838,9 +890,13 @@ export async function checkIn(orgId: string, staffUserId: string, visitId: strin
       throw new AppError(400, `This call ended at ${scheduledEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}. It is ${minutesOver} minutes past the scheduled end time. Please contact your manager.`);
     }
   }
-  const location = resolveLocation(await isLocationTrackingEnabled(orgId), input);
-  const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, location_capture_skipped = $4, actual_travel_minutes = COALESCE($5, actual_travel_minutes), actual_mileage_miles = COALESCE($6, actual_mileage_miles), updated_at = NOW()
-    WHERE id = $7 AND organization_id = $8 RETURNING *`, [location.lat, location.lon, location.accuracy, location.skipped, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
+  const location = resolveLocation(
+    await isLocationTrackingEnabled(orgId),
+    await getWorkerLocationDecision(staffUserId),
+    input,
+  );
+  const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, location_capture_skipped = $4, location_capture_skip_reason = $5, actual_travel_minutes = COALESCE($6, actual_travel_minutes), actual_mileage_miles = COALESCE($7, actual_mileage_miles), updated_at = NOW()
+    WHERE id = $8 AND organization_id = $9 RETURNING *`, [location.lat, location.lon, location.accuracy, location.skipped, location.skipReason, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
   return result.rows[0];
 }
 
@@ -855,8 +911,12 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
   const { total, done } = taskCount.rows[0];
   if (total > 0 && done < total) throw new AppError(409, `Complete all tasks before checking out (${done}/${total} done)`);
   return transaction(async (client) => {
-    const location = resolveLocation(await isLocationTrackingEnabled(orgId), input);
-    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, check_out_accuracy_meters = $9, location_capture_skipped = $10, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [location.lat, location.lon, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null, location.accuracy, location.skipped]);
+    const location = resolveLocation(
+      await isLocationTrackingEnabled(orgId),
+      await getWorkerLocationDecision(staffUserId),
+      input,
+    );
+    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, check_out_accuracy_meters = $9, location_capture_skipped = $10, location_capture_skip_reason = $11, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [location.lat, location.lon, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null, location.accuracy, location.skipped, location.skipReason]);
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
     const v = updated.rows[0];
     const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));

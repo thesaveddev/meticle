@@ -22,6 +22,12 @@ export interface LiveMapVisit {
    * query below, so the two cannot describe different moments.
    */
   position_captured_at: string | null;
+  /**
+   * Why there is no position, when there is not one. Null whenever a position
+   * exists. Carried so the page can say "this worker declined" rather than
+   * showing a bare "No GPS", which reads as a broken phone.
+   */
+  location_skip_reason: 'organisation_disabled' | 'worker_declined' | 'not_agreed' | null;
   latitude: number | null;
   longitude: number | null;
   is_active: boolean;
@@ -57,6 +63,7 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
   const result = await query(`
     SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,
            p.latitude, p.longitude, p.position_source, p.position_captured_at,
+           v.location_capture_skip_reason,
            pe.first_name || ' ' || pe.last_name AS person_name,
            l.address AS person_address,
            pe.location_id AS location_id,
@@ -67,6 +74,14 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     JOIN people pe ON pe.id = v.person_id
     LEFT JOIN locations l ON l.id = pe.location_id
     LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+    -- A worker's own decision gates their position here as well as at capture.
+    -- The check-in path already refuses to store a position for someone who
+    -- declined, so this is belt and braces rather than the primary control — but
+    -- it is the primary control for the rows that are already in the table. A
+    -- worker who declined today still has the position they agreed to last
+    -- month, and showing it as a live pin would honour neither the decision nor
+    -- the person who made it.
+    LEFT JOIN staff_location_decisions sld ON sld.user_id = sp.user_id
     -- One lateral, so the coordinates and the timestamp that describes them are
     -- chosen by the same branch and cannot drift apart.
     --
@@ -84,10 +99,12 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
       SELECT v.check_in_latitude AS latitude, v.check_in_longitude AS longitude,
              'check_in'::text AS position_source, v.check_in_at AS position_captured_at
       WHERE v.check_in_latitude IS NOT NULL AND v.check_in_longitude IS NOT NULL
+        AND sld.decision = 'agreed'
       UNION ALL
       SELECT v.check_out_latitude, v.check_out_longitude,
              'check_out'::text, v.check_out_at
       WHERE v.check_out_latitude IS NOT NULL AND v.check_out_longitude IS NOT NULL
+        AND sld.decision = 'agreed'
       LIMIT 1
     ) p ON TRUE
     WHERE v.organization_id = $1
@@ -134,6 +151,7 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     scheduled_end: v.scheduled_end,
     position_source: v.position_source ?? null,
     position_captured_at: v.position_captured_at ?? null,
+    location_skip_reason: v.location_capture_skip_reason ?? null,
     latitude: v.latitude != null ? Number(v.latitude) : null,
     longitude: v.longitude != null ? Number(v.longitude) : null,
     is_active: ['en_route', 'checked_in'].includes(v.status),

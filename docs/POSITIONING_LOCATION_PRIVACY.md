@@ -96,6 +96,39 @@ notice says "we don't know" rather than guessing. A notice that guesses is
 worse than one that admits the gap, because the worker cannot tell which parts
 are reliable.
 
+### 3a. And the carer can say no — individually, with no manager involved
+
+Being told is not being asked. The acknowledgement above evidences disclosure
+and nothing about a decision, so a provider holding it could show "we informed
+our staff" and have no answer to "and did they agree?" `staff_location_decisions`
+(migration 133) records the answer, in either direction, and **only the worker
+can write it** — `POST /homecare/location-decision` is scoped to the signed-in
+user and no manager-scoped write path exists anywhere. A test asserts that
+absence, because the moment a manager can tick a colleague's box it stops being
+an agreement and becomes the employer writing down that it was agreed.
+
+Collection is **fail-closed** on this: `resolveLocation` checks the org switch,
+then a refusal, then *not-answered*, and only then asks for coordinates. Silence
+is not agreement, so a carer who has not reached the question is not collected
+from either — which is what stops the notice from being a formality. The
+manager evidence view (`Settings → Who has agreed to location recording`) shows
+agreed / declined / not-answered over **every** active worker, because a
+denominator of "people who replied" turns a refusal rate into an achievement
+score.
+
+The pitch line, and the one to use when a provider asks how we handle staff who
+object: *a carer who says no is not recorded, and the record of them saying no
+is the only thing we keep.* Visit verification is lost with it and nothing else
+is — the notice, the web copy and the DPIA all say so rather than implying the
+refusal is costless for the provider or punishing for the carer.
+
+The limit, stated because a sales page that hides it loses the room later:
+this is not a lawful basis. MeticleCare is a processor and cannot manufacture
+one for an employer's monitoring of its staff, and a carer agreeing is an
+answer, not a lawful basis. `DPIA` §5.3 and §1.3 say exactly that, and the
+manager panel repeats it on its face so the sentence cannot be separated from
+the number.
+
 ### 4. The data minimisation posture is organisation-level policy, not vendor virtue
 
 The same session shipped `ai_data_minimisation` (migration 130): clinical

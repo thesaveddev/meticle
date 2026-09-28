@@ -41,6 +41,17 @@ async function fixture(suffix: string): Promise<Fixture> {
   const carerProfile = await createStaffProfile({ userId: carer.id })
   const managerToken = generateToken(manager)
 
+  // Collection requires a worker's own recorded agreement (migration 133), and
+  // the map plots a position only for a worker who has agreed. This file is
+  // about *which time* a pin reports, so the worker agrees first and the
+  // agreement is not what is under test.
+  await migrateQuery(
+    `INSERT INTO staff_location_decisions (user_id, organization_id, decision, notice_key, notice_version)
+     VALUES ($1, $2, 'agreed', 'staff_location', '1.1')
+     ON CONFLICT (user_id) DO NOTHING`,
+    [carer.id, org.id],
+  )
+
   const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({
     person_id: person.id, name: 'Support package', start_date: new Date().toISOString().split('T')[0], hourly_rate_pence: 1500,
   })

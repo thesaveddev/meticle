@@ -33,6 +33,8 @@ import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
 import { disablePushNotifications, enablePushNotifications, getPushState, type PushState } from '../../services/push'
 import { EmptyState } from '../../components/design/EmptyState'
+import LocationDecisionControl from '../../components/LocationDecisionControl'
+import LocationDecisionEvidence from '../../components/LocationDecisionEvidence'
 
 // Mirrors the API rule for SOS contact numbers: a number that reaches the mobile
 // dialer must contain nothing but dialable characters.
@@ -595,6 +597,15 @@ export default function SettingsPage() {
       </Paper>
       <NotificationPreferencesSection />
       <PushNotificationsSection />
+      {/*
+        A carer's own decision about location recording, on the tab every user
+        gets. It is here and not on the organisation tab because that one is
+        manager-only, and the person who has to answer is the one who has to be
+        able to see the question. No manager can write this answer — the API has
+        no endpoint for it — so the control cannot become a tick-box on someone
+        else's behalf.
+      */}
+      <LocationDecisionControl />
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#DC2626' }}>Danger Zone</Typography>
         <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
@@ -836,6 +847,14 @@ export default function SettingsPage() {
           </Typography>
         )}
       </Paper>
+
+      {/*
+        The organisation switch sets the ceiling; this is what each carer
+        answered underneath it. Shown to managers, not to the org admin alone,
+        because the question "has everyone on shift actually been told?" is
+        asked by the person running the shift.
+      */}
+      <LocationDecisionEvidence />
 
       {/* Organization Details */}
       {orgDetails && (

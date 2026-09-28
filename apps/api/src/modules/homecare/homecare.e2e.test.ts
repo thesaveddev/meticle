@@ -61,6 +61,15 @@ describe('Homecare E2E critical workflows', () => {
     const managerToken = generateToken(manager)
     const carerToken = generateToken(carer)
 
+    // Since migration 133 a worker's own recorded agreement gates collection,
+    // so this test has to establish it before asserting that a position is
+    // stored. The gate itself is covered in the location decision tests.
+    const agreeRes = await request(app)
+      .post('/homecare/location-decision')
+      .set('Authorization', `Bearer ${carerToken}`)
+      .send({ decision: 'agreed', notice_key: 'staff_location', notice_version: '1.1' })
+    expect(agreeRes.status).toBe(201)
+
     // Create package
     const pkgRes = await request(app)
       .post('/homecare/packages')

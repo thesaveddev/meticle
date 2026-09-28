@@ -10,6 +10,12 @@ jest.mock('../../services/api', () => ({
   // Defaults true so the existing tests exercise the location-on path. The
   // switch-off path has its own tests below.
   getLocationTrackingEnabled: jest.fn(async () => true),
+  // Agreed, so the location-on path is what these tests exercise. A worker who
+  // declined is covered below, because that path must not read a position.
+  getLocationDecision: jest.fn(async () => ({
+    decision: 'agreed', notice_version: '1.1',
+    organisation_collects_location: true, collects_location: true,
+  })),
   getRequirePhoto: jest.fn(async () => false),
   toggleVisitTask: jest.fn(async () => ({})),
   addVisitTask: jest.fn(async () => ({ id: 'created', label: 'created', done: false, sort_order: 99 })),
@@ -246,15 +252,33 @@ describe('VisitScreen location capture', () => {
  */
 describe('VisitScreen when the organisation has switched location off', () => {
   const mockTracking = api.getLocationTrackingEnabled as jest.MockedFunction<typeof api.getLocationTrackingEnabled>
+  const mockDecision = api.getLocationDecision as jest.MockedFunction<typeof api.getLocationDecision>
   const mockGetVisitLocation = jest.requireMock('../../services/location').getVisitLocation as jest.Mock
 
+  // The carer here has agreed to the notice — the organisation is the thing that
+  // has switched collection off. So the worker's own decision stays `agreed`
+  // and only the organisation-wide half of `collects_location` turns false. This
+  // is the case the app has to get right: the two are independent, and a worker
+  // agreeing must not override their employer's switch.
   beforeEach(() => {
     mockTracking.mockResolvedValue(false)
+    mockDecision.mockResolvedValue({
+      decision: 'agreed',
+      notice_version: '1.1',
+      organisation_collects_location: false,
+      collects_location: false,
+    })
     mockGetVisitLocation.mockClear()
   })
 
   afterEach(() => {
     mockTracking.mockResolvedValue(true)
+    mockDecision.mockResolvedValue({
+      decision: 'agreed',
+      notice_version: '1.1',
+      organisation_collects_location: true,
+      collects_location: true,
+    })
   })
 
   it('never asks for a position', async () => {

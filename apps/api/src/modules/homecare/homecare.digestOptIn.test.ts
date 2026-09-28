@@ -136,7 +136,10 @@ describe('the opt-in invariant, in the places that decide it', () => {
   it('is registered in the migration list, not just present on disk', () => {
     const setup = read('apps/api/src/shared/database/setup.ts')
     expect(setup).toMatch(/MIGRATION_132/)
-    expect(setup).toMatch(/MIGRATION_131, MIGRATION_132\]/)
+    // Positional, because a migration file that exists but is absent from the
+    // list is silently never applied. Asserted as a run of three so a later
+    // migration appended to the list does not fail this for the wrong reason.
+    expect(setup).toMatch(/MIGRATION_131, MIGRATION_132, MIGRATION_133\]/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

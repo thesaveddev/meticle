@@ -18,7 +18,7 @@
  */
 
 /** Bump when the text changes materially. Triggers re-acknowledgement. */
-export const STAFF_LOCATION_NOTICE_VERSION = '1.0'
+export const STAFF_LOCATION_NOTICE_VERSION = '1.1'
 
 /** Stable key, so a future notice is a new key rather than a confused version. */
 export const STAFF_LOCATION_NOTICE_KEY = 'staff_location'
@@ -181,12 +181,32 @@ export const STAFF_LOCATION_NOTICE: NoticeSection[] = [
     ],
   },
   {
+    heading: 'Your choice',
+    body: [
+      'After reading this you can say yes or no to your employer recording your position at ' +
+        'check-in and check-out. Saying yes records that you were told this and agreed to it. ' +
+        'Saying no records that you were told this and did not agree.',
+      'If you say no, the app stops sending your position when you check in and check out, and ' +
+        'your location is kept off the check-in map. Your visits, care notes, timesheets and pay ' +
+        'are unaffected — you can still check in, do the call, and check out normally.',
+      'One thing is lost with it: nobody can then check that you were at the person\'s address, ' +
+        'because the app would not be reading your position to do that. That is a real cost, and ' +
+        'it is yours to weigh against the alternative, not something the app decides for you.',
+      'You can change your answer at any time, in either direction, without giving a reason.',
+    ],
+    points: [
+      'Saying no does not stop you using the app, and does not stop your visits being recorded.',
+      'Your employer can see that you have declined and when, because they have to be able to ' +
+        'evidence who agreed — but they cannot change your answer for you.',
+    ],
+  },
+  {
     heading: 'Seeing what is held, or objecting',
     body: [
       'The app does not show you a history of your own recorded positions, so you cannot check ' +
         'from the app what has been kept. To find out, or to ask for it to be corrected, or to ' +
-        'object to your employer collecting it, contact your employer — they are the ones who ' +
-        'hold it and who decide how it is used.',
+        'object to your employer collecting it at all, contact your employer — they are the ones ' +
+        'who hold it and who decide how it is used.',
       'Your employer is required to have a way for you to raise a concern about this. If you ' +
         'feel your position is being monitored in a way that is unfair, or that you have not ' +
         'agreed to, that is a matter for them to answer, and for your union or representative ' +
@@ -207,4 +227,20 @@ export function needsAcknowledgement(
   if (!accepted) return true
   if (accepted.notice_key !== STAFF_LOCATION_NOTICE_KEY) return true
   return accepted.notice_version !== STAFF_LOCATION_NOTICE_VERSION
+}
+
+/**
+ * Whether this worker has answered the agree-or-decline question.
+ *
+ * Separate from the acknowledgement on purpose, and the two are not merged. "I
+ * have read this" and "I agree to my employer recording my position" are
+ * different answers to different questions, and a provider who needs to show
+ * that a worker agreed cannot be given the first one in place of the second.
+ *
+ * A worker who has read the notice but not answered is not collecting, because
+ * collection requires an agreement that does not exist yet. That is the same
+ * fail-closed rule the API applies, stated here so the two cannot drift.
+ */
+export function needsDecision(decision: string | null | undefined): boolean {
+  return decision !== 'agreed' && decision !== 'declined'
 }

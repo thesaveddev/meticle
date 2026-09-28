@@ -198,6 +198,50 @@ export async function acknowledgeStaffNotice(
   }, token)
 }
 
+/** What this worker has decided about their location being recorded. */
+export type LocationDecisionStatus = {
+  decision: 'agreed' | 'declined' | null
+  notice_version: string | null
+  app_version?: string | null
+  decided_at?: string | null
+  organisation_collects_location: boolean
+  /** The single question the app actually needs answered: should we collect? */
+  collects_location: boolean
+}
+
+/**
+ * This worker's own decision, and whether anything should be collected.
+ *
+ * `collects_location` is false for a refusal, for a worker who has not been
+ * asked yet, and for an employer who has switched location off. The app asks
+ * for one boolean rather than reasoning about the three cases separately, so
+ * "should I ask the phone where this worker is?" cannot come out as true in
+ * any of them.
+ */
+export async function getLocationDecision(token: string): Promise<LocationDecisionStatus> {
+  const res = await request<LocationDecisionStatus>('/homecare/location-decision', {}, token)
+  return res
+}
+
+/**
+ * Record this worker's answer, in either direction.
+ *
+ * Throws on failure, like the acknowledgement. A decision that failed to write
+ * would leave the app collecting for a worker who said no, which is the one
+ * outcome this whole control exists to prevent — so the screen holds rather
+ * than proceeding on the assumption it landed.
+ */
+export async function setLocationDecision(
+  token: string,
+  decision: 'agreed' | 'declined',
+  notice: { notice_key: string; notice_version: string; app_version?: string }
+): Promise<void> {
+  await request('/homecare/location-decision', {
+    method: 'POST',
+    body: JSON.stringify({ decision, ...notice }),
+  }, token)
+}
+
 export async function getRequirePhoto(token: string): Promise<boolean> {
   const res = await request<{ require_photo_on_checkout: boolean }>('/homecare/settings/require-photo', {}, token)
   return res.require_photo_on_checkout || false
