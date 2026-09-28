@@ -419,7 +419,7 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
            COALESCE(dp.morning_time, '08:00'::time) AS morning_time,
            COALESCE(dp.midday_time, '13:00'::time) AS midday_time,
            COALESCE(dp.evening_time, '19:00'::time) AS evening_time,
-           COALESCE(dp.weekly_enabled, TRUE) AS weekly_enabled,
+           COALESCE(dp.weekly_enabled, FALSE) AS weekly_enabled,
            COALESCE(dp.weekly_time, '07:30'::time) AS weekly_time,
            COALESCE(dp.timezone, 'Europe/London') AS timezone
     FROM users u

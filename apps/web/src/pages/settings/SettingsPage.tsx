@@ -43,6 +43,18 @@ function emergencyPhoneError(value?: string | null): string {
   return /^[0-9+()\-\s]+$/.test(trimmed) ? '' : 'Use digits, spaces and + - ( ) only'
 }
 
+// The signed-in user's role, read from the same localStorage copy the page
+// itself uses. Needed by NotificationPreferencesSection, which is a separate
+// component and does not inherit the page's `user`.
+function currentUserRole(): string | undefined {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? JSON.parse(raw)?.role : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -2310,6 +2322,10 @@ function PushNotificationsSection() {
 }
 
 function NotificationPreferencesSection() {
+  // The API sends the weekly digest to ORG_ADMIN and MANAGER only, so nobody
+  // else is offered the switch — a toggle that can never send anything is worse
+  // than no toggle.
+  const canReceiveWeekly = ['ORG_ADMIN', 'MANAGER'].includes(currentUserRole() || '')
   const [prefs, setPrefs] = useState<any[]>([])
   const [digest, setDigest] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -2385,6 +2401,11 @@ function NotificationPreferencesSection() {
         <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
           Receive one summary for your own calls or organisation each day instead of an email for every call. Each summary can be switched on or off independently. Times use your selected timezone; UK users should use Europe/London.
         </Typography>
+        {canReceiveWeekly && (
+          <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+            The weekly summary covers your whole organisation — completion, lateness and missed calls — and arrives on Monday morning for the week just gone. It is off until you turn it on.
+          </Typography>
+        )}
         {digest && <Grid container spacing={1.5}>
           <Grid item xs={12} md={4}>
             <FormControl fullWidth size="small">
@@ -2400,7 +2421,9 @@ function NotificationPreferencesSection() {
               </Select>
             </FormControl>
           </Grid>
-          {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']].map(([key, label, timeKey]) => (
+          {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']]
+            .concat(canReceiveWeekly ? [['weekly', 'Weekly summary (Mondays)', 'weekly_time'] as [string, string, string]] : [])
+            .map(([key, label, timeKey]) => (
             <Grid item xs={12} md={4} key={key}>
               <Paper variant="outlined" sx={{ p: 1.5 }}>
                 <FormControlLabel

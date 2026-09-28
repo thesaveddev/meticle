@@ -106,13 +106,20 @@ export class NotificationsController {
               TO_CHAR(morning_time, 'HH24:MI') AS morning_time,
               TO_CHAR(midday_time, 'HH24:MI') AS midday_time,
               TO_CHAR(evening_time, 'HH24:MI') AS evening_time,
+              weekly_enabled,
+              TO_CHAR(weekly_time, 'HH24:MI') AS weekly_time,
               COALESCE(timezone, 'Europe/London') AS timezone
        FROM homecare_digest_preferences WHERE user_id = $1`,
       [userId]
     );
+    // No row yet. The three daily windows default on because that is what the
+    // table has always done; the weekly report defaults off, matching
+    // migration 132. A user who never opens settings must not acquire a
+    // Monday-morning report here.
     res.json(result.rows[0] || {
       morning_enabled: true, midday_enabled: true, evening_enabled: true,
       morning_time: '08:00', midday_time: '13:00', evening_time: '19:00',
+      weekly_enabled: false, weekly_time: '07:30',
       timezone: 'Europe/London',
     });
   }
@@ -120,9 +127,14 @@ export class NotificationsController {
   static async updateHomecareDigestPreferences(req: Request, res: Response) {
     const userId = req.user!.userId;
     const body = req.body || {};
-    const timeFields = ['morning_time', 'midday_time', 'evening_time'];
+    const timeFields = ['morning_time', 'midday_time', 'evening_time', 'weekly_time'];
     for (const field of timeFields) {
-      if (body[field] !== undefined && !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(body[field]))) {
+      // The double backslash that used to live in this pattern made it match a
+      // literal backslash instead of a digit, so it rejected every real HH:MM
+      // time and accepted the malformed ones. That meant no digest send time
+      // had ever been saveable through this endpoint, and the weekly field
+      // would have inherited it. Single-escaped on purpose.
+      if (body[field] !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(body[field]))) {
         throw new AppError(400, `${field} must use HH:MM format`);
       }
     }
@@ -132,7 +144,7 @@ export class NotificationsController {
       catch { throw new AppError(400, 'timezone must be a valid IANA timezone'); }
     }
     const existing = await pool.query('SELECT * FROM homecare_digest_preferences WHERE user_id = $1', [userId]);
-    const current = existing.rows[0] || { morning_enabled: true, midday_enabled: true, evening_enabled: true, morning_time: '08:00', midday_time: '13:00', evening_time: '19:00', timezone: 'Europe/London' };
+    const current = existing.rows[0] || { morning_enabled: true, midday_enabled: true, evening_enabled: true, morning_time: '08:00', midday_time: '13:00', evening_time: '19:00', weekly_enabled: false, weekly_time: '07:30', timezone: 'Europe/London' };
     const values = {
       morning_enabled: body.morning_enabled === undefined ? current.morning_enabled : Boolean(body.morning_enabled),
       midday_enabled: body.midday_enabled === undefined ? current.midday_enabled : Boolean(body.midday_enabled),
@@ -140,14 +152,18 @@ export class NotificationsController {
       morning_time: body.morning_time || current.morning_time,
       midday_time: body.midday_time || current.midday_time,
       evening_time: body.evening_time || current.evening_time,
+      // Opt-in: absent from the body means "leave it as it is", and a user with
+      // no row at all gets it off.
+      weekly_enabled: body.weekly_enabled === undefined ? Boolean(current.weekly_enabled) : Boolean(body.weekly_enabled),
+      weekly_time: body.weekly_time || current.weekly_time || '07:30',
       timezone: timezone || current.timezone || 'Europe/London',
     };
     const result = await pool.query(
-      `INSERT INTO homecare_digest_preferences (user_id, morning_enabled, midday_enabled, evening_enabled, morning_time, midday_time, evening_time, timezone, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-       ON CONFLICT (user_id) DO UPDATE SET morning_enabled = EXCLUDED.morning_enabled, midday_enabled = EXCLUDED.midday_enabled, evening_enabled = EXCLUDED.evening_enabled, morning_time = EXCLUDED.morning_time, midday_time = EXCLUDED.midday_time, evening_time = EXCLUDED.evening_time, timezone = EXCLUDED.timezone, updated_at = NOW()
-       RETURNING morning_enabled, midday_enabled, evening_enabled, TO_CHAR(morning_time, 'HH24:MI') AS morning_time, TO_CHAR(midday_time, 'HH24:MI') AS midday_time, TO_CHAR(evening_time, 'HH24:MI') AS evening_time, timezone`,
-      [userId, values.morning_enabled, values.midday_enabled, values.evening_enabled, values.morning_time, values.midday_time, values.evening_time, values.timezone]
+      `INSERT INTO homecare_digest_preferences (user_id, morning_enabled, midday_enabled, evening_enabled, morning_time, midday_time, evening_time, weekly_enabled, weekly_time, timezone, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET morning_enabled = EXCLUDED.morning_enabled, midday_enabled = EXCLUDED.midday_enabled, evening_enabled = EXCLUDED.evening_enabled, morning_time = EXCLUDED.morning_time, midday_time = EXCLUDED.midday_time, evening_time = EXCLUDED.evening_time, weekly_enabled = EXCLUDED.weekly_enabled, weekly_time = EXCLUDED.weekly_time, timezone = EXCLUDED.timezone, updated_at = NOW()
+       RETURNING morning_enabled, midday_enabled, evening_enabled, TO_CHAR(morning_time, 'HH24:MI') AS morning_time, TO_CHAR(midday_time, 'HH24:MI') AS midday_time, TO_CHAR(evening_time, 'HH24:MI') AS evening_time, weekly_enabled, TO_CHAR(weekly_time, 'HH24:MI') AS weekly_time, timezone`,
+      [userId, values.morning_enabled, values.midday_enabled, values.evening_enabled, values.morning_time, values.midday_time, values.evening_time, values.weekly_enabled, values.weekly_time, values.timezone]
     );
     res.json(result.rows[0]);
   }
