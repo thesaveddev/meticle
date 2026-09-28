@@ -1,6 +1,6 @@
 // Clean Care LTD — complete seed
 // Purges ALL data and creates a fresh org with realistic homecare data.
-// Password for the seeded users: ***REMOVED***, except the deployment smoke
+// Password for the seeded users: SEED_PASSWORD, except the deployment smoke
 // account, which takes DEPLOY_SMOKE_PASSWORD instead — see below.
 
 import { Client } from 'pg'
@@ -16,7 +16,13 @@ const DAY = 86400000
 const ago = (n: number) => new Date(Date.now() - n * DAY).toISOString()
 const dateAgo = (n: number) => ago(n).split('T')[0]
 const dateIn = (n: number) => new Date(Date.now() + n * DAY).toISOString().split('T')[0]
-const DEFAULT_PASSWORD = '***REMOVED***'
+// The seed creates loginable accounts; the password is supplied by the
+// operator and must not exist in source.
+const DEFAULT_PASSWORD = process.env.SEED_PASSWORD
+if (!DEFAULT_PASSWORD || DEFAULT_PASSWORD.length < 12) {
+  console.error('Refusing to run without SEED_PASSWORD (min 12 chars).');
+  process.exit(1)
+}
 
 // ── Deployment smoke credential ──────────────────────────────────────────────
 // The deploy pipeline signs in as one seeded account (AUTH_SMOKE_EMAIL /
@@ -59,7 +65,7 @@ if (!USERS.some(u => u.email.toLowerCase() === SMOKE_EMAIL)) {
   )
 }
 
-const PW = bcrypt.hashSync(DEFAULT_PASSWORD, 10)
+const PW = bcrypt.hashSync(DEFAULT_PASSWORD, 12)
 const SMOKE_PW = SMOKE_PASSWORD ? bcrypt.hashSync(SMOKE_PASSWORD, 10) : PW
 let rows = 0
 const ins = async (t: string, p?: any[]) => { await q(t, p); rows++ }

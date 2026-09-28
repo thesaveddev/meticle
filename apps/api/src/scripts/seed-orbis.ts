@@ -1,20 +1,36 @@
 // Comprehensive demo seed — creates a fresh org with a unique name each run
-// Run: npx tsx src/scripts/seed-orbis.ts
-// All staff login with: ***REMOVED***
+// Run: SEED_PASSWORD='...' SEED_ADMIN_EMAIL='...' npx tsx src/scripts/seed-orbis.ts
 //
-// Refuses to run against production. This creates a platform administrator with
-// a password printed in this file, which has no business existing in a real
-// environment. It is not in the production image, but "not deployed" is a weaker
-// guarantee than "refuses to run", and a credential that can be recreated on
-// demand is a Cyber Essentials secure-configuration failure even when unused.
-// Set ALLOW_DEMO_SEED=true if you genuinely need it against production.
-
+// Refuses to run against production. This creates a platform administrator
+// account, so its credentials are supplied by the operator at run time and do
+// not exist in source: a demo password committed to the repository is a real
+// credential for any deployment where that account can log in, and its only
+// defence was that we hoped nobody ran the script. Now there is nothing to
+// hope about — without the two variables below the script cannot start.
+//
+// The password must survive the same quality bar as a real one, because on any
+// environment where it is used it IS one.
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
   console.error(
     'Refusing to run the demo seed against production.\n' +
-      'It creates a platform administrator with a password published in this file.\n' +
+      'It creates a platform administrator account.\n' +
       'Set ALLOW_DEMO_SEED=true only if you have decided that is acceptable.',
   );
+  process.exit(1);
+}
+
+if (!process.env.SEED_PASSWORD || process.env.SEED_PASSWORD.length < 12) {
+  console.error(
+    'Refusing to run without SEED_PASSWORD (min 12 chars).\n' +
+      'The seed creates real login accounts; their password must be supplied by\n' +
+      'the operator, not baked into source. Example:\n' +
+      "  SEED_PASSWORD='...' SEED_ADMIN_EMAIL='admin@example.com' npx tsx src/scripts/seed-orbis.ts",
+  );
+  process.exit(1);
+}
+
+if (!process.env.SEED_ADMIN_EMAIL || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.SEED_ADMIN_EMAIL)) {
+  console.error('Refusing to run without SEED_ADMIN_EMAIL — the platform admin account needs an address, and the previous default (***REMOVED***) is retired.');
   process.exit(1);
 }
 
@@ -25,7 +41,8 @@ import bcrypt from 'bcryptjs'
 // Cost 12, not 10. OWASP treats anything below 12 as too cheap to resist
 // offline cracking, and this hash is the one a real login would be compared
 // against.
-const PWH = bcrypt.hashSync('***REMOVED***', 12)
+const PWH = bcrypt.hashSync(process.env.SEED_PASSWORD!, 12)
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL!
 
 // Bypass RLS for seeding: wrap pool.query so every query runs on a connection
 // with the super-admin RLS session vars set (seed runs outside the request context).
@@ -82,8 +99,8 @@ async function seed() {
 
   // Platform super admin — org-agnostic so it survives org deletion
   await pool.query(`INSERT INTO users (id,organization_id,email,role,status,password_hash) VALUES ($1,NULL,$2,'SUPER_ADMIN','active',$3) ON CONFLICT DO NOTHING`,
-    [uuid(), '***REMOVED***', PWH])
-  console.log('  ✓ Platform super admin ensured (***REMOVED***)')
+    [uuid(), ADMIN_EMAIL, PWH])
+  console.log(`  ✓ Platform super admin ensured (${ADMIN_EMAIL})`)
 
   // ── 2. Locations ──
   const locations = [
@@ -996,10 +1013,10 @@ async function seed() {
   console.log(`✓ "${orgName}" DEMO SEEDED SUCCESSFULLY`)
   console.log('='.repeat(50))
   console.log(`\n  Organisation ID: ${orgId}`)
-  console.log(`  Org admin login: james.mercer@${domain}  (password: ***REMOVED***)`)
-  console.log(`  Platform admin: ***REMOVED***  (password: ***REMOVED***)`)
-  console.log(`\n  Staff can login with: firstname.lastname@${domain}`)
-  console.log(`  All passwords: ***REMOVED***`)
+  console.log(`  Org admin login: james.mercer@${domain}  (password: the SEED_PASSWORD you supplied)`);
+  console.log(`  Platform admin: ${ADMIN_EMAIL}`);
+  console.log(`\n  Staff can login with: firstname.lastname@${domain}`);
+  console.log(`  All passwords: the SEED_PASSWORD you supplied`);
   console.log(`\n  Locations:`)
   for (const l of locations) console.log(`    - ${l.name}`)
   console.log(`\n  ${staff.length} staff, ${sus.length} people`)

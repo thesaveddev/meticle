@@ -3,7 +3,7 @@
 //   $env:DATABASE_URL='postgres://meticle:<pwd>@localhost:55432/meticle'
 //   npx tsx src/scripts/seed-vps.ts
 //
-// Only the 3 real staff emails are used (password: ***REMOVED***). Every other
+// Only the 3 real staff emails are used (password: SEED_PASSWORD). Every other
 // seeded email (family contacts, invitations, surveys) reuses those addresses
 // so SMTP deliverability is never at risk. All timestamps are backdated so the
 // org looks like it has been live for ~14 months.
@@ -34,7 +34,14 @@ const time = (d: Date, h: number, m = 0) => {
   return x.toISOString()
 }
 
-const PWH = bcrypt.hashSync('***REMOVED***', 10)
+// The seed creates loginable accounts; the password is supplied by the
+// operator and must not exist in source.
+const SEED_PASSWORD = process.env.SEED_PASSWORD
+if (!SEED_PASSWORD || SEED_PASSWORD.length < 12) {
+  console.error('Refusing to run without SEED_PASSWORD (min 12 chars).');
+  process.exit(1)
+}
+const PWH = bcrypt.hashSync(SEED_PASSWORD, 12)
 
 // The ONLY emails that may ever appear in the dataset:
 const EMAIL_ADMIN = 'itsopeyemi@gmail.com'
@@ -1334,7 +1341,7 @@ async function seed() {
   console.log('✓ "Orbis Care Ltd" VPS SEEDED SUCCESSFULLY')
   console.log('='.repeat(56))
   console.log(`  Organization ID: ${orgId}`)
-  console.log(`  Staff logins (password: ***REMOVED***):`)
+  console.log(`  Staff logins (password: SEED_PASSWORD):`)
   console.log(`    - ${EMAIL_ADMIN}   (ORG_ADMIN)`)
   console.log(`    - ${EMAIL_ADMIN2}   (ORG_ADMIN)`)
   console.log(`    - ${EMAIL_CARER}   (CARE_WORKER)`)
