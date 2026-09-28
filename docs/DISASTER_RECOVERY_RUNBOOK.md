@@ -121,6 +121,59 @@ DB roles, vendor alerts about keys we did not rotate.*
 | Verify | Data checks in the drill container | Sign-off that service is genuinely restored |
 | Review | Technical timeline within 48 h | ICO/customer notifications, register update |
 
+## Running the drill (T0-2) — the exact procedure
+
+Run it **on the VPS**, not a laptop: it needs Docker and read access to the
+`backup_data` volume. This machine (the dev laptop) has neither, so the drill
+is a VPS session, run by Opeyemi or by Adetoye with Opeyemi on screen share.
+Two gotchas that are not obvious from the script alone:
+
+1. **Get the image from the running stack, not from memory.**
+   `docker inspect meticle-db-1 --format '{{.Config.Image}}'`
+   gives the exact digest-pinned reference. A different Postgres major version
+   cannot read the archived WAL. Copy-paste that value into `PG_IMAGE` — the
+   script refuses to run with it unset for exactly this reason.
+2. **Run it on the host, not inside the backup container.** The obvious
+   place — `docker exec meticle-backup-1 sh /usr/local/bin/restore.sh` — does
+   not work: the script calls the Docker CLI to spawn the drill container, and
+   the backup container has no Docker socket and no CLI. Running it on the
+   host against the volume's real mountpoint is the supported path (Option A
+   below). Mounting the Docker socket into a container is a root-equivalent
+   privilege grant and should not be left in place just to make a drill
+   convenient (Option B, only if ever needed):
+
+   ```sh
+   # Option A (simplest): run on the host, not in a container.
+   ssh <vps>
+   docker volume ls   # the volume is <project>_backup_data — note the exact name
+   VOL=$(docker volume ls --format '{{.Name}}' | grep backup_data)
+   BACKUP_DIR=$(docker volume inspect "$VOL" --format '{{.Mountpoint}}')   # usually /var/lib/docker/volumes/<name>/_data
+   cd "$DEPLOY_DIR"   # the repo checkout the deploy workflow uses
+   PG_IMAGE=$(docker inspect meticle-db-1 --format '{{.Config.Image}}') \
+     BACKUP_DIR="$BACKUP_DIR" \
+     sh apps/api/scripts/restore.sh
+
+   # Option B (no host docker perms for a script): temporarily add the socket
+   # and the Docker CLI to the backup container via a one-off compose override,
+   # run, then remove it. Docker-in-Docker-by-mount is a privilege grant — do
+   # not leave the override in place.
+   ```
+
+   Option A is the one to use. The script only needs: `docker` on the host,
+   read access to the volume's files, and `gunzip` (present on any standard
+   VPS distro). Its container name default `meticle_pitr_drill` does not
+   collide with anything in the compose file.
+
+**Pass criteria, not just exit code 0.** The script prints `people rows:
+X (snapshot) -> Y (after replay)`. Y must be **greater than** X, because the
+WAL replayed since the 02:00 dump contains real new writes — if Y == X, either
+the archive is empty (the script warns) or replay silently did nothing. Then
+run it a second time with `--to "$(date -u -d '-1 hour' +'%Y-%m-%d %H:%M:%S')"`
+and confirm the printed `latest audit entry` is **older than one hour ago**:
+that is the step that proves *point-in-time*, not just replay-to-end. Record
+both runs' output in the tracker; the RTO/RPO table in this document gets its
+first real numbers from them.
+
 ## Standing pre-conditions (each is a tracker item)
 
 - **T0-2**: the drill has actually been run. Until then this runbook is theory.
