@@ -10,10 +10,20 @@ export interface LiveMapVisit {
   status: string;
   scheduled_start: string;
   scheduled_end: string;
-  check_in_at: string | null;
+  /**
+   * Which capture the plotted point came from, or null when there is no point.
+   * A carer position is taken once at check-in and once at check-out and never
+   * again, so the point is always a record of a moment rather than a live fix —
+   * and the client needs to be able to say which moment.
+   */
+  position_source: 'check_in' | 'check_out' | null;
+  /**
+   * When that point was captured. Always paired with `position_source` by the
+   * query below, so the two cannot describe different moments.
+   */
+  position_captured_at: string | null;
   latitude: number | null;
   longitude: number | null;
-  last_updated: string;
   is_active: boolean;
   location_id: string | null;
   location_name: string | null;
@@ -46,9 +56,7 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
 
   const result = await query(`
     SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,
-           v.check_in_at, v.updated_at,
-           COALESCE(v.check_in_latitude, v.check_out_latitude) AS latitude,
-           COALESCE(v.check_in_longitude, v.check_out_longitude) AS longitude,
+           p.latitude, p.longitude, p.position_source, p.position_captured_at,
            pe.first_name || ' ' || pe.last_name AS person_name,
            l.address AS person_address,
            pe.location_id AS location_id,
@@ -59,6 +67,29 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     JOIN people pe ON pe.id = v.person_id
     LEFT JOIN locations l ON l.id = pe.location_id
     LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+    -- One lateral, so the coordinates and the timestamp that describes them are
+    -- chosen by the same branch and cannot drift apart.
+    --
+    -- The previous shape was COALESCE(check_in_lat, check_out_lat) for the point
+    -- and v.updated_at for the time, which the client rendered as though the two
+    -- were related. They are not: updated_at is when the visit row was last
+    -- written, and a note, a task or a status change moves it forward. A pin
+    -- captured at 09:00 would read 14:32 after an afternoon edit and look
+    -- current. The capture time is check_in_at or check_out_at, matched to
+    -- whichever branch supplied the coordinates.
+    --
+    -- Each branch is filtered to a complete coordinate pair, so a half-recorded
+    -- position plots nothing rather than a pin on one axis.
+    LEFT JOIN LATERAL (
+      SELECT v.check_in_latitude AS latitude, v.check_in_longitude AS longitude,
+             'check_in'::text AS position_source, v.check_in_at AS position_captured_at
+      WHERE v.check_in_latitude IS NOT NULL AND v.check_in_longitude IS NOT NULL
+      UNION ALL
+      SELECT v.check_out_latitude, v.check_out_longitude,
+             'check_out'::text, v.check_out_at
+      WHERE v.check_out_latitude IS NOT NULL AND v.check_out_longitude IS NOT NULL
+      LIMIT 1
+    ) p ON TRUE
     WHERE v.organization_id = $1
       AND v.scheduled_start >= $2
       AND v.scheduled_start < $3
@@ -101,10 +132,10 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     status: v.status,
     scheduled_start: v.scheduled_start,
     scheduled_end: v.scheduled_end,
-    check_in_at: v.check_in_at,
+    position_source: v.position_source ?? null,
+    position_captured_at: v.position_captured_at ?? null,
     latitude: v.latitude != null ? Number(v.latitude) : null,
     longitude: v.longitude != null ? Number(v.longitude) : null,
-    last_updated: v.updated_at,
     is_active: ['en_route', 'checked_in'].includes(v.status),
     location_id: v.location_id ?? null,
     location_name: v.location_name ?? null,

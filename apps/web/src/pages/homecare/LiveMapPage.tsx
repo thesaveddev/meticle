@@ -25,10 +25,10 @@ interface MapVisit {
   status: string
   scheduled_start: string
   scheduled_end: string
-  check_in_at: string | null
+  position_source: 'check_in' | 'check_out' | null
+  position_captured_at: string | null
   latitude: number | null
   longitude: number | null
-  last_updated: string
   is_active: boolean
   location_id: string | null
   location_name: string | null
@@ -52,11 +52,55 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
+/**
+ * A carer position is taken once at check-in and once at check-out. There is no
+ * streaming behind this page, so "fresh" can only mean "captured during this
+ * visit" — and a pin older than this is a record of where the carer was, not
+ * where they are. The threshold is a presentation choice; the capture time is
+ * always shown either way.
+ */
+const POSITION_FRESH_MINUTES = 60
+
+const minutesSince = (iso: string | null): number | null => {
+  if (!iso) return null
+  const elapsed = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(elapsed)) return null
+  return Math.max(0, Math.round(elapsed / 60000))
+}
+
+/** "just now" / "18 min ago" / "2h 40m ago" */
+const ageLabel = (minutes: number): string => {
+  if (minutes < 2) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest ? `${hours}h ${rest}m ago` : `${hours}h ago`
+}
+
+/**
+ * The one sentence this page is allowed to say about a pin. It names the moment
+ * the position was taken and how long ago that was, so a manager cannot read a
+ * three-hour-old capture as a live fix.
+ */
+const positionCaption = (v: MapVisit): string | null => {
+  if (v.latitude == null || v.longitude == null) return null
+  if (!v.position_captured_at) return 'Position recorded, capture time not stored'
+  const verb = v.position_source === 'check_out' ? 'Checked out' : 'Checked in'
+  const age = minutesSince(v.position_captured_at)
+  return `${verb} ${time(v.position_captured_at)}${age !== null ? ` · ${ageLabel(age)}` : ''}`
+}
+
 // Simple map using OpenStreetMap tiles — no API key needed
 function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: number; lng: number } | null }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const fittedSignatureRef = useRef<string | null>(null)
+  // The map is built inside a requestAnimationFrame and a dynamic import, so
+  // it does not exist on the first render. Markers are drawn by the effect
+  // below, and without this the first load could resolve data before the map
+  // was ready, skip drawing, and then sit empty until the next 30s poll.
+  const [mapReady, setMapReady] = useState(false)
 
   const mapCentre = centre || { lat: 51.5074, lng: -0.1278 } // London default
 
@@ -82,40 +126,13 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
         }).addTo(map)
 
         mapInstanceRef.current = map
+        setMapReady(true)
 
-        // Add markers for visits with GPS
-        const markerIcon = (color: string) => L.divIcon({
-          className: '',
-          html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;border-radius:50%;background:white"></div></div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        })
-
-        const activeIcon = markerIcon('#047857')
-        const enRouteIcon = markerIcon('#7C3AED')
-        const scheduledIcon = markerIcon('#6B7280')
-
-        visits.forEach(v => {
-          if (v.latitude == null || v.longitude == null) return
-          const icon = v.status === 'checked_in' ? activeIcon : v.status === 'en_route' ? enRouteIcon : scheduledIcon
-          const marker = L.marker([v.latitude, v.longitude], { icon }).addTo(map)
-          marker.bindPopup(`
-            <div style="font-family:system-ui;min-width:180px">
-              <strong style="font-size:14px">${v.person_name}</strong><br/>
-              <span style="color:#6B7280;font-size:12px">${v.label}</span><br/>
-              ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#D97706">No carer assigned</span><br/>'}
-              <span style="font-size:12px;color:#6B7280">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span><br/>
-              <span style="font-size:11px;color:#9CA3AF">Updated ${time(v.last_updated)}</span>
-            </div>
-          `)
-          markersRef.current.push(marker)
-        })
-
-        // Fit bounds if we have markers
-        if (markersRef.current.length > 1) {
-          const group = L.featureGroup(markersRef.current)
-          map.fitBounds(group.getBounds().pad(0.15))
-        }
+        // Markers are deliberately not built here. This effect runs on mount
+        // only, and the effect below owns every marker, because two builders for
+        // one map is how they drift: the copy here showed an "Updated HH:MM"
+        // line drawn from the visit row's write time, while the other showed no
+        // time at all, and whichever ran last won.
       })
     })
 
@@ -129,9 +146,9 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
     }
   }, []) // Mount only
 
-  // Update markers when visits change
+  // Draw markers whenever the map exists and the visits change.
   useEffect(() => {
-    if (!mapInstanceRef.current) return
+    if (!mapReady || !mapInstanceRef.current) return
 
     import('leaflet').then((L) => {
       if (!mapInstanceRef.current) return
@@ -150,23 +167,36 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
 
       const activeIcon = markerIcon('#047857')
       const enRouteIcon = markerIcon('#7C3AED')
+      const scheduledIcon = markerIcon('#6B7280')
 
       visits.forEach(v => {
         if (v.latitude == null || v.longitude == null) return
-        const icon = v.status === 'checked_in' ? activeIcon : enRouteIcon
+        const icon = v.status === 'checked_in' ? activeIcon : v.status === 'en_route' ? enRouteIcon : scheduledIcon
         const marker = L.marker([v.latitude, v.longitude], { icon }).addTo(map)
+        const caption = positionCaption(v)
         marker.bindPopup(`
           <div style="font-family:system-ui;min-width:180px">
             <strong style="font-size:14px">${v.person_name}</strong><br/>
             <span style="color:#6B7280;font-size:12px">${v.label}</span><br/>
             ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#D97706">No carer assigned</span><br/>'}
             <span style="font-size:12px;color:#6B7280">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span>
+            ${caption ? `<br/><span style="font-size:11px;color:#9CA3AF">${caption}</span>` : ''}
           </div>
         `)
         markersRef.current.push(marker)
       })
+
+      // Fit the view to the pins, but only when the set of positions actually
+      // changes. This page re-polls every 30 seconds, and re-fitting on every
+      // poll would yank the map out from under a manager who has panned
+      // somewhere to look at one particular carer.
+      const signature = markersRef.current.map(m => `${m.getLatLng().lat},${m.getLatLng().lng}`).join('|')
+      if (signature !== fittedSignatureRef.current && markersRef.current.length > 1) {
+        map.fitBounds(L.featureGroup(markersRef.current).getBounds().pad(0.15))
+        fittedSignatureRef.current = signature
+      }
     })
-  }, [visits])
+  }, [visits, mapReady])
 
   return <div ref={mapRef} style={{ width: '100%', height: 480, borderRadius: 8, border: '1px solid', borderColor: 'grey.200' }} />
 }
@@ -334,10 +364,16 @@ export default function LiveMapPage() {
       {/* Active visits list */}
       {activeVisits.length > 0 && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Active carers</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Active carers</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
+            Each pin is a position captured when a carer checked in or checked out, not a live fix — the time shown is when it was taken.
+          </Typography>
           <Stack spacing={1}>
             {activeVisits.map(v => {
               const cfg = statusConfig[v.status] || statusConfig.scheduled
+              const age = minutesSince(v.position_captured_at)
+              const isFresh = age !== null && age <= POSITION_FRESH_MINUTES
+              const caption = positionCaption(v)
               return (
                 <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
                   <Box>
@@ -351,11 +387,26 @@ export default function LiveMapPage() {
                   </Box>
                   <Stack direction="row" alignItems="center" gap={1}>
                     {v.latitude != null ? (
-                      <Chip icon={<LocationIcon sx={{ fontSize: 14 }} />} label="GPS captured" size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', height: 20, fontSize: '0.65rem' }} />
+                      <>
+                        <Chip
+                          icon={<LocationIcon sx={{ fontSize: 14 }} />}
+                          label={isFresh ? 'GPS captured' : 'GPS recorded'}
+                          size="small"
+                          sx={{
+                            // Green reads as "current". An old capture is still
+                            // evidence — it is just not a live fix, and the
+                            // badge should not imply that it is.
+                            bgcolor: isFresh ? 'notice.success.bg' : 'notice.muted.bg',
+                            color: isFresh ? 'notice.success.fg' : 'text.secondary',
+                            height: 20,
+                            fontSize: '0.65rem',
+                          }}
+                        />
+                        {caption && <Typography variant="caption" sx={{ color: 'text.secondary' }}>{caption}</Typography>}
+                      </>
                     ) : (
                       <Chip label="No GPS" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', height: 20, fontSize: '0.65rem' }} />
                     )}
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{time(v.last_updated)}</Typography>
                   </Stack>
                 </Stack>
               )
