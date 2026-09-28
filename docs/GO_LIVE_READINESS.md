@@ -110,6 +110,33 @@ A claim with no citation is a guess wearing a tick. If you cannot cite it, it is
 
 ---
 
+## Tier 3 — endorsement and investment evidence (INNF 8.3(d))
+
+**Added 28 September 2026.** An external review found the endorsement file's
+weakest area was market evidence: "everything you have built is evidence of
+capability; none of it is evidence of viability." Verified against the repo
+before acting: the reviewer was **wrong that nothing exists** — a business plan,
+a 3-year financial model with a 20-person headcount plan, an NHS pilot proposal
+and a sales package have sat in `docs/funding/` since August 2026 — and **right
+about the gap** — there was no sourced market research, no founder CVs, no
+standalone job-creation or international growth plan, and zero customers,
+pilots, LOIs and revenue. This tier closes that gap.
+
+**The rule that keeps this tier honest:** fabricated evidence is worse than no
+evidence. An LOI counts only when a named provider signed it; a plan is
+presented as a plan, never as traction; market figures carry sources and dates.
+
+| ID | Item | State | Basis (verified how) | Owner | Next action |
+|---|---|---|---|---|---|
+| **T3-1** | Evidence pack built: market research, job-creation plan, international growth plan, founder CV scaffolds, pilot/LOI kit, master index | ✅ **28 Sep 2026** | `docs/INNF_8.3d_EVIDENCE_INDEX.md` and the five documents it indexes. Market figures dated and sourced (LaingBuisson Jun 2026, IBISWorld 2026, Skills for Care 2025/26, CQC count 15,232). Job numbers taken from the financial model's own headcount plan (§4.1), with added salaries marked indicative. Every document carries a status header stating what is real and what is not. | **Opeyemi** (built) / **Adetoye** (completes) | Work the assembly checklist in `INNF_8.3d_EVIDENCE_INDEX.md` §4 before anything is submitted |
+| **T3-2** | Signed letters of intent | ⬜ **0 of target 5** | The traction table in `docs/funding/pulse-angels-pitch.html`: LOIs "not yet", target 5 within 3 months of funding. The pipeline tracker in the kit is recorded at zero rows — recorded as zero, not dressed up. | **Adetoye** | Run the outreach plan (`INNF_8.3d_PILOT_AND_LOI_KIT.md` §3): 30 agencies in the first 4 weeks. First signature → update this row with the count; provider names cited only with written permission |
+| **T3-3** | First pilot run end to end | ⬜ | Same traction table: pilots "not yet". The 8-week pilot design is ready (kit §2), reusing the evaluation framework from the NHS pilot proposal. | **Adetoye** (runs) / **Opeyemi** (onboarding support) | Convert the first pilot agreement out of outreach; at week 8 produce the one-page pilot review whatever the outcome — convert, extend or close; a closed pilot with written findings is still evidence |
+| **T3-4** | Founder CVs — real, not scaffolds | ⬜ Scaffolds only | `INNF_8.3d_FOUNDERS.md` holds structure, prompts and evidence pointers; every biographical field reads "not yet provided" by design, and the file forbids fabrication | **Adetoye** + **Opeyemi** | Each founder completes their own CV (file to `docs/funding/cvs/`, never a public surface); only then does this row move, with the date |
+| **T3-5** | Market research open items | ⬜ 4 open | `INNF_8.3d_MARKET_RESEARCH.md` §6: the NHS/DSPT digitisation mandate citation; Wales/Scotland/NI provider counts; a defensible SOM built from provider counts rather than percentages; a dated re-verification before submission. The England figures are sourced; the four-nations completion is not. | **Adetoye** | Close the four items, then calendar the next re-verification |
+| **T3-6** | Funding pack currency review | ⬜ | The `docs/funding/` pack (business plan, financial model, pitch deck, NHS pilot proposal, sales package) is dated August 2026 and has not been reviewed since. The first thing an assessor will probe is whether the break-even month and the headcount plan still hold. | **Adetoye** | Review pricing, headcount and market figures for currency before any submission; correct or re-date what has moved |
+
+---
+
 ## What is verified, and when
 
 Verification ages. Anything checked in **August 2026 or earlier** should be treated as
