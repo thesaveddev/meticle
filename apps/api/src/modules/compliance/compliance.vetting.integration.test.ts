@@ -354,10 +354,10 @@ describe('four-nations vetting — the scoring layer now agrees with the data la
    *
    * The frameworks were already four: getReadiness returned a Care Inspectorate
    * score, a CIW score and an RQIA score. But document_compliance_rate was
-   * computed from `d.type IN ('DBS','PASSPORT','VISA','RIGHT_TO_WORK')` for all
-   * of them. So the layer making the four-regulator claim measured Scotland and
-   * Northern Ireland against evidence only England and Wales produces. A
-   * Scottish provider with a complete, current PVG file scored 0% on documents.
+   * computed from one hardcoded England-and-Wales document list for all of them.
+   * So the layer making the four-regulator claim measured Scotland and Northern
+   * Ireland against evidence only England and Wales produces. A Scottish
+   * provider with a complete, current PVG file scored 0% on documents.
    */
   it('counts a Scottish PVG file in the readiness score', async () => {
     const { org, staff, token } = await orgWithStaff({ vettingScheme: 'pvg_scotland' })

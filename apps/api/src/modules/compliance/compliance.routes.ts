@@ -14,6 +14,15 @@ const router = Router();
 // Validated against the registry in the controller, not by enumerating scheme
 // ids here, so adding a nation does not mean editing a validation schema.
 const vettingSchemeSchema = z.object({ vetting_scheme: z.string().min(1).max(64) });
+// The number is not pattern-validated. CIW registration numbers can contain a
+// forward slash and have had several published formats, and a regex that rejects
+// a real registration number is worse than one that accepts a typo — the typo is
+// visible to a human, a rejected real number is not.
+const registrationSchema = z.object({
+  regulator_id: z.string().min(1).max(32),
+  registration_number: z.string().min(1).max(120),
+  verified: z.boolean().optional(),
+});
 
 router.use(authenticate);
 
@@ -30,6 +39,12 @@ router.get('/vetting-scheme', asyncHandler(ComplianceController.getVettingScheme
 // measured against, so it is a compliance decision about the organisation
 // rather than a rostering preference.
 router.put('/vetting-scheme', requireRole(UserRole.ORG_ADMIN), validate(vettingSchemeSchema), asyncHandler(ComplianceController.updateVettingScheme));
+// Which body regulates this service, and our number with them. ORG_ADMIN, like
+// the rest of the organisation's regulatory settings.
+router.get('/regulators', asyncHandler(ComplianceController.listRegulators));
+router.get('/regulator-registrations', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER), asyncHandler(ComplianceController.getRegulatorRegistrations));
+router.put('/regulator-registrations', requireRole(UserRole.ORG_ADMIN), validate(registrationSchema), asyncHandler(ComplianceController.upsertRegulatorRegistration));
+router.delete('/regulator-registrations', requireRole(UserRole.ORG_ADMIN), validate(z.object({ regulator_id: z.string().min(1).max(32) })), asyncHandler(ComplianceController.deleteRegulatorRegistration));
 router.post('/upload', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), ...uploadWithScan('document'), validate(uploadDocumentSchema), asyncHandler(ComplianceController.uploadDocument));
 router.patch('/documents/:id/status', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDocumentStatusSchema), asyncHandler(ComplianceController.updateDocumentStatus));
 router.patch('/records/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ComplianceController.updateRecord));

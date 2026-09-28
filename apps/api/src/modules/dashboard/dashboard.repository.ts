@@ -3,7 +3,12 @@ import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
 
 // Counts of expiring identity documents, by each person's own nation's scheme
 // rather than one England-and-Wales list.
-const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)');
+const RESOLVED_VETTING_SCHEME_SQL = 'COALESCE(sp.vetting_scheme, o.vetting_scheme)';
+const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql(RESOLVED_VETTING_SCHEME_SQL);
+// The background check itself, excluding right-to-work documents.
+const VETTING_CHECK_TYPES_SQL = vettingDocumentTypeSql(RESOLVED_VETTING_SCHEME_SQL, 'check');
+// Every document a person's nation accepts, check and right-to-work together.
+const VETTING_IDENTITY_TYPES_SQL = vettingDocumentTypeSql(RESOLVED_VETTING_SCHEME_SQL);
 
 export class DashboardRepository {
   static async getStats(orgId: string) {
@@ -156,28 +161,34 @@ export class DashboardRepository {
       WHERE tm.organization_id = $1
     `, [orgId]);
 
-    // Document-based stats (DBS, identity, professional)
+    // Document-based stats.
+    //
+    // The background-check count was `d.type = 'DBS'`, so a Scottish provider's
+    // PVG records and a Northern Irish provider's AccessNI checks were invisible
+    // and the tile read 0%. Derived from the registry like everything else, and
+    // named "checks" rather than "DBS" because DBS is only England's.
     const docResult = await query(`
       SELECT
-        COALESCE(SUM(CASE WHEN d.type = 'DBS' THEN 1 ELSE 0 END), 0) as dbs_total,
-        COALESCE(SUM(CASE WHEN d.type = 'DBS' AND d.status = 'approved' THEN 1 ELSE 0 END), 0) as dbs_complete,
-        COALESCE(SUM(CASE WHEN d.type IN ('PASSPORT', 'VISA', 'RIGHT_TO_WORK') THEN 1 ELSE 0 END), 0) as identity_total,
-        COALESCE(SUM(CASE WHEN d.type IN ('PASSPORT', 'VISA', 'RIGHT_TO_WORK') AND d.status = 'approved' THEN 1 ELSE 0 END), 0) as identity_complete
+        COALESCE(SUM(CASE WHEN d.type = ANY(${VETTING_CHECK_TYPES_SQL}) THEN 1 ELSE 0 END), 0) as checks_total,
+        COALESCE(SUM(CASE WHEN d.type = ANY(${VETTING_CHECK_TYPES_SQL}) AND d.status = 'approved' THEN 1 ELSE 0 END), 0) as checks_complete,
+        COALESCE(SUM(CASE WHEN d.type = ANY(${VETTING_IDENTITY_TYPES_SQL}) THEN 1 ELSE 0 END), 0) as identity_total,
+        COALESCE(SUM(CASE WHEN d.type = ANY(${VETTING_IDENTITY_TYPES_SQL}) AND d.status = 'approved' THEN 1 ELSE 0 END), 0) as identity_complete
       FROM documents d
       JOIN staff_profiles sp ON sp.id = d.staff_id
       JOIN users u ON u.id = sp.user_id
+      JOIN organizations o ON o.id = u.organization_id
       WHERE u.organization_id = $1
     `, [orgId]);
 
     const training = trainingResult.rows[0] || { total: 0, complete: 0 };
-    const docs = docResult.rows[0] || { dbs_total: 0, dbs_complete: 0, identity_total: 0, identity_complete: 0 };
+    const docs = docResult.rows[0] || { checks_total: 0, checks_complete: 0, identity_total: 0, identity_complete: 0 };
 
     const calcPct = (complete: number, total: number) =>
       total > 0 ? Math.round((complete / total) * 100) : 0;
 
     return [
       { label: 'Mandatory Training', val: calcPct(training.complete, training.total), color: '#16A34A' },
-      { label: 'DBS Verifications', val: calcPct(docs.dbs_complete, docs.dbs_total), color: '#16A34A' },
+      { label: 'Background Checks', val: calcPct(docs.checks_complete, docs.checks_total), color: '#16A34A' },
       { label: 'Identity Checks', val: calcPct(docs.identity_complete, docs.identity_total), color: '#D97706' },
     ];
   }

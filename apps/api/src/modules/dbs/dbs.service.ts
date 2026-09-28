@@ -1,6 +1,37 @@
 import { query } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { DbsCheck, DbsLevel, DbsStatus, DbsSubmitRequest, DbsStats, DbsWorkforce } from './dbs.types';
+import { getVettingScheme } from '../compliance/compliance.vetting';
+
+/**
+ * The check a person is subject to, and the name we would give it.
+ *
+ * A DBS is the England and Wales scheme. Scotland runs the PVG scheme through
+ * Disclosure Scotland and Northern Ireland runs AccessNI — neither can be
+ * applied for through the DBS online service, and a certificate issued under the
+ * wrong scheme is not evidence their regulator accepts.
+ *
+ * So this module is England and Wales only, and says so rather than minting a
+ * DBS for a Scottish worker. That is a refusal with a route attached: the
+ * message names the scheme that applies to them instead of only denying.
+ */
+async function requireDbsApplicableNation(staffId: string): Promise<void> {
+  const result = await query(
+    `SELECT COALESCE(sp.vetting_scheme, o.vetting_scheme) AS vetting_scheme
+     FROM staff_profiles sp
+     JOIN users u ON sp.user_id = u.id
+     JOIN organizations o ON o.id = u.organization_id
+     WHERE sp.id = $1`,
+    [staffId]
+  );
+  const scheme = getVettingScheme(result.rows[0]?.vetting_scheme);
+  if (scheme.nation !== 'england' && scheme.nation !== 'wales') {
+    throw new AppError(
+      400,
+      `A DBS check does not apply to this member of staff. They are registered in ${scheme.nation === 'scotland' ? 'Scotland' : 'Northern Ireland'}, where the ${scheme.checkName} scheme applies instead — request that check and upload it to their record.`,
+    );
+  }
+}
 
 // --- Provider abstraction ---
 
@@ -55,6 +86,10 @@ export async function createDbsCheck(orgId: string, data: DbsSubmitRequest): Pro
   );
   if (sp.rows.length === 0) throw new AppError(404, 'Staff member not found');
 
+  // Refuse at the point of creation, not at submission. A draft DBS check for a
+  // Scottish worker is a row that looks like progress and can never complete.
+  await requireDbsApplicableNation(data.staff_id);
+
   const user = await query('SELECT email FROM users WHERE id = $1', [sp.rows[0].user_id]);
 
   const result = await query(
@@ -70,6 +105,10 @@ export async function submitDbsCheck(orgId: string, checkId: string): Promise<Db
   if (check.rows.length === 0) throw new AppError(404, 'DBS check not found');
   const c = check.rows[0];
   if (c.status !== DbsStatus.DRAFT) throw new AppError(400, `Cannot submit check in status: ${c.status}`);
+
+  // Re-checked at submission, because a person can be moved to another nation
+  // between creating a draft and sending it.
+  await requireDbsApplicableNation(c.staff_id);
 
   const sp = await query(
     `SELECT sp.first_name, sp.last_name, sp.birth_date, sp.address, sp.postal_code, u.email

@@ -12,6 +12,7 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { AuditRepository } from '../audit/audit.repository';
 import { generatePdf, buildEvidencePackHtml } from './compliance.pdf';
 import { VETTING_SCHEMES, listVettingSchemes } from './compliance.vetting';
+import { listRegulators, isRegulatorId } from './regulators';
 
 async function streamDocumentToResponse(user: any, docUrl: string, res: Response) {
   const filename = docUrl.replace('/files/private/', '').replace('/files/', '');
@@ -198,6 +199,70 @@ export class ComplianceController {
   /** Every scheme we can assess against, for the settings dropdown. */
   static async listVettingSchemes(_req: Request, res: Response) {
     res.json({ schemes: listVettingSchemes() });
+  }
+
+  /** The service regulators, and where each one is registered. */
+  static async listRegulators(_req: Request, res: Response) {
+    res.json({ regulators: listRegulators() });
+  }
+
+  /**
+   * The organisation's registration numbers, by regulator.
+   *
+   * Every regulator the reference table knows is returned, recorded or not, so
+   * the screen shows what is missing instead of only what is there. An empty
+   * list is ambiguous — "not registered anywhere" and "never entered it" look
+   * identical — and a compliance officer should not have to guess which one they
+   * are looking at.
+   */
+  static async getRegulatorRegistrations(req: Request, res: Response) {
+    const user = req.user!;
+    res.json(await ComplianceRepository.getRegulatorRegistrations(user.organizationId!));
+  }
+
+  /**
+   * Record a registration number with one regulator.
+   *
+   * `verified` is the caller asserting they have checked the number against
+   * that regulator's public register. We do not check it for them, so nothing
+   * here is a verification of the number's authenticity — only of a human's
+   * claim to have looked.
+   */
+  static async upsertRegulatorRegistration(req: Request, res: Response) {
+    const user = req.user!;
+    const { regulator_id, registration_number, verified } = req.body as {
+      regulator_id: string
+      registration_number: string
+      verified?: boolean
+    };
+    if (!isRegulatorId(regulator_id)) {
+      throw new AppError(400, 'Unknown regulator');
+    }
+    const result = await ComplianceRepository.upsertRegulatorRegistration(
+      user.organizationId!,
+      regulator_id,
+      registration_number,
+      verified === true,
+    );
+    AuditRepository.log({
+      user_id: user.userId,
+      action: 'update',
+      entity_type: 'regulator_registration',
+      entity_id: user.organizationId!,
+      // The number itself is not logged. An audit trail that accumulates every
+      // registration number anyone typed is a second copy of a sensitive
+      // identifier with weaker access control than the table it came from.
+      new_data: { regulator_id, verified: verified === true },
+      ip_address: req.ip,
+    }).catch(() => {});
+    res.json(result);
+  }
+
+  static async deleteRegulatorRegistration(req: Request, res: Response) {
+    const user = req.user!;
+    const { regulator_id } = req.body as { regulator_id: string };
+    if (!isRegulatorId(regulator_id)) throw new AppError(400, 'Unknown regulator');
+    res.json(await ComplianceRepository.deleteRegulatorRegistration(user.organizationId!, regulator_id));
   }
 
   /** The organisation's declared nation, and the documents it implies. */

@@ -8,6 +8,8 @@ import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
 
 // Nation-aware, for the same reason as the readiness metric this screen shows.
 const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)');
+// The background check itself, not the right-to-work documents.
+const VETTING_CHECK_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)', 'check');
 
 export class CqcController {
   static async getReadiness(req: Request, res: Response) {
@@ -233,19 +235,28 @@ export class CqcController {
     const staffComplianceRate = totalStaff > 0 ? Math.round(((totalStaff - nonCompliantStaff) / totalStaff) * 100) : 100;
 
     // 5. DBS / identity document status
+    // Background check coverage, by each person's own nation's scheme.
+    //
+    // This counted `d.type = 'DBS'` for every provider. A Scottish provider was
+    // told 0% of their staff were checked, however many PVG records they held,
+    // and a Northern Irish one likewise for AccessNI. Same per-person
+    // resolution as the rest of the module, so a mixed workforce is counted per
+    // person rather than per organisation.
     const dbsResult = await pool.query(
       `SELECT
         COUNT(DISTINCT sp.user_id) as total,
         COUNT(DISTINCT sp.user_id) FILTER (
           WHERE EXISTS (
             SELECT 1 FROM documents d
-            WHERE d.staff_id = sp.id AND d.type = 'DBS'
+            WHERE d.staff_id = sp.id
+              AND d.type = ANY(${VETTING_CHECK_TYPES_SQL})
               AND d.status IN ('approved', 'pending')
               AND (d.expiry_date IS NULL OR d.expiry_date > CURRENT_DATE)
           )
         ) as compliant
        FROM staff_profiles sp
        JOIN users u ON sp.user_id = u.id
+       JOIN organizations o ON o.id = u.organization_id
        WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
     );
     const dbs = dbsResult.rows[0];

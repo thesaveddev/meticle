@@ -11,6 +11,7 @@ import api from '../../services/api'
 import { PremiumCard, StatCard, StatusBadge as DesignStatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 import { IDENTITY_DOCUMENT_TYPES } from '../../data/identityDocuments'
+import RegulatorRegistrationsPanel from '../../components/compliance/RegulatorRegistrationsPanel'
 import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
 
 const QUALITY_RATINGS = [
@@ -390,6 +391,13 @@ export default function CompliancePage() {
         expanded={expandedSection === 'trend'}
         onToggle={() => setExpandedSection(expandedSection === 'trend' ? '' : 'trend')}
       />
+
+      {/* Registrations sit below the trends rather than in the module grid: it is
+          the one compliance thing a provider is asked for by an inspector and
+          was previously nowhere in the product. */}
+      <Box sx={{ mt: 3 }}>
+        <RegulatorRegistrationsPanel />
+      </Box>
 
       <AuditTrailDialog open={auditOpen} onClose={() => setAuditOpen(false)} />
     </PageContainer>

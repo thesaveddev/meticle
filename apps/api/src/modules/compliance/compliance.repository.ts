@@ -1,4 +1,5 @@
 import { query, migrateQuery } from '../../shared/database';
+import { AppError } from '../../shared/middleware/error.middleware';
 import { getVettingScheme, identityTypesForAllSchemes } from './compliance.vetting';
 
 // The union of every scheme's identity documents, used to narrow the fetch. A
@@ -476,5 +477,95 @@ export class ComplianceRepository {
     } catch {
       return 0;
     }
+  }
+
+  /**
+   * The organisation's registrations, with each regulator's own label.
+   *
+   * A row per regulator rather than a single column, because a national
+   * operator is genuinely registered with more than one body. Every regulator
+   * the reference table knows about is returned, whether or not the org has
+   * recorded a number, so the screen can show what is missing rather than only
+   * what is there — an empty list reads as "nothing to do" when it may mean
+   * "nothing entered".
+   */
+  static async getRegulatorRegistrations(orgId: string) {
+    let held: any[] = [];
+    try {
+      const result = await query(
+        `SELECT r.id, r.name, r.nations, r.registration_label, r.register_url,
+                r.format_hint, r.note,
+                rr.registration_number, rr.verified_at, rr.updated_at
+         FROM regulators r
+         LEFT JOIN regulator_registrations rr
+           ON rr.regulator_id = r.id AND rr.organization_id = $1
+         ORDER BY r.name`,
+        [orgId]
+      );
+      held = result.rows;
+    } catch {
+      // Migration 129 has not run. Say so rather than returning an empty list
+      // that reads as "you are not registered anywhere".
+      return { registrations: [], migration_pending: true };
+    }
+    return {
+      registrations: held.map((r: any) => ({
+        regulator_id: r.id,
+        regulator_name: r.name,
+        nations: r.nations,
+        label: r.registration_label,
+        register_url: r.register_url,
+        format_hint: r.format_hint ?? null,
+        note: r.note,
+        registration_number: r.registration_number ?? null,
+        verified_at: r.verified_at ?? null,
+        recorded: !!r.registration_number,
+      })),
+      registered_count: held.filter((r: any) => r.registration_number).length,
+      migration_pending: false,
+    };
+  }
+
+  /**
+   * Record a registration number with one regulator.
+   *
+   * Upsert on (organization_id, regulator_id) so re-submitting updates rather
+   * than accumulating rows. The number is stored as given apart from trimming
+   * the ends: CIW registration numbers can contain a forward slash, and
+   * normalising punctuation would silently corrupt a real identifier.
+   *
+   * `verified_at` is set only when the caller says they have checked it against
+   * the regulator's public register. We do not verify registrations for anyone,
+   * so an unverified number stays visibly unverified.
+   */
+  static async upsertRegulatorRegistration(
+    orgId: string,
+    regulatorId: string,
+    registrationNumber: string,
+    verified: boolean,
+  ) {
+    const trimmed = registrationNumber.trim();
+    if (!trimmed) throw new AppError(400, 'Registration number is required');
+    const verifiedAt = verified ? new Date().toISOString() : null;
+    await migrateQuery(
+      `INSERT INTO regulator_registrations
+         (organization_id, regulator_id, registration_number, verified_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (organization_id, regulator_id)
+       DO UPDATE SET registration_number = EXCLUDED.registration_number,
+                     verified_at = EXCLUDED.verified_at,
+                     updated_at = NOW()`,
+      [orgId, regulatorId, trimmed, verifiedAt]
+    );
+    return this.getRegulatorRegistrations(orgId);
+  }
+
+  /** Remove a registration. Only an explicit action; never a side effect. */
+  static async deleteRegulatorRegistration(orgId: string, regulatorId: string) {
+    await migrateQuery(
+      'DELETE FROM regulator_registrations WHERE organization_id = $1 AND regulator_id = $2',
+      [orgId, regulatorId]
+    );
+    return this.getRegulatorRegistrations(orgId);
   }
 }
