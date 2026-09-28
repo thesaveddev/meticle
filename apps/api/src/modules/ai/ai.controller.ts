@@ -5,6 +5,7 @@ import { renderOrgPrompt } from './ai.render';
 import { resolveAiMinimisation } from './ai.minimisation';
 import { AuditRepository } from '../audit/audit.repository';
 import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE } from './ai.capabilities';
+import { PROMPTS } from './ai.prompts';
 import { migrateQuery } from '../../shared/database';
 import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
@@ -87,6 +88,36 @@ export class AIController {
    * first they would hear of that is worse output weeks later. The consequence
    * list travels with the control.
    */
+  /**
+   * Publishes the capability registry and every prompt template verbatim.
+   *
+   * The honest-mechanism argument — one query-plus-summary implementation,
+   * eleven named entry points — only holds if a customer's security review can
+   * read the actual instructions the model receives rather than our description
+   * of them. This returns `PROMPTS` in full: system prompts, user templates,
+   * the disclosure object, and the capability-to-prompt mapping that makes the
+   * sharing visible instead of deniable.
+   *
+   * ORG_ADMIN-gated like the rest of the AI configuration surface: prompts are
+   * a commercial asset and this is an authenticated API, not a public page.
+   * No secrets can leak through it — templates contain no keys, and redaction
+   * happens per-request at render time, not in the template text.
+   */
+  static async getPrompts(_req: Request, res: Response) {
+    res.json({
+      method: AI_METHOD_DISCLOSURE,
+      capabilities: Object.values(AI_CAPABILITIES).map((c) => ({
+        id: c.id,
+        label: c.label,
+        entry_point: c.entryPoint,
+        prompt_key: c.promptKey,
+        summary: c.summary,
+        requires_narrative: c.requiresNarrative,
+      })),
+      prompts: PROMPTS,
+    });
+  }
+
   static async getDataMinimisation(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });

@@ -53,6 +53,16 @@ export type AiCapability = {
   /** One line on what actually runs. Shown in the UI, so it is user-facing copy. */
   summary: string;
   /**
+   * The prompt template this capability renders. Published verbatim at
+   * GET /ai/prompts so a customer's security review can read the actual
+   * instructions the model receives — the honest-mechanism argument only
+   * holds if the instructions are inspectable, not just described.
+   * Every intelligence capability shares `unified_intelligence`; that is the
+   * point, and publishing the list makes the sharing visible instead of
+   * deniable.
+   */
+  promptKey: string;
+  /**
    * Whether this capability needs clinical narrative to be useful. Used to warn
    * a manager who has switched on minimisation mode that they have degraded it.
    */
@@ -83,6 +93,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/care-summary',
     label: 'Care record summary',
     summary: 'A written summary of the care records for one person over a period you choose.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   change_detection: {
@@ -92,6 +103,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     summary:
       'A comparison of records across two periods. It surfaces what the filters returned, not changes ' +
       'a system inferred — nothing is learned from your history.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   risk_signals: {
@@ -101,6 +113,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     summary:
       'A written summary of the incidents, notes and medication events in a period, each linked to the ' +
       'record it came from. It is a reading of the records, not a risk score.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   compliance_copilot: {
@@ -110,6 +123,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     summary:
       'A written explanation of the compliance gaps already computed for your organisation, with the ' +
       'underlying records linked.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: false,
   },
   natural_language_assistant: {
@@ -117,6 +131,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/assistant',
     label: 'Ask about your records',
     summary: 'Answers a question in plain English against the records in the period you select.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   end_of_day_intelligence: {
@@ -124,6 +139,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/end-of-day',
     label: 'End-of-day activity summary',
     summary: 'A summary of the day’s visits, notes and incidents.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   domiciliary_operations_copilot: {
@@ -131,6 +147,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/operations-copilot',
     label: 'Operational activity summary',
     summary: 'A written summary of operational records in the period, with each item linked to its source.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: false,
   },
   operational_anomaly_detection: {
@@ -141,6 +158,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
       'A review of operational records for the period. No statistical detection is applied: there is ' +
       'no baseline to deviate from, so this reports the records that met the filters rather than ' +
       'outliers that were detected.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: false,
   },
   rota_alternatives: {
@@ -148,6 +166,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/rota-alternatives',
     label: 'Rota alternatives',
     summary: 'Suggested alternative staff for shifts, drawn from availability already recorded.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: false,
   },
   competency_coaching: {
@@ -155,6 +174,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/competency-coaching',
     label: 'Training support',
     summary: 'Written guidance drawn from training records and the competency framework.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: false,
   },
   family_communication_draft: {
@@ -162,6 +182,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/family-communication-draft',
     label: 'Family update draft',
     summary: 'A draft update for a family, written from the records for that person. A draft for a person to review, not sent to anyone.',
+    promptKey: 'unified_intelligence',
     requiresNarrative: true,
   },
   manager_briefing: {
@@ -169,6 +190,7 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     entryPoint: '/intelligence',
     label: 'Manager briefing',
     summary: 'A written briefing over the records in the period you select.',
+    promptKey: 'manager_briefing',
     requiresNarrative: true,
   },
 };
