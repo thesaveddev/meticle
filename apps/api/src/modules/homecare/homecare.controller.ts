@@ -8,6 +8,13 @@ import { EmailService } from '../../shared/utils/email.service';
 import { processEmailDsnWebhook } from '../../shared/utils/email.dsn';
 
 import * as repo from './homecare.repository';
+import {
+  getLocationRetentionSummary,
+  setLocationRetentionPolicy,
+  clearLocationRetentionPolicy,
+  runLocationPurge,
+  listLocationPurgeRuns,
+} from './locationRetention';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
 import { UserRole } from '@meticle/shared';
 import { STAFF_LOCATION_NOTICE_KEY, STAFF_LOCATION_NOTICE_VERSION } from './staffLocationNotice';
@@ -195,20 +202,52 @@ export class HomecareController {
     }));
   }
 
+  /**
+   * The coordinates recorded alongside a check-in or check-out in the audit log.
+   *
+   * These are read from the *resolved* location, not from the request body, and
+   * that distinction is the whole point of this helper.
+   *
+   * The audit payload used to be built straight from `req.body`, which meant
+   * that when a provider switched collection off — or a worker declined, or had
+   * not yet answered — the visit row correctly stored nothing, and the audit log
+   * stored the coordinates anyway. The kill switch did not reach this copy, and
+   * because audit_logs had no retention rule of any kind, nothing ever removed
+   * it. An older app build still sending coordinates was enough to keep
+   * populating a second, uncontrolled record of every care worker's position
+   * after the provider had asked for it to stop.
+   *
+   * Recording the resolved location makes a refused collection write no
+   * position anywhere, including here. The knock-on is that the audit row and
+   * the visit row can now disagree about whether a position exists, and that is
+   * the correct outcome rather than a bug: the audit row is a record of the
+   * check-in, and if the check-in captured no location, neither did the audit.
+   */
+  private static auditLocationFields(location: { lat: number | null; lon: number | null; accuracy: number | null }) {
+    if (location.lat == null || location.lon == null) return null;
+    return { latitude: location.lat, longitude: location.lon, accuracy_meters: location.accuracy };
+  }
+
   static async checkIn(req: Request, res: Response) {
-    const result = await repo.checkIn(orgId(req), userId(req), req.params.id, req.body);
-    audit(req, 'check_in', 'homecare_visit', req.params.id, { latitude: req.body.latitude, longitude: req.body.longitude, accuracy_meters: req.body.accuracy_meters });
-    res.json(result);
+    const { visit, location } = await repo.checkIn(orgId(req), userId(req), req.params.id, req.body);
+    audit(req, 'check_in', 'homecare_visit', req.params.id, HomecareController.auditLocationFields(location));
+    res.json(visit);
   }
 
   static async checkOut(req: Request, res: Response) {
-    const result = await repo.checkOut(orgId(req), userId(req), req.params.id, req.body);
+    const { visit, location } = await repo.checkOut(orgId(req), userId(req), req.params.id, req.body);
     // The location fields are recorded here because this is the only place a
     // check-out position exists. Keeping them in the audit trail is what makes
     // "where was this carer when they completed this call" answerable after the
-    // visit record is edited.
-    audit(req, 'check_out', 'homecare_visit', req.params.id, { latitude: req.body.latitude, longitude: req.body.longitude, accuracy_meters: req.body.accuracy_meters, actual_travel_minutes: req.body.actual_travel_minutes, actual_mileage_miles: req.body.actual_mileage_miles });
-    res.json(result);
+    // visit record is edited — and they are the resolved ones, so a call that
+    // captured no position records no position here either. See
+    // auditLocationFields.
+    audit(req, 'check_out', 'homecare_visit', req.params.id, {
+      ...HomecareController.auditLocationFields(location),
+      actual_travel_minutes: req.body.actual_travel_minutes,
+      actual_mileage_miles: req.body.actual_mileage_miles,
+    });
+    res.json(visit);
   }
 
   static async listCarePlans(req: Request, res: Response) {
@@ -1341,19 +1380,49 @@ export class HomecareController {
    * ORG_ADMIN only, and the change is audited with the coordinates left out of
    * the payload — the audit records that the switch moved, not what it exposed.
    *
-   * Two things this deliberately does not do, because both would be worse than
-   * not offering the control at all:
+   * Turning it off stops the *next* position. It has never been able to do
+   * anything about the ones already collected, and pretending otherwise is how
+   * "we have switched it off" comes to mean "we have switched it off going
+   * forwards" without anyone ever being told. So switching off now asks what to
+   * do about the existing positions, and every option states its consequence
+   * before the request is sent:
    *
-   *   - It does not delete positions already collected. Turning collection off
-   *     stops the next one; what was already captured is on visit records the
-   *     organisation has always had, and how long to keep it is the retention
-   *     question the DPIA has escalated to the DPO rather than answered here.
-   *   - It does not affect the live map retrospectively. Same reason.
+   *   - keep (the default) — nothing is deleted, the attendance record and the
+   *     positions on it both stay, and the setting returns how many there are
+   *     and how old the oldest is. This is the default because a manager
+   *     clicking "stop collecting my carers' locations" has almost never
+   *     decided to destroy the proof of where their staff have been, and
+   *     quietly deleting a decade of visit history on that click is not a
+   *     consequence anyone agreed to. It is also the answer that is hard to
+   *     reverse.
+   *   - purge — everything held is deleted now, across all three stores, and
+   *     a receipt is written.
+   *   - apply_retention — the org's own configured period is enforced once,
+   *     now, and the standing nightly job keeps doing it. Refused if no period
+   *     is set, because "apply the retention policy" with no retention policy is
+   *     not a request that can be honoured.
+   *
+   * The order is fixed: new collection stops first, and the question about
+   * history is asked after. That way no position can arrive between the
+   * decision to stop and the decision about the past.
    */
   static async updateLocationTracking(req: Request, res: Response) {
     const oid = orgId(req);
-    const { enabled } = req.body as { enabled: boolean };
+    const { enabled, existingPositions = 'keep' } = req.body as { enabled: boolean; existingPositions?: 'keep' | 'purge' | 'apply_retention' };
     const next = enabled === true;
+
+    const choice = next ? 'keep' : existingPositions;
+    if (!['keep', 'purge', 'apply_retention'].includes(choice)) {
+      throw new AppError(400, 'existingPositions must be one of keep, purge or apply_retention.');
+    }
+
+    // Resolved before the switch moves, so a bad request cannot leave the
+    // organisation switched off with the history question unanswered.
+    const policy = await getLocationRetentionSummary(oid);
+    if (!next && choice === 'apply_retention' && policy.retention_days == null) {
+      throw new AppError(400, 'You have not set a retention period yet. Set one first, or choose to delete the existing positions.');
+    }
+
     await migrateQuery(`
       UPDATE organizations
       SET location_tracking_enabled = $1,
@@ -1362,13 +1431,138 @@ export class HomecareController {
           updated_at = NOW()
       WHERE id = $2
     `, [next, oid, userId(req)]);
-    audit(req, next ? 'enable' : 'disable', 'organization_location_tracking', oid, { location_tracking_enabled: next });
+
+    let purgeRun = null;
+    if (!next && choice === 'purge') {
+      purgeRun = await runLocationPurge({
+        organizationId: oid,
+        trigger: 'switch_off',
+        retentionDays: null,
+        triggeredBy: userId(req),
+      });
+    } else if (!next && choice === 'apply_retention') {
+      purgeRun = await runLocationPurge({
+        organizationId: oid,
+        trigger: 'switch_off',
+        retentionDays: policy.retention_days,
+        triggeredBy: userId(req),
+      });
+    }
+
+    audit(req, next ? 'enable' : 'disable', 'organization_location_tracking', oid, {
+      location_tracking_enabled: next,
+      // The choice is audited because it is the part that is irreversible. "The
+      // switch moved" is recoverable; "we deleted 41,382 positions" is not, and
+      // a record that captured only the first half would be misleading to
+      // anyone reading it in a year.
+      existing_positions_handling: choice,
+      positions_removed: purgeRun?.positions_removed ?? 0,
+      deletion_run_id: purgeRun?.id ?? null,
+    });
+
     res.json({
       location_tracking_enabled: next,
       // Said plainly rather than left for the manager to discover: without a
       // fix there is no way to verify a carer is at the client's address.
       visit_verification_available: next,
+      existing_positions_handling: choice,
+      deletion_run: purgeRun,
+      // After a purge, what is left is the record that a position used to be
+      // there. Returning the remaining count is what lets the UI say "done"
+      // honestly instead of implying the history was untouched.
+      positions_remaining: purgeRun ? await getLocationRetentionSummary(oid).then((s) => s.positions_stored) : policy.positions_stored,
     });
+  }
+
+  /* ─── Location retention ───────────────────────────────────── */
+
+  /**
+   * The retention period, and what it is currently costing the provider.
+   *
+   * Carries no coordinates. The counts and the oldest capture date are what a
+   * manager needs in order to be able to *choose* a period, and they are also
+   * what makes the unconfigured state impossible to scroll past: the response
+   * includes a sentence, in words, saying that positions are being held with no
+   * deletion date, so the screen does not have to be clever about it.
+   */
+  static async getLocationRetention(req: Request, res: Response) {
+    res.json(await getLocationRetentionSummary(orgId(req)));
+  }
+
+  /**
+   * Record the provider's own retention period.
+   *
+   * ORG_ADMIN, because the period is a statement the organisation makes to its
+   * staff and its regulator, not a rostering preference. No default is offered
+   * and no suggestion is made: the DPIA escalated this to a DPO and picking a
+   * number here would answer it on their behalf.
+   */
+  static async setLocationRetention(req: Request, res: Response) {
+    const oid = orgId(req);
+    const { retention_days } = req.body as { retention_days: number };
+    const previous = await getLocationRetentionSummary(oid);
+    const policy = await setLocationRetentionPolicy(oid, userId(req), retention_days);
+    audit(req, 'update', 'organization_location_retention', oid, {
+      retention_days: policy.retention_days,
+      previous_retention_days: previous.retention_days,
+    });
+    // Returned with the counts so the UI can show what the new period would
+    // remove, before the nightly job gets there first. Deleting is a separate
+    // action on purpose — see setLocationRetentionPolicy.
+    res.json(await getLocationRetentionSummary(oid));
+  }
+
+  /** Undo the period. Deletes nothing; only stops the nightly job. */
+  static async clearLocationRetention(req: Request, res: Response) {
+    const oid = orgId(req);
+    const previous = await getLocationRetentionSummary(oid);
+    await clearLocationRetentionPolicy(oid);
+    audit(req, 'clear', 'organization_location_retention', oid, { previous_retention_days: previous.retention_days });
+    res.json(await getLocationRetentionSummary(oid));
+  }
+
+  /**
+   * Run a deletion now.
+   *
+   * ORG_ADMIN, and deliberately a separate endpoint from setting a period: one
+   * records a rule, the other destroys data, and they should not be reachable by
+   * the same mistake.
+   *
+   * With no body it enforces the configured period. With `all: true` it deletes
+   * everything held regardless of the period, which is the one-off a provider
+   * runs after deciding they should not be holding this at all.
+   */
+  static async runLocationRetentionNow(req: Request, res: Response) {
+    const oid = orgId(req);
+    const all = req.body?.all === true;
+    const policy = await getLocationRetentionSummary(oid);
+    if (!all && policy.retention_days == null) {
+      throw new AppError(400, 'You have not set a retention period. Set one, or choose to delete all carer location.');
+    }
+    const run = await runLocationPurge({
+      organizationId: oid,
+      trigger: 'manual',
+      retentionDays: all ? null : policy.retention_days,
+      triggeredBy: userId(req),
+    });
+    audit(req, all ? 'purge_all' : 'purge', 'organization_location_retention', oid, {
+      retention_days: run.retention_days,
+      positions_removed: run.positions_removed,
+      deletion_run_id: run.id,
+    });
+    res.json({ run, remaining: await getLocationRetentionSummary(oid) });
+  }
+
+  /**
+   * What has been deleted, when, and by which run.
+   *
+   * Manager-readable. This is the evidence a provider produces when asked how
+   * they are meeting their own retention rule, so it exists independently of
+   * the settings screen and shows runs that removed nothing — see
+   * listLocationPurgeRuns.
+   */
+  static async listLocationRetentionRuns(req: Request, res: Response) {
+    res.json({ runs: await listLocationPurgeRuns(Number(req.query.limit) || 25) });
   }
 
   /* ─── Location threshold settings ──────────────────────────── */

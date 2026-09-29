@@ -19,4 +19,4 @@
 export const STAFF_LOCATION_NOTICE_KEY = 'staff_location'
 
 /** Must equal STAFF_LOCATION_NOTICE_VERSION in the mobile content module. */
-export const STAFF_LOCATION_NOTICE_VERSION = '1.2'
+export const STAFF_LOCATION_NOTICE_VERSION = '1.3'

@@ -27,7 +27,9 @@ describe('the carer location notice version', () => {
   it('is not the old version, which is the mistake a stale copy makes silently', () => {
     // Spelled out rather than left implicit: a failure here should say which
     // version is wrong, not just show a diff of two identical-shaped strings.
-    expect(STAFF_LOCATION_NOTICE_VERSION).toBe('1.2')
+    // Bump this line in the same commit as the notice text. Version 1.3 is the
+    // retention rewrite; 1.2 was the correction of the refused-check-in claim.
+    expect(STAFF_LOCATION_NOTICE_VERSION).toBe('1.3')
   })
 })
 

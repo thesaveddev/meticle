@@ -16,6 +16,7 @@
 | 1.3 | 27 Sep 2026 | **The v1.1 retraction of the per-organisation kill switch is reversed, because the control now exists.** Version 1.0 claimed an organisation "can disable the live map feature per-location"; 1.1 retracted it as a control that did not exist. The control is now built — to 1.1's specification, not 1.0's wording — and §6 is restated as an implemented right, with a new §6.1 setting out exactly what "off" stops and the one thing it cannot preserve. Residual risk stays MEDIUM. |
 | 1.4 | 27 Sep 2026 | **§5.2 stops being an intention and becomes a control, and two claims in it are withdrawn.** Carers are now shown what is collected, in the app, at first launch, with the acknowledgement recorded server-side. In the course of writing the notice, §5.2 was found to contradict §2.2 of this same document on retention, in the direction that flattered us. Also: the kill switch shipped in 1.3 had a gap — the navigation sheet read position without honouring it. |
 | 1.5 | 28 Sep 2026 | **A carer can now decline, individually, and the refusal is honoured at the point of collection.** The notice in 1.4 told each worker what was collected and recorded that they had read it. It did not let them say no, which made "was told" the only thing evidenced and left §5.1 item 1-5 as the only route to a worker's objection. New §5.3. Two stale claims in this document are also corrected: §4.1 risk 3 and §5.1 both still said location was "documented in employment contracts and staff handbook", which §5.2 withdrew in 1.4, and §5.1 still said there was no per-organisation switch, which has been false since 1.3. Residual risk stays MEDIUM, restated per worker in §6.2. |
+| 1.6 | 29 Sep 2026 | **A retention mechanism exists, and the legal question in §2.2 is still not answered.** §2.2 escalated the retention period to the DPO and this document correctly refused to state one. What was missing was the machinery: a provider whose DPO came back with "90 days" had nowhere to record that and nothing that would ever act on it, so positions accumulated for as long as the care record lived. Migration `134` adds a per-organisation period, a nightly enforcement job, and a written receipt of every run. It deliberately ships **no default** — see new §2.3. Two claims about the product are also corrected here, both found by reading the code rather than this document: position was being written to a **third** store (`mobile_check_ins`, via a SecureVisit endpoint that honoured neither the switch nor the worker's decision), and the kill switch did not reach the **copy in the audit log**, which was built from the request body and so kept collecting after a provider had asked it to stop. The carer notice is v1.3, which said only "ask your employer" about retention and is now false in its implication. Residual risk stays MEDIUM. |
 
 **What changed in 1.5**
 
@@ -246,7 +247,7 @@ this page, and the manager-facing panel states in its own text that it is not on
 
 | Data element | Source | Retention | Purpose |
 |---|---|---|---|
-| Carer GPS coordinates (latitude, longitude) | Mobile device, **at check-in and check-out only** — the two points that are stored. A third on-demand read drives a distance display and never leaves the device. See §1.1 | Held on the visit record. **No period is specified by MeticleCare.** See §2.2 | Evidence of arrival; dispatch |
+| Carer GPS coordinates (latitude, longitude) | Mobile device, **at check-in and check-out only** — the two points that are stored. A third on-demand read drives a distance display and never leaves the device. See §1.1 | Held on the visit record, **and in two further copies**: `audit_logs.new_data` on the check-in/check-out rows, and `mobile_check_ins` for SecureVisit check-ins. **No period is specified by MeticleCare**; each organisation sets its own and a nightly job enforces it. See §2.2 and §2.3 | Evidence of arrival; dispatch |
 | GPS accuracy (meters) | Mobile device, at both stored points | With the visit record. `check_in_accuracy_meters` and `check_out_accuracy_meters`; the latter added 27 Sep 2026, because the app was already sending it and the database was discarding it | Data quality indicator |
 | Carer name and staff ID | Staff profile | With the visit record | Identification on map |
 | Visit status | System | With the visit record | Operational visibility |
@@ -291,6 +292,63 @@ Version 1.0 resolved this by asserting a period. It should have raised it. **The
 data protection adviser engaged for the organisation-wide DPIA must settle this**, and the
 answer needs to be reflected here. Until then, this document does not specify a retention
 period for carer location and the organisation should not rely on one being implied.
+
+That position is unchanged in version 1.6. What has changed is that the question can now
+be *answered* — see §2.3. The legal escalation stands; the gap it described was
+mechanical as well as legal, and only the mechanical half is closed.
+
+### 2.3 Retention mechanism — added in version 1.6
+
+§2.2 is a question about what the right period is. It does not answer it, and version 1.6
+does not answer it either. This section describes what now happens to that answer once
+somebody gives one.
+
+**Each organisation sets its own period, and there is no default.** `organizations.location_retention_days`
+is nullable and ships NULL. A shipped number would become the policy of every provider who
+never opens the setting, which would be MeticleCare overturning a documented escalation to
+that provider's DPO on their behalf — the same error as version 1.0 of this document
+asserting an unevidenced "recommended 8 years". NULL means "not decided": nothing is
+deleted automatically, and the settings screen says so in words, in that provider's own
+position count, rather than presenting an empty field that reads as a long default.
+
+**Enforcement is automatic.** A job runs nightly per organisation and deletes every position
+older than the configured period. It writes a receipt for every run, including runs that
+removed nothing, so a provider can evidence enforcement rather than merely assert it.
+
+**The deletion reaches three stores, because location is written in three.** This was
+established by reading the code:
+
+| Store | What it holds | How it is purged |
+| --- | --- | --- |
+| `homecare_visits.check_in_*` / `check_out_*` | The intended record | Coordinates nulled; the visit, its timesheet and its pay are untouched. Stamped `location_purged_at` and `location_purged_run_id`, so a purged read is distinguishable from a device that failed to get a fix |
+| `audit_logs.new_data` | The same position again, in JSONB, on the `check_in` / `check_out` rows | Coordinate keys stripped. The row survives, because "a check-in happened" is not "where the carer was" |
+| `mobile_check_ins` | SecureVisit check-in positions | Deleted outright — the row is nothing but a position and a timestamp |
+
+**Two corrections to claims made elsewhere in this document.**
+
+1. §6 and the kill switch said collection could be switched off. That was true of the
+   visit record and false of the audit log: the audit payload was built from `req.body`, so
+   an app build still sending coordinates had its positions written into `audit_logs` after
+   a provider had switched collection off, bypassing the switch entirely and with no
+   retention rule of any kind. The audit call now records the *resolved* location, so a
+   refused collection writes no position anywhere.
+2. The SecureVisit endpoint (`POST /mobile/check-in`) consulted neither the organisation
+   switch nor the worker's own decision, and stored a position on every call. It now goes
+   through the same resolution as a care-visit check-in, in the same order. A worker who
+   declined checks in with no position rather than being refused the check-in.
+
+**Switching collection off now asks what to do about what was already collected.** It always
+stopped the *next* position and never touched the past, and the previous version of the
+product described that as though it settled the question. A provider is now asked, with the
+count and the age of the oldest position in front of them, whether to keep them, delete
+them, or apply their retention period once. **Keeping is the default**, because a manager
+pressing "stop tracking my carers" has almost never decided to destroy the proof of where
+their staff have been, and that is the one option here that cannot be reversed.
+
+**What this does not do.** It does not decide the period, and it does not give an employer
+a lawful basis. §5.1 and §5.3 are unchanged: a carer's recorded answer is evidence of what
+they were told and what they chose, and MeticleCare is a processor that cannot manufacture
+an employer's lawful basis from it.
 
 ### 2.2 Data NOT processed
 
@@ -503,7 +561,7 @@ Stated precisely because "you can turn it off" is a claim that is easy to make a
 **What the switch deliberately does not do**, and this is a decision rather than a gap:
 
 - **It is per organisation, not per location or per worker.** Several claiming organisations share one tenant in this product, so a per-location control could not be enforced in the data model without a claim-level model that does not exist. "Off" is genuinely all-or-nothing per provider.
-- **It is not retroactive.** Coordinates already captured stay in the record and remain subject to the retention question escalated to the DPO. Switching collection off is a forward-looking control.
+- **It is not retroactive on its own.** Switching collection off stops the next position; what was already collected is unaffected unless the provider is also asked what to do about it. That question is now asked, with the count and the age of the oldest position in front of them, and keeping is the default. See §2.3. Positions that are kept remain subject to the retention question escalated to the DPO, and are deleted once the provider sets a period — which, as of version 1.6, they can actually do.
 - **It does not self-apply to a worker's device.** A carer who previously granted the OS location permission keeps it at OS level; the app simply stops reading it. The mobile release that implements this has not been cut yet.
 
 **Audit position.** The change is auditable, and that is the point of `location_tracking_disabled_at` / `_by`: "when did this provider stop collecting, and who authorised it" is the first question of any workforce-monitoring review, and it cannot be answered from a settings page once the setting has been changed more than once. Viewing the map is separately logged as a `view` audit row (user, timestamp, IP — and deliberately **not** coordinates, which would create a second copy of staff location with its own retention question).

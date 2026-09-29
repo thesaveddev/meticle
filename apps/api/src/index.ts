@@ -449,6 +449,38 @@ setInterval(() => {
     .catch(err => logger.error(err, 'Unclaimed shift check failed'));
 }, 15 * 60 * 1000);
 
+// Nightly carer-location retention.
+//
+// This one is hourly-checked rather than set to a 24-hour interval, because a
+// setInterval that fires once a day drifts with process restarts and will
+// happily skip a day across a deploy. Instead the tick runs often and the job
+// itself decides whether the day is done, keyed on the date rather than on the
+// clock — so it runs once, at some point in the small hours, and again after
+// every restart on the same day without re-running on the minute.
+//
+// Why nightly and not hourly: a retention period is measured in days, and
+// deleting a position one day after its period expired rather than one day
+// before it is not a meaningful difference to anyone reading the receipt. What
+// matters is that it happens without a human, which an hourly job does not
+// improve on and does make more expensive to run.
+//
+// Providers with no period set are skipped rather than written a receipt saying
+// nothing was deleted. See runScheduledLocationPurges.
+const LOCATION_RETENTION_CHECK_INTERVAL = 60 * 60 * 1000; // every hour
+let lastLocationRetentionDate = '';
+function runLocationRetentionCheck() {
+  if (!databaseReady) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (today === lastLocationRetentionDate) return;
+  lastLocationRetentionDate = today;
+  runScheduledLocationPurges()
+    .then(result => { if (result.runs > 0) logger.info(result, 'Carer location retention check complete') })
+    .catch(err => logger.error(err, 'Carer location retention check failed'));
+}
+import { runScheduledLocationPurges } from './modules/homecare/locationRetention';
+databaseReadyPromise.then(() => setTimeout(runLocationRetentionCheck, 20_000));
+setInterval(runLocationRetentionCheck, LOCATION_RETENTION_CHECK_INTERVAL);
+
 // Send daily compliance digests to location managers (every hour; in-memory tracker enforces 24h)
 setInterval(() => {
   if (!databaseReady) return;

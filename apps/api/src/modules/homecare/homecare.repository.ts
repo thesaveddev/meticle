@@ -833,11 +833,23 @@ export async function getWorkerLocationDecision(staffUserId: string): Promise<Lo
  * coordinates be optional so an organisation with tracking off can omit them,
  * which means this is the only place left that can insist they are there.
  */
-function resolveLocation(
+export interface ResolvedLocation {
+  lat: number | null;
+  lon: number | null;
+  accuracy: number | null;
+  skipped: boolean;
+  skipReason: string | null;
+}
+
+export function resolveLocation(
   trackingEnabled: boolean,
   decision: LocationDecision,
-  input: VisitExecutionInput
-): { lat: number | null; lon: number | null; accuracy: number | null; skipped: boolean; skipReason: string | null } {
+  // Narrower than VisitExecutionInput on purpose: this function is also called
+  // from the SecureVisit check-in, which has no visit and no travel fields, and
+  // widening its input to a second interface would be a way of importing the
+  // whole visit contract into a route that has nothing to do with visits.
+  input: { latitude?: number | null; longitude?: number | null; accuracy_meters?: number | null }
+): ResolvedLocation {
   if (!trackingEnabled) {
     return { lat: null, lon: null, accuracy: null, skipped: true, skipReason: 'organisation_disabled' };
   }
@@ -897,7 +909,11 @@ export async function checkIn(orgId: string, staffUserId: string, visitId: strin
   );
   const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, location_capture_skipped = $4, location_capture_skip_reason = $5, actual_travel_minutes = COALESCE($6, actual_travel_minutes), actual_mileage_miles = COALESCE($7, actual_mileage_miles), updated_at = NOW()
     WHERE id = $8 AND organization_id = $9 RETURNING *`, [location.lat, location.lon, location.accuracy, location.skipped, location.skipReason, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
-  return result.rows[0];
+  // The resolved location travels back with the visit rather than being
+  // recomputed by the caller, because recomputing is how the audit log ended
+  // up holding coordinates the visit no longer had. See the note on
+  // HomecareController.checkIn.
+  return { visit: result.rows[0], location };
 }
 
 export async function checkOut(orgId: string, staffUserId: string, visitId: string, input: VisitExecutionInput) {
@@ -1010,7 +1026,9 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
     [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage,
       mileageRate, workRate, gross, hourlyRateSource, hourlyRateSourceLabel, mileageRateSource,
       mileageRateSourceLabel, paidTravelPolicySource, paidTravelPolicyLabel]);
-    return v;
+    // Same reason as checkIn: the caller audits this position, and it has to be
+    // the one that was actually stored, not the one the request claimed.
+    return { visit: v, location };
   });
 }
 
@@ -1456,7 +1474,7 @@ export async function recordOfflineAction(orgId: string, userId: string, visitId
       : await checkOut(orgId, userId, visitId, input);
     await query(`INSERT INTO homecare_offline_actions (organization_id, visit_id, user_id, action_key, action_type, payload, status, processed_at)
       VALUES ($1,$2,$3,$4,$5,$6,'processed',NOW())`, [orgId, visitId, userId, actionKey, actionType, JSON.stringify(input)]);
-    return { replayed: false, status: 'processed', visit: result };
+    return { replayed: false, status: 'processed', visit: result.visit };
   } catch (error: any) {
     await query(`INSERT INTO homecare_offline_actions (organization_id, visit_id, user_id, action_key, action_type, payload, status, error_message)
       VALUES ($1,$2,$3,$4,$5,$6,'failed',$7) ON CONFLICT (organization_id, action_key) DO NOTHING`, [orgId, visitId, userId, actionKey, actionType, JSON.stringify(input), String(error?.message || 'Offline action failed').slice(0, 1000)]);

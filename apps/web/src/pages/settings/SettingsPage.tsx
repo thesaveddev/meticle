@@ -26,7 +26,7 @@ import {
   CalendarMonth as CalendarIcon,
   Phone as PhoneIcon,
 } from '@mui/icons-material'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
@@ -35,6 +35,7 @@ import { disablePushNotifications, enablePushNotifications, getPushState, type P
 import { EmptyState } from '../../components/design/EmptyState'
 import LocationDecisionControl from '../../components/LocationDecisionControl'
 import LocationDecisionEvidence from '../../components/LocationDecisionEvidence'
+import LocationRetentionCard from '../../components/LocationRetentionCard'
 
 // Mirrors the API rule for SOS contact numbers: a number that reaches the mobile
 // dialer must contain nothing but dialable characters.
@@ -67,6 +68,13 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
+  // Switching location off always routes through a question about the positions
+  // already collected. Not because deleting them is the expected answer —
+  // keeping them is — but because "stop collecting" and "hold nothing" are
+  // different promises and only one of them was previously being made.
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
+  const [retentionSummary, setRetentionSummary] = useState<any>(null)
+  const queryClient = useQueryClient()
   const [deactError, setDeactError] = useState('')
   const [error, setError] = useState('')
 
@@ -191,6 +199,13 @@ export default function SettingsPage() {
             setLocationTracking({ enabled: on, pending: on, saving: false })
           })
           .catch(() => setLocationTracking({ enabled: true, pending: true, saving: false }))
+        // Read once here purely so the switch-off dialog can say how many
+        // positions are actually at stake and whether a period exists. The
+        // numbers in the dialog come from the server rather than from anything
+        // counted on this page, so there is one source for them.
+        api.get('/homecare/settings/location-retention')
+          .then(res => setRetentionSummary(res.data))
+          .catch(() => setRetentionSummary(null))
         if (orgDetRes.status === 'fulfilled') {
           setOrgDetails(orgDetRes.value.data)
           setBrandingColors({
@@ -777,20 +792,35 @@ export default function SettingsPage() {
     </Stack>
   )
 
-  const saveLocationTracking = async () => {
+  const saveLocationTracking = async (existingPositions: 'keep' | 'purge' | 'apply_retention' = 'keep') => {
     setLocationTracking(lt => ({ ...lt, saving: true }))
     try {
-      const res = await api.put('/homecare/settings/location-tracking', { enabled: locationTracking.pending })
+      const res = await api.put('/homecare/settings/location-tracking', {
+        enabled: locationTracking.pending,
+        existingPositions,
+      })
       const saved = res.data?.location_tracking_enabled !== false
       setLocationTracking({ enabled: saved, pending: saved, saving: false })
-      showSnackbar(
-        saved
-          ? 'Carer location is being recorded and shown again.'
-          : 'Carer location recording is off. New check-ins will not record a position, and the check-in map is no longer available.',
-        saved ? 'success' : 'info',
-      )
+      setHistoryDialogOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['locationRetention'] })
+      queryClient.invalidateQueries({ queryKey: ['locationRetentionRuns'] })
+      if (saved) {
+        showSnackbar('Carer location is being recorded and shown again.', 'success')
+      } else if (res.data?.deletion_run) {
+        const removed = res.data.deletion_run.positions_removed
+        showSnackbar(
+          `Carer location recording is off, and ${removed.toLocaleString('en-GB')} positions already collected were deleted. Visits, timesheets and pay were not affected.`,
+          'success',
+        )
+      } else {
+        showSnackbar(
+          'Carer location recording is off. New check-ins will not record a position, the check-in map is gone, and positions already collected are still held — see the retention card below.',
+          'info',
+        )
+      }
     } catch (e: any) {
       setLocationTracking(lt => ({ ...lt, pending: lt.enabled, saving: false }))
+      setHistoryDialogOpen(false)
       showSnackbar(e?.response?.data?.message || 'Could not change the location setting.', 'error')
     }
   }
@@ -828,11 +858,13 @@ export default function SettingsPage() {
                 : 'Switching this back on will record location at the next check-in. Visits recorded while it was off will stay without a position.'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              This does not delete positions already recorded on past visits. How long those are
-              kept is a separate question your data protection adviser should settle.
+              {locationTracking.pending
+                ? 'This stops new positions being recorded. Positions already collected are a separate question, and you will be asked about them next.'
+                : 'Switching this back on will record location at the next check-in. Visits recorded while it was off will stay without a position.'}
             </Typography>
             <Stack direction="row" spacing={2}>
-              <Button variant="contained" disabled={locationTracking.saving} onClick={saveLocationTracking}>
+              <Button variant="contained" disabled={locationTracking.saving}
+                onClick={() => locationTracking.pending ? setHistoryDialogOpen(true) : saveLocationTracking('keep')}>
                 {locationTracking.pending ? 'Switch location off' : 'Switch location back on'}
               </Button>
               <Button disabled={locationTracking.saving} onClick={() => setLocationTracking({ ...locationTracking, pending: locationTracking.enabled })}>
@@ -855,6 +887,103 @@ export default function SettingsPage() {
         asked by the person running the shift.
       */}
       <LocationDecisionEvidence />
+
+      {/*
+        How long the positions on those visits are kept, and the record of what
+        has been deleted. It sits under the evidence panel rather than beside the
+        switch because it answers the question the switch leaves open: switching
+        off stops the next position, not the ones already held.
+      */}
+      <LocationRetentionCard />
+
+      {/*
+        Switching collection off has never been able to do anything about the
+        positions already collected, and the old version of this panel said so in
+        a small grey line and then switched the collection off anyway. Which
+        meant "we have stopped collecting our carers' locations" was really
+        "we have stopped collecting", with the rest left for the manager to work
+        out months later.
+
+        So the switch is now two steps. This dialog states what is at stake in
+        this organisation's own numbers, and every option says what it costs:
+
+          Keep them (the default) — the attendance record and its positions both
+            stay. Reversible, and the answer a manager pressing "stop tracking my
+            staff" almost always means.
+          Apply my retention period — deletes only what is already past the age
+            this organisation has set, and keeps the rest.
+          Delete all of them now — irreversible.
+
+        Keeping is the default and the first option because destroying a decade
+        of visit history on a click that was about the future would be a
+        decision nobody made.
+      */}
+      <Dialog open={historyDialogOpen} onClose={() => setHistoryDialogOpen(false)} maxWidth="sm" fullWidth
+        data-testid="switch-off-history-dialog">
+        <DialogTitle>What should happen to positions already collected?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Location recording is about to stop, which handles everything from now on. This
+            organisation currently holds{' '}
+            <strong>{(retentionSummary?.positions_stored ?? 0).toLocaleString('en-GB')} carer positions</strong>
+            {retentionSummary?.oldest_position_at
+              ? `, the oldest from ${new Date(retentionSummary.oldest_position_at).toLocaleDateString('en-GB')}`
+              : ''}
+            . They stay exactly where they are unless you choose otherwise.
+          </Typography>
+
+          <Stack spacing={2} sx={{ mb: 2 }}>
+            <Button variant="outlined" onClick={() => saveLocationTracking('keep')}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
+              data-testid="history-keep">
+              <Box>
+                <Typography variant="body2" fontWeight={700}>Keep them</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Nothing is deleted. You keep the visit record and the positions on it, and can
+                  delete them later from the retention card. Reversible.
+                </Typography>
+              </Box>
+            </Button>
+
+            <Button variant="outlined" disabled={!retentionSummary?.is_configured}
+              onClick={() => saveLocationTracking('apply_retention')}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
+              data-testid="history-apply-retention">
+              <Box>
+                <Typography variant="body2" fontWeight={700}>
+                  Apply my retention period{retentionSummary?.retention_days ? ` (${retentionSummary.retention_days} days)` : ''}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {retentionSummary?.is_configured
+                    ? 'Deletes only the positions already past that age, and leaves the rest. The nightly job keeps doing it after this.'
+                    : 'You have not set a retention period yet, so there is nothing to apply. Set one on the retention card below first.'}
+                </Typography>
+              </Box>
+            </Button>
+
+            <Button variant="outlined" color="error" onClick={() => saveLocationTracking('purge')}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
+              data-testid="history-purge">
+              <Box>
+                <Typography variant="body2" fontWeight={700}>Delete all of them now</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Removes every position held, across the visit record, the audit log and SecureVisit
+                  check-ins. Visits, timesheets and pay are not affected. This cannot be undone.
+                </Typography>
+              </Box>
+            </Button>
+          </Stack>
+
+          <Alert severity="info">
+            Deleting a position never deletes the visit or the pay — those are built from the two
+            timestamps and what the carer entered. What is lost is the ability to check afterwards
+            that they were at the person's address.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHistoryDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Organization Details */}
       {orgDetails && (

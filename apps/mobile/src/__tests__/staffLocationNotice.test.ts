@@ -48,9 +48,54 @@ describe('the staff location notice', () => {
     it('states no retention period, because none has been decided', () => {
       // The DPIA escalated this to the DPO rather than guessing, and v1.0 of
       // that document asserted an unevidenced "recommended 8 years". A number
-      // here would be the same error wearing different clothes.
+      // here would be the same error wearing different clothes. The mechanism
+      // exists as of 1.3; the answer still does not, and that distinction is
+      // the whole reason this assertion survives the retention rewrite.
       expect(allText).not.toMatch(/\b\d+\s*(year|month|week|day)s?\b/)
       expect(allText).not.toMatch(/retain(ed)?\s+for\s+\d+/)
+    })
+
+    it('does not claim a default period exists for a provider who set none', () => {
+      // "Set a period and it is enforced" reads to a worker like "it is
+      // enforced", and the failure of assuming otherwise is a carer who believes
+      // their position is being deleted when it is not — the opposite error,
+      // and the reason the unconfigured state has to be named in the notice
+      // rather than left to the settings screen.
+      expect(allText).toMatch(/have not set a period/)
+      expect(allText).toMatch(/nothing is deleted automatically/)
+      expect(allText).toMatch(/no deletion date/)
+    })
+
+    it('does not claim Meticle Care chose the period', () => {
+      // It is a processor. A number of ours would be us answering a question
+      // the DPIA escalated to the employer's DPO.
+      expect(allText).toMatch(/your employer sets this/)
+      expect(allText).toMatch(/does not choose a number/)
+      expect(allText).toMatch(/does not ship a default/)
+    })
+
+    it('does not claim a position is deleted if it is only cleared from the visit', () => {
+      // Three stores hold the position. A notice that promised deletion while
+      // the copy in the audit log survived would be the false-claim bug of 1.2
+      // all over again, in a different direction.
+      expect(allText).toMatch(/all three places/)
+      expect(allText).toMatch(/audit log/)
+      expect(allText).toMatch(/securevisit/)
+    })
+
+    it('does not promise that deleting a position leaves the visit and pay untouched without saying so', () => {
+      expect(allText).toMatch(/does not delete the visit, the timesheet or the pay/)
+    })
+
+    it('says the employer is asked about existing positions when they switch recording off', () => {
+      // Switching off stops new collection. Before 1.3 that was the whole of
+      // what it did, and the notice described it as though it settled the
+      // question, which is how a provider ends up holding positions forever
+      // after promising they had stopped.
+      expect(allText).toMatch(/switches location recording off/)
+      expect(allText).toMatch(/stops new positions being collected/)
+      expect(allText).toMatch(/already collected/)
+      expect(allText).toMatch(/nothing is deleted without that answer/)
     })
 
     it('does not claim the worker consented', () => {

@@ -42,6 +42,7 @@ you cannot un-record it, and you cannot record it for them.
 | Turn location recording on/off | Settings → **Organization** → *Carer location* | Organisation admin changes it. Managers can see the state. |
 | See who has agreed | Settings → **Organization** → *Who has agreed to location recording* | Organisation admins and managers |
 | A carer's own answer | Settings → **My Profile** → *Your location* | Every user, for themselves |
+| Set how long you keep positions | Settings → **Organization** → *How long you keep carer location* | Organisation admins set it. Managers can read it and the deletion history. |
 | The check-in map | Homecare → **Visit Check-In Map** | Organisation admins and managers |
 
 If your organisation does not use domiciliary or live-in services, there is no map and
@@ -139,6 +140,37 @@ about why:
 No GPS coordinate is an input to any of it. The position and the money are entirely separate
 paths in the system, which is why the switch can be turned on and off without a single
 timesheet changing shape.
+
+---
+
+---
+
+## What happens to the positions you already have
+
+Turning collection off handles the future. It has never done anything about the past, and
+the honest reason for that is not a limitation we have failed to engineer around — it is
+that "stop collecting" and "hold nothing" are two different promises, and only one of them
+was being made.
+
+So switching off is now two steps. We show you how many positions your organisation is
+holding and how old the oldest one is, and ask what to do with them:
+
+| Your choice | What happens |
+|---|---|
+| **Keep them** (the default) | Nothing is deleted. Visits and their positions both stay, and you can delete them later from the retention card. This is the only reversible option. |
+| **Apply my retention period** | Deletes only the positions already past the age you have set, and leaves the rest. The nightly job keeps doing it afterwards. |
+| **Delete all of them now** | Removes every position held. Visits, timesheets and pay are not affected. This cannot be undone. |
+
+**Why keeping is the default.** Someone clicking "stop tracking my carers' locations" has
+almost never decided to destroy the proof of where their staff have been. Deleting is the
+irreversible option, so it is the one that has to be chosen deliberately, with the number in
+front of you. If you would rather not hold the data at all, the third option is there and
+says plainly what it costs.
+
+**What to tell your workforce.** The true version, if anyone asks: *"We have stopped
+recording new positions. The ones already collected are still on the visit records, and we
+have set a period after which they are deleted automatically — the number is [X] days."*
+Not: *"we have deleted everything"*, and not *"we never recorded anything"*.
 
 ---
 
@@ -255,14 +287,27 @@ Stated plainly so nobody is surprised later.
 - **It is per organisation, not per location or per branch.** If several registered
   organisations share a single Meticle Care account, the switch covers all of them together.
   We cannot scope it more finely than that.
-- **It is not retroactive.** Already-recorded positions are not deleted by turning it off, and
-  this is not a data-erasure tool.
-- **Retention is your decision.** We store carer location on the visit record and have not set
-  a separate deletion period for it. How long your organisation keeps visit records — and
-  whether a carer's position should be held on the same basis as a client's clinical notes, or
-  a shorter one — is a judgement for you and your data protection adviser. We think it is
-  worth making explicitly rather than inheriting by default. Meticle Care's DPIA for this
-  feature flags the same question and escalates it rather than answering it.
+- **It is not retroactive on its own.** Turning it off stops the next position. What was
+  already collected is a separate question, and we now ask you about it — see below.
+- **We do not set a retention period for you.** The length of time a carer's position is kept
+  is your decision and your data protection adviser's, not ours. We deliberately ship **no
+  default**, because a default would silently become the policy of every provider who never
+  opens the setting, and that is not ours to decide on your behalf. Until you set one,
+  nothing is deleted automatically and the settings screen says so in words, along with how
+  many positions you are currently holding.
+- **Once you set a period, the deletion runs itself.** Overnight, every position older than
+  your period is removed, across all three places it is written: the visit record, the copy in
+  the audit log, and SecureVisit check-ins. Each run is written down with its date and how
+  many positions it removed, so you can show that the policy is being *enforced* rather than
+  merely written down. Runs that found nothing are listed too — that is the evidence the rule
+  is holding.
+- **Setting a period deletes nothing on the spot.** It is a separate action, deliberately,
+  because typing "1" instead of "365" is a keystroke and should not cost you a decade of
+  attendance records. You can also run a deletion by hand, or delete everything you hold in
+  one go, from the same card.
+- **A deleted position does not delete the visit, the timesheet or the pay.** Those are built
+  from the two timestamps and what the carer entered. What is lost is the ability to check
+  afterwards that they were at the client's address, for visits that old.
 - **A carer cannot see their own position history in the app.** There is no in-app view of
   what has been kept about them. To see it, ask us; we will not produce it by default.
 - **A carer who has not yet answered is not recorded from.** If someone has not got to the

@@ -138,8 +138,11 @@ describe('the opt-in invariant, in the places that decide it', () => {
     expect(setup).toMatch(/MIGRATION_132/)
     // Positional, because a migration file that exists but is absent from the
     // list is silently never applied. Asserted as a run of three so a later
-    // migration appended to the list does not fail this for the wrong reason.
-    expect(setup).toMatch(/MIGRATION_131, MIGRATION_132, MIGRATION_133\]/)
+    // migration appended to the list does not fail this for the wrong reason —
+    // and so that adding one forces whoever added it to come back here. That
+    // is deliberate: this assertion went red on migration 134 (carer location
+    // retention) and the fix was to advance the run, not to loosen the pattern.
+    expect(setup).toMatch(/MIGRATION_132, MIGRATION_133, MIGRATION_134\]/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

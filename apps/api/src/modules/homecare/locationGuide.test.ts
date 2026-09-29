@@ -190,3 +190,73 @@ describe('claims the customer guide must not make', () => {
     expect(guideText).toMatch(/share a single Meticle Care account/i)
   })
 })
+
+/**
+ * The retention section of the guide, checked against the code.
+ *
+ * This is the section most likely to rot, because it describes a job and a
+ * schema rather than a user-visible control, and neither shows up on a settings
+ * page. Each claim below is anchored to the thing that implements it, so if the
+ * implementation moves the guide fails rather than quietly describing a system
+ * we no longer have.
+ */
+describe('what the guide says about keeping and deleting, against the code', () => {
+  it('ships no default, and the schema is what it says it is', () => {
+    const migration = read('apps/api/src/shared/database/migrations/134_carer_location_retention.sql')
+    // A shipped number would become the policy of every provider who never
+    // opens the setting, and would overturn the DPIA's escalation to their DPO.
+    expect(migration).toMatch(/ADD COLUMN IF NOT EXISTS location_retention_days INTEGER,/)
+    expect(guideText).toMatch(/no default/i)
+    expect(guideText).toMatch(/nothing is deleted automatically/i)
+  })
+
+  it('claims the deletion reaches all three stores, and checks that it can', () => {
+    const retention = read('apps/api/src/modules/homecare/locationRetention.ts')
+    // Each of these is one of the copies. A guide promising a deletion that
+    // clears only the visit record would be the false-claim bug of notice v1.2,
+    // pointed the other way.
+    expect(retention).toMatch(/UPDATE homecare_visits/)
+    expect(retention).toMatch(/UPDATE audit_logs/)
+    expect(retention).toMatch(/DELETE FROM mobile_check_ins/)
+    expect(guideText).toMatch(/visit record, the copy in the audit log, and SecureVisit check-ins/i)
+  })
+
+  it('does not claim the purge touches the visit, the timesheet or the pay', () => {
+    const retention = read('apps/api/src/modules/homecare/locationRetention.ts')
+    // The claim is only safe because the SQL nulls six coordinate columns and
+    // stamps two. If someone later widened it to delete rows, this fails.
+    expect(retention).not.toMatch(/DELETE FROM homecare_visits/)
+    expect(retention).not.toMatch(/DELETE FROM homecare_timesheets/)
+    expect(guideText).toMatch(/does not delete the visit, the timesheet or the pay/i)
+  })
+
+  it('says setting a period deletes nothing, and that is how the endpoint behaves', () => {
+    const controller = read('apps/api/src/modules/homecare/homecare.controller.ts')
+    // setLocationRetention only writes the setting. The run is a separate
+    // endpoint, which is the whole reason a mistyped 1 is survivable.
+    const setBlock = controller.slice(
+      controller.indexOf('static async setLocationRetention'),
+      controller.indexOf('static async clearLocationRetention'),
+    )
+    expect(setBlock).not.toMatch(/runLocationPurge/)
+    expect(guideText).toMatch(/setting a period deletes nothing on the spot/i)
+  })
+
+  it('says keeping is the default, and the request schema says so', () => {
+    const routes = read('apps/api/src/modules/homecare/homecare.routes.ts')
+    // The default lives in the schema rather than the controller so that a
+    // client which has not been rebuilt since this shipped does the safe thing
+    // rather than the destructive one.
+    expect(routes).toMatch(/optional\(\)\.default\('keep'\)/)
+    expect(guideText).toMatch(/keep them/i)
+    expect(guideText).toMatch(/the default/i)
+    expect(guideText).toMatch(/irreversible/i)
+  })
+
+  it('does not tell a customer that switching off deletes what they already hold', () => {
+    // The sentence that would do real damage: a manager repeating it to a
+    // workforce, and the records still being there.
+    expect(guideText).not.toMatch(/turning it off (will )?(delete|remove)s? (everything|all)/i)
+    expect(guideText).not.toMatch(/switching it off deletes/i)
+  })
+})

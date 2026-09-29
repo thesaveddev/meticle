@@ -258,9 +258,30 @@ router.get('/settings/location-threshold', requireRole(...fieldRoles), asyncHand
 // ORG_ADMIN rather than MANAGER: this is a data-protection decision about the
 // organisation, not a rostering preference, and it changes what is written to
 // every care record from that moment on.
-const locationTrackingSchema = z.object({ enabled: z.boolean() });
+// existingPositions is what to do about positions already collected when the
+// switch goes off. Optional, and defaulting to 'keep', so a client that has not
+// been rebuilt since this was added does the safe thing rather than the
+// destructive one. See updateLocationTracking for why keep is the default, and
+// why that default is not a decision to leave to the caller every time.
+const locationTrackingSchema = z.object({
+  enabled: z.boolean(),
+  existingPositions: z.enum(['keep', 'purge', 'apply_retention']).optional().default('keep'),
+});
 router.get('/settings/location-tracking', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationTracking));
 router.put('/settings/location-tracking', requireRole(UserRole.ORG_ADMIN), validate(locationTrackingSchema), asyncHandler(HomecareController.updateLocationTracking));
+
+// Retention for carer location.
+//
+// Read and run history are manager-readable because a manager is who has to be
+// able to answer "how long do you keep this, and prove it". Setting a period and
+// running a deletion are ORG_ADMIN: one is a statement the organisation makes to
+// its staff and its regulator, the other destroys data, and neither should be
+// reachable by a manager who has merely been given the settings screen.
+router.get('/settings/location-retention', requireRole(...managerRoles), asyncHandler(HomecareController.getLocationRetention));
+router.put('/settings/location-retention', requireRole(UserRole.ORG_ADMIN), validate(z.object({ retention_days: z.number().int() })), asyncHandler(HomecareController.setLocationRetention));
+router.delete('/settings/location-retention', requireRole(UserRole.ORG_ADMIN), asyncHandler(HomecareController.clearLocationRetention));
+router.post('/settings/location-retention/run', requireRole(UserRole.ORG_ADMIN), validate(z.object({ all: z.boolean().optional() })), asyncHandler(HomecareController.runLocationRetentionNow));
+router.get('/settings/location-retention/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listLocationRetentionRuns));
 
 // Staff privacy notices. Any authenticated user: this is the worker being told
 // something, not an org reading a report, so a manager role would exclude

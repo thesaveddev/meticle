@@ -6,10 +6,17 @@
  *
  * Every line here is a claim about what the software does, so each one is
  * written against verified behaviour rather than against intent. Where the
- * honest answer is "we don't know" — the retention period, chiefly — it says
- * that instead of filling the gap. A notice that guesses here is worse than
- * one that admits the gap, because the worker cannot tell which parts are
- * reliable.
+ * honest answer is "we don't know" it says that instead of filling the gap.
+ * A notice that guesses here is worse than one that admits the gap, because
+ * the worker cannot tell which parts are reliable.
+ *
+ * The retention section is the one that had to change most in 1.3. It used to
+ * say only "ask your employer", which was true and useless: it described an
+ * absence of mechanism as though it were a policy. There is now a setting, a
+ * nightly job that enforces it, and a written record of every deletion, so the
+ * notice says how that works — while still being clear that Meticle Care does
+ * not choose the number and ships no default, because it would be answering a
+ * question the DPIA escalated to a DPO.
  *
  * The `evidence` field on each item is the comment that proves it. It is not
  * shown to the carer; it exists so a reviewer, a solicitor, or the next
@@ -18,7 +25,7 @@
  */
 
 /** Bump when the text changes materially. Triggers re-acknowledgement. */
-export const STAFF_LOCATION_NOTICE_VERSION = '1.2'
+export const STAFF_LOCATION_NOTICE_VERSION = '1.3'
 
 /** Stable key, so a future notice is a new key rather than a confused version. */
 export const STAFF_LOCATION_NOTICE_KEY = 'staff_location'
@@ -90,7 +97,10 @@ export type NoticeSection = {
  *  - Retention for carer location has not been decided. The DPIA escalated it
  *    to the DPO rather than guessing, and v1.0 of that document asserted a
  *    "recommended 8 years" that nobody could evidence. The notice therefore
- *    tells the worker who decides it, rather than inventing a number.
+ *    explains the mechanism and who sets the number, rather than inventing one.
+ *    Saying "we keep it for 90 days" when the provider has not chosen 90 days
+ *    would be a claim about a system that does not exist, and a worker who
+ *    relied on it would be relying on nothing.
  *  - MeticleCare is a processor. It cannot give a worker a lawful basis for
  *    their employer's monitoring, and consent is in any case a poor fit for an
  *    employment relationship where one party holds the job. Saying "you
@@ -182,16 +192,33 @@ export const STAFF_LOCATION_NOTICE: NoticeSection[] = [
         'stops working. Visits, care notes, timesheets and pay are unaffected.',
       'One thing is lost with it: the app can no longer check that you were at the person\'s ' +
         'address, because it would not be reading your position to do that.',
+      'Switching it off stops new positions being collected. Your employer is then asked what ' +
+        'to do about the positions already collected, and is shown how many there are and how ' +
+        'old the oldest is before they choose. They can keep them, delete them, or apply the ' +
+        'retention period described below. Nothing is deleted without that answer.',
     ],
   },
   {
     heading: 'How long it is kept',
     body: [
-      'That is your employer\'s decision, not Meticle Care\'s. They set a retention policy for ' +
-        'their records and it applies to this data along with everything else they hold about ' +
-        'a visit.',
-      'Meticle Care stores it on their behalf and does not keep an independent copy, use it for ' +
-        'anything else, or set a separate deletion date of its own.',
+      'Your employer sets this, in their settings, and it is their decision rather than Meticle ' +
+        'Care\'s. Meticle Care does not choose a number for them and does not ship a default, ' +
+        'because a default would quietly become the policy of every provider who never opens ' +
+        'the setting.',
+      'If they have not set a period, nothing is deleted automatically. The positions simply ' +
+        'stay on the visit, with no deletion date at all, and their settings screen says so in ' +
+        'those words rather than looking like a long default.',
+      'Once they have set a period, a job runs overnight and deletes every position older than ' +
+        'that, without anyone pressing a button. It reaches all three places a position is ' +
+        'written — the visit record, the copy in the audit log, and SecureVisit check-ins — ' +
+        'because clearing only the visit would be a deletion that appeared to have worked ' +
+        'without having done so.',
+      'Each of those runs is written down, with the date, how many positions it removed and ' +
+        'what caused it, so they can show that their policy is being enforced rather than ' +
+        'merely written down.',
+      'Deleting a position does not delete the visit, the timesheet or the pay. Those are built ' +
+        'from the two timestamps and what you entered. What is lost is the ability to check ' +
+        'afterwards that you were at the person\'s address, for visits that old.',
       'If you want to know how long it is kept, ask your employer.',
     ],
   },
