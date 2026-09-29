@@ -44,12 +44,13 @@ const featureGroups = [
         id: 'emar',
         category: 'eMAR & Medication Management',
         brandIcon: <EmarIcon size={32} />,
-        description: 'Digital medication rounds with full audit trails. 31-day MAR chart, controlled drug register, missed-dose alerts.',
+        description: 'Digital medication rounds with full audit trails. 31-day MAR chart, controlled drug register with witnesses, missed-dose alerts, and jurisdiction-aware medicines-in-care rules.',
         items: [
           { title: '31-Day MAR Chart', desc: 'Full medication administration record with audit trail per dose. Print-ready reports for inspection.' },
-          { title: 'Controlled Drug Register', desc: 'Separate register for controlled drugs with stock tracking, witness sign-off, and discrepancy alerts.' },
+          { title: 'Controlled Drug Register', desc: 'Controlled drugs are tracked as their own record, with stock movements, the witnessing carer stored on each dose, and a printable register. Medicines-in-care rules for England, Wales and Scotland are enforced, not just described.' },
           { title: 'Missed-Dose Alerts', desc: 'Automatic alerts when a scheduled medication round is missed or late, enabling timely follow-up — backs the §13.1 cross-module workflow.' },
-          { title: 'Print-Ready MAR Reports', desc: 'One-click export for CQC evidence packs. Per-person or per-location reports.' },
+          { title: 'Framework-Aware Medication Rules', desc: 'The software refuses a dose a care worker is not permitted to give: no recorded competence, a controlled drug with no witness, a PRN medicine with no reason, or covert administration with no authorisation on the right statutory footing. Which rules apply depends on the regulator you are registered with.' },
+          { title: 'Print-Ready MAR Reports', desc: 'One-click export for inspection evidence packs. Per-person or per-location reports.' },
         ],
       },
       {

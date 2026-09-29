@@ -29,6 +29,11 @@ export interface EMedicationItem {
   start_date: string | null;
   end_date: string | null;
   is_controlled_drug?: boolean;
+  /** What an "as needed" medicine is for. Required by every framework modelled. */
+  prn_indication?: string | null;
+  prn_max_dose_per_24h?: string | null;
+  /** Given without the person knowing. Needs a recorded authorisation to be set. */
+  is_covert?: boolean;
   prescriber_name?: string | null;
   prescriber_phone?: string | null;
   prescription_ref?: string | null;
@@ -45,6 +50,14 @@ export interface EMedicationAdministration {
   status: string;
   notes: string;
   created_at: string;
+  /** The second person, for a controlled drug. Null on every pre-135 row. */
+  witness_staff_id?: string | null;
+  witnessed_at?: string | null;
+  /** The competence the dose was permitted on. */
+  competence_id?: string | null;
+  /** Which framework was in force when the dose was permitted. */
+  framework?: string | null;
+  administered_covertly?: boolean;
 }
 
 export class EMedicationRepository {
@@ -147,10 +160,10 @@ export class EMedicationRepository {
 
   static async createItem(recordId: string, data: Partial<EMedicationItem> & { created_by: string }) {
     const result = await query(`
-      INSERT INTO emedication_items (emedication_record_id, name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date, is_controlled_drug, prescriber_name, prescriber_phone, prescription_ref, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      INSERT INTO emedication_items (emedication_record_id, name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date, is_controlled_drug, prn_indication, prn_max_dose_per_24h, is_covert, prescriber_name, prescriber_phone, prescription_ref, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING *`,
-      [recordId, data.name, data.dosage, data.unit || 'mg', data.route || 'oral', data.frequency, JSON.stringify(data.times || []), data.instructions || '', data.is_prn || false, data.is_active !== false, data.stock_item_id || null, data.start_date || null, data.end_date || null, data.is_controlled_drug || false, data.prescriber_name || null, data.prescriber_phone || null, data.prescription_ref || null, data.created_by]
+      [recordId, data.name, data.dosage, data.unit || 'mg', data.route || 'oral', data.frequency, JSON.stringify(data.times || []), data.instructions || '', data.is_prn || false, data.is_active !== false, data.stock_item_id || null, data.start_date || null, data.end_date || null, data.is_controlled_drug || false, data.prn_indication || null, data.prn_max_dose_per_24h || null, data.is_covert || false, data.prescriber_name || null, data.prescriber_phone || null, data.prescription_ref || null, data.created_by]
     );
     return result.rows[0];
   }
@@ -170,6 +183,9 @@ export class EMedicationRepository {
     if (data.is_active !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.is_active); }
     if (data.stock_item_id !== undefined) { fields.push(`stock_item_id = $${idx++}`); values.push(data.stock_item_id); }
     if (data.is_controlled_drug !== undefined) { fields.push(`is_controlled_drug = $${idx++}`); values.push(data.is_controlled_drug); }
+    if (data.prn_indication !== undefined) { fields.push(`prn_indication = $${idx++}`); values.push(data.prn_indication); }
+    if (data.prn_max_dose_per_24h !== undefined) { fields.push(`prn_max_dose_per_24h = $${idx++}`); values.push(data.prn_max_dose_per_24h); }
+    if (data.is_covert !== undefined) { fields.push(`is_covert = $${idx++}`); values.push(data.is_covert); }
     if (data.prescriber_name !== undefined) { fields.push(`prescriber_name = $${idx++}`); values.push(data.prescriber_name); }
     if (data.prescriber_phone !== undefined) { fields.push(`prescriber_phone = $${idx++}`); values.push(data.prescriber_phone); }
     if (data.prescription_ref !== undefined) { fields.push(`prescription_ref = $${idx++}`); values.push(data.prescription_ref); }
@@ -205,11 +221,13 @@ export class EMedicationRepository {
   // ── Administrations ──
   static async findAdministrations(itemId: string, startDate?: string, endDate?: string, orgId?: string) {
     let sql = `
-      SELECT a.*, sp.first_name, sp.last_name, u.email, u.id AS user_id
+      SELECT a.*, sp.first_name, sp.last_name, u.email, u.id AS user_id,
+             w.first_name AS witness_first_name, w.last_name AS witness_last_name
       FROM emedication_administrations a
       JOIN emedication_items i ON i.id = a.emedication_item_id
       LEFT JOIN staff_profiles sp ON a.staff_id = sp.id
       LEFT JOIN users u ON sp.user_id = u.id
+      LEFT JOIN staff_profiles w ON a.witness_staff_id = w.id
       JOIN emedication_records r ON r.id = i.emedication_record_id
       WHERE a.emedication_item_id = $1
         AND ($2::uuid IS NULL OR r.organization_id = $2)`;
@@ -228,12 +246,17 @@ export class EMedicationRepository {
   }
 
   static async findAdministrationsForItemIds(itemIds: string[], startDate: string, endDate: string) {
+    // The witness columns are joined here too, because the printed controlled
+    // drug register reads from this query and used to draw the witness as a
+    // blank to be filled in by hand.
     if (itemIds.length === 0) return [];
     const result = await query(`
-      SELECT a.*, sp.first_name, sp.last_name, u.id AS user_id
+      SELECT a.*, sp.first_name, sp.last_name, u.id AS user_id,
+             w.first_name AS witness_first_name, w.last_name AS witness_last_name
       FROM emedication_administrations a
       LEFT JOIN staff_profiles sp ON a.staff_id = sp.id
       LEFT JOIN users u ON sp.user_id = u.id
+      LEFT JOIN staff_profiles w ON a.witness_staff_id = w.id
       WHERE a.emedication_item_id = ANY($1::uuid[])
         AND a.scheduled_time >= $2::date
         AND a.scheduled_time <= $3::date + interval '1 day'
@@ -264,6 +287,22 @@ export class EMedicationRepository {
     wastage_reason?: string;
     batch_number?: string;
     expiry_date?: string;
+    /**
+     * The evidence, stamped on the dose.
+     *
+     * Set on an update as well as an insert, and deliberately so: a controlled
+     * drug first recorded as pending and then marked given hours later is the
+     * ordinary case, and the witness for the dose that was actually given has to
+     * be capturable at that later moment. Updating a witness to null is not
+     * possible — the columns are written from these values and a caller that
+     * omits them leaves the existing pair alone, because the database
+     * constraint requires the two to agree.
+     */
+    witness_staff_id?: string | null;
+    witnessed_at?: string | null;
+    competence_id?: string | null;
+    framework?: string | null;
+    administered_covertly?: boolean;
   }) {
     const existing = await query(`
       SELECT id FROM emedication_administrations
@@ -273,22 +312,33 @@ export class EMedicationRepository {
       const result = await query(`
         UPDATE emedication_administrations
         SET status = $1, administered_time = $2, notes = $3, staff_id = $4,
-            prn_reason = $5, prn_effectiveness = $6, wastage_amount = $7, wastage_reason = $8, batch_number = $9, expiry_date = $10
-        WHERE id = $11
+            prn_reason = $5, prn_effectiveness = $6, wastage_amount = $7, wastage_reason = $8, batch_number = $9, expiry_date = $10,
+            witness_staff_id = COALESCE($11, witness_staff_id),
+            witnessed_at = COALESCE($12, witnessed_at),
+            competence_id = COALESCE($13, competence_id),
+            framework = COALESCE($14, framework),
+            administered_covertly = COALESCE($15, administered_covertly)
+        WHERE id = $16
         RETURNING *`,
         [data.status, data.administered_time || null, data.notes || '', data.staff_id,
          data.prn_reason || null, data.prn_effectiveness || null, data.wastage_amount || null, data.wastage_reason || null,
-         data.batch_number || null, data.expiry_date || null, existing.rows[0].id]);
+         data.batch_number || null, data.expiry_date || null,
+         data.witness_staff_id || null, data.witnessed_at || null, data.competence_id || null, data.framework || null,
+         data.administered_covertly === undefined ? null : data.administered_covertly,
+         existing.rows[0].id]);
       return result.rows[0];
     }
     const result = await query(`
       INSERT INTO emedication_administrations (emedication_item_id, staff_id, scheduled_time, administered_time, status, notes,
-        prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date,
+        witness_staff_id, witnessed_at, competence_id, framework, administered_covertly)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [data.emedication_item_id, data.staff_id, data.scheduled_time, data.administered_time || null, data.status, data.notes || '',
        data.prn_reason || null, data.prn_effectiveness || null, data.wastage_amount || null, data.wastage_reason || null,
-       data.batch_number || null, data.expiry_date || null]);
+       data.batch_number || null, data.expiry_date || null,
+       data.witness_staff_id || null, data.witnessed_at || null, data.competence_id || null, data.framework || null,
+       data.administered_covertly || false]);
     return result.rows[0];
   }
 

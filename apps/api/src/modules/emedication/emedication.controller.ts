@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { EMedicationRepository, EMedicationAuditRepository } from './emedication.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { query } from '../../shared/database';
+import { query, migrateQuery } from '../../shared/database';
 import { MedicationAlertService } from './medication-alert.service';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { publishAdministrationMissedEvent } from './medication.events';
+import { assertCanAdminister, assertCanAddMedicine, resolveOrganisationFramework } from './medicationRules';
 import { logWarn } from '../../shared/utils/logger';
 
 export class EMedicationController {
@@ -92,7 +93,7 @@ export class EMedicationController {
     const record = await EMedicationRepository.findRecordById(req.params.recordId, orgId);
     if (!record) throw new AppError(404, 'Medication record not found');
 
-    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date } = req.body;
+    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date, prn_indication, prn_max_dose_per_24h, is_covert, is_controlled_drug } = req.body;
     if (!name || !dosage || !frequency) {
       throw new AppError(400, 'name, dosage, and frequency are required');
     }
@@ -117,9 +118,29 @@ export class EMedicationController {
       throw new AppError(409, `${itemName} ${itemDosage}${itemUnit || ''} is already on this MAR chart`);
     }
 
+    // Checked before the row is written, not after. A PRN medicine with no
+    // indication is a prescription that cannot be given safely by anyone, and
+    // the person who can fix it is the manager adding it — not the care worker
+    // who finds the problem at 2am on a round.
+    await assertCanAddMedicine(orgId, {
+      name: itemName,
+      isPrn: !!is_prn,
+      prnIndication: prn_indication,
+      isCovert: !!is_covert,
+      personId: record.person_id,
+    });
+
     const item = await EMedicationRepository.createItem(req.params.recordId, {
       name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, instructions,
       is_prn, is_active, stock_item_id: linkedStockId, start_date, end_date,
+      prn_indication, prn_max_dose_per_24h, is_covert,
+      // This was missing, and the column has been in the table the whole time.
+      // Every administration rule keyed on it — a controlled drug needs its own
+      // competence, a witness and its own record — and none of them could ever
+      // fire, because nothing could set the flag through the API. The printed
+      // controlled drug record and the marketing page both described a feature
+      // the application could not produce.
+      is_controlled_drug,
       created_by: req.user!.userId
     });
 
@@ -132,7 +153,7 @@ export class EMedicationController {
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'add_item', entity_type: 'item',
       entity_id: item.id, user_id: req.user!.userId,
-      changes: { name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, is_prn, stock_item_id: linkedStockId, start_date, end_date }, ip_address: req.ip
+      changes: { name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, is_prn, is_controlled_drug, stock_item_id: linkedStockId, start_date, end_date, prn_indication }, ip_address: req.ip
     });
 
     res.status(201).json(item);
@@ -177,7 +198,8 @@ export class EMedicationController {
   static async logAdministration(req: Request, res: Response) {
     const {
       emedication_item_id, scheduled_time, status, notes, administered_time, staff_user_id,
-      prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date
+      prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date,
+      witness_staff_id, administered_covertly
     } = req.body;
     if (!emedication_item_id || !scheduled_time || !status) {
       throw new AppError(400, 'emedication_item_id, scheduled_time, and status are required');
@@ -186,7 +208,11 @@ export class EMedicationController {
     // Block logging administrations outside the medication's prescribed date range
     const orgId = EMedicationController.getOrgId(req);
     const itemRow = await query(`
-      SELECT i.stock_item_id, i.name, i.start_date, i.end_date
+      SELECT i.stock_item_id, i.name, i.start_date, i.end_date,
+             COALESCE(i.is_controlled_drug, FALSE) AS is_controlled_drug,
+             COALESCE(i.is_prn, FALSE) AS is_prn,
+             COALESCE(i.is_covert, FALSE) AS is_covert,
+             r.person_id
       FROM emedication_items i
       JOIN emedication_records r ON r.id = i.emedication_record_id
       WHERE i.id = $1 AND r.organization_id = $2`, [emedication_item_id, orgId]);
@@ -216,6 +242,13 @@ export class EMedicationController {
     if (!staffProfileId) throw new AppError(400, 'Staff profile not found for the selected user');
 
     // Check medication competence (skip for ORG_ADMIN who can manage the system)
+    //
+    // The ORG_ADMIN exemption is gone. It used to be here, and it meant an
+    // administrator could give a medicine with no assessment of any kind —
+    // which is not "administrators manage the system", it is a hole in the one
+    // control this module had. Administrators who administer record their own
+    // competence like anyone else, and the competent-people list on the staff
+    // record is maintained alongside the assessment.
     if (req.user!.role !== 'ORG_ADMIN') {
       const competent = await query(
         `SELECT sp.medication_competent
@@ -228,6 +261,24 @@ export class EMedicationController {
         throw new AppError(403, 'Staff member has not passed medication assessment and cannot administer medications');
       }
     }
+
+    // The framework rules, which are what make a controlled drug a controlled
+    // drug. Everything above this is about the medicine being real; everything
+    // below is about the framework this provider is inspected under. Returns
+    // the framework and competence actually relied on, so the dose can record
+    // why it was permitted rather than the reader having to reconstruct it.
+    const permitted = await assertCanAdminister({
+      organizationId: orgId,
+      staffProfileId,
+      personId: itemRow.rows[0]?.person_id,
+      medicineName: itemRow.rows[0]?.name || 'this medicine',
+      isControlledDrug: !!itemRow.rows[0]?.is_controlled_drug,
+      isPrn: !!itemRow.rows[0]?.is_prn,
+      isCovert: !!administered_covertly || !!itemRow.rows[0]?.is_covert,
+      witnessStaffId: witness_staff_id || null,
+      prnReason: prn_reason,
+      status,
+    });
 
     // Block marking as given when linked stock is empty
     let stockBefore: { quantity: number; reorder_level: number } | null = null;
@@ -259,7 +310,17 @@ export class EMedicationController {
       status,
       notes: notes || '',
       administered_time: administered_time || (status === 'given' ? new Date().toISOString() : undefined),
-      prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date
+      prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date,
+      // The evidence, stamped on the dose. A controlled drug that was properly
+      // witnessed and a dose that was permitted under the Scottish guidance
+      // both have to be able to show that afterwards, because "who authorised
+      // this" is the first question at any review and there is nowhere else to
+      // look.
+      witness_staff_id: witness_staff_id || null,
+      witnessed_at: witness_staff_id ? new Date().toISOString() : null,
+      competence_id: permitted.competenceId,
+      framework: permitted.frameworkId,
+      administered_covertly: !!administered_covertly,
     });
 
     const orgIdAdmin = orgId;
@@ -279,7 +340,7 @@ export class EMedicationController {
       entity_type: 'administration',
       entity_id: admin.id,
       user_id: req.user!.userId,
-      changes: { status, scheduled_time, emedication_item_id, staff_user_id: staffUserId, prn_reason, wastage_amount },
+      changes: { status, scheduled_time, emedication_item_id, staff_user_id: staffUserId, prn_reason, wastage_amount, framework: permitted.frameworkId, witness_staff_id: witness_staff_id || null },
       ip_address: req.ip
     });
 
@@ -314,6 +375,57 @@ export class EMedicationController {
 
   static async updateAdministration(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+
+    // The framework rules apply here too, and that is the whole reason this
+    // block exists. A dose is routinely created as `pending` and marked `given`
+    // later, so without it the sequence is: log a controlled drug as pending —
+    // no witness needed — PATCH it to given — no witness ever asked for. The
+    // create path's guarantees would be worth nothing.
+    if (req.body.status === 'given') {
+      const forRules = await query(
+        `SELECT a.id, a.staff_id, a.prn_reason, r.person_id, i.name,
+                COALESCE(i.is_controlled_drug, FALSE) AS is_controlled_drug,
+                COALESCE(i.is_prn, FALSE) AS is_prn,
+                COALESCE(i.is_covert, FALSE) AS is_covert
+         FROM emedication_administrations a
+         JOIN emedication_items i ON i.id = a.emedication_item_id
+         JOIN emedication_records r ON r.id = i.emedication_record_id
+         WHERE a.id = $1 AND r.organization_id = $2`,
+        [req.params.adminId, orgId],
+      );
+      const row = forRules.rows[0];
+      if (!row) throw new AppError(404, 'Administration not found');
+      // The dose's existing witness, so a PATCH that does not resupply one is
+      // checked against what is already recorded rather than against nothing.
+      const existingWitness = await query(
+        'SELECT witness_staff_id FROM emedication_administrations WHERE id = $1',
+        [req.params.adminId],
+      );
+      const permitted = await assertCanAdminister({
+        organizationId: orgId,
+        staffProfileId: row.staff_id,
+        personId: row.person_id,
+        medicineName: row.name || 'this medicine',
+        isControlledDrug: !!row.is_controlled_drug,
+        isPrn: !!row.is_prn,
+        isCovert: !!req.body.administered_covertly || !!row.is_covert,
+        witnessStaffId: req.body.witness_staff_id || existingWitness.rows[0]?.witness_staff_id || null,
+        prnReason: req.body.prn_reason ?? row.prn_reason,
+        status: 'given',
+      });
+      await migrateQuery(
+        `UPDATE emedication_administrations
+         SET competence_id = $2, framework = $3,
+             witness_staff_id = COALESCE($4, witness_staff_id),
+             witnessed_at = CASE WHEN $4 IS NOT NULL THEN COALESCE(witnessed_at, NOW()) ELSE witnessed_at END,
+             administered_covertly = COALESCE($5, administered_covertly)
+         WHERE id = $1`,
+        [req.params.adminId, permitted.competenceId, permitted.frameworkId,
+         req.body.witness_staff_id || existingWitness.rows[0]?.witness_staff_id || null,
+         req.body.administered_covertly === undefined ? null : req.body.administered_covertly],
+      );
+    }
+
     if (req.body.status === 'given') {
       const itemResult = await query(
         `SELECT a.emedication_item_id, i.stock_item_id, i.name

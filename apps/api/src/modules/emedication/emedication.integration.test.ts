@@ -3,6 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser, createPerson, createLocation, createStaffProfile, generateToken } from '../../test/factories'
+import { appointMedicinesStanding } from '../../test/medicines'
 import { migrateQuery } from '../../shared/database'
 import { publishDomainEvent, processOutbox } from '../events/events.outbox'
 import { registerConsumer, resetConsumers } from '../events/events.consumers'
@@ -43,6 +44,21 @@ async function makeSetup() {
   })
   const person = await createPerson({ organizationId: org.id })
   const token = generateToken(admin)
+  // The medicines-in-care rules refuse a dose until a named registered
+  // clinician is responsible for medicines and the person giving it holds a
+  // recorded, in-date competence. A real service has both before the first
+  // round; a fixture that skipped them was modelling a service that could not
+  // lawfully administer anything, which is not what these tests are about.
+  const adminProfile = await createStaffProfile({ userId: admin.id, medicationCompetent: true })
+  // A separate assessor, because the rules refuse a self-assessment and that
+  // refusal is correct: the person giving the dose in these tests is the
+  // admin, and a manager who signed off their own medication competence is
+  // exactly the thing the rule exists to stop. The assessor is created for the
+  // fixture rather than the admin being waved through.
+  await appointMedicinesStanding(app, {
+    organizationId: org.id,
+    competentStaffProfileIds: [adminProfile.id],
+  })
   const itemRes = await request(app)
     .post('/emedication/records')
     .set('Authorization', `Bearer ${token}`)
@@ -77,8 +93,15 @@ describe('eMedication — MAR records, stock, deliveries, audit', () => {
     const person = await createPerson({ organizationId: org.id, locationId: location.id })
     const mgr = await createUser({ email: `em-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     const worker = await createUser({ email: `em2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
-    await createStaffProfile({ userId: worker.id, medicationCompetent: true })
+    const workerProfile = await createStaffProfile({ userId: worker.id, medicationCompetent: true })
     const token = generateToken(mgr)
+    // The worker, not the manager, is the one giving the dose, so it is the
+    // worker's competence that has to be recorded and in date.
+    await appointMedicinesStanding(app, {
+      organizationId: org.id,
+      assessor: { userId: mgr.id, token },
+      competentStaffProfileIds: [workerProfile.id],
+    })
     const workerToken = generateToken(worker)
 
     const record = await request(app)

@@ -231,13 +231,29 @@ export function personRosterCsv(data: any): string {
 
 // --- Medication Administration ---
 export function buildMedicationAdminHtml(data: any, orgName = 'Meticle Care'): string {
+  // Two things about this builder, both found while adding the medicines-in-care
+  // rules and both worth knowing:
+  //
+  //   - The Self-Administered column was removed rather than fixed. It read
+  //     `m.self_administered_count`, which nothing in the codebase ever
+  //     computed and which has no data model behind it. A column that always
+  //     prints zero is worse than no column, because a reader cannot tell it
+  //     apart from a real result.
+  //
+  //   - The remaining metrics have the same problem and are left in place only
+  //     because this builder is not called by any route. `administered_pct`,
+  //     `missed_count` and `refused_count` are read here and written nowhere, so
+  //     the whole report would render as zeros if it were ever wired up. Wiring
+  //     it to a real aggregate over emedication_administrations.status is an
+  //     owner action, tracked as T2-23. It is recorded here rather than fixed
+  //     because a half-built report that looks finished is the exact problem
+  //     this note exists to prevent.
   const rows = (data.medications || []).map((m: any) => [
     esc(m.medication_name),
     esc(m.scheduled_times || '-'),
     `${m.administered_pct ?? 0}%`,
     String(m.missed_count ?? 0),
     String(m.refused_count ?? 0),
-    String(m.self_administered_count ?? 0),
   ])
   const avgPct = (data.medications || []).length
     ? ((data.medications || []).reduce((s: number, m: any) => s + Number(m.administered_pct || 0), 0) / data.medications.length).toFixed(1)
@@ -251,20 +267,19 @@ export function buildMedicationAdminHtml(data: any, orgName = 'Meticle Care'): s
       <div class="summary-card"><div class="num">${(data.medications || []).reduce((s: number, m: any) => s + (m.missed_count || 0), 0)}</div><div class="label">Total Missed</div></div>
     </div>
     <h2>Medication Details (${rows.length})</h2>
-    ${rows.length ? table(['Medication', 'Scheduled Times', 'Administered %', 'Missed', 'Refused', 'Self-Administered'], rows) : '<p>No medication records.</p>'}
+    ${rows.length ? table(['Medication', 'Scheduled Times', 'Administered %', 'Missed', 'Refused'], rows) : '<p>No medication records.</p>'}
     <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
 export function medicationAdminCsv(data: any): string {
-  const headers = ['Medication', 'Scheduled Times', 'Administered %', 'Missed', 'Refused', 'Self-Administered']
+  const headers = ['Medication', 'Scheduled Times', 'Administered %', 'Missed', 'Refused']
   const rows = (data.medications || []).map((m: any) => [
     m.medication_name,
     m.scheduled_times || '',
     String(m.administered_pct ?? 0),
     String(m.missed_count ?? 0),
     String(m.refused_count ?? 0),
-    String(m.self_administered_count ?? 0),
   ])
   return toCsv(headers, rows)
 }

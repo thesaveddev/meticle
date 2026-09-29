@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { EMedicationController } from './emedication.controller';
+import { MedicationGovernanceController } from './medicationGovernance.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { requireSupportedLivingOnly } from '../../shared/middleware/requireServiceType';
@@ -22,6 +23,12 @@ import {
   upsertDailyCountSchema,
   toggleMedicationCompetenceSchema,
   ensureMonthlyMarSchema,
+  recordCompetenceSchema,
+  appointResponsibleClinicianSchema,
+  createCovertAuthorizationSchema,
+  createMedicationReviewSchema,
+  revokeSchema,
+  checkMedicineSchema,
 } from '../../shared/validation/schemas';
 
 const router = Router();
@@ -71,6 +78,38 @@ router.get('/deliveries/:id', asyncHandler(EMedicationController.getDelivery));
 router.post('/deliveries', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createDeliverySchema), asyncHandler(EMedicationController.createDelivery));
 router.patch('/deliveries/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createDeliverySchema), asyncHandler(EMedicationController.updateDelivery));
 router.delete('/deliveries/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(EMedicationController.deleteDelivery));
+
+// ── Medicines in care: which framework, and the standing it depends on ──
+//
+// Readable by anyone in the organisation. A care worker who has just been
+// refused a dose is the person who most needs to know which framework refused
+// them, and the refusal message is this text.
+//
+// Written to by ORG_ADMIN and MANAGER only. A care worker who could record their
+// own competence assessment could mark themselves competent, and a
+// self-assessment is not an assessment.
+router.get('/framework', asyncHandler(MedicationGovernanceController.getFramework));
+router.get('/readiness', asyncHandler(MedicationGovernanceController.getReadiness));
+
+router.get('/responsible-clinicians', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.listResponsibleClinicians));
+router.post('/responsible-clinicians', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(appointResponsibleClinicianSchema), asyncHandler(MedicationGovernanceController.appointResponsibleClinician));
+router.delete('/responsible-clinicians/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.endResponsibleClinician));
+
+router.get('/competences', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.listCompetences));
+router.post('/competences', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(recordCompetenceSchema), asyncHandler(MedicationGovernanceController.recordCompetence));
+router.delete('/competences/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(revokeSchema), asyncHandler(MedicationGovernanceController.revokeCompetence));
+
+router.get('/covert-authorizations', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.listCovertAuthorizations));
+router.post('/covert-authorizations', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createCovertAuthorizationSchema), asyncHandler(MedicationGovernanceController.createCovertAuthorization));
+router.delete('/covert-authorizations/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.endCovertAuthorization));
+
+router.get('/reviews', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MedicationGovernanceController.listReviews));
+router.post('/reviews', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createMedicationReviewSchema), asyncHandler(MedicationGovernanceController.createReview));
+
+// A dry run of the prescription-side rules, so a manager finds out a PRN
+// medicine has no indication while they are writing it rather than when a care
+// worker refuses to give it.
+router.post('/check-medicine', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(checkMedicineSchema), asyncHandler(MedicationGovernanceController.checkMedicine));
 
 // ── Staff medication competence toggle ──
 router.patch('/staff/:staffProfileId/medication-competence', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(toggleMedicationCompetenceSchema), asyncHandler(EMedicationController.toggleMedicationCompetence));

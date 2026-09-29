@@ -1054,6 +1054,12 @@ export const addMedicationItemSchema = z.object({
   is_prn: z.boolean().optional(),
   is_active: z.boolean().optional(),
   is_controlled_drug: z.boolean().optional(),
+  // Checked for presence, not emptiness, by medicationRules: a whitespace-only
+  // indication is a string that passes `.optional()` and fails the rule, and
+  // the rule is where the message can name the medicine and say why.
+  prn_indication: z.string().max(500).optional(),
+  prn_max_dose_per_24h: z.string().max(100).optional(),
+  is_covert: z.boolean().optional(),
   prescriber_name: z.string().max(255).optional(),
   prescriber_phone: z.string().max(50).optional(),
   prescription_ref: z.string().max(255).optional(),
@@ -1092,6 +1098,86 @@ export const logAdministrationSchema = z.object({
   wastage_reason: z.string().max(500).optional(),
   batch_number: z.string().max(100).optional(),
   expiry_date: z.string().max(50).optional(),
+  // The witness for a controlled drug, and whether the dose was covert.
+  //
+  // Neither is required by the schema, and that is deliberate rather than an
+  // oversight: whether a witness is needed depends on the medicine and on the
+  // framework the provider operates under, which is decided in
+  // medicationRules. Making it required here would demand a witness for every
+  // paracetamol in Wales, and making it absent here and forgotten there would
+  // leave the controlled drug unprotected. The rule layer is the only place
+  // that knows the difference.
+  witness_staff_id: z.string().uuid().optional(),
+  administered_covertly: z.boolean().optional(),
+});
+
+// ── Medicines in care ───────────────────────────────────────────────────────
+
+export const appointResponsibleClinicianSchema = z.object({
+  staff_id: z.string().uuid(),
+  // Two values, because two are what the frameworks name. Validated again in
+  // the controller so the refusal is a sentence rather than a schema error the
+  // caller has to decode.
+  profession: z.enum(['registered_nurse', 'registered_pharmacist']),
+  registration_number: z.string().max(60).optional(),
+  ends_at: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const recordCompetenceSchema = z.object({
+  staff_id: z.string().uuid(),
+  scope: z.enum(['administration', 'controlled_drugs', 'measuring_and_injecting', 'self_administration_assessment']),
+  // Optional: defaults to the organisation's framework. Passing the wrong one
+  // is allowed, because a Scottish worker assessed under the MCA standard is a
+  // real thing that happened during the changeover and should be recordable.
+  framework: z.enum(['mca_england', 'awmch_wales', 'scotland_medicines_in_care']).optional(),
+  // Optional: defaults to the caller. Refused when it resolves to the person
+  // being assessed, which is checked in the controller.
+  assessed_by: z.string().uuid().optional(),
+  assessed_at: z.string().optional(),
+  // Nullable on purpose. A competence with no expiry is real and is accepted
+  // by the rules; what it means is that nobody has set a review date, and the
+  // readiness report counts them so a provider can see it.
+  expires_at: z.string().nullable().optional(),
+  reference: z.string().max(255).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const revokeSchema = z.object({
+  reason: z.string().min(1).max(1000),
+});
+
+export const createCovertAuthorizationSchema = z.object({
+  person_id: z.string().uuid(),
+  // Not a free string and not a fixed enum: which authority is correct depends
+  // on the framework, and the controller checks it against that and explains
+  // the mismatch in words rather than rejecting a value the caller cannot
+  // interpret.
+  authority: z.enum(['mental_capacity_act_best_interests', 'mental_welfare_act_s19', 'other']),
+  medicines: z.string().min(1).max(2000),
+  protocol_reference: z.string().max(2000).optional(),
+  review_due: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const createMedicationReviewSchema = z.object({
+  person_id: z.string().uuid(),
+  // Optional: derived from the framework's interval when omitted. A caller who
+  // states a later date is allowed to; reviewing less often than the framework
+  // asks is not something the system will accept.
+  next_review_due: z.string().optional(),
+  conducted_by: z.string().max(200).optional(),
+  outcome: z.string().max(2000).optional(),
+  notes: z.string().max(4000).optional(),
+  reviewed_at: z.string().optional(),
+});
+
+export const checkMedicineSchema = z.object({
+  name: z.string().min(1).max(255),
+  is_prn: z.boolean().optional(),
+  prn_indication: z.string().max(500).optional(),
+  is_covert: z.boolean().optional(),
+  person_id: z.string().uuid().optional(),
 });
 
 export const createStockItemSchema = z.object({
@@ -1189,6 +1275,12 @@ export const updateAdministrationSchema = z.object({
   wastage_reason: z.string().max(500).optional(),
   batch_number: z.string().max(100).optional(),
   expiry_date: z.string().max(50).optional(),
+  // A controlled drug recorded as pending and then marked given later is the
+  // ordinary case, and the witness for the dose that was actually given has to
+  // be capturable at that moment. Same reasoning as logAdministrationSchema:
+  // optional here, required by the rule for a controlled drug.
+  witness_staff_id: z.string().uuid().optional(),
+  administered_covertly: z.boolean().optional(),
 });
 
 export const updateStockItemSchema = z.object({

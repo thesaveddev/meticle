@@ -141,8 +141,9 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // migration appended to the list does not fail this for the wrong reason —
     // and so that adding one forces whoever added it to come back here. That
     // is deliberate: this assertion went red on migration 134 (carer location
-    // retention) and the fix was to advance the run, not to loosen the pattern.
-    expect(setup).toMatch(/MIGRATION_132, MIGRATION_133, MIGRATION_134\]/)
+    // retention) and again on 135 (medicines in care), and the fix both times
+    // was to advance the run rather than loosen the pattern.
+    expect(setup).toMatch(/MIGRATION_133, MIGRATION_134, MIGRATION_135\]/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

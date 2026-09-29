@@ -1195,6 +1195,15 @@ export default function EMedicationPage() {
     if (cdAdminMap.length > 0) {
       for (const cda of cdAdminMap) {
         const initials = ((cda.first_name?.[0] || '') + (cda.last_name?.[0] || '')).toUpperCase() || 'S'
+        // The witness is real data, not a line to fill in by hand. It was
+        // "______" on every row, which meant the printed register invited
+        // someone to write a name that the system had never checked — on the
+        // one document a controlled drug is most likely to be inspected from.
+        // Blank means no witness was recorded, and says so, because an
+        // underscore is ambiguous in a way that "not recorded" is not.
+        const witness = cda.witness_staff_id
+          ? ((cda.witness_first_name?.[0] || '') + (cda.witness_last_name?.[0] || '')).toUpperCase() || 'W'
+          : 'not recorded'
         html += `<tr>
           <td>${new Date(cda.scheduled_time).toLocaleDateString('en-GB')}</td>
           <td style="text-align:left">${cda.item.name}</td>
@@ -1204,7 +1213,7 @@ export default function EMedicationPage() {
           <td>${cda.item.dosage}${cda.item.unit}</td>
           <td>______</td>
           <td>${initials}</td>
-          <td>______</td>
+          <td>${witness}</td>
           <td style="font-size:6px">${cda.batch_number || ''}</td>
         </tr>`
       }
