@@ -26,6 +26,15 @@ interface Badge {
   howMeticleHelps: string[]
   keyRequirements: string[]
   website: string
+  /**
+   * A limitation stated on the same card as the claims it qualifies.
+   *
+   * A page of badges invites a reader to conclude "this is all covered". The
+   * honest version of that page puts the gaps in the same typeface as the
+   * features, because a disclaimer three screens below a claim is a disclaimer
+   * nobody reads.
+   */
+  caveat?: string
 }
 
 const badges: Badge[] = [
@@ -60,7 +69,7 @@ const badges: Badge[] = [
     logo: '/logos/ciw.png',
     color: '#00855A',
     region: 'Wales',
-    description: 'The independent regulator and inspector of care and support services in Wales. CIW inspects against the Care and Social Services Inspectorate (Wales) Act 2001.',
+    description: 'The independent regulator and inspector of care and support services in Wales. CIW registers and inspects services under the Regulation and Inspection of Social Care (Wales) Act 2016.',
     whatItDoes: 'CIW inspects services across six areas: Well-being, Care and support, Environment, Staffing, Management and leadership, and Suitability. Services receive a rating from excellent to bad.',
     howMeticleHelps: [
       'Wales-specific compliance templates aligned to CIW inspection frameworks',
@@ -80,27 +89,30 @@ const badges: Badge[] = [
     website: 'https://www.ciw.wales',
   },
   {
-    name: 'Care Inspectorate Scotland',
-    acronym: 'CIS',
+    name: 'Care Inspectorate',
+    acronym: 'CI',
     logo: '/logos/cis.png',
     color: '#0065BD',
     region: 'Scotland',
-    description: 'The national regulator and inspector of care services in Scotland. CIS regulates care homes, domiciliary care, childminding and more under the Public Services Reform (Scotland) Act 2010.',
-    whatItDoes: 'CIS inspects against the National Care Standards, focusing on six quality themes: Care and support, Environment, Staffing, Management and leadership, Quality assurance, and Atmosphere.',
+    // Named "Care Inspectorate", not "Care Inspectorate Scotland", and not "CIS".
+    // "CIS" was not an acronym this body used anywhere — the API's regulator
+    // registry has called it `care-inspectorate` with the display name "Care
+    // Inspectorate" all along — and printing an invented acronym on a page
+    // about a regulator is the sort of thing that gets noticed by the regulator.
+    description: 'The national regulator and inspector of care services in Scotland. The Care Inspectorate regulates care homes, domiciliary care, childminding and more, and is established under the Public Services Reform (Scotland) Act 2010.',
+    whatItDoes: 'The Care Inspectorate publishes the quality indicators it inspects against. The themes it reports on are published on careinspectorate.com and are changed from time to time; the list below is not a substitute for the current published set.',
     howMeticleHelps: [
-      'Scotland-specific compliance tracking aligned to National Care Standards',
-      'Care plans built around the Scottish outcome-based framework',
-      'Daily records demonstrating person-centred approach',
-      'Staffing records including PVG checks and SSSC registration',
-      'Incident reporting meeting Scottish regulatory requirements',
-      'Quality improvement plans with measurable outcomes',
+      'Four-nations vetting, so a Scottish worker is measured against PVG rather than a DBS',
+      'Care plans and daily records that evidence person-centred practice',
+      'Incidents, training and medication records assembled as one evidence trail',
+      'Medicines-in-care rules enforced on the statutory footing Scotland uses — covert administration is checked against the Mental Welfare (Scotland) Act 2000, not the Mental Capacity Act',
+      'Compliance readiness scored against the framework the provider is actually registered with',
     ],
     keyRequirements: [
-      'National Care Standards compliance',
-      'Care Inspectorate registration',
-      'PVG scheme membership for staff',
-      'SSSC registration requirements',
-      'Annual returns and notifications',
+      'Registration with the Care Inspectorate',
+      'PVG checks for staff in regulated roles — Scotland does not use DBS',
+      'Staff registration with the Scottish Social Services Council, where the role requires it (we do not hold or check SSSC numbers — see T2-18)',
+      'Notification of significant events and annual returns, per the Care Inspectorate\'s published notifications guidance',
     ],
     website: 'https://www.careinspectorate.com',
   },
@@ -110,22 +122,27 @@ const badges: Badge[] = [
     logo: '/logos/rqia.png',
     color: '#6D2077',
     region: 'Northern Ireland',
-    description: 'The independent body responsible for inspecting and regulating health and social care services in Northern Ireland under the Health and Personal Social Services (Quality, Improvement and Regulation) Act (NI) 2003.',
-    whatItDoes: 'RQIA inspects against the quality standards defined in the Health and Personal Social Services regulations, focusing on quality of care, safety, and effectiveness of services.',
+    // An Order, not an Act, and "Care Services" not "Social Services". This
+    // page said "Health and Personal Social Services (Quality, Improvement and
+    // Regulation) Act (NI) 2003" while the API's regulator registry had the
+    // correct title — the same statute, wrong twice, in the document a customer
+    // would most likely quote.
+    description: 'The independent body responsible for inspecting and regulating health and social care services in Northern Ireland, established under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003.',
+    whatItDoes: 'RQIA inspects against the quality standards it publishes, focused on quality of care, safety, effectiveness and responsiveness. We do not reproduce the standards themselves here; they are on rqia.org.uk and are the ones to work from.',
     howMeticleHelps: [
-      'Northern Ireland-specific compliance templates',
-      'Records meeting RQIA registration requirements',
+      'Records organised as an evidence trail a provider can hand over',
       'Safe care and treatment documentation',
       'Staffing and training compliance tracking',
       'Incident and complaint management',
       'Quality improvement evidence and reporting',
+      'AccessNI-aware vetting, so a Northern Irish worker is not asked for a DBS',
     ],
     keyRequirements: [
-      'RQIA registration requirements',
-      'Quality standards compliance',
-      'Safe staffing levels',
-      'Effective governance structures',
-      'Regular quality audits',
+      'RQIA registration',
+      'The quality standards RQIA publishes for the service type',
+      'Safe staffing',
+      'Effective governance',
+      'Regular quality assurance',
     ],
     website: 'https://www.rqia.org.uk',
   },
@@ -142,18 +159,15 @@ const badges: Badge[] = [
     description: 'The National Health Service sets standards for healthcare in England. It is not the regulator of adult social care — that is CQC, CIW, Care Inspectorate or RQIA, listed above — and we hold no NHS accreditation. We have not submitted the NHS Data Security and Protection Toolkit, and we have no integration with NHS Digital or any NHS system.',
     whatItDoes: 'NHS standards apply to NHS providers. Where a care provider also supports people with NHS-funded care, its own obligations come from the commissioner and the local authority, not from us — and those are matters for the provider, not for software.',
     howMeticleHelps: [
-      'eMAR system aligned with NHS medication administration standards',
-      'Clinical records following NHS documentation guidelines',
-      'Health monitoring aligned with NHS health check frameworks',
+      'An eMAR that enforces the medicines-in-care rules for the provider\'s own nation rather than a generic one',
+      'Clinical records structured so a commissioner or inspection can be shown what happened',
+      'Fluid, nutrition and health monitoring recorded as part of the care record',
       'No NHS integration, accreditation or DSPT submission — see the note above',
-      'Fluid and nutrition monitoring meeting NHS best practice',
     ],
     keyRequirements: [
-      'Medication safety standards',
-      'Clinical documentation standards',
-      'Data sharing agreements',
-      'Interoperability requirements',
-      'Patient safety reporting',
+      'Whichever data-sharing agreement the commissioner requires — that is between the provider and the commissioner, not something this software supplies',
+      'Clinical documentation standards the provider adopts',
+      'Patient safety reporting per the provider\'s own arrangements',
     ],
     website: 'https://www.nhs.uk',
   },
@@ -166,22 +180,24 @@ const badges: Badge[] = [
     description: 'The UK General Data Protection Regulation and Data Protection Act 2018 set the rules for how personal data must be handled. The Data Security and Protection Toolkit (DSPT) is the NHS-specific self-assessment.',
     whatItDoes: 'UK GDPR and DPA 2018 require organisations to protect personal data, report breaches, and maintain appropriate security measures. The DSPT is the annual self-assessment for NHS and social care organisations.',
     howMeticleHelps: [
-      'Built-in data encryption at rest and in transit',
       'Role-based access controls with audit logging',
-      'DSPT self-assessment completion and tracking',
-      'Automated data retention and deletion policies',
-      'Breach notification workflow with 72-hour reporting',
+      'A DSPT self-assessment module, for organisations that are in scope for it',
+      'Retention and deletion rules you set, enforced nightly, with a written receipt of every run',
+      'Pseudonymisation of personal data in anything sent to an AI provider, and a per-organisation setting for how much clinical free text leaves the system',
+      'Account erasure that keeps the care record and removes the person\'s account',
       'Data protection impact assessment templates',
-      'Right to access, rectification, and erasure workflows',
     ],
     keyRequirements: [
-      'Lawful basis for processing personal data',
-      'Data security measures',
-      'Breach notification procedures',
-      'Data Protection Officer appointment',
-      'DSPT annual submission',
+      'A lawful basis for processing, chosen and recorded by the provider — not by us',
+      'Data security measures appropriate to the data',
+      'Breach notification procedures: you hold them, you notify the ICO, and you have 72 hours from becoming aware',
+      'Data Protection Officer appointment where required',
+      'DSPT annual submission, if you are in scope',
       'Staff data protection training',
     ],
+    // Read this before the list above. Two of the things a reader will expect
+    // to find here are deliberately not claimed.
+    caveat: 'Where an AI provider is used, clinical free text is sent to that provider, which is a transfer outside the UK and is not covered by our data residency. We are pseudonymising, not anonymising, and we have not yet signed an Article 28 agreement with either provider. Both are open items, not features.',
     website: 'https://ico.org.uk',
   },
 ]
@@ -320,6 +336,16 @@ export default function ComplianceBadgesPage() {
                             </Typography>
                           </Stack>
                         ))}
+                        {badge.caveat && (
+                          <Box sx={{ mt: 1.5, p: 1.5, borderLeft: `3px solid ${badge.color}`, bgcolor: badge.color + '08' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem', display: 'block', mb: 0.5 }}>
+                              What we do not claim
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.primary', lineHeight: 1.55 }}>
+                              {badge.caveat}
+                            </Typography>
+                          </Box>
+                        )}
                       </Stack>
                     </Grid>
 

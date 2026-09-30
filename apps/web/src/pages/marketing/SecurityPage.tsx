@@ -1,5 +1,5 @@
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
-import { ArrowForward, Lock, Shield, Insights, Check, VerifiedUser, Storage, Policy } from '@mui/icons-material'
+import { ArrowForward, Lock, Shield, Insights, Check, Remove, VerifiedUser, Storage, Policy } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
@@ -18,14 +18,14 @@ const controls = [
   { icon: Shield, title: 'Role-based access control', desc: 'Every user sees only what their role and organisation allow. Permissions are enforced at the API level — not just hidden in the UI.', details: ['Organisation-scoped access', 'Granular role permissions', 'Module-level access control', 'API-level enforcement'] },
   { icon: VerifiedUser, title: 'Tenant isolation', desc: 'Organisation data is strictly separated. One organisation cannot access another organisation\'s records under any circumstance.', details: ['Database-level tenant filtering', 'Cross-tenant access prevention', 'Isolated data paths', 'Organisation-scoped queries'] },
   { icon: Insights, title: 'Audit logging', desc: 'Important changes, AI actions and user activity are recorded with timestamps, user context and change details.', details: ['User activity tracking', 'AI action audit trail', 'Change history with before/after', 'Exportable audit logs'] },
-  { icon: Storage, title: 'UK data hosting', desc: 'Data is processed and stored in the United Kingdom. Infrastructure is designed to meet UK data residency expectations.', details: ['UK-based servers', 'Encrypted data at rest', 'Encrypted data in transit', 'Regular backup schedules'] },
-  { icon: Policy, title: 'GDPR and privacy', desc: 'Data protection by design and default. Data minimisation, purpose limitation and subject access request support.', details: ['Data minimisation', 'Purpose limitation', 'Right to access', 'Right to erasure support'] },
+  { icon: Storage, title: 'UK data hosting', desc: 'Records are stored in the United Kingdom. Where AI features are switched on, parts of a record are processed by our AI provider outside the UK — see the limitation below.', details: ['UK-based servers for the record', 'Encrypted data in transit', 'AI processing can leave the UK when enabled'] },
+  { icon: Policy, title: 'GDPR and privacy', desc: 'Data minimisation and pseudonymisation of personal data before it leaves the platform, and erasure of a person\'s account when they leave.', details: ['Data minimisation', 'Pseudonymisation at the AI boundary', 'Per-organisation control over what free text is sent', 'Account erasure on leaving'] },
 ]
 
 const practices = [
   { title: 'AI safety', desc: 'AI features operate within the same RBAC and tenant boundaries as the rest of the platform. AI cannot create, edit or publish care records. Every AI action is logged with source references.' },
-  { title: 'Data minimisation', desc: 'The platform collects only the information needed for care operations. Unnecessary data is not requested and not stored.' },
-  { title: 'Encryption', desc: 'Data is encrypted in transit (TLS) and at rest. Authentication tokens are securely managed. Sensitive fields are handled with additional protection.' },
+  { title: 'Data minimisation', desc: 'What leaves the platform for AI is controlled per organisation: narrative free text can be withheld, keeping coded facts. The default sends the narrative, so this is a setting to decide on rather than a property you inherit.' },
+  { title: 'Encryption', desc: 'Data is encrypted in transit. We do not claim encryption at rest at the application layer — the database extension that would provide it is installed but unused, and anything below the application is a question for whoever runs the infrastructure.' },
   { title: 'Human review', desc: 'AI-generated outputs are clearly marked as assistive. They require human review before any action is taken. AI never makes autonomous decisions about care.' },
 ]
 
@@ -59,20 +59,34 @@ export default function SecurityPage() {
               }}>
                 <Stack spacing={2.5}>
                   {[
-                    { label: 'Authentication', status: 'MFA supported' },
-                    { label: 'Access control', status: 'RBAC + tenant isolation' },
-                    { label: 'Encryption', status: 'TLS + at rest' },
-                    { label: 'Data hosting', status: 'United Kingdom' },
-                    { label: 'Audit trail', status: 'Full logging' },
-                    { label: 'Backups', status: 'Regular schedule' },
-                    { label: 'AI safety', status: 'Logged + bounded' },
-                    { label: 'GDPR', status: 'Privacy by design' },
+                    { label: 'Authentication', status: 'MFA supported', verified: true },
+                    { label: 'Access control', status: 'RBAC + tenant isolation', verified: true },
+                    { label: 'Encryption in transit', status: 'TLS', verified: true },
+                    // Not application-layer encryption. The pgcrypto extension is
+                    // installed and unused, so a tick here would be certifying
+                    // something the code does not do. Anything at the disk layer
+                    // is the infrastructure provider's claim, not ours.
+                    { label: 'Encryption at rest', status: 'Ask us — not handled by the application', verified: false },
+                    { label: 'Record storage', status: 'United Kingdom', verified: true },
+                    // The honest one. Records live here; AI processing does not.
+                    { label: 'AI processing', status: 'May leave the UK when AI is enabled', verified: false },
+                    { label: 'Audit trail', status: 'Full logging', verified: true },
+                    { label: 'Backups', status: 'Operated at the infrastructure layer — ask us for the schedule', verified: false },
+                    { label: 'AI safety', status: 'Logged + bounded', verified: true },
                   ].map((item) => (
                     <Stack key={item.label} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.5, borderBottom: `1px solid ${M.faint}` }}>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.92rem' }}>{item.label}</Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Check sx={{ color: M.teal, fontSize: 16 }} />
-                        <Typography sx={{ color: M.tealDeep, fontWeight: 600, fontSize: '0.82rem' }}>{item.status}</Typography>
+                        {/* The tick means "we can show you this in the product".
+                            Without it, a row is a question rather than an
+                            assurance, which is the only honest thing to do with
+                            a control we cannot evidence from here. */}
+                        {item.verified
+                          ? <Check sx={{ color: M.teal, fontSize: 16 }} />
+                          : <Remove sx={{ color: M.ink, fontSize: 16, opacity: 0.6 }} />}
+                        <Typography sx={{ color: item.verified ? M.tealDeep : M.ink, fontWeight: 600, fontSize: '0.82rem' }}>
+                          {item.status}
+                        </Typography>
                       </Stack>
                     </Stack>
                   ))}

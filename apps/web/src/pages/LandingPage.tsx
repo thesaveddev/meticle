@@ -318,7 +318,7 @@ The tools your team uses every day, connected around the person and the service.
               { name: 'Holiday & absence', desc: 'Requests, balances and approvals — with delegation when the manager is away.', icon: LeaveIcon, to: '/features#leave' },
               { name: 'Incidents & safeguarding', desc: 'Report, track and escalate incidents with action items that stay open until done.', icon: IncidentIcon, to: '/features#incidents' },
               { name: 'Tasks', desc: 'Assign and close tasks across the team.', icon: TaskIcon, to: '/features#tasks' },
-              { name: 'Secure staff messaging', desc: 'GDPR-compliant chat between staff, teams and departments.', icon: ChatIcon, to: '/features#chat' },
+              { name: 'Secure staff messaging', desc: 'Chat between staff, teams and departments, scoped to your organisation and audit-logged.', icon: ChatIcon, to: '/features#chat' },
               { name: 'Training & competencies', desc: 'A matrix per role with gap-flagging, plus competency assessments with evidence.', icon: TrainingIcon, to: '/features#training' },
             ] },
             { label: 'Compliance & oversight', desc: 'Readiness you can see, from records you already keep.', items: [

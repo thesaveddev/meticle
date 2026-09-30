@@ -29,6 +29,11 @@ function migrate(db: Database.Database) {
       service_type TEXT,
       cqc_rating TEXT,
       last_inspection TEXT,
+      -- Which public register this lead came from. Today the only scraper is
+      -- the CQC one, so every row is 'Care Quality Commission'; the column
+      -- exists so the outbound copy can name a lead's own regulator instead of
+      -- assuming one, and so a second scraper has somewhere to record itself.
+      regulator TEXT DEFAULT 'Care Quality Commission',
       contact_name TEXT,
       contact_email TEXT,
       contact_phone TEXT,
@@ -76,4 +81,13 @@ function migrate(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_leads_rating ON leads(cqc_rating);
     CREATE INDEX IF NOT EXISTS idx_email_logs_lead ON email_logs(lead_id);
   `)
+
+  // CREATE TABLE IF NOT EXISTS does nothing for a database that already has
+  // the table, so a column added here needs its own statement. Guarded on the
+  // actual column list rather than on a version number, because this file has
+  // no version table and adding one to fix a missing column is a poor trade.
+  const columns = db.prepare('PRAGMA table_info(leads)').all() as { name: string }[]
+  if (!columns.some((c) => c.name === 'regulator')) {
+    db.exec("ALTER TABLE leads ADD COLUMN regulator TEXT DEFAULT 'Care Quality Commission'")
+  }
 }

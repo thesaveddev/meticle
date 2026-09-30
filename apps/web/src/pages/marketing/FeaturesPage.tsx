@@ -171,7 +171,7 @@ const featureGroups = [
         id: 'chat',
         category: 'Secure Staff Messaging',
         brandIcon: <ChatIcon size={32} />,
-        description: 'GDPR-compliant internal messaging with file sharing and read receipts.',
+        description: 'Internal messaging with file sharing and read receipts, scoped to the organisation and audit-logged.',
         items: [
           { title: 'Real-Time Messaging', desc: 'Socket.IO-powered instant messaging with group and DM channels. Optimistic send with dedup prevents double insertion.' },
           { title: 'Link Previews', desc: 'Server-side OG metadata fetch renders rich preview cards. Live preview while typing.' },
@@ -298,7 +298,7 @@ const featureGroups = [
         id: 'backup',
         category: 'Data Backup & Restore',
         materialIcon: <BackupMuiIcon sx={{ fontSize: 32 }} />,
-        description: 'Secure, GDPR-compliant data protection, hosted in the UK with database-level tenant isolation.',
+        description: 'Role-based access, audit logging and per-organisation retention rules, with database-level tenant isolation. Records are stored in the UK; AI processing can leave it, and we say so on the security page.',
         items: [
           { title: 'AES-256 Encryption', desc: 'Encrypted at rest and in transit (TLS 1.3). Hosted in the UK, with isolation between organisations enforced in the database.' },
           // Was: "Point-in-time recovery available. Full database snapshots every

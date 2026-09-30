@@ -45,8 +45,8 @@ const blogPosts = [
     tags: ['CQC', 'CIW', 'Care Inspectorate', 'RQIA'],
   },
   {
-    title: 'Training Compliance Matrix: CQC-Mandated Training per Role Explained',
-    excerpt: 'Which training modules does CQC mandate for care workers vs managers? How to track, tag, and evidence mandatory training with digital sign-off.',
+    title: 'Training Compliance Matrix: Which Training a Provider Actually Has to Evidence',
+    excerpt: 'CQC does not mandate named training courses — it regulates competence and asks whether your evidence shows the right people can do the job. Here is what to track, tag and evidence instead, and why the distinction matters.',
     category: 'Training',
     author: 'Meticle Care Team',
     date: 'May 2026',
@@ -54,7 +54,7 @@ const blogPosts = [
   },
   {
     title: 'Staff Engagement Surveys: The Missing Piece in Your Well-Led Evidence',
-    excerpt: "CQC's Well-led domain requires evidence of staff feedback and engagement. Here's how to build a survey programme that generates real evidence for your next inspection.",
+    excerpt: "CQC's Well-led domain looks for evidence that people are listened to and that acting on what they say is visible. Here's how to build a survey programme that produces evidence rather than a score.",
     category: 'Staff Engagement',
     author: 'Meticle Care Team',
     date: 'May 2026',

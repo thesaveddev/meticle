@@ -18,6 +18,23 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
 
 /* ─── Regulator data with nation-specific guidance ──────── */
 
+/**
+ * These lists are our summary of what each regulator looks at, not the
+ * regulator's words, and the difference matters.
+ *
+ * An earlier version of this page asserted "CIW inspects against the Care
+ * Standards Act 2000" while the API's own regulator registry had the correct
+ * instrument — the Regulation and Inspection of Social Care (Wales) Act 2016 —
+ * in the same repository. Two files, same statute, one right and one wrong,
+ * and the wrong one was on a page a customer reads.
+ *
+ * So: statutes are named only where they are right, and everything that is
+ * a summary of a regulator's approach is marked as ours below. The source of
+ * truth for regulator facts is `apps/api/src/modules/compliance/regulators.ts`,
+ * which carries its own `sourceNote` per entry and is explicit about which
+ * formats are verified. Re-stating it here is a known duplication, tracked as
+ * T2-24.
+ */
 const regulators = [
   {
     slug: 'cqc', code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2563EB',
@@ -28,6 +45,7 @@ const regulators = [
       'Evidence should show how care is personalised, how risks are managed and how learning drives change.',
       'Staff competency, training and supervision records support the Well-led and Effective domains.',
       'Incident records, risk assessments and safeguarding evidence demonstrate the Safe domain.',
+      'The list above is ours; CQC\'s own wording is on cqc.org.uk.',
     ],
     evidenceFocus: ['Quality statements alignment', 'Staff training and supervision evidence', 'Person-centred care demonstrations', 'Governance and leadership evidence', 'Risk management and incident follow-up'],
   },
@@ -35,11 +53,10 @@ const regulators = [
     slug: 'care-inspectorate', code: 'Care Inspectorate', name: 'Care Inspectorate', nation: 'Scotland', color: '#DC2626',
     desc: "The Care Inspectorate operates within Scotland's health and social care context. MeticleCare helps teams keep evidence, reviews, actions and operational records organised.",
     guidance: [
-      'The Care Inspectorate uses quality indicators covering staffing, care and support, and management and leadership.',
-      'Scotland\'s Health and Social Care Standards emphasise dignity, choice and control for people receiving care.',
+      'The Care Inspectorate is established under the Public Services Reform (Scotland) Act 2010.',
+      'It publishes the quality indicators it inspects against; this is our summary of them, not the Care Inspectorate\'s wording.',
       'Providers should demonstrate how they involve people in decisions about their care and support.',
       'Evidence should show how feedback from people, families and staff drives improvement.',
-      'National Care Standards apply across all care settings in Scotland.',
     ],
     evidenceFocus: ['Quality indicator evidence', 'National Care Standards alignment', 'People\'s experience and outcomes', 'Continuous improvement evidence', 'Staff and management oversight'],
   },
@@ -47,11 +64,10 @@ const regulators = [
     slug: 'ciw', code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales', color: '#059669',
     desc: 'Care Inspectorate Wales has its own regulatory and inspection context. MeticleCare helps Welsh providers connect everyday records, governance and follow-up actions.',
     guidance: [
-      'CIW inspects against the Care Standards Act 2000 and related Welsh regulations.',
-      'Essential Quality Standards cover staffing, management, care and support, and premises.',
-      'Welsh providers must demonstrate how they meet the Needs and Safeguarding standards.',
+      'CIW registers and inspects services under the Regulation and Inspection of Social Care (Wales) Act 2016.',
+      'The Social Services and Well-being (Wales) Act 2014 is the framework those regulations sit under, and it is the one to work from.',
+      'CIW publishes the inspection questions and ratings it uses; this is our summary of them, not CIW\'s wording.',
       'Evidence should show how services are person-centred and outcome-focused.',
-      'The Social Services and Well-being (Wales) Act 2014 shapes the regulatory framework.',
     ],
     evidenceFocus: ['Essential Quality Standards evidence', 'Person-centred care records', 'Safeguarding and protection evidence', 'Staff training and deployment records', 'Management and leadership evidence'],
   },
@@ -59,11 +75,11 @@ const regulators = [
     slug: 'rqia', code: 'RQIA', name: 'Regulation and Quality Improvement Authority', nation: 'Northern Ireland', color: '#7C3AED',
     desc: 'RQIA regulates health and social care services in Northern Ireland. MeticleCare supports structured records, workforce information, incidents and actions.',
     guidance: [
-      'RQIA assesses services against standards set by the Health and Personal Social Services Order.',
-      'Minimum standards cover staffing, care and support, management and administration, and environment.',
+      'RQIA is established under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003.',
+      'RQIA publishes the standards and minimum standards it inspects against; this is our summary of them, not RQIA\'s wording.',
       'Providers should demonstrate how they protect the safety and welfare of people receiving care.',
       'Evidence should show effective communication between staff, management and external agencies.',
-      'RQIA uses a quality improvement approach alongside traditional inspection.',
+      'RQIA uses a quality improvement approach alongside inspection.',
     ],
     evidenceFocus: ['Minimum standards evidence', 'Safety and welfare records', 'Staffing and training evidence', 'Management oversight and governance', 'Communication and liaison records'],
   },
@@ -75,7 +91,7 @@ const evidenceAreas = [
   { icon: Shield, title: 'Risk, incidents & actions', desc: 'Risk assessments, incident records, follow-up actions and escalation history with full audit trail.' },
   { icon: TrendingUp, title: 'Reports & audit logs', desc: 'Operational reports, AI-assisted insights, compliance dashboards and exportable evidence packs.' },
   { icon: AssignmentTurnedIn, title: 'Governance & policies', desc: 'Policy management, satisfaction surveys, staff engagement and compliance portal access.' },
-  { icon: Security, title: 'Data protection', desc: 'DSPT compliance, MFA, RBAC, encryption and audit logging for governance evidence.' },
+  { icon: Security, title: 'Data protection', desc: 'MFA, role-based access, audit logging and a DSPT self-assessment module for organisations in scope. Encryption in transit, pseudonymisation at the AI boundary, and retention you control.' },
 ]
 
 const readinessMetrics = [

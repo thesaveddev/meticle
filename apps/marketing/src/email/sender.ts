@@ -28,8 +28,25 @@ export async function sendEmail(leadId: number, templateName: string, extraVars:
     ...extraVars,
     provider_name: lead.provider_name,
     contact_name: lead.contact_name || 'Manager',
-    cqc_rating: lead.cqc_rating || 'Not rated',
+    cqc_rating: lead.cqc_rating || '',
     last_inspection: lead.last_inspection || '',
+    // Which regulator this lead is registered with. The lead source is the CQC
+    // public register, so CQC is the honest default rather than an assumption
+    // to be papered over — but the templates now ask for the provider's own
+    // regulator, so a lead from another register will read correctly.
+    regulator: lead.regulator || 'Care Quality Commission',
+    // The rating sentence is built here rather than in the template. The
+    // renderer has no conditional-block support — it strips every {{#...}} —
+    // so a conditional paragraph would be dropped whether or not a rating
+    // existed, and the previous version rendered the literal words "has a CQC
+    // rating of Not rated" whenever the scrape came back empty.
+    //
+    // A rating quoted back to a named provider is a factual claim about a third
+    // party, taken from a public register we scrape. It is therefore attributed
+    // and dated, and the sentence is omitted entirely when we have nothing.
+    rating_line: lead.cqc_rating
+      ? `The public register shows ${lead.provider_name} with a rating of ${lead.cqc_rating}${lead.last_inspection ? ` (last inspected ${lead.last_inspection})` : ''}. Worth knowing where you stand today?`
+      : 'What would your readiness score look like today?',
     tracking_link: `${trackingBase}/t/${leadId}`,
     tracking_link_display: trackingBase,
     tracking_pixel: `${trackingBase}/pixel/${leadId}`,

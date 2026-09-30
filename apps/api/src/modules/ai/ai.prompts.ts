@@ -154,7 +154,7 @@ Generate the rota now.`,
   },
 
   compliance_gap_analysis: {
-    system: `You are a CQC compliance expert for UK supported living services. Analyze the provided compliance data and generate actionable, prioritized recommendations for improvement. Focus on what to fix next to achieve the highest CQC readiness score. Be specific, practical, and reference CQC Quality Statements where relevant. Format output as JSON with: { "overall_assessment": string, "critical_gaps": [{ "area": string, "statement": string, "current_state": string, "recommended_action": string, "priority": "critical" | "high" | "medium" }], "quick_wins": string[], "estimated_timeline": string }`,
+    system: `You are a care compliance expert for UK supported living services. Analyze the provided compliance data and generate actionable, prioritized recommendations for improvement. Focus on what to fix next to improve readiness with the regulator named in the user message. Be specific and practical. Do not cite legislation or regulation numbers — name the standard the user message gave you, or describe the requirement in plain words. Format output as JSON with: { "overall_assessment": string, "critical_gaps": [{ "area": string, "statement": string, "current_state": string, "recommended_action": string, "priority": "critical" | "high" | "medium" }], "quick_wins": string[], "estimated_timeline": string }`,
     userTemplate: `Organization: {{org_name}}
 Regulator: {{regulator}}
 Overall Compliance Rate: {{overall_rate}}%
@@ -169,7 +169,7 @@ Provide a prioritized compliance gap analysis.`,
   },
 
   incident_severity_triage: {
-    system: `You are a care quality risk assessor. Analyze incident reports and classify them by severity (low, medium, high, critical). Consider: harm to people, regulatory reporting requirements (CQC notifiable), recurrence pattern, and systemic risk. Output JSON: { "severity": "low" | "medium" | "high" | "critical", "confidence": number (0-1), "reasoning": string, "recommended_actions": string[], "requires_cqc_notification": boolean }`,
+    system: `You are a care quality risk assessor. Analyze incident reports and classify them by severity (low, medium, high, critical). Consider: harm to people, whether this is notifiable to the regulator named in the user message, recurrence pattern, and systemic risk. Which incidents are notifiable, and to whom, differs by nation and by service type — do not assume England. Output JSON: { "severity": "low" | "medium" | "high" | "critical", "confidence": number (0-1), "reasoning": string, "recommended_actions": string[], "requires_regulator_notification": boolean }`,
     userTemplate: `Incident Title: {{title}}
 Description: {{description}}
 Category: {{category}}
@@ -217,11 +217,9 @@ Generate 5 assessment questions for this competency area.`,
   },
 
   daily_note_generation: {
-    system: `You are a professional care documentation assistant for UK supported living services. Your task is to transform informal staff observations (voice or text) into structured, CQC-compliant daily care notes.
+    system: `You are a professional care documentation assistant for UK supported living services. Your task is to transform informal staff observations (voice or text) into structured daily care notes.
 
-IMPORTANT UK REGULATORY CONTEXT:
-- Follow CQC's "Better care for our people" framework
-- Reference the Care Act 2014 duties on wellbeing and safeguarding
+DOCUMENTATION CONTEXT:
 - Use person-centred language (avoid "resident", use "person supported" or their name)
 - Include observable facts, not assumptions or diagnoses
 - Note any changes from baseline that require monitoring
@@ -247,7 +245,7 @@ OUTPUT STRUCTURE - Return EXACTLY this JSON format:
       "severity": "low" | "medium" | "high",
       "description": "What was observed",
       "action_required": "Recommended immediate action",
-      "reference_regulation": "e.g. Care Act 2014 s.42, CQC Reg. 12"
+      "who_should_know": "Which role or service should be told, by name or title"
     }
   ],
   "care_plan_updates": [
@@ -295,102 +293,6 @@ Date: {{note_date}}
 Transform this observation into a structured daily care note with all analysis sections. Be thorough but practical.`,
   },
 
-  daily_note_safeguarding: {
-    system: `You are a safeguarding lead for a UK care service. Analyze the provided daily note for safeguarding concerns. Apply the Care Act 2014 framework and CQC Fundamental Standards.
-
-SAFEGUARDING INDICATORS TO CHECK:
-- Physical abuse (bruising, marks, unexplained injuries)
-- Emotional abuse (distress, fear, withdrawal)
-- Neglect (poor hygiene, untreated medical conditions, weight loss)
-- Financial abuse (missing belongings, unexplained transactions)
-- Sexual abuse (behavioral changes, physical signs)
-- Self-neglect (refusal of care, poor self-care)
-- Discrimination (inappropriate language, unequal treatment)
-- Modern slavery (control, isolation, poor living conditions)
-
-Return JSON:
-{
-  "safeguarding_concerns": [
-    {
-      "type": "physical_abuse" | "emotional_abuse" | "neglect" | "financial_abuse" | "self_neglect" | "none",
-      "severity": "low" | "medium" | "high" | "critical",
-      "description": "What was observed",
-      "evidence": "Specific details from the note",
-      "immediate_action": "What must be done now",
-      "regulation_reference": "e.g. Care Act 2014 s.42, CQC Reg. 12",
-      "requires_mash_referral": true/false
-    }
-  ],
-  "overall_safeguarding_risk": "none" | "low" | "medium" | "high" | "critical",
-  "recommendations": ["string"]
-}`,
-    userTemplate: `Daily Note Content:
-{{daily_note_content}}
-
-Person: {{person_name}}
-Recent History: {{recent_history}}
-
-Analyze for safeguarding concerns.`,
-  },
-
-  daily_note_care_plan_update: {
-    system: `You are a care plan reviewer for UK supported living services. Based on the daily note observations, suggest evidence-based updates to the person's care plan. Follow Care Act 2014 duties and CQC's person-centred care standards.
-
-Return JSON:
-{
-  "care_plan_updates": [
-    {
-      "goal_id": "if linking to existing goal",
-      "area": "care plan area",
-      "current_plan": "what the current care plan says",
-      "suggested_change": "what should be updated",
-      "evidence": "observed evidence supporting this change",
-      "rationale": "why this change is needed",
-      "priority": "low" | "medium" | "high",
-      "review_date_suggestion": "YYYY-MM-DD"
-    }
-  ],
-  "new_goals_suggested": [
-    {
-      "area": "goal area",
-      "description": "new goal description",
-      "target": "measurable target",
-      "timeframe": "e.g. 4 weeks"
-    }
-  ]
-}`,
-    userTemplate: `Person: {{person_name}}
-Daily Note: {{daily_note_content}}
-Current Care Plans: {{current_care_plans}}
-Recent Goal Progress: {{recent_goal_progress}}
-
-Suggest care plan updates based on today's observations.`,
-  },
-
-  daily_note_mood_analysis: {
-    system: `You are a wellbeing specialist for care services. Analyze the mood and emotional state of a person supported based on staff observations. Use validated wellbeing frameworks where possible (e.g. Warwick-Edinburgh Mental Wellbeing Scale indicators).
-
-Return JSON:
-{
-  "mood_score": 1-10,
-  "mood_label": "e.g. Content, Anxious, Happy, Distressed, Calm, Agitated",
-  "wellbeing_indicators": {
-    "positive_affect": ["observable positive emotional signs"],
-    "negative_affect": ["observable negative emotional signs"],
-    "social_engagement": "active" | "passive" | "withdrawn",
-    "physical_presentation": "e.g. relaxed, tense, restless"
-  },
-  "trend": "improving" | "stable" | "declining",
-  "factors_influencing_mood": ["identified contributing factors"],
-  "recommended_support": ["suggested interventions to support wellbeing"]
-}`,
-    userTemplate: `Person: {{person_name}}
-Observation: {{staff_input}}
-Previous Mood Data: {{previous_mood}}
-Known Factors: {{known_factors}}
-
-Analyze mood and wellbeing indicators.`,
-  },
 
   meal_plan_generation: {
     system: `You are a registered dietitian and meal planning specialist for UK supported living care services. Your task is to generate nutritious, safe, and person-centred meal plans for people with specific dietary needs.

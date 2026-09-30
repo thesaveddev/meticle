@@ -6,10 +6,10 @@ export function seedTemplates() {
   const templates = [
     {
       name: 'intro',
-      subject: 'Your CQC readiness score — {{provider_name}}',
+      subject: 'Your compliance readiness score — {{provider_name}}',
       body_html: `<p>Hi {{contact_name}},</p>
-<p>I built a tool that calculates a care provider's CQC readiness score across all 5 domains — Safe, Effective, Caring, Responsive, Well-led — using your actual data. It also generates your evidence pack in one click.</p>
-<p>I noticed {{provider_name}} has a CQC rating of <strong>{{cqc_rating}}</strong>{{#last_inspection}} (last inspected {{last_inspection}}){{/last_inspection}}. What would your score look like today?</p>
+<p>I built a tool that calculates a care provider's readiness score across the domains their own regulator uses — for CQC, Safe, Effective, Caring, Responsive and Well-led — from your actual records. It also generates your evidence pack in one click.</p>
+<p>{{rating_line}}</p>
 <p>I can show you in a free 15-minute demo. You'll see your actual compliance gaps and get a sample evidence pack.</p>
 <p>Reply to this email or book a time here: <a href="{{tracking_link}}?action=book">{{tracking_link_display}}</a></p>
 <p>Best,<br/>Meticle Care</p>`
@@ -18,23 +18,23 @@ export function seedTemplates() {
       name: 'follow_up',
       subject: 'Re: Your CQC evidence pack — {{provider_name}}',
       body_html: `<p>Hi {{contact_name}},</p>
-<p>Just following up on my previous email. I know how overwhelming CQC inspections can be — especially with the new Single Assessment Framework.</p>
+<p>Just following up on my previous email. I know how overwhelming a regulatory inspection can be, whichever of the four regulators you are registered with.</p>
 <p>Meticle Care gives you:</p>
 <ul>
-  <li>Your CQC score across all 5 domains — calculated from real data, not estimates</li>
+  <li>A readiness score across the domains your own regulator uses — calculated from real records, not estimates</li>
   <li>AI gap analysis showing exactly what to fix</li>
-  <li>One-click evidence packs ready for inspection</li>
+  <li>One-click evidence packs, labelled with your regulator rather than someone else's</li>
   <li>Multi-regulator support: CQC, CIW, Care Inspectorate, RQIA</li>
 </ul>
-<p>{{provider_name}} currently holds a <strong>{{cqc_rating}}</strong> rating. Let me show you where the gaps are — no commitment.</p>
+<p>{{provider_name}}'s own regulator is <strong>{{regulator}}</strong>, so that is the framework your evidence pack will be measured against. Let me show you where the gaps are — no commitment.</p>
 <p>Reply or book here: <a href="{{tracking_link}}?action=book">{{tracking_link_display}}</a></p>
 <p>Best,<br/>Meticle Care</p>`
     },
     {
       name: 'evidence_pack',
-      subject: 'Here\'s what your CQC evidence pack would look like — {{provider_name}}',
+      subject: 'Here\'s what your evidence pack would look like — {{provider_name}}',
       body_html: `<p>Hi {{contact_name}},</p>
-<p>I've generated a sample CQC evidence pack for {{provider_name}}. It shows:</p>
+<p>I've generated a sample evidence pack for {{provider_name}}, laid out against the framework <strong>{{regulator}}</strong> uses. It shows:</p>
 <ul>
   <li>Staff compliance status across all requirements</li>
   <li>Training matrix with completion rates</li>

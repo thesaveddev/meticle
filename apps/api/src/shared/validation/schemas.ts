@@ -155,7 +155,12 @@ export const aiDailyNoteApproveSchema = z.object({
     severity: z.enum(['low', 'medium', 'high']),
     description: z.string(),
     action_required: z.string(),
-    reference_regulation: z.string().optional(),
+    // No `reference_regulation` here any more. It existed so a model would fill
+    // it with a statutory citation, and it was the one field in the schema
+    // whose value nobody could check. A safeguarding record that cites a
+    // section of an Act is a document someone may put in front of an
+    // inspector, and a plausible-but-wrong citation is worse than none.
+    who_should_know: z.string().optional(),
   })).optional(),
   carePlanUpdates: z.array(z.object({
     goal_area: z.string(),

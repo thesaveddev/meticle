@@ -1,7 +1,28 @@
 import { generatePdf as sharedGeneratePdf } from '../../shared/pdf/pdf.service'
+import { getRegulator } from './regulators'
 
-export function buildEvidencePackHtml(data: any, orgName?: string): string {
-  const frameworkName = 'CQC'
+/**
+ * The framework named on the cover of an evidence pack.
+ *
+ * This was a hardcoded 'CQC' and the same file's controller scores four
+ * frameworks, so a Welsh or Scottish provider downloaded a document with a CQC
+ * badge on the cover and no way to tell that was a default rather than their
+ * regulator. An evidence pack is a document a provider shows an inspector: a
+ * wrong regulator on the cover is the first thing noticed and it undermines
+ * every number inside it.
+ *
+ * Falls back to the organisation's stored regulator, then to saying so rather
+ * than to a guess. "Not recorded" is a sentence an administrator can act on;
+ * a confident wrong answer is not.
+ */
+export function resolveFrameworkName(regulatorId?: string | null): string {
+  if (!regulatorId) return 'Not recorded'
+  const reg = getRegulator(regulatorId)
+  return reg ? reg.name : 'Not recorded'
+}
+
+export function buildEvidencePackHtml(data: any, orgName?: string, regulatorId?: string | null): string {
+  const frameworkName = resolveFrameworkName(regulatorId)
   const now = new Date().toLocaleString()
 
   const staffSection = data.staff?.length
