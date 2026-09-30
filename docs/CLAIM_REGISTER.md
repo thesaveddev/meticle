@@ -215,6 +215,20 @@ F20 and F21 look alike and are not. F20 was checkable and was wrong. F21 is not 
 
 **Fix:** Replaced with the four themes and four ratings, plus the fact CIW deliberately issues **no overall rating**, only per-theme. Verified against gov.wales, 28 March 2025.
 
+### F23. Ireland: two things that would have been repeated by reflex
+
+**Where:** `compliance.vetting.ts`, `136_ireland_hiqa_garda_vetting.sql`, `cqc/frameworks.ts`.
+
+The Ireland spike is in the register rather than only in the readiness list because the two failures it nearly walked into are the same two this file already documents — one for Scotland, one for the `NI-S1` identifiers.
+
+**Right-to-work.** Every UK row carries `PASSPORT, VISA, RIGHT_TO_WORK`, and migration 128 explains why: right-to-work checking is a UK-wide immigration requirement. True, and it does not travel. Ireland is in the EU and the Common Travel Area, an Irish citizen has an implicit right to work and needs no visa, and carrying that list across would report most Irish care workers non-compliant for documents that do not apply to them. This would have been **completely silent** — the compliance query is correct, the requirement underneath it is wrong — which is the defining property of every entry in Class 1. The Irish row's `required_document_types` is therefore empty, with the reasoning in a named constant so it cannot be tidied away. T2-29.
+
+**Garda tiers.** DBS, PVG and AccessNI are all graded. Garda vetting is not: an organisation applies on behalf of a person and a disclosure comes back. Writing `basic/standard/enhanced/enhanced_barred` would have been a fresh `NI-S1` — four plausible tier names, unlookupable, that would make a real disclosure look like the wrong tier. One honest state instead.
+
+**What was verified rather than assumed** (hiqa.ie, garda.ie, 30 September 2026): HIQA sets national standards under the Health Act 2007, approved by the Minister for Health; the instrument is the National Standards for Residential Care Settings for Older People in Ireland, 2009 and updated 2016; **a review commenced 18 August 2026** whose findings go to the Department of Health "to inform a decision on whether to update" them. Garda vetting applications go to the National Vetting Bureau; disclosures are made by the Garda National Vetting Bureau, the unit formerly called the Garda Central Vetting Unit; a disclosure goes to an **authorised liaison person** at the organisation.
+
+**What is deliberately absent.** HIQA's framework has an empty `domains` array. The standards are published only as a PDF, hiqa.ie renders in JavaScript, and the theme list could not be extracted. Theme 1 is known to be "Person-centred Care and Support"; the remaining themes were not inferred from Northern Ireland or from what care regulation tends to look like. The gap is recorded in `verifiedAspects` and a test asserts it stays recorded. T2-30.
+
 ---
 
 ## Class 2: Unverifiable from the repository

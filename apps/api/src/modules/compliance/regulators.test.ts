@@ -25,10 +25,10 @@ import {
 } from './regulators';
 
 describe('the regulator registry', () => {
-  it('has one entry per UK nation’s service regulator', () => {
-    expect(listRegulators()).toHaveLength(4);
+  it('has one entry per nation’s service regulator', () => {
+    expect(listRegulators()).toHaveLength(5);
     const ids = listRegulators().map((r) => r.id).sort();
-    expect(ids).toEqual(['care-inspectorate', 'ciw', 'cqc', 'rqia']);
+    expect(ids).toEqual(['care-inspectorate', 'ciw', 'cqc', 'hiqa', 'rqia']);
   });
 
   it('maps each nation to exactly one service regulator', () => {
@@ -36,6 +36,7 @@ describe('the regulator registry', () => {
     expect(regulatorsForNation('wales').map((r) => r.id)).toEqual(['ciw']);
     expect(regulatorsForNation('scotland').map((r) => r.id)).toEqual(['care-inspectorate']);
     expect(regulatorsForNation('northern_ireland').map((r) => r.id)).toEqual(['rqia']);
+    expect(regulatorsForNation('ireland').map((r) => r.id)).toEqual(['hiqa']);
   });
 
   it('names each regulator’s registration and where to check it', () => {
@@ -96,21 +97,35 @@ describe('the regulator registry', () => {
   });
 });
 
-describe('migration 129 seed matches the registry', () => {
-  const migration = fs.readFileSync(
-    path.join(__dirname, '../../shared/database/migrations/129_regulator_registrations.sql'),
-    'utf8',
-  );
+describe('the seeded regulator rows match the registry', () => {
+  // 129 seeded the four UK regulators; 136 added HIQA. Both are read, because the
+  // guarantee is "every regulator in the registry has a seeded row" — a statement
+  // about the pair, not about one file. Reading only 129 would have reported
+  // HIQA as unseeded rather than as seeded one migration later.
+  const migration = ['129_regulator_registrations', '136_ireland_hiqa_garda_vetting']
+    .map((f) => fs.readFileSync(
+      path.join(__dirname, '../../shared/database/migrations', `${f}.sql`),
+      'utf8',
+    ))
+    .join('\n');
 
   function seededRegulators(): Array<{
     id: string; name: string; label: string; url: string; scheme: string; hint: string | null
   }> {
     return listRegulators().map((r) => {
-      const start = migration.indexOf(`'${r.id}',`);
-      if (start === -1) return { id: r.id, name: '', label: '', url: '', scheme: '', hint: null };
-      const end = migration.indexOf('\n      ),', start);
+      // Anchored on the shape of a regulators row — id, name, then ARRAY — not on
+      // the bare id. Migration 136 seeds both a vetting row and a regulators row,
+      // and the vetting row contains the id as its `regulator` column, so
+      // indexOf(`'${r.id}',`) found `'hiqa',` inside the vetting insert and read
+      // "Garda vetting" as HIQA's name. The ARRAY anchor is what distinguishes
+      // the two INSERT shapes.
+      const anchor = new RegExp(`'${r.id}',\\s*'[^']+',\\s*ARRAY\\[`).exec(migration);
+      if (!anchor || anchor.index === undefined) {
+        return { id: r.id, name: '', label: '', url: '', scheme: '', hint: null };
+      }
+      const end = migration.indexOf('\n      ),', anchor.index);
       // Start after the id so it is not counted as the first value.
-      const block = migration.slice(start + r.id.length + 3, end === -1 ? undefined : end);
+      const block = migration.slice(anchor.index + r.id.length + 3, end === -1 ? undefined : end);
 
       // Quoted values in order: name, nation (inside ARRAY[...]), role,
       // description, label, url, [hint], scheme, note. Positional on purpose —

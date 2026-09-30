@@ -265,17 +265,17 @@ describe('four-nations vetting — a person in the wrong nation of the org', () 
   })
 })
 
-describe('four-nations vetting — the settings endpoints', () => {
-  it('lists the four schemes', async () => {
+describe('every-nation vetting — the settings endpoints', () => {
+  it('lists every scheme, Ireland included', async () => {
     const { token } = await orgWithStaff()
     const res = await request(app)
       .get('/compliance/vetting-schemes')
       .set('Authorization', `Bearer ${token}`)
 
     expect(res.status).toBe(200)
-    expect(res.body.schemes).toHaveLength(4)
+    expect(res.body.schemes).toHaveLength(5)
     expect(res.body.schemes.map((s: any) => s.id).sort()).toEqual([
-      'accessni_northern_ireland', 'ciw_wales', 'dbs_england_wales', 'pvg_scotland',
+      'accessni_northern_ireland', 'ciw_wales', 'dbs_england_wales', 'garda_vetting_ireland', 'pvg_scotland',
     ])
   })
 

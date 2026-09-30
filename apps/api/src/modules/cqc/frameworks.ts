@@ -555,11 +555,95 @@ const RQIA_FRAMEWORK: FrameworkDef = {
   ]
 }
 
+/**
+ * Ireland. HIQA. A scoping spike, deliberately empty.
+ *
+ * Verified 30 September 2026 from hiqa.ie. What we can stand behind:
+ *
+ *   - HIQA is the independent body that promotes safety and quality in health
+ *     and social care services in Ireland.
+ *   - It sets national standards under the Health Act 2007, and the standards
+ *     are approved by the Minister for Health.
+ *   - The relevant instrument is the National Standards for Residential Care
+ *     Settings for Older People in Ireland, first published 2009 and updated
+ *     2016.
+ *   - **HIQA commenced a review of those standards on 18 August 2026.** A
+ *     scoping review protocol on person-centred care has been published, and
+ *     HIQA's findings go to the Department of Health "to inform a decision on
+ *     whether to update" them. So the 2016 standards remain in force, and a
+ *     framework built on them has a shelf life nobody here can date.
+ *
+ * ## Why `domains` is empty
+ *
+ * The standards are a PDF. Nobody here has read it — hiqa.ie renders its pages
+ * in JavaScript and the document is only served as a PDF, so the theme list
+ * could not be extracted even with effort from this desk.
+ *
+ * So there is no `domains` array. Not a borrowed one, not a plausible one.
+ * We know the first theme is called "Person-centred Care and Support" and we
+ * are not going to infer the other eight from Northern Ireland or from what
+ * care regulation tends to look like. A framework whose domain labels are ours
+ * but whose *shape* is a guess about another country is the failure this
+ * repository keeps having to undo, and for the RQIA entry above we at least
+ * had four real groupings to relabel.
+ *
+ * What an empty array does is correct rather than broken: `findFramework`
+ * returns this framework, so an Irish provider gets HIQA's name, its citation
+ * and an honest "no themes recorded yet" cover instead of a CQC badge. The
+ * evidence pack falls back to the generic layout and says why. That is the
+ * right output for a draft.
+ *
+ * To finish it: read the 2016 standards PDF, add the themes in HIQA's own
+ * words, move `themes` from unverified to verified in `verifiedAspects`, and
+ * delete this paragraph. T2-30.
+ */
+const HIQA_FRAMEWORK: FrameworkDef = {
+  id: 'hiqa',
+  name: 'HIQA National Standards for Residential Care Settings for Older People in Ireland',
+  country: 'Ireland',
+  description:
+    'Health Information and Quality Authority — sets national standards for health and social care services in Ireland under the Health Act 2007; the standards are approved by the Minister for Health. This pack is not yet arranged against them: the standards are a PDF that has not been read, so no theme names, standard numbers or wordings appear here rather than being guessed.',
+  source:
+    'Health Information and Quality Authority, "National Standards for Residential Care Settings for Older People in Ireland", first published 2009 and updated 2016, set under the Health Act 2007 and approved by the Minister for Health; HIQA news notice "HIQA commences review of national standards in residential care settings for older people", 18 August 2026.',
+  sourceUrl: 'https://www.hiqa.ie/hiqa-news-updates/hiqa-commences-review-national-standards-residential-care-settings-older-people',
+  sourcePublishedOn: '2026-08-18',
+  sourceRetrievedOn: '2026-09-30',
+  // No overall rating, because we have not verified that HIQA issues one. Stated
+  // as an absence of knowledge rather than an assertion that none exists.
+  publishesOverallRating: false,
+  caveat:
+    'HIQA commenced a review of these standards on 18 August 2026. The 2016 standards remain in force until the Department of Health decides otherwise, so anything arranged against them may need remapping.',
+  verifiedAspects: {
+    regulatorAndStatute: {
+      verified: true,
+      detail: 'HIQA sets national standards under the Health Act 2007; the standards are approved by the Minister for Health — hiqa.ie, 30 September 2026.',
+    },
+    standardsDocument: {
+      verified: true,
+      detail: 'National Standards for Residential Care Settings for Older People in Ireland, first published 2009, updated 2016 — hiqa.ie, 30 September 2026.',
+    },
+    reviewStatus: {
+      verified: true,
+      detail: 'Review commenced 18 August 2026. HIQA will report findings to the Department of Health "to inform a decision on whether to update" the standards — hiqa.ie news notice of that date.',
+    },
+    themes: {
+      verified: false,
+      detail: 'NOT VERIFIED. The standards are published only as a PDF and have not been read. The first theme is known to be called "Person-centred Care and Support"; the remaining themes have not been established and have deliberately not been inferred. domains is empty for this reason. T2-30.',
+    },
+    ratingScale: {
+      verified: false,
+      detail: 'NOT VERIFIED. No rating scale has been confirmed from a primary source, so none is displayed.',
+    },
+  },
+  domains: [],
+}
+
 const FRAMEWORKS: Record<string, FrameworkDef> = {
   cqc: CQC_FRAMEWORK,
   ciw: CIW_FRAMEWORK,
   'care-inspectorate': CARE_INSPECTORATE_FRAMEWORK,
   rqia: RQIA_FRAMEWORK,
+  hiqa: HIQA_FRAMEWORK,
 }
 
 export function getFramework(regulator: string): FrameworkDef {

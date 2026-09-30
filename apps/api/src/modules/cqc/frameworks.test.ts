@@ -23,7 +23,7 @@ import {
   RQIA_STANDARDS_SETS,
 } from './frameworks';
 
-const ALL_IDS = ['cqc', 'ciw', 'care-inspectorate', 'rqia'];
+const ALL_IDS = ['cqc', 'ciw', 'care-inspectorate', 'rqia', 'hiqa'];
 
 describe('every framework must be sourced', () => {
   it('carries a source for all four regulators', () => {
@@ -40,12 +40,13 @@ describe('every framework must be sourced', () => {
     }
   });
 
-  it('lists all four regulators with their countries', () => {
+  it('lists every regulator with their countries', () => {
     const list = getFrameworkList();
-    expect(list).toHaveLength(4);
+    expect(list).toHaveLength(5);
     expect(list.map((f) => f.id).sort()).toEqual([...ALL_IDS].sort());
     expect(list.find((f) => f.id === 'ciw')?.country).toBe('Wales');
     expect(list.find((f) => f.id === 'rqia')?.country).toBe('Northern Ireland');
+    expect(list.find((f) => f.id === 'hiqa')?.country).toBe('Ireland');
   });
 
   it('falls back to CQC for an unknown regulator rather than throwing', () => {
@@ -68,11 +69,49 @@ describe('every framework must be sourced', () => {
     for (const id of ALL_IDS) {
       const f = getFramework(id);
       const keys = f.domains.map((d) => d.key);
+      // A framework with no domains has nothing to name, so there is nothing for
+      // evidenceDomains to resolve to. HIQA is in that state on purpose: its
+      // standards are a PDF nobody has read, and inventing domains to satisfy
+      // this assertion is exactly the failure the whole file exists to prevent.
+      // The real requirement is therefore conditional, and stated as such: any
+      // framework that HAS domains must be able to name them.
+      if (keys.length === 0) {
+        expect(f.evidenceDomains, `${id} has domains nowhere but still names some`).toBeFalsy();
+        continue;
+      }
       expect(f.evidenceDomains, `${id} has no evidenceDomains`).toBeTruthy();
       expect(keys, `${id} evidenceDomains.experience`).toContain(f.evidenceDomains!.experience);
       expect(keys, `${id} evidenceDomains.leadership`).toContain(f.evidenceDomains!.leadership);
       expect(keys, `${id} evidenceDomains.incidents`).toContain(f.evidenceDomains!.incidents);
     }
+  });
+
+  it('leaves HIQA as an explicitly empty draft rather than guessing at it', () => {
+    // The spike's central discipline, asserted so it cannot be quietly undone by
+    // someone tidying the file. HIQA's National Standards are published only as a
+    // PDF; the themes have not been read, so `domains` is empty and the gap is
+    // recorded in verifiedAspects. Filling it from memory — or from the RQIA
+    // shape, which is another country — would be a new unverifiable claim.
+    const hiqa = getFramework('hiqa');
+    expect(hiqa.domains).toEqual([]);
+    expect(hiqa.verifiedAspects?.themes?.verified).toBe(false);
+    expect(hiqa.verifiedAspects?.themes?.detail).toMatch(/not verified/i);
+    // The parts we DID verify are marked verified, so "unverified" cannot become
+    // a blanket excuse for the whole entry.
+    expect(hiqa.verifiedAspects?.reviewStatus?.verified).toBe(true);
+    expect(hiqa.verifiedAspects?.standardsDocument?.verified).toBe(true);
+    // And the review that makes this a moving target is recorded on the
+    // framework itself, so a pack built on the 2016 standards can say so.
+    expect(hiqa.caveat).toMatch(/18 August 2026/);
+    expect(hiqa.source).toContain('Health Act 2007');
+  });
+
+  it('finds HIQA by id rather than falling back to the CQC', () => {
+    // findFramework is what printable paths use. An Irish provider must get
+    // HIQA's citation, not England's.
+    expect(findFramework('hiqa')?.id).toBe('hiqa');
+    expect(findFramework('hiqa')?.country).toBe('Ireland');
+    expect(findFramework(null)).toBeNull();
   });
 });
 

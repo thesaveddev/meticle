@@ -27,20 +27,35 @@
  *     disclosure route run by the same body
  *   Northern Ireland — AccessNI, tiers basic / standard / enhanced /
  *     enhanced + barred
+ *   Ireland — Garda vetting, no tiers. Applications go to the National Vetting
+ *     Bureau (vetting.garda.ie); disclosures are made by the Garda National
+ *     Vetting Bureau, the unit formerly called the Garda Central Vetting Unit.
+ *     Verified against garda.ie, 30 September 2026.
  *
  * Confirming these against current regulator guidance before a customer relies
  * on them is tracked as T2-12. Getting a tier name wrong here would make a real
  * check look missing, which is the exact failure this is meant to remove.
+ *
+ * ## Why Ireland is in here but not finished
+ *
+ * A scoping spike, not a supported regulator. What is verified is in the row:
+ * the scheme exists, it is called Garda vetting, the bodies are named correctly,
+ * and it has no tiers. What is not verified is right-to-work evidence, so that
+ * list is empty rather than copied — see the note on the row itself and T2-29.
+ * Copying the UK PASSPORT/VISA/RIGHT_TO_WORK set across would mark nearly every
+ * Irish care worker non-compliant, because Ireland is in the EU and the Common
+ * Travel Area and an Irish citizen needs no visa. That failure would be silent:
+ * the check would run correctly against a requirement that does not exist.
  */
 
-export type Nation = 'england' | 'wales' | 'scotland' | 'northern_ireland'
+export type Nation = 'england' | 'wales' | 'scotland' | 'northern_ireland' | 'ireland'
 
 export type VettingScheme = {
   /** Stable key stored on the staff record. */
   id: string
   nation: Nation
   /** The regulator whose framework this scheme exists to satisfy. */
-  regulator: 'cqc' | 'ciw' | 'care-inspectorate' | 'rqia'
+  regulator: 'cqc' | 'ciw' | 'care-inspectorate' | 'rqia' | 'hiqa'
   /** The check itself, e.g. "DBS". Also the key used for it in status output. */
   checkName: string
   /** Body that issues and maintains the check. */
@@ -77,6 +92,22 @@ export type VettingScheme = {
 
 /** Right-to-work evidence is a UK-wide requirement, not a nation-specific one. */
 const RIGHT_TO_WORK = ['PASSPORT', 'VISA', 'RIGHT_TO_WORK']
+
+/**
+ * The Republic of Ireland's position, which is emphatically not the UK's.
+ *
+ * Named rather than inlined at the one row that uses it, so that the reason it
+ * is empty cannot be quietly lost. Ireland is in the EU and the Common Travel
+ * Area, an Irish citizen has an implicit right to work, and requiring a visa
+ * document would report most Irish care workers non-compliant for a document
+ * that does not apply to them. That is the Scotland/PVG defect repeated in a new
+ * country, and it would be invisible because the compliance machinery is fine —
+ * the requirement underneath it is what is wrong.
+ *
+ * Until somebody establishes what Irish right-to-work evidence is, we require
+ * nothing. A visible gap beats an invisible false one. T2-29.
+ */
+const IRELAND_RIGHT_TO_WORK: string[] = []
 
 /**
  * Build a scheme so the derived `documentTypes` cannot drift from the two
@@ -131,6 +162,22 @@ export const VETTING_SCHEMES: Record<string, VettingScheme> = {
     checkDocumentTypes: ['ACCESSNI'],
     requiredDocumentTypes: [...RIGHT_TO_WORK],
     note: 'Northern Ireland uses AccessNI, operated on behalf of the Department of Health.',
+  }),
+  garda_vetting_ireland: scheme({
+    id: 'garda_vetting_ireland',
+    nation: 'ireland',
+    regulator: 'hiqa',
+    checkName: 'Garda vetting',
+    // The NVB receives applications; the GNVB makes the disclosures. Naming the
+    // receiving body is the one a provider actually applies to.
+    issuer: 'National Vetting Bureau, An Garda Síochána',
+    // One state, not four. Garda vetting has no tiers, and inventing a tier
+    // ladder to fill this column would be the `NI-S1` failure again.
+    tiers: ['garda_vetting_disclosure'],
+    checkDocumentTypes: ['GARDA_VETTING'],
+    // Deliberately empty — see IRELAND_RIGHT_TO_WORK. NOT the UK set.
+    requiredDocumentTypes: [...IRELAND_RIGHT_TO_WORK],
+    note: 'Garda vetting is a single process with no tiers: an organisation applies on behalf of a person and receives a disclosure. Disclosures are issued by the Garda National Vetting Bureau and go to an authorised liaison person at the organisation, so an Irish provider must appoint one. No identity document is required here yet: Irish right-to-work evidence has not been verified and the UK PASSPORT/VISA/RIGHT_TO_WORK set does not apply.',
   }),
 }
 

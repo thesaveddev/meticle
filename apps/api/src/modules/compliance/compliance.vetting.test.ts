@@ -25,10 +25,10 @@ import {
   vettingDocumentTypeSql,
 } from './compliance.vetting';
 
-describe('vetting registry — the four UK nations', () => {
+describe('vetting registry — every nation we serve', () => {
   it('defines a scheme for every nation', () => {
     const nations = Object.values(VETTING_SCHEMES).map((s) => s.nation);
-    expect(nations.sort()).toEqual(['england', 'northern_ireland', 'scotland', 'wales']);
+    expect(nations.sort()).toEqual(['england', 'ireland', 'northern_ireland', 'scotland', 'wales']);
   });
 
   it('maps each nation to the regulator that inspects it', () => {
@@ -36,6 +36,7 @@ describe('vetting registry — the four UK nations', () => {
     expect(getVettingScheme('ciw_wales').regulator).toBe('ciw');
     expect(getVettingScheme('pvg_scotland').regulator).toBe('care-inspectorate');
     expect(getVettingScheme('accessni_northern_ireland').regulator).toBe('rqia');
+    expect(getVettingScheme('garda_vetting_ireland').regulator).toBe('hiqa');
   });
 
   it('requires PVG in Scotland, not DBS', () => {
@@ -69,7 +70,7 @@ describe('vetting registry — the four UK nations', () => {
     expect(scotland.checkDocumentTypes).toEqual(['PVG', 'DISCLOSURE_SCOTLAND']);
   });
 
-  it('needs exactly one check document in the three single-route nations', () => {
+  it('needs exactly one check document in the single-route nations', () => {
     for (const scheme of Object.values(VETTING_SCHEMES)) {
       if (scheme.id === 'pvg_scotland') continue;
       expect(scheme.checkDocumentTypes).toHaveLength(1);
@@ -98,13 +99,51 @@ describe('vetting registry — the four UK nations', () => {
     expect(scotland.tiers).not.toContain('enhanced');
   });
 
-  it('keeps right to work in every nation', () => {
+  it('keeps right to work in every UK nation', () => {
     // Right to work is a UK-wide immigration requirement with nothing to do with
     // which background-checking scheme applies. Dropping it for Scotland would
     // invent a different kind of invented gap.
+    //
+    // Scoped to the UK on purpose. It is NOT a UK-wide requirement and the scope
+    // is the assertion: see the next test, which is the one that matters.
     for (const scheme of Object.values(VETTING_SCHEMES)) {
+      if (scheme.nation === 'ireland') continue;
       expect(scheme.requiredDocumentTypes).toEqual(['PASSPORT', 'VISA', 'RIGHT_TO_WORK']);
     }
+  });
+
+  it('does NOT put UK right-to-work documents on an Irish worker', () => {
+    // The Scotland/PVG defect, repeated in a new country, and it would be
+    // completely silent: the compliance check would run perfectly against a
+    // requirement that does not exist.
+    //
+    // Ireland is in the EU and the Common Travel Area. An Irish citizen has an
+    // implicit right to work and needs no visa, so carrying PASSPORT/VISA/
+    // RIGHT_TO_WORK across would report most Irish care workers non-compliant
+    // for documents that do not apply to them. The correct answer today is that
+    // we require nothing, because Irish right-to-work evidence has not been
+    // verified — a visible gap (T2-29) rather than an invisible false one.
+    const ireland = getVettingScheme('garda_vetting_ireland');
+    expect(ireland.nation).toBe('ireland');
+    expect(ireland.requiredDocumentTypes).toEqual([]);
+    for (const uk of ['PASSPORT', 'VISA', 'RIGHT_TO_WORK']) {
+      expect(ireland.documentTypes, `Ireland must not require ${uk}`).not.toContain(uk);
+    }
+    // ...and the empty list is a decision, not an omission: it is named, it is
+    // reachable from the registry, and the note says why.
+    expect(ireland.note).toMatch(/right to work|right-to-work/i);
+  });
+
+  it('gives Garda vetting a single state, because it has no tiers', () => {
+    // DBS, PVG and AccessNI are all graded. Garda vetting is an application and
+    // a disclosure, with nothing in between. Four invented Garda tiers would be
+    // the `NI-S1` failure: plausible, unfalsifiable, and unlookupable.
+    const ireland = getVettingScheme('garda_vetting_ireland');
+    expect(ireland.tiers).toEqual(['garda_vetting_disclosure']);
+    expect(ireland.checkName).toBe('Garda vetting');
+    expect(ireland.checkDocumentTypes).toEqual(['GARDA_VETTING']);
+    // A DBS must never satisfy an Irish worker's vetting.
+    expect(ireland.documentTypes).not.toContain('DBS');
   });
 
   it('names the issuing body for every scheme', () => {
@@ -113,6 +152,13 @@ describe('vetting registry — the four UK nations', () => {
       expect(scheme.note.length).toBeGreaterThan(10);
     }
     expect(getVettingScheme('pvg_scotland').issuer).toContain('Disclosure Scotland');
+    // Two different Garda bodies, and a provider applies to the second one. The
+    // National Vetting Bureau receives applications; the Garda National Vetting
+    // Bureau — the unit formerly called the Garda Central Vetting Unit — makes
+    // the disclosures. Naming the wrong one sends an Irish provider to the wrong
+    // office, so both halves are asserted rather than one.
+    expect(getVettingScheme('garda_vetting_ireland').issuer).toContain('National Vetting Bureau');
+    expect(getVettingScheme('garda_vetting_ireland').note).toMatch(/liaison person/i);
   });
 });
 
@@ -174,7 +220,7 @@ describe('vetting registry — document type sets', () => {
     // This set is what the coverage metric filters on, and it must not pick up
     // a right-to-work document — a passport is not a background check.
     expect(checkDocumentTypesForAllSchemes()).toEqual([
-      'ACCESSNI', 'DBS', 'DISCLOSURE_SCOTLAND', 'PVG',
+      'ACCESSNI', 'DBS', 'DISCLOSURE_SCOTLAND', 'GARDA_VETTING', 'PVG',
     ]);
   });
 
@@ -190,10 +236,26 @@ describe('vetting registry — document type sets', () => {
     expect(isIdentityType('ACCESSNI', 'accessni_northern_ireland')).toBe(true);
   });
 
-  it('scopes right to work as valid everywhere', () => {
+  it('scopes right to work as valid in every UK nation', () => {
+    // Renamed and rescoped from "everywhere". The UK position holds for the four
+    // UK schemes and is asserted below; Ireland is the case where it is
+    // deliberately false, and the next test says so.
     for (const id of Object.keys(VETTING_SCHEMES)) {
-      expect(isIdentityType('RIGHT_TO_WORK', id)).toBe(true);
+      if (VETTING_SCHEMES[id].nation === 'ireland') continue;
+      expect(isIdentityType('RIGHT_TO_WORK', id), `RIGHT_TO_WORK should count for ${id}`).toBe(true);
     }
+  });
+
+  it('does not accept UK right-to-work evidence for an Irish scheme', () => {
+    // The inverse, and the assertion that would have caught the bug. Ireland is
+    // in the EU and the Common Travel Area; an Irish citizen needs no visa, so
+    // treating a visa document as the relevant identity evidence would tell an
+    // Irish provider its staff are undocumented.
+    expect(isIdentityType('RIGHT_TO_WORK', 'garda_vetting_ireland')).toBe(false);
+    expect(isIdentityType('VISA', 'garda_vetting_ireland')).toBe(false);
+    expect(isIdentityType('PASSPORT', 'garda_vetting_ireland')).toBe(false);
+    // Garda vetting still counts, obviously.
+    expect(isIdentityType('GARDA_VETTING', 'garda_vetting_ireland')).toBe(true);
   });
 
   it('treats a non-identity document as identity evidence nowhere', () => {
@@ -203,9 +265,9 @@ describe('vetting registry — document type sets', () => {
 
   it('lists every scheme for a settings screen', () => {
     const list = listVettingSchemes();
-    expect(list).toHaveLength(4);
+    expect(list).toHaveLength(5);
     expect(list.map((s) => s.id).sort()).toEqual([
-      'accessni_northern_ireland', 'ciw_wales', 'dbs_england_wales', 'pvg_scotland',
+      'accessni_northern_ireland', 'ciw_wales', 'dbs_england_wales', 'garda_vetting_ireland', 'pvg_scotland',
     ]);
   });
 });
@@ -293,16 +355,23 @@ describe('vettingDocumentTypeSql — the generated SQL follows the registry', ()
   it('changes when a scheme is added to the registry', () => {
     // Guards against the generator being hand-maintained and drifting.
     const before = Object.keys(VETTING_SCHEMES).length;
-    expect(before).toBe(4);
+    expect(before).toBe(5);
     expect((sql.match(/ THEN '\{"/g) || []).length).toBe(before);
   });
 });
 
-describe('migration 128 seed matches the registry', () => {
-  const migration = fs.readFileSync(
-    path.join(__dirname, '../../shared/database/migrations/128_nation_specific_vetting.sql'),
-    'utf8',
-  );
+describe('the seeded rows match the registry', () => {
+  // Two files now: 128 seeded the four UK nations, 136 added Ireland. Both are
+  // read, because the guarantee being protected is "no scheme exists in the
+  // registry without a seeded row" — which is a statement about the pair, and
+  // reading only 128 would have reported the Garda row as missing rather than
+  // as seeded one migration later.
+  const migration = ['128_nation_specific_vetting', '136_ireland_hiqa_garda_vetting']
+    .map((f) => fs.readFileSync(
+      path.join(__dirname, '../../shared/database/migrations', `${f}.sql`),
+      'utf8',
+    ))
+    .join('\n');
 
   /**
    * Pull each seeded row's literals out of the INSERT.
@@ -318,12 +387,15 @@ describe('migration 128 seed matches the registry', () => {
     for (const id of Object.keys(VETTING_SCHEMES)) {
       const block = new RegExp(
         `\\(\\s*'${id}',\\s*'([a-z_]+)',[\\s\\S]*?` +
-        `ARRAY\\[([^\\]]*)\\],\\s*` +          // tiers
-        `ARRAY\\[([^\\]]*)\\],\\s*` +          // check_document_types
-        `ARRAY\\[([^\\]]*)\\],\\s*'`,         // required_document_types
+        `ARRAY\\[([^\\]]*)\\](?:::[a-zA-Z]+\\[\\])?,\\s*` +   // tiers
+        `ARRAY\\[([^\\]]*)\\](?:::[a-zA-Z]+\\[\\])?,\\s*` +   // check_document_types
+        `ARRAY\\[([^\\]]*)\\](?:::[a-zA-Z]+\\[\\])?,\\s*`,     // required_document_types
       ).exec(migration);
       if (!block) continue;
-      const clean = (s: string) => s.split(',').map((t) => t.trim().replace(/^'|'$/g, ''));
+      // An empty literal means an empty list. Splitting '' gives [''], which would
+      // compare unequal to [] and read as a parse failure rather than as the
+      // deliberate empty Irish right-to-work list it is.
+      const clean = (s: string) => (s.trim() === '' ? [] : s.split(',').map((t) => t.trim().replace(/^'|'$/g, '')));
       rows.push({
         id,
         nation: block[1],

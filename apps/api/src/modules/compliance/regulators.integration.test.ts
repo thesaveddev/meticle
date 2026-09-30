@@ -55,7 +55,7 @@ describe('recording a registration', () => {
       .set('Authorization', `Bearer ${token}`)
 
     expect(res.status).toBe(200)
-    expect(res.body.registrations).toHaveLength(4)
+    expect(res.body.registrations).toHaveLength(5)
     expect(res.body.registered_count).toBe(0)
     // Nothing recorded, but every body is on screen so "nothing entered" is
     // distinguishable from "nothing to do".

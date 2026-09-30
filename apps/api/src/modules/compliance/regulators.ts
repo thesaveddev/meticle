@@ -27,7 +27,7 @@
  * hint for them rather than a guessed one. Confirming those is T2-17.
  */
 
-export type RegulatorId = 'cqc' | 'ciw' | 'care-inspectorate' | 'rqia'
+export type RegulatorId = 'cqc' | 'ciw' | 'care-inspectorate' | 'rqia' | 'hiqa'
 
 /** A body that registers services, as opposed to one that registers people. */
 export type RegulatorRole = 'service' | 'workforce'
@@ -114,6 +114,23 @@ export const REGULATORS: Record<RegulatorId, RegulatorDef> = {
     // which the RQIA uses alongside the regulations for that setting. See
     // inspectionFrameworks.ts, which is where that lives.
     note: 'Established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003. Northern Irish background checks are AccessNI, not DBS.',
+  },
+  hiqa: {
+    id: 'hiqa',
+    name: 'Health Information and Quality Authority',
+    nations: ['ireland'],
+    role: 'service',
+    description: 'Sets national standards for, and regulates, health and social care services in Ireland.',
+    registrationLabel: 'HIQA registration number',
+    registerUrl: 'https://www.hiqa.ie/',
+    vettingScheme: 'garda_vetting_ireland',
+    // Not a supported regulator yet, and this note is the reason a reader knows
+    // that rather than inferring it from a settings screen that quietly accepted
+    // "hiqa". HIQA's standards are a PDF nobody here has read, so the framework
+    // in cqc/frameworks.ts is an explicitly empty draft — T2-30. Do not register
+    // an Irish provider until the themes are mapped, or the evidence pack will
+    // cite HIQA and then arrange its contents in a shape HIQA does not use.
+    note: 'HIQA sets national standards under the Health Act 2007; the standards are approved by the Minister for Health. HIQA announced a review of the National Standards for Residential Care Settings for Older People in Ireland on 18 August 2026. Irish background checks are Garda vetting, not DBS. Ireland is a scoping spike: the regulator and vetting scheme are registered, the compliance framework is not yet mapped.',
   },
 }
 
