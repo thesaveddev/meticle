@@ -75,7 +75,7 @@ const regulators = [
     slug: 'rqia', code: 'RQIA', name: 'Regulation and Quality Improvement Authority', nation: 'Northern Ireland', color: '#7C3AED',
     desc: 'RQIA regulates health and social care services in Northern Ireland. MeticleCare supports structured records, workforce information, incidents and actions.',
     guidance: [
-      'RQIA is established under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003.',
+      'RQIA is established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003.',
       'RQIA publishes the standards and minimum standards it inspects against; this is our summary of them, not RQIA\'s wording.',
       'Providers should demonstrate how they protect the safety and welfare of people receiving care.',
       'Evidence should show effective communication between staff, management and external agencies.',

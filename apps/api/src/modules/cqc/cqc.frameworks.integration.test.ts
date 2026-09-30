@@ -120,11 +120,17 @@ describe('Wales — CIW served as its own framework', () => {
 })
 
 describe('Northern Ireland — RQIA served with nothing invented', () => {
-  it('returns RQIA’s four inspection domains', async () => {
+  it('returns four evidence groupings, labelled as ours', async () => {
     const data = await readiness('rqia')
     expect(data.framework.id).toBe('rqia')
+    // Relabelled from "Is care safe?" etc. Those read as RQIA's own words, and
+    // the four-domain structure they came from could not be traced to anything
+    // RQIA publishes. Same areas of care, labelled as ours.
     expect(data.domains.map((d: any) => d.label)).toEqual([
-      'Is care safe?', 'Is care effective?', 'Is care compassionate?', 'Is the service well led?',
+      'Safety and protection',
+      'Assessment and planning',
+      'Dignity and person-centred practice',
+      'Governance and leadership',
     ])
   })
 
@@ -152,7 +158,11 @@ describe('Northern Ireland — RQIA served with nothing invented', () => {
   it('says in its own description that the sub-items are ours', async () => {
     const data = await readiness('rqia')
     expect(data.framework.description).toMatch(/MeticleCare/)
-    expect(data.framework.source).toContain('Health and Personal Care Services')
+    // Corrected: the Order is the Health and Personal *Social* Services
+    // (Quality, Improvement and Regulation) (Northern Ireland) Order 2003.
+    // See frameworks.test.ts for why a test asserting the old title is worse
+    // than no test at all.
+    expect(data.framework.source).toContain('Health and Personal Social Services')
   })
 })
 

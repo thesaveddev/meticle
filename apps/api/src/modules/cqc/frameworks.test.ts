@@ -17,7 +17,10 @@ import path from 'path';
 import {
   getFramework,
   getFrameworkList,
+  findFramework,
   domainsForServiceTypes,
+  resolveRqiaStandardsSet,
+  RQIA_STANDARDS_SETS,
 } from './frameworks';
 
 const ALL_IDS = ['cqc', 'ciw', 'care-inspectorate', 'rqia'];
@@ -174,12 +177,19 @@ describe('Wales is its own framework, not CQC with Welsh labels', () => {
   });
 });
 
-describe('Northern Ireland uses RQIA’s real domains and invents nothing', () => {
+describe('Northern Ireland uses RQIA’s verified framework and invents nothing', () => {
   const rqia = getFramework('rqia');
 
-  it('uses RQIA’s four inspection domains', () => {
+  it('groups the same four areas of care, labelled as ours', () => {
+    // Was: "uses RQIA's four inspection domains", asserting a four-domain report
+    // structure we could not trace to anything RQIA publishes. The areas of care
+    // covered are unchanged and still useful; the claim that RQIA words them this
+    // way is gone, and the assertions below check that rather than assume it.
     expect(rqia.domains.map((d) => d.label)).toEqual([
-      'Is care safe?', 'Is care effective?', 'Is care compassionate?', 'Is the service well led?',
+      'Safety and protection',
+      'Assessment and planning',
+      'Dignity and person-centred practice',
+      'Governance and leadership',
     ]);
   });
 
@@ -216,9 +226,57 @@ describe('Northern Ireland uses RQIA’s real domains and invents nothing', () =
     }
   });
 
-  it('cites the Order it is built on', () => {
-    expect(rqia.source).toContain('Health and Personal Care Services');
+  it('cites the Order it is built on, by its real title', () => {
+    // This asserted "Health and Personal Care Services". The title is the Health
+    // and Personal *Social* Services (Quality, Improvement and Regulation)
+    // (Northern Ireland) Order 2003 — confirmed on rqia.org.uk and
+    // health-ni.gov.uk. A test written to match the code is not evidence the
+    // code is right; it only makes the wrong string harder to notice.
+    expect(rqia.source).toContain('Health and Personal Social Services');
+    expect(rqia.source).not.toContain('Personal Care Services');
     expect(rqia.source).toContain('2003');
+  });
+
+  it('names the per-setting standards framework rather than implying one list', () => {
+    // There is no single RQIA framework: DoH publishes nine sets of minimum
+    // standards, one per kind of service, and RQIA uses the one matching the
+    // registered setting. A pack or a screen listing "the RQIA standards" would
+    // be inventing the document.
+    expect(rqia.caveat).toMatch(/nine/i);
+    expect(rqia.description).toMatch(/no single RQIA framework/i);
+    expect(RQIA_STANDARDS_SETS.length).toBe(9);
+  });
+
+  it('records the four-domain claim as unverified rather than asserting it', () => {
+    // We could not find this structure in anything RQIA has published. That is
+    // not proof it is false, so the groupings stay and are relabelled as ours —
+    // but the file must not claim them as RQIA's.
+    const aspect = rqia.verifiedAspects?.fourDomainStructure;
+    expect(aspect?.verified).toBe(false);
+    expect(aspect?.detail).toMatch(/could not be traced|not been traced|could not find/i);
+    for (const d of rqia.domains) {
+      // A label reading "Is care safe?" is a question in RQIA's voice. Ours read
+      // as ours.
+      expect(d.label, `${d.key} still reads as the regulator's question`).not.toMatch(/^(Is |Are )/);
+    }
+  });
+
+  it('resolves the standards set from the service type, and refuses to guess', () => {
+    expect(resolveRqiaStandardsSet('residential')?.standards).toBe('Residential Care Home Minimum Standards');
+    expect(resolveRqiaStandardsSet('live_in')?.standards).toBe('Residential Care Home Minimum Standards');
+    expect(resolveRqiaStandardsSet('supported_living')?.standards).toBe('Residential Care Home Minimum Standards');
+    expect(resolveRqiaStandardsSet('domiciliary')?.standards).toBe('Domiciliary Care Agencies Minimum Standards');
+    // No service type means no basis for choosing between nine documents.
+    expect(resolveRqiaStandardsSet(null)).toBeNull();
+    expect(resolveRqiaStandardsSet(undefined)).toBeNull();
+    expect(resolveRqiaStandardsSet('something_else')).toBeNull();
+  });
+
+  it('marks the supported-living inference as inferred', () => {
+    // RQIA registers the setting name, which this product does not hold, so the
+    // mapping is ours and has to say so wherever it is shown.
+    expect(resolveRqiaStandardsSet('supported_living')?.derivedFrom).toMatch(/inferred/);
+    expect(resolveRqiaStandardsSet('residential')?.derivedFrom).not.toMatch(/inferred/);
   });
 });
 

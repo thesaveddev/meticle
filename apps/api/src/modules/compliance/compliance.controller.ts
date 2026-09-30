@@ -180,12 +180,24 @@ export class ComplianceController {
     const user = req.user!;
     const staffId = req.query.staffId as string | undefined;
     const pack = await ComplianceRepository.getEvidencePack(user.organizationId!, staffId);
-    const orgResult = await pool.query('SELECT name, regulator FROM organizations WHERE id = $1', [user.organizationId]);
+    const orgResult = await pool.query(
+      'SELECT name, regulator, primary_service_type FROM organizations WHERE id = $1',
+      [user.organizationId]
+    );
     const orgName = orgResult.rows[0]?.name;
     // The regulator, not a hardcoded 'CQC'. See resolveFrameworkName in
     // compliance.pdf.ts for why this was worth getting right rather than
     // leaving as a default.
-    const html = buildEvidencePackHtml(pack, orgName, orgResult.rows[0]?.regulator);
+    //
+    // The service type goes with it because one regulator's framework is chosen
+    // by setting rather than fixed: RQIA inspects against the minimum standards
+    // published for the registered setting, and there are nine of those.
+    const html = buildEvidencePackHtml(
+      pack,
+      orgName,
+      orgResult.rows[0]?.regulator,
+      orgResult.rows[0]?.primary_service_type,
+    );
     const pdf = await generatePdf(html);
     const filename = `evidence-pack-${new Date().toISOString().split('T')[0]}.pdf`
     res.setHeader('Content-Type', 'application/pdf')

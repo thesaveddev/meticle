@@ -70,7 +70,13 @@ const badges: Badge[] = [
     color: '#00855A',
     region: 'Wales',
     description: 'The independent regulator and inspector of care and support services in Wales. CIW registers and inspects services under the Regulation and Inspection of Social Care (Wales) Act 2016.',
-    whatItDoes: 'CIW inspects services across six areas: Well-being, Care and support, Environment, Staffing, Management and leadership, and Suitability. Services receive a rating from excellent to bad.',
+    // Verified against gov.wales, "New ratings system for care services
+    // launches in Wales", 28 March 2025. The previous text here said CIW
+    // inspects across "six areas" including "Staffing" and "Suitability" and
+    // that services are rated "from excellent to bad". None of that is CIW's
+    // framework: there are four themes and four ratings, and the bottom band is
+    // "requires significant improvement", not "bad".
+    whatItDoes: 'CIW inspects services across four themes: Well-being, Care and Support, Leadership and Management, and Environment. Each theme is rated as one of excellent, good, requires improvement, or requires significant improvement. CIW awards a rating for each theme and does not award one overall rating for the service as a whole. The system came into force on 1 April 2025.',
     howMeticleHelps: [
       'Wales-specific compliance templates aligned to CIW inspection frameworks',
       'Person-centred support plans with outcomes tracking',
@@ -122,13 +128,22 @@ const badges: Badge[] = [
     logo: '/logos/rqia.png',
     color: '#6D2077',
     region: 'Northern Ireland',
-    // An Order, not an Act, and "Care Services" not "Social Services". This
-    // page said "Health and Personal Social Services (Quality, Improvement and
-    // Regulation) Act (NI) 2003" while the API's regulator registry had the
-    // correct title — the same statute, wrong twice, in the document a customer
-    // would most likely quote.
-    description: 'The independent body responsible for inspecting and regulating health and social care services in Northern Ireland, established under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003.',
-    whatItDoes: 'RQIA inspects against the quality standards it publishes, focused on quality of care, safety, effectiveness and responsiveness. We do not reproduce the standards themselves here; they are on rqia.org.uk and are the ones to work from.',
+    // An Order, not an Act, and "Social Services" not "Care Services". Both this
+    // page and the API's regulator registry had "Health and Personal Care
+    // Services (Quality Improvement and Regulation)" — the same wrong statute
+    // twice, in the two places a customer would most likely quote it from. The
+    // correct title is the Health and Personal *Social* Services (Quality,
+    // Improvement and Regulation) (Northern Ireland) Order 2003, confirmed on
+    // rqia.org.uk and health-ni.gov.uk. A comment here previously claimed the
+    // API had it right; it did not, which is worth remembering before treating
+    // one copy as the checked one.
+    description: 'The independent body responsible for inspecting and regulating health and social care services in Northern Ireland, established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003.',
+    // Also corrected: there is no single RQIA framework. DoH publishes nine sets
+    // of minimum standards, one per kind of service, and the RQIA inspects
+    // against the set matching your registered setting. The previous text
+    // implied one list "focused on quality of care, safety, effectiveness and
+    // responsiveness", which is not a structure RQIA publishes.
+    whatItDoes: 'RQIA inspects services against the minimum standards published by the Department of Health for your registered setting, alongside the regulations for that setting. There are nine sets of standards, one for each kind of service — residential care homes, nursing homes, domiciliary care agencies, adult day care, and others. RQIA publishes narrative inspection reports rather than a quality rating for the service. The standards are published on health-ni.gov.uk and are the ones to work from.',
     howMeticleHelps: [
       'Records organised as an evidence trail a provider can hand over',
       'Safe care and treatment documentation',
@@ -139,7 +154,7 @@ const badges: Badge[] = [
     ],
     keyRequirements: [
       'RQIA registration',
-      'The quality standards RQIA publishes for the service type',
+      'The minimum standards published for your registered setting',
       'Safe staffing',
       'Effective governance',
       'Regular quality assurance',
@@ -209,7 +224,7 @@ export default function ComplianceBadgesPage() {
     <MarketingLayout>
       <PageMeta
         title="Regulatory Compliance & Standards | Meticle Care"
-        description="Meticle Care is built for UK care regulators including CQC, CIW, CIS, RQIA, NHS, and UK GDPR. See how we help you stay compliant."
+        description="Meticle Care is built for UK care regulators including CQC, CIW, Care Inspectorate, RQIA, NHS, and UK GDPR. See how we help you stay compliant."
       />
 
       {/* Hero */}

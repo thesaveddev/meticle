@@ -31,10 +31,25 @@ to look it up.
 | **Honest** | Already carries its own caveat, and must not be "tidied" into a confident claim. |
 
 **A note on the limits of this audit.** This is a codebase audit, not legal
-advice, and it was not done against primary sources. "Unverifiable" means *we
-cannot trace it from here* — not *it is false*. Several entries are probably
-correct. The point of listing them is that nobody should be telling a customer
-they are correct until someone has checked.
+advice. "Unverifiable" means *we cannot trace it from here* — not *it is
+false*. Several entries are probably correct. The point of listing them is that
+nobody should be telling a customer they are correct until someone has checked.
+
+**Update, 30 September 2026 — two entries moved from Class 2 to Class 1.** The
+original audit had no way to reach a regulator's website. This pass did, so U2
+and U4 were checked against gov.wales, health-ni.gov.uk and rqia.org.uk, and
+**both were wrong** (F22, F21, F20). That is a result worth sitting with: of the
+two Class 2 entries anyone has actually managed to check, neither was right. The
+remaining Class 2 entries should not be assumed safer than these were.
+
+Verified sources, for anyone re-checking:
+- CIW themes and ratings — gov.wales, "New ratings system for care services
+  launches in Wales", 28 March 2025, in force 1 April 2025.
+- CIW's statutory basis — Regulated Services (Inspection Ratings) (Wales)
+  Regulations 2025, giving effect to s.37 of the Regulation and Inspection of
+  Social Care (Wales) Act 2016.
+- RQIA founding Order and the nine standards sets — health-ni.gov.uk "Care
+  standards", rqia.org.uk "Legislation and Standards".
 
 ---
 
@@ -158,6 +173,50 @@ they are correct until someone has checked.
 
 ---
 
+### F19. The evidence pack was in our database's order, not the regulator's
+
+**Where:** `compliance.pdf.ts`, `cqc/frameworks.ts`.
+
+**Problem:** One layout for everybody: Staff, People, Care Plans, Incidents, Training, Documents, Competency, Satisfaction, Nutrition. That is the order of our tables. A Welsh provider handed it to a CIW inspector gets a document with no Well-being, no Environment, no Care and Support and no rating scale — none of the words CIW uses. A Northern Irish provider got the same.
+
+This is worse than a wrong claim, because it was not even wrong in a checkable way. Nobody catches this by looking: the pack looks complete.
+
+**Fix:** The pack is laid out against `cqc/frameworks.ts`, which is the sourced registry Wales already used correctly and this work brought into the printable path. Wales gets its four themes and four ratings; Northern Ireland gets its applicable standards document; England keeps its five key questions. Where a regulator has no verified framework the pack says so on the cover rather than falling back — `getFramework` still defaults to the CQC, which is right for the readiness screen and catastrophic for a document an inspector reads, so printable paths call the new `findFramework` instead.
+
+### F20. A test that asserted the wrong statute, and kept it wrong
+
+**Where:** `cqc/frameworks.test.ts`, `cqc.frameworks.integration.test.ts`, `regulators.ts`, `ComplianceBadgesPage.tsx`.
+
+**Problem:** The RQIA entry named the Health and Personal *Care* Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003. The title is the Health and Personal **Social** Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003 — confirmed on rqia.org.uk and health-ni.gov.uk. Two tests asserted the wrong string:
+
+```js
+expect(rqia.source).toContain('Health and Personal Care Services')
+```
+
+A test written to match the code is not evidence the code is right. It is the most effective way to keep a wrong string alive, because it turns a typo into a contract. And the marketing page carried the same wrong title while a comment directly above it insisted the API registry had it right — the two held the error independently, and that comment was itself a claim nobody had checked.
+
+**Fix:** Correct title in all three places. The tests now assert the real title *and* assert the wrong one is absent. The comment that lied about the other copy is corrected to say what actually happened, which is the only reason the next person does not trust it either.
+
+### F21. RQIA's "four inspection domains" could not be traced
+
+**Where:** `cqc/frameworks.ts` RQIA entry.
+
+**Problem:** The file asserted that RQIA inspection reports "are structured around four domains: is care safe, is care effective, is care compassionate, and is the service well led", and a test was named `uses RQIA's four inspection domains`. A careful search of RQIA's own guidance turned up nothing of that shape, while what DoH and the RQIA *do* publish is nine sets of minimum standards, one per kind of service.
+
+**This is not recorded as "wrong".** Not finding a structure is not the same as disproving it, and deleting a useful grouping because it could not be cited would be its own kind of error. So the four areas of care stay and stay useful; what is gone is the claim that RQIA words them that way. The labels moved from questions in the regulator's voice ("Is care safe?") to ours ("Safety and protection"), and `verifiedAspects.fourDomainStructure` records the gap in the data so it cannot be quietly forgotten.
+
+F20 and F21 look alike and are not. F20 was checkable and was wrong. F21 is not checkable from here and is marked not checkable.
+
+### F22. CIW was described as inspecting six areas and rating "from excellent to bad"
+
+**Where:** `ComplianceBadgesPage.tsx`.
+
+**Problem:** The CIW card said CIW "inspects services across six areas: Well-being, Care and support, Environment, Staffing, Management and leadership, and Suitability. Services receive a rating from excellent to bad." This is U2 from the list below, and checking it turned out to be checkable after all: CIW has **four** themes and **four** ratings. "Staffing" and "Suitability" are not CIW themes, there is no sixth area, and the bottom band is *requires significant improvement* — not "bad".
+
+**Fix:** Replaced with the four themes and four ratings, plus the fact CIW deliberately issues **no overall rating**, only per-theme. Verified against gov.wales, 28 March 2025.
+
+---
+
 ## Class 2: Unverifiable from the repository
 
 These are **not** asserted to be false. Each needs an owner to check a source and then either keep the wording or correct it.
@@ -165,9 +224,9 @@ These are **not** asserted to be false. Each needs an owner to check a source an
 | # | Claim | Where | Why it cannot be traced |
 |---|---|---|---|
 | U1 | CQC's five key questions and four ratings | `ComplianceBadgesPage`, `CompliancePage`, `FeaturesPage` | Almost certainly correct and widely known, but nothing in the repo cites a source. We would rather cite than assert. |
-| U2 | CIW's six inspection areas and its rating scale | `ComplianceBadgesPage` | The current published set has not been checked, and CIW revises its inspection framework. |
+| U2 | ~~CIW's six inspection areas~~ | `ComplianceBadgesPage` | **RESOLVED, and the claim was wrong.** CIW has **four** themes — Well-being, Care and Support, Leadership and Management, Environment — and four ratings: excellent, good, requires improvement, requires significant improvement. Verified against gov.wales, "New ratings system for care services launches in Wales", 28 March 2025. "Six inspection areas" is not a CIW set at all. The marketing page still needs correcting (T2-27). CIW also awards **no overall rating**, only per-theme. |
 | U3 | The Care Inspectorate's "National Care Standards" and "Health and Social Care Standards" | `ComplianceBadgesPage`, `CompliancePage` | These are real Scottish instruments, but their current status, edition and relationship to each other has not been verified. **This is the one I would check first** — it is the nearest neighbour to the medicines-in-care work and would be embarrassing to get wrong twice. |
-| U4 | RQIA's "minimum standards" and their coverage areas | `ComplianceBadgesPage`, `CompliancePage` | The instrument is now named correctly (F7); the standards themselves are paraphrased without a citation. |
+| U4 | RQIA's "minimum standards" and their coverage areas | `ComplianceBadgesPage`, `CompliancePage` | **RESOLVED, and the shape of the claim was wrong.** There is no single RQIA framework. DoH publishes **nine** sets of minimum standards, one per kind of service, and the RQIA uses the set matching the registered setting. Verified against health-ni.gov.uk and rqia.org.uk, 30 September 2026. The individual standards within each set are still unread, so no standard number appears anywhere in the product (**T2-28**). |
 | U5 | `locations.cqc_rating` and `last_cqc_inspection` columns | `settings.controller.ts`, `schema.sql`, `compliance-portal` | A field named for one regulator, on a table shared by all four nations, surfaced to every provider. CQC ratings are an England concept. Renaming is a migration and a UI change. **T2-25.** |
 | U6 | "Backups — Regular schedule" | `SecurityPage.tsx` | No backup configuration, script or schedule exists anywhere in the repository. It is a real operational claim about infrastructure we cannot see. **T2-26.** |
 | U7 | "Wales-specific compliance templates aligned to CIW inspection frameworks" | `ComplianceBadgesPage` | No CIW template was found. Flagged rather than deleted because a template may exist under a different name. |

@@ -106,6 +106,37 @@ export interface FrameworkDef {
    */
   evidenceDomains?: { experience: string; leadership: string; incidents: string }
   domains: DomainDef[]
+  /**
+   * A machine-readable citation for the same thing `source` says in prose.
+   *
+   * The evidence pack is a printable document a provider may hand to an
+   * inspector, and a reader who wants to check a claim about their own regulator
+   * needs a link and a date, not a sentence. Kept alongside `source` rather
+   * than replacing it, because `source` also carries the "this part is ours"
+   * half of the disclosure and that does not fit in three fields.
+   */
+  sourceUrl?: string
+  sourcePublishedOn?: string
+  sourceRetrievedOn?: string
+  /**
+   * A structural fact about the framework that changes what a document may
+   * claim. RQIA's is the important one: there is no single RQIA framework, so a
+   * pack that listed "the RQIA standards" would be asserting a list that does
+   * not exist.
+   */
+  caveat?: string
+  /**
+   * Which parts of this definition were checked against a primary source, and
+   * when.
+   *
+   * A partial object is the honest case and RQIA is currently one: the Order it
+   * is established under is verified, the fact that it inspects against
+   * per-setting minimum standards is verified, and the four-domain structure
+   * attributed to its inspection reports is NOT — we could not find it in
+   * anything RQIA has published. Listing the unverified part by name is the
+   * point; a bare boolean would flatten that.
+   */
+  verifiedAspects?: Record<string, { verified: boolean; detail: string }>
 }
 
 const CQC_FRAMEWORK: FrameworkDef = {
@@ -212,6 +243,27 @@ const CIW_FRAMEWORK: FrameworkDef = {
     'Care Inspectorate Wales — four themes, rated individually. CIW awards a rating for each theme and states it does not award one overall rating for the service, so MeticleCare does not present a single Welsh rating either. Domiciliary support services are not rated on Environment.',
   source:
     'Care Inspectorate Wales, "Ratings for care homes and domiciliary support services" (published 4 December 2025); Regulated Services (Inspection Ratings) (Wales) Regulations 2025, giving effect to s.37 of the Regulation and Inspection of Social Care (Wales) Act 2016. In force 1 April 2025.',
+  sourceUrl: 'https://www.gov.wales/new-ratings-system-care-services-launches-wales-0',
+  sourcePublishedOn: '2025-03-28',
+  sourceRetrievedOn: '2026-09-30',
+  verifiedAspects: {
+    themes: {
+      verified: true,
+      detail: 'Four themes — Well-being, Care and Support, Leadership and Management, Environment — quoted from gov.wales, 28 March 2025.',
+    },
+    ratingScale: {
+      verified: true,
+      detail: 'Four ratings — excellent, good, requires improvement, requires significant improvement — quoted from gov.wales, 28 March 2025.',
+    },
+    themeSubCriteria: {
+      verified: false,
+      detail: 'The sub-criteria CIW examines under each theme live in its inspection guidance, which has not been read. The statements below each theme are ours.',
+    },
+    bandThresholds: {
+      verified: false,
+      detail: 'CIW assesses each theme as a judgement and publishes no numeric cut-offs. The percentages in `ratings` are ours, which ratingsNote discloses.',
+    },
+  },
   publishesOverallRating: false,
   ratings: [
     {
@@ -336,36 +388,136 @@ const CARE_INSPECTORATE_FRAMEWORK: FrameworkDef = {
 }
 
 /**
+ * The nine sets of minimum standards DoH publishes, one per kind of service.
+ *
+ * Verified 30 September 2026 against health-ni.gov.uk, "Care standards" and
+ * "Care standards - documents", and rqia.org.uk, "Legislation and Standards".
+ * The Department states that these "will be used by the Regulation and Quality
+ * Improvement Authority (RQIA) alongside the requirements of regulations, in
+ * making decisions on regulations of establishments and agencies."
+ *
+ * This list is the reason the RQIA entry below cannot have a single set of
+ * standards. There is one document per setting, and which one applies depends
+ * on what the provider is registered as — a thing this product does not hold.
+ */
+export const RQIA_STANDARDS_SETS = [
+  'Residential Care Home Minimum Standards',
+  'Nursing Agencies Standards',
+  'Domiciliary Care Agencies Minimum Standards',
+  'Residential Family Centres Standards',
+  'Adult Day Care Settings Minimum Standards',
+  'Childminding and Day Care Standards (children under 12)',
+  'Children’s Homes Standards',
+  'Independent Healthcare Establishments Standards',
+  'Care Standards for Nursing Homes',
+] as const
+
+/**
+ * Which standards set applies, from the service type we record.
+ *
+ * `organizations.primary_service_type` is one of supported_living, domiciliary,
+ * residential, live_in (migration 071). Three of those four are delivered in a
+ * care home setting, so the care home set is the right starting point for all
+ * three, but RQIA registers a *place* under a specific setting name and we do
+ * not hold that name. The result therefore names the inference rather than
+ * presenting it as a fact, and a provider whose setting is recorded wrongly can
+ * see the alternative without having to ask us.
+ *
+ * Null when nothing is recorded. That is a deliberate gap rather than a fallback
+ * to the most likely set: an evidence pack has to name the document it is being
+ * offered against, and picking one of nine without knowing the setting is a
+ * guess about the very thing a provider is most likely to be asked about.
+ */
+export function resolveRqiaStandardsSet(primaryServiceType?: string | null): {
+  standards: string
+  derivedFrom: string
+} | null {
+  switch (primaryServiceType) {
+    case 'residential':
+    case 'live_in':
+      return { standards: 'Residential Care Home Minimum Standards', derivedFrom: primaryServiceType }
+    case 'supported_living':
+      return { standards: 'Residential Care Home Minimum Standards', derivedFrom: 'supported_living (inferred)' }
+    case 'domiciliary':
+      return { standards: 'Domiciliary Care Agencies Minimum Standards', derivedFrom: primaryServiceType }
+    default:
+      return null
+  }
+}
+
+/**
  * Northern Ireland.
  *
  * RQIA is the independent body regulating registered health and social care
- * services in Northern Ireland, established under the Health and Personal Care
- * Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003. It
- * publishes narrative inspection reports, and those reports are organised around
- * four domains: is care safe, is care effective, is care compassionate, and is
- * the service well led.
+ * services in Northern Ireland. Two things here were wrong and one was
+ * unverifiable, and all three are recorded rather than tidied away.
  *
- * What RQIA does not publish is the thing the previous version of this file
- * invented. There is no numbered quality statement set, so there are no
- * `NI-S1`-style identifiers — the ones we removed were ours, made up, and
- * unlookupable. There is no numeric rating scale, so `ratings` is absent and the
- * readiness screen shows no band at all for Northern Ireland rather than
- * inventing "Mostly Compliant". The sub-items below are MeticleCare's own
- * evidence groupings, marked as such.
+ * **Wrong: the founding Order.** This said the Health and Personal *Care*
+ * Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003.
+ * The title is the Health and Personal *Social* Services (Quality, Improvement
+ * and Regulation) (Northern Ireland) Order 2003, confirmed on both
+ * rqia.org.uk/guidance/legislation-and-standards and health-ni.gov.uk. Two
+ * tests asserted the wrong string, which is how it survived: a test written to
+ * match the code stops noticing the code is wrong.
+ *
+ * **Wrong: the implied single framework.** RQIA does not publish one framework.
+ * DoH publishes nine sets of minimum standards, one per kind of service, and the
+ * RQIA uses the set matching the registered setting. So there is no "the RQIA
+ * standards" to list, and an evidence pack that claimed otherwise would be
+ * inventing the document.
+ *
+ * **Unverifiable: the four domains.** This file has asserted that RQIA
+ * inspection reports are organised around four domains — safe, effective,
+ * compassionate, well led. We could not find that structure in anything RQIA
+ * has published, and the search that turned up nothing was a careful one against
+ * RQIA's own guidance pages. That is not the same as it being false, so the
+ * domains stay and are relabelled as our own evidence groupings rather than
+ * deleted: a Northern Irish provider is better served by a usable grouping we
+ * have flagged than by an empty screen. What is gone is the claim that these are
+ * RQIA's words, and the `verifiedAspects` entry below records the gap so it
+ * cannot be forgotten.
+ *
+ * Still true, and still asserted: there is no numbered quality statement set, so
+ * no `NI-S1`-style identifiers; and no numeric rating scale, so `ratings` is
+ * absent and the readiness screen shows no band at all rather than inventing
+ * "Mostly Compliant".
  */
 const RQIA_FRAMEWORK: FrameworkDef = {
   id: 'rqia',
-  name: 'RQIA Inspection Domains',
+  name: 'RQIA minimum standards for your setting',
   country: 'Northern Ireland',
   description:
-    'Regulation and Quality Improvement Authority — inspection reports are organised around four domains. RQIA publishes narrative inspection reports, not a numeric rating, so no overall rating is shown for Northern Ireland. RQIA does not publish numbered quality statements; the items below are MeticleCare’s own evidence groupings, not RQIA references.',
+    'Regulation and Quality Improvement Authority — inspects against the minimum standards published for your registered setting, alongside the regulations for that setting. There is no single RQIA framework and no overall rating, so none is shown for Northern Ireland. RQIA does not publish numbered quality statements; the groupings below are MeticleCare’s own evidence groupings, not RQIA references, and no statement is claimed as meeting any standard.',
   source:
-    'Regulation and Quality Improvement Authority, Northern Ireland, under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003. Inspection reports are structured around four domains: is care safe, is care effective, is care compassionate, is the service well led.',
+    'Regulation and Quality Improvement Authority, Northern Ireland, established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003. The applicable framework is the minimum standards document published by the Department of Health for your registered setting — there are nine, one per kind of service.',
+  sourceUrl: 'https://www.rqia.org.uk/guidance/legislation-and-standards/',
+  sourcePublishedOn: '2003',
+  sourceRetrievedOn: '2026-09-30',
   publishesOverallRating: false,
+  caveat:
+    'The RQIA inspects against the minimum standards published for your registered setting, alongside the regulations for that setting. Nine sets have been published, one per kind of service. This pack is arranged against the set named in it, not against a single RQIA framework.',
+  verifiedAspects: {
+    foundingOrder: {
+      verified: true,
+      detail: 'Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003 — confirmed on rqia.org.uk and health-ni.gov.uk, 30 September 2026.',
+    },
+    applicableFramework: {
+      verified: true,
+      detail: 'Nine sets of minimum standards, one per setting, used by RQIA alongside the regulations — confirmed on health-ni.gov.uk and rqia.org.uk, 30 September 2026.',
+    },
+    fourDomainStructure: {
+      verified: false,
+      detail: 'This file previously attributed a four-domain structure (safe, effective, compassionate, well led) to RQIA inspection reports. It could not be traced to anything RQIA has published, so it is no longer claimed. The groupings remain as our own evidence groupings, marked as such.',
+    },
+    standardNumbering: {
+      verified: false,
+      detail: 'The individual standards within each set have not been read, so no standard number, title or wording appears anywhere in this product and nothing is scored against a specific standard.',
+    },
+  },
   evidenceDomains: { experience: 'compassionate', leadership: 'well-led', incidents: 'safe' },
   domains: [
     {
-      key: 'safe', label: 'Is care safe?',
+      key: 'safe', label: 'Safety and protection',
       color: '#16A34A',
       statements: [
         { id: 'safe-1', label: 'Safeguarding and protection from abuse', wordingOurs: true },
@@ -375,7 +527,7 @@ const RQIA_FRAMEWORK: FrameworkDef = {
       ]
     },
     {
-      key: 'effective', label: 'Is care effective?',
+      key: 'effective', label: 'Assessment and planning',
       color: '#6366F1',
       statements: [
         { id: 'effective-1', label: 'Assessment and care planning', wordingOurs: true },
@@ -384,7 +536,7 @@ const RQIA_FRAMEWORK: FrameworkDef = {
       ]
     },
     {
-      key: 'compassionate', label: 'Is care compassionate?',
+      key: 'compassionate', label: 'Dignity and person-centred practice',
       color: '#D946EF',
       statements: [
         { id: 'compassionate-1', label: 'Dignity and respect', wordingOurs: true },
@@ -392,7 +544,7 @@ const RQIA_FRAMEWORK: FrameworkDef = {
       ]
     },
     {
-      key: 'well-led', label: 'Is the service well led?',
+      key: 'well-led', label: 'Governance and leadership',
       color: '#0F4C81',
       statements: [
         { id: 'well-led-1', label: 'Governance and accountability', wordingOurs: true },
@@ -412,6 +564,21 @@ const FRAMEWORKS: Record<string, FrameworkDef> = {
 
 export function getFramework(regulator: string): FrameworkDef {
   return FRAMEWORKS[regulator] || CQC_FRAMEWORK
+}
+
+/**
+ * The framework for a regulator, or null when we have none for it.
+ *
+ * `getFramework` falls back to the CQC, which is right for the readiness screen
+ * — a provider with no regulator recorded is overwhelmingly English, and an
+ * empty screen teaches nobody anything. It is exactly wrong for anything that
+ * prints: a document that says "CQC" to a Welsh or Northern Irish provider
+ * because we did not have theirs is the failure this module was written to end,
+ * arriving again through the front door. So the printable paths use this.
+ */
+export function findFramework(regulator: string | null | undefined): FrameworkDef | null {
+  if (!regulator) return null
+  return FRAMEWORKS[regulator] ?? null
 }
 
 export function getFrameworkList() {

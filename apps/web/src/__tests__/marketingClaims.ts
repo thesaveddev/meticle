@@ -215,6 +215,34 @@ export const FORBIDDEN_CLAIMS: {
     why: '"Support for NHS Continuing Healthcare assessments" appeared in the NHS compliance entry. The only occurrence of that term in the repository is a seed script, not a feature.',
     whatWouldPermitIt: 'An implemented assessment workflow, evidenced by routes and tests.',
   },
+  // --- Regulator frameworks, checked against primary sources on 30 Sep 2026 ---
+  // These four are here because each one was *wrong on a public page* and each
+  // survived review, and because three of them are the kind of phrase that
+  // sounds right because it is nearly right. See docs/CLAIM_REGISTER.md F20-F22.
+  {
+    label: 'CIW inspecting six areas',
+    pattern: /six areas|well-being,?\s*care and support,?\s*environment,?\s*staffing/i,
+    why: 'The CIW card said CIW "inspects services across six areas: Well-being, Care and support, Environment, Staffing, Management and leadership, and Suitability". CIW inspects across FOUR themes — Well-being, Care and Support, Leadership and Management, Environment — per gov.wales, "New ratings system for care services launches in Wales", 28 March 2025. "Staffing" and "Suitability" are not CIW themes and there is no sixth area. CIW also awards no overall rating, only per-theme. Corrected 30 Sep 2026; the pattern stays so the invented set cannot come back in a reworded sentence.',
+    whatWouldPermitIt: 'It already has permission in its correct form: the four themes, quoted from gov.wales. Nothing more is needed to restore the wrong wording.',
+  },
+  {
+    label: 'A CIW-style rating band that is not CIW\'s',
+    pattern: /\bexcellent to bad\b|\brated from excellent\b/i,
+    why: 'CIW\'s four ratings are excellent, good, requires improvement, requires significant improvement. There is no band called "bad" — the phrase "excellent to bad" was on the CIW card and is the shape of answer you produce by reasoning from the CQC\'s Outstanding/Good/Requires improvement/Inadequate instead of looking. "Inadequate" and "Adequate" are CQC\'s words, not CIW\'s, and appear nowhere in the CIW framework.',
+    whatWouldPermitIt: 'CIW\'s own four band names, which the API already uses.',
+  },
+  {
+    label: 'The RQIA founding Order misnamed',
+    pattern: /Health and Personal Care Services/i,
+    why: 'The title is the Health and Personal SOCIAL Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003 — confirmed on rqia.org.uk/guidance/legislation-and-standards and health-ni.gov.uk. "Personal Care Services" is not the title of the instrument. The wrong string was in the API registry, in a migration seed, and on the marketing page simultaneously, and two API tests asserted the wrong string, which is how it survived. Corrected 30 Sep 2026.',
+    whatWouldPermitIt: 'Nothing — the correct title is not a claim being made, it is the name of an instrument.',
+  },
+  {
+    label: 'RQIA domain labels in the regulator\'s voice',
+    pattern: /\bIs care safe\?|\bIs care effective\?|\bIs care compassionate\?|\bIs the service well led\?/,
+    why: 'These read as questions RQIA asks, attributed to a four-domain report structure that could not be traced to anything RQIA publishes. What RQIA does publish is nine sets of minimum standards, one per kind of service, chosen by registered setting. The groupings remain in the product, relabelled as ours ("Safety and protection" and so on), which is the honest form: useful to a provider, and not claiming to be RQIA\'s words.',
+    whatWouldPermitIt: 'A citation to a published RQIA document that uses those questions. We have not found one.',
+  },
 ]
 
 /**

@@ -105,7 +105,15 @@ export const REGULATORS: Record<RegulatorId, RegulatorDef> = {
     registrationLabel: 'RQIA registration number',
     registerUrl: 'https://www.rqia.org.uk/register/',
     vettingScheme: 'accessni_northern_ireland',
-    note: 'Established under the Health and Personal Care Services (Quality Improvement and Regulation) (Northern Ireland) Order 2003. Northern Irish background checks are AccessNI, not DBS.',
+    // The Order is the Health and Personal *Social* Services (Quality,
+    // Improvement and Regulation) (Northern Ireland) Order 2003 — confirmed on
+    // both rqia.org.uk/guidance/legislation-and-standards and
+    // health-ni.gov.uk/articles/care-standards. It was written here as
+    // "Personal Care Services", which is not the title of the instrument.
+    // DoH publishes nine sets of minimum standards, one per kind of service,
+    // which the RQIA uses alongside the regulations for that setting. See
+    // inspectionFrameworks.ts, which is where that lives.
+    note: 'Established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003. Northern Irish background checks are AccessNI, not DBS.',
   },
 }
 
