@@ -290,11 +290,11 @@ export const REGISTERED_CLAIMS: {
     label: 'AES-256 / encryption at rest',
     pattern: /AES-?256|encrypted at rest/i,
     status: 'pending',
-    evidence: 'Column-level encryption genuinely exists: pgcrypto is installed in the schema and `apps/api/src/shared/utils/encryption.ts` uses aes-256-gcm over an HKDF-derived per-tenant key. What is NOT verified is that the production master key is set.',
+    evidence: 'Nothing is encrypted at rest. `apps/api/src/shared/utils/encryption.ts` implements aes-256-gcm over an HKDF-derived per-tenant key, but no production module imports it: encryptField and decryptField have zero call sites outside their own definitions, and pgcrypto is installed in the schema and unused. Both halves were checked against the tree on 1 Oct 2026.',
     evidencePath: 'apps/api/src/shared/utils/encryption.ts',
     owner: 'Opeyemi',
     closesOn: 'T0-15',
-    notes: 'CRITICAL: if FIELD_ENCRYPTION_KEY is unset, getMasterKey() returns an empty buffer, encryptField() returns the plaintext unchanged, and the only signal is a log warning — "PII columns are stored in plaintext". The claim degrades silently. Copy also implies whole-database encryption, which is broader than what we do; scoping it to sensitive fields would be more accurate.',
+    notes: 'This entry previously said column-level encryption "genuinely exists" and that the only open question was the unset master key. Both were wrong in the same direction. Setting FIELD_ENCRYPTION_KEY would change nothing, because nothing calls encryptField — the gap is adoption on named columns, not configuration, and readiness item T0-15 previously asked for the wrong fix. A sentinel (apps/api/src/shared/utils/encryption.sentinel.test.ts) asserts the module still has no call sites so that wiring it up fails a build and forces this claim to be decided deliberately rather than drifting in.',
   },
   {
     label: 'TLS 1.3',

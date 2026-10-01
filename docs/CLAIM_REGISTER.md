@@ -119,6 +119,12 @@ Verified sources, for anyone re-checking:
 **Problem:** `setup.ts:1977` installs `pgcrypto` under the comment "Crown Jewels: pgcrypto extension for column-level PII encryption at rest". A repo-wide search for `pgp_sym_encrypt` / `pgp_sym_decrypt` returns **nothing**. The extension is installed and unused. Whatever the disk layer does is the infrastructure provider's claim, not one this codebase can make.
 **Fix:** Now says encrypted in transit, and states plainly that encryption at rest is not handled by the application. The status table's green tick — which previously certified this — is now a dash.
 
+**Second correction, 1 Oct 2026.** The search above was for `pgcrypto`, and it was the wrong thing to search for. There is a second, real implementation that is equally unused: `apps/api/src/shared/utils/encryption.ts` implements aes-256-gcm over an HKDF-derived per-tenant key — a genuine cipher, not a stub — and **nothing imports it**. `encryptField` and `decryptField` have no call sites outside their own definitions. So the conclusion was right and the reason was incomplete: no column is encrypted at rest because **no column is encrypted at all**, not merely because an extension went unused. Anyone reading the register would have concluded that setting `FIELD_ENCRYPTION_KEY` would enable encryption. It would not have.
+
+That misreading had already spread. The claim guard's registry entry said column-level encryption "genuinely exists" and named the unset key as the only open question, and readiness item T0-15 instructed the owner to go and set the key. Both now corrected, and `apps/api/src/shared/utils/encryption.sentinel.test.ts` asserts the absence so the cipher cannot be adopted without the claim being revisited.
+
+Separately: **this fix was applied to the marketing site and missed on `apps/web/src/pages/legal/PrivacyPolicyPage.tsx`**, which still read "Encrypted in transit (TLS 1.3) and at rest (AES-256)" — on the page Play reads for the Data safety form. Corrected 1 Oct 2026. The lesson is the one this register keeps re-learning: a claim withdrawn on one surface stays live on another unless the guard covers every surface, which is why the guard scans `docs/` and `src/` together.
+
 ### F11. "Breach notification workflow with 72-hour reporting"
 
 **Where:** `ComplianceBadgesPage.tsx`, under "How Meticle Care helps".

@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="5. Data Storage and Security">
-        <ul><li>Hosted in the United Kingdom with a GDPR-compliant infrastructure provider, under a signed data processing agreement</li><li>Encrypted in transit (TLS 1.3) and at rest (AES-256)</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
+        <ul><li>Records are stored in the United Kingdom. Where a care provider switches the AI features on, parts of a record are processed by our AI provider outside the UK</li><li>Encrypted in transit (TLS 1.3). Encryption at rest is a matter for the infrastructure provider and is not handled by the application</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
       </Section>
 
       <Section title="6. Data Retention">

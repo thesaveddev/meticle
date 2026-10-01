@@ -133,13 +133,31 @@ infrastructure. Contabo's own site does not substantiate it — they publish no
 certificate, and their only claim is that "most of our facilities hold
 internationally recognized ISO certifications", which names no standard and
 describes facilities rather than their own ISMS. The wording has been replaced
-across the site with claims that can be evidenced: UK hosting under a DPA, TLS
-1.3 in transit, AES-256 at rest, database-level tenant isolation, MFA, and
-auditable record access. Do not reintroduce an ISO 27001 claim until a certificate
-exists to cite. ISO 27001 remains a planned item (target Q2 2027) in the
-funding and sales documents, which describe it as preparation rather than held —
-that framing is correct and should stay.for a regulator to check.
-It is not something the store forms ask about.
+across the site with claims that can be evidenced: TLS 1.3 in transit,
+database-level tenant isolation, MFA, and auditable record access.
+Do not reintroduce an ISO 27001 claim until a certificate exists to cite.
+ISO 27001 remains a planned item (target Q2 2027) in the funding and sales
+documents, which describe it as preparation rather than held — that framing is
+correct and should stay.
+
+⚠️ **The same correction was missed on the web privacy policy.** Section 5 of
+that page still read "Encrypted in transit (TLS 1.3) and at rest (AES-256)" and
+"Hosted in the United Kingdom with a GDPR-compliant infrastructure provider" as
+of this pass. The claim audit (F9, F10 in `docs/CLAIM_REGISTER.md`) had withdrawn
+the at-rest claim outright — `pgcrypto` is installed in `setup.ts` under a
+comment promising column-level encryption and a repo-wide search for
+`pgp_sym_encrypt` returns nothing, so the application does not encrypt anything
+at rest — but the fix was only ever applied to the marketing site. The web
+privacy policy is the URL Play reads for the Data safety form, so the claim was
+live on the one page that is submitted to Google. Now corrected to match F9/F10:
+UK storage with the AI exception stated, and encryption in transit only, with
+at-rest named as the infrastructure provider's responsibility.
+
+The other half of that correction is the "GDPR-compliant infrastructure
+provider" phrasing, which was compliance language asserted on a customer's
+behalf. A care provider is the controller here; we are the processor. We can
+describe the contract we hold with our own host, but we do not certify that a
+customer's processing of health data is compliant.
 
 ⚠️ **Retention schedule.** The policy states "Account data: active period + 90
 days after cancellation", but the code erases account data immediately on

@@ -26,6 +26,39 @@ The store work is separate from the email-domain work in
 | EAS builds now fail on a typecheck or test failure | `eas-build-post-install` → `npm run verify` |
 | Account deletion erases personal data | `staff.controller.ts` + 6 integration tests |
 
+## Verified against Google Play policy — 1 October 2026
+
+The target API level is the requirement that most often blocks a first
+submission, so it was checked against the primary source rather than assumed.
+
+- **Target API level: 36 — compliant, no work needed.** From 31 August 2026,
+  new apps and updates must target Android 16 (API level 36) or higher
+  (developer.android.com/google/play/requirements/target-sdk). An extension to
+  1 November 2026 exists, but it is not needed here. The value was read out of
+  Expo's own gradle plugin source
+  (`ExpoRootProjectPlugin.kt`, `versionCatalogs.getVersionOrDefault("targetSdk",
+  "35")`, overridable by the `android.targetSdkVersion` gradle property) and
+  confirmed against the resolved manifest of a real build already on this
+  machine: `android:targetSdkVersion="36"`, `android:minSdkVersion="24"`.
+  Expo SDK 57 ships API 36 by default, which is why this needed nothing.
+- **`SYSTEM_ALERT_WINDOW` ships in the release manifest.** It is written by
+  Expo's prebuild template directly into the app's own
+  `android/app/src/main/AndroidManifest.xml`, not merged in from a library — the
+  manifest merger blame report attributes it to that file, and the only
+  `SYSTEM_ALERT_WINDOW` anywhere in the dependency tree is React Native's own
+  *debug* manifest. It is not in `app.json`, so it was never a deliberate
+  choice. Play treats permissions that access sensitive information as
+  declaration-gated: a permission that is not needed for a core functionality
+  promoted in the store listing is grounds for rejection. A care-visiting app
+  cannot justify drawing over other apps. **Expect to declare or remove it.**
+- **The declaration form also demands a video and sign-in credentials.** Play
+  evaluates permission requests during release and may require the Permissions
+  Declaration Form, which needs a written core-functionality justification, a
+  video walkthrough, and — because Meticle Care has no public content — a
+  **test username and password** for a real organisation and staff account.
+  Only accounts created specifically for review should be supplied, never a
+  production user's.
+
 ## The three audit findings that did **not** need fixing
 
 - **`expo-dev-client` in `dependencies`** — flagged as leaking
@@ -69,6 +102,15 @@ The store work is separate from the email-domain work in
   own availability window at all.
 
 ## Still blocked — needs credentials, a device, or a legal decision
+
+- **A Google Play review test account, with written access instructions.** Meticle
+  Care requires sign-in, so Play's review of the permissions declaration and of
+  the store listing needs working credentials for a seeded organisation and staff
+  user. Play's own guidance is explicit that only dedicated test credentials
+  should be given. Nothing in the repo can stand in for this.
+- **`SYSTEM_ALERT_WINDOW` in the release manifest.** See above. Either it gets a
+  defensible core-functionality justification, or it gets removed from the
+  generated manifest before the first upload. It is currently in neither state.
 
 - **Play upload key + EAS managed keystore.** Exact commands in the runbook. The
   one trap: the first bundle you upload fixes the upload key forever.
