@@ -83,15 +83,29 @@ review queue.
 These must be captured from a real build on a real device. There is no way to
 generate them convincingly, and reviewers reject obviously composited images.
 
-Minimum requirements:
+Minimum requirements, checked against Google Play Console Help on 1 Oct 2026
+("Add preview assets to showcase your app", answer/9866151):
+
+| Asset | Google Play requirement | Where we are |
+| --- | --- | --- |
+| App icon (store listing) | **512×512**, 32-bit PNG with alpha, max 1024 KB | `apps/mobile/assets/icon.png` is 1024×1024 at 766 KB. Wrong size for this slot — it needs a 512×512 export. The oversized original is still the right source. |
+| Short description | 80 characters | Written in `app.json` |
+| Feature graphic | **1024×500**, JPEG or 24-bit PNG, **no alpha channel** | Not made |
+| Phone screenshots | **At least four**, minimum 1080 px; 9:16 portrait or 16:9 landscape (landscape minimum 1920×1080). **Up to eight.** | Six scripted — see below |
+| Tablet / Chromebook screenshots | At least four, 1080–7680 px, 16:9 or 9:16 | Optional, and would need a separate capture |
+
+Two figures in this runbook were wrong until now and are corrected above. It
+previously said "at least 2 phone screenshots" and that the app icon was "already
+generated at 1024×1024". Google's page says four, and 512×512. Neither error
+would have been caught until an upload was rejected.
+
+The Apple figures below are unchanged from the previous version of this runbook and
+were **not** re-verified in this pass — App Store Connect does not publish an
+equivalent minimum worth citing without checking it directly:
 
 | Store | Requirement |
 | --- | --- |
-| Google Play | At least 2 phone screenshots; 16:9 or 9:16, 320–3840 px on the long edge. Optional 7" and 10" tablet sets. |
 | Apple | 6.9" and 6.5" iPhone sets. Only one size is mandatory. 1290×2796 (6.7"/6.9") and 1242×2688 or 1284×2778 (6.5") are accepted. |
-
-Both also want a **feature graphic** (Play: 1024×500) and an **app icon**
-already generated at 1024×1024.
 
 ### The six shots, and how to take them
 
