@@ -9,6 +9,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './shared/utils/logger';
+import { assertFieldEncryptionConfigured } from './shared/utils/encryption';
 import dotenv from 'dotenv';
 import { refreshDisposableEmailBlocklist } from './shared/utils/disposableEmail';
 import { rateLimit } from './shared/middleware/rateLimit.middleware';
@@ -120,8 +121,14 @@ process.on('uncaughtException', (err) => {
     process.exit(1);
   }
 
-  if (!process.env.FIELD_ENCRYPTION_KEY) {
-    logger.warn('FIELD_ENCRYPTION_KEY not set — PII fields (NHS numbers, addresses) stored in plaintext. Required for UK GDPR compliance.');
+  // Fails the boot rather than warning. A missing key used to degrade every
+  // encrypted field to plaintext with nothing but this line, which is how T0-15
+  // came to believe the cipher was working and only the variable was absent.
+  try {
+    assertFieldEncryptionConfigured();
+  } catch (err) {
+    logger.fatal(`PII field encryption is not usable: ${(err as Error).message}`);
+    process.exit(1);
   }
 })();
 

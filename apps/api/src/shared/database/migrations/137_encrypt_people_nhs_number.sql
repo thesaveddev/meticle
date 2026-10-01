@@ -1,0 +1,24 @@
+-- 137: make room for an encrypted people.nhs_number.
+--
+-- `nhs_number` was VARCHAR(20), which fits a real NHS number (10 digits) with
+-- room to spare and cannot fit a ciphertext: `encryptField` writes a 32-char
+-- hex IV, a colon, a 32-char hex GCM tag, a colon, then the hex payload. An
+-- NHS number alone encrypts to roughly 76 characters.
+--
+-- Widening is a prerequisite for T0-15, not the encryption itself. Existing
+-- rows are left as they are and keep reading; `decryptField` returns a value
+-- that is not in ciphertext form unchanged, so the repository can be deployed
+-- before the backfill has run.
+--
+-- This file is the only place the type changes. `schema.sql` and the
+-- `CREATE TABLE IF NOT EXISTS people` statement inside `001_initial` both still
+-- say VARCHAR(20) on purpose: `001_initial` is applied and checksummed, so
+-- editing it aborts the whole migration run on every existing database. A fresh
+-- database gets the narrow column from the baseline and is widened here
+-- immediately afterwards, like every other change.
+--
+-- TEXT is deliberate. A fixed VARCHAR(200) would be a second, quieter failure
+-- mode: an unusually long value would be truncated by PostgreSQL rather than
+-- rejected, and a truncated GCM ciphertext fails to decrypt at all.
+
+ALTER TABLE people ALTER COLUMN nhs_number TYPE TEXT;

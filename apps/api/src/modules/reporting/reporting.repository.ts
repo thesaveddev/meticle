@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptField } from '../../shared/utils/encryption';
 import { ReportFilters } from './reporting.types';
 
 function buildWhere(orgId: string, filters: ReportFilters, tableAlias: string = '') {
@@ -272,7 +273,12 @@ export class ReportingRepository {
     if (f.status) { sql += ` AND su.status = $${idx}`; params.push(f.status); idx++; }
     sql += ' ORDER BY su.last_name, su.first_name';
     const result = await query(sql, params);
-    return result.rows;
+    // `nhs_number` is stored encrypted under a key derived from the organization,
+    // so it has to be decrypted before it reaches a report or an exported CSV.
+    // Rows written before the backfill come back unchanged.
+    return result.rows.map((row: any) =>
+      row.nhs_number == null ? row : { ...row, nhs_number: decryptField(row.nhs_number, orgId) },
+    );
   }
 
   static async suByLocation(orgId: string, f: ReportFilters) {

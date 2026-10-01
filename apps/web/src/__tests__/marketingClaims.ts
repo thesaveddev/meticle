@@ -289,12 +289,16 @@ export const REGISTERED_CLAIMS: {
   {
     label: 'AES-256 / encryption at rest',
     pattern: /AES-?256|encrypted at rest/i,
-    status: 'pending',
-    evidence: 'Nothing is encrypted at rest. `apps/api/src/shared/utils/encryption.ts` implements aes-256-gcm over an HKDF-derived per-tenant key, but no production module imports it: encryptField and decryptField have zero call sites outside their own definitions, and pgcrypto is installed in the schema and unused. Both halves were checked against the tree on 1 Oct 2026.',
+    status: 'verified',
+    evidence: 'Scoped to one named column. `people.nhs_number` is encrypted with aes-256-gcm under an HKDF-derived per-organisation key (`apps/api/src/shared/utils/encryption.ts`), written encrypted on create and update, decrypted on read in the people and reporting repositories, and proven by an integration test that reads the raw column over a connection bypassing RLS. FIELD_ENCRYPTION_KEY is now mandatory: the API refuses to start without a well-formed one. Everything else is unencrypted — dates of birth, addresses and phone numbers are still plaintext, and pgcrypto is still installed and unused. Migration 137 widened the column from VARCHAR(20), which could not hold a ciphertext.',
     evidencePath: 'apps/api/src/shared/utils/encryption.ts',
     owner: 'Opeyemi',
     closesOn: 'T0-15',
-    notes: 'This entry previously said column-level encryption "genuinely exists" and that the only open question was the unset master key. Both were wrong in the same direction. Setting FIELD_ENCRYPTION_KEY would change nothing, because nothing calls encryptField — the gap is adoption on named columns, not configuration, and readiness item T0-15 previously asked for the wrong fix. A sentinel (apps/api/src/shared/utils/encryption.sentinel.test.ts) asserts the module still has no call sites so that wiring it up fails a build and forces this claim to be decided deliberately rather than drifting in.',
+    // Scope of the published wording is enforced by a positive test in
+    // marketingClaims.test.ts rather than by an allowance here: this registry
+    // records claims, FORBIDDEN_CLAIMS blocks them, and a permitted phrasing
+    // would have let a blanket "encrypted at rest" back onto the page.
+    notes: 'Went through three states and each one was documented as if it were settled. First "implemented twice", then "not implemented at all", now "implemented for NHS numbers only". The middle state was the dangerous one: encryption.ts existed, nothing imported it, and the register said column-level encryption "genuinely exists", so the recorded fix was to set FIELD_ENCRYPTION_KEY — which would have changed nothing. Widening T0-15 from "is the key set" to "is anything actually calling encryptField" was the actual repair. What remains is adoption on dates of birth, addresses and phone numbers, and pgcrypto should go if pgcrypt is not going to be used. Do not let this entry drift into implying more coverage than the migrations prove.',
   },
   {
     label: 'TLS 1.3',
@@ -393,6 +397,18 @@ export const REQUIRED_DISCLAIMERS: {
     label: 'The "not anonymised" caveat survives',
     phrase: /still personal data|does not achieve/i,
     why: 'Pseudonymisation does not make data non-personal, and a policy that says only that data is "anonymised before sending" would be a false assurance to a health-data controller. The caveat is the part that has to stay.',
+    requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
+  },
+  {
+    label: 'The encryption claim names the field it covers',
+    phrase: /NHS numbers are encrypted/i,
+    why: 'At-rest encryption is real for exactly one column — people.nhs_number — and nothing else. A policy that said simply "encrypted at rest" would be false against the schema, and would stay false however many columns are added later, because the sentence would not move. Naming the field keeps the claim tied to what a migration can actually prove.',
+    requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
+  },
+  {
+    label: 'The unencrypted remainder is still disclosed',
+    phrase: /not currently encrypted/i,
+    why: 'Dates of birth, addresses and phone numbers are still plaintext in the database (T0-15). This sentence is the only thing stopping a reader inferring that the whole record is encrypted, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
 ]

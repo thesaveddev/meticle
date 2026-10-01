@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node -r scripts/no-deprecation.js dist/index.js",
     "setup-db": "ts-node -r ./scripts/no-deprecation.js src/shared/database/setup.ts",
+    "backfill:nhs-encryption": "ts-node -r ./scripts/no-deprecation.js src/scripts/backfill-nhs-number-encryption.ts",
     "certs:generate": "ts-node scripts/generate-certs.ts",
     "test": "vitest run",
     "test:watch": "vitest"

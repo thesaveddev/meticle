@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="5. Data Storage and Security">
-        <ul><li>Records are stored in the United Kingdom. Where a care provider switches the AI features on, parts of a record are processed by our AI provider outside the UK</li><li>Encrypted in transit (TLS 1.3). Encryption at rest is a matter for the infrastructure provider and is not handled by the application</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
+        <ul><li>Records are stored in the United Kingdom. Where a care provider switches the AI features on, parts of a record are processed by our AI provider outside the UK</li><li>Encrypted in transit (TLS 1.3)</li><li>NHS numbers are encrypted in the database (AES-256-GCM) under a key derived per organisation, so they cannot be read from the database without the organisation's own key. Other personal details in a record, such as dates of birth, addresses and telephone numbers, are not currently encrypted by the application and rely on the encryption provided by our hosting provider</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
       </Section>
 
       <Section title="6. Data Retention">

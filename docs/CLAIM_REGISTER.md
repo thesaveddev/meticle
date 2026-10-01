@@ -125,6 +125,10 @@ That misreading had already spread. The claim guard's registry entry said column
 
 Separately: **this fix was applied to the marketing site and missed on `apps/web/src/pages/legal/PrivacyPolicyPage.tsx`**, which still read "Encrypted in transit (TLS 1.3) and at rest (AES-256)" — on the page Play reads for the Data safety form. Corrected 1 Oct 2026. The lesson is the one this register keeps re-learning: a claim withdrawn on one surface stays live on another unless the guard covers every surface, which is why the guard scans `docs/` and `src/` together.
 
+**Third state, later the same day.** Having found that nothing encrypted anything, the gap was closed rather than merely re-documented. `people.nhs_number` is now encrypted on write and decrypted on read, under an HKDF key derived per organisation, with the key made mandatory so the process exits at boot rather than writing plaintext. An integration test reads the raw column over an RLS-bypassing connection and asserts it is ciphertext — the assertion that was missing while the cipher sat unused and three documents called it working. The published wording is deliberately narrow: it names NHS numbers, and says plainly that dates of birth, addresses and phone numbers are **not** encrypted by the application. That narrowness is the point. The unqualified phrase "encrypted at rest" was false, and would have stayed false against every column except one.
+
+F10 is therefore reopened rather than closed: the claim is now accurate and evidence-backed for one column, and remains an open engineering task for the rest (T0-15).
+
 ### F11. "Breach notification workflow with 72-hour reporting"
 
 **Where:** `ComplianceBadgesPage.tsx`, under "How Meticle Care helps".

@@ -1,4 +1,22 @@
 import { query } from '../../shared/database';
+import { encryptField, decryptField } from '../../shared/utils/encryption';
+
+/**
+ * `nhs_number` is stored encrypted, under a key derived per organization.
+ *
+ * Reads go through here rather than at each call site because the repository
+ * returns `result.rows` from around thirty statements, and the alternative was
+ * a row mapper that every one of them had to remember to use. The organisation
+ * id travels on the row, which is what the key is derived from, so a row cannot
+ * be decrypted in the context of the wrong tenant.
+ *
+ * A row written before the backfill has a plaintext value and comes back
+ * unchanged — `decryptField` handles both shapes.
+ */
+function decryptNhsNumber<T extends { organization_id?: string | null; nhs_number?: string | null }>(row: T): T {
+  if (!row || row.nhs_number == null) return row;
+  return { ...row, nhs_number: decryptField(row.nhs_number, row.organization_id as string) };
+}
 
 export interface PersonRow {
   id: string;
@@ -158,7 +176,7 @@ export class PersonRepository {
     if (filters?.search) { sql += ` AND (LOWER(su.first_name) LIKE LOWER($${idx}) OR LOWER(su.last_name) LIKE LOWER($${idx}) OR LOWER(su.room_number) LIKE LOWER($${idx}))`; params.push(`%${filters.search}%`); idx++; }
     sql += ' ORDER BY su.last_name, su.first_name';
     const result = await query(sql, params);
-    return result.rows;
+    return result.rows.map(decryptNhsNumber);
   }
 
   static async findById(id: string, orgId?: string) {
@@ -170,7 +188,7 @@ export class PersonRepository {
         (SELECT json_agg(fc ORDER BY fc.name) FROM family_contacts fc WHERE fc.person_id = su.id) AS family_contacts
       FROM people su WHERE su.id = $1${orgId ? ' AND su.organization_id = $2' : ''}
     `, orgId ? [id, orgId] : [id]);
-    return result.rows[0] || null;
+    return result.rows[0] ? decryptNhsNumber(result.rows[0]) : null;
   }
 
   static async create(data: Partial<PersonRow>) {
@@ -178,9 +196,9 @@ export class PersonRepository {
     const result = await query(
       `INSERT INTO people (organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status, gp_name, gp_surgery, gp_phone, gp_email, gp_address, dietary_requirements, allergies, support_level, location_id, min_staff_required, pharmacy_name, pharmacy_phone, pharmacy_address, social_worker_name, social_worker_phone, social_worker_email, photo_url, gender, pronouns, marital_status, religion, communication_language, communication_interpreter, communication_method, admission_date, admission_source, funding_type, funding_details, flags, tags, dnacpr_status, dnacpr_date, dnacpr_review_date, dnacpr_details, advance_decision, advance_decision_date, discharge_date, discharge_reason, discharge_summary, discharge_destination)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47) RETURNING *`,
-      [organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status || 'active', gp_name, gp_surgery, gp_phone, gp_email || null, gp_address || null, dietary_requirements, typeof allergies === 'string' ? allergies : JSON.stringify(allergies ?? []), support_level || null, location_id || null, min_staff_required ?? null, pharmacy_name || null, pharmacy_phone || null, pharmacy_address || null, social_worker_name || null, social_worker_phone || null, social_worker_email || null, photo_url || null, gender || null, pronouns || null, marital_status || null, religion || null, communication_language || null, communication_interpreter ?? null, communication_method || null, admission_date || null, admission_source || null, funding_type || null, funding_details || null, typeof flags === 'string' ? flags : JSON.stringify(flags ?? []), typeof tags === 'string' ? tags : JSON.stringify(tags ?? []), dnacpr_status || null, dnacpr_date || null, dnacpr_review_date || null, dnacpr_details || null, advance_decision || null, advance_decision_date || null, discharge_date || null, discharge_reason || null, discharge_summary || null, discharge_destination || null]
+      [organization_id, first_name, last_name, date_of_birth, encryptField(nhs_number as string, organization_id as string), room_number, status || 'active', gp_name, gp_surgery, gp_phone, gp_email || null, gp_address || null, dietary_requirements, typeof allergies === 'string' ? allergies : JSON.stringify(allergies ?? []), support_level || null, location_id || null, min_staff_required ?? null, pharmacy_name || null, pharmacy_phone || null, pharmacy_address || null, social_worker_name || null, social_worker_phone || null, social_worker_email || null, photo_url || null, gender || null, pronouns || null, marital_status || null, religion || null, communication_language || null, communication_interpreter ?? null, communication_method || null, admission_date || null, admission_source || null, funding_type || null, funding_details || null, typeof flags === 'string' ? flags : JSON.stringify(flags ?? []), typeof tags === 'string' ? tags : JSON.stringify(tags ?? []), dnacpr_status || null, dnacpr_date || null, dnacpr_review_date || null, dnacpr_details || null, advance_decision || null, advance_decision_date || null, discharge_date || null, discharge_reason || null, discharge_summary || null, discharge_destination || null]
     );
-    return result.rows[0];
+    return decryptNhsNumber(result.rows[0]);
   }
 
   static async update(id: string, data: Partial<PersonRow>, orgId?: string) {
@@ -203,22 +221,31 @@ export class PersonRepository {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['date_of_birth', 'review_date', 'recorded_date', 'resolved_date', 'check_date', 'reassessment_date', 'next_review_date', 'assessment_date']);
     const jsonFields = new Set(['allergies', 'flags', 'tags']);
+    // The key is derived per organization, so a caller that did not pass one has
+    // to be asked for it before an encrypted column can be written.
+    let encryptionOrgId = orgId;
+    const writesNhsNumber = data.nhs_number !== undefined && data.nhs_number !== null && data.nhs_number !== '';
+    if (encryptionOrgId === undefined && writesNhsNumber) {
+      const owner = await query('SELECT organization_id FROM people WHERE id = $1', [id]);
+      encryptionOrgId = owner.rows[0]?.organization_id ?? undefined;
+    }
     for (const [k, v] of Object.entries(data)) {
       if (!ALLOWED_COLUMNS.has(k)) continue;
       let val = dateFields.has(k) && v === '' ? null : v;
       if (jsonFields.has(k) && val !== null && val !== undefined) {
         val = typeof val === 'string' ? val : JSON.stringify(val);
       }
+      if (k === 'nhs_number') val = encryptField(val as string, encryptionOrgId as string);
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
     if (fields.length === 0) {
       const result = await query(`SELECT * FROM people WHERE id = $1${orgId ? ' AND organization_id = $2' : ''}`, orgId ? [id, orgId] : [id]);
-      return result.rows[0] || null;
+      return result.rows[0] ? decryptNhsNumber(result.rows[0]) : null;
     }
     params.push(id);
     if (orgId) { params.push(orgId); }
     const result = await query(`UPDATE people SET ${fields.join(', ')} WHERE id = $${idx}${orgId ? ` AND organization_id = $${idx + 1}` : ''} RETURNING *`, params);
-    return result.rows[0] || null;
+    return result.rows[0] ? decryptNhsNumber(result.rows[0]) : null;
   }
 
   // ---- Care Plans ----

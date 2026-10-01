@@ -142,22 +142,30 @@ correct and should stay.
 
 ⚠️ **The same correction was missed on the web privacy policy.** Section 5 of
 that page still read "Encrypted in transit (TLS 1.3) and at rest (AES-256)" and
-"Hosted in the United Kingdom with a GDPR-compliant infrastructure provider" as
-of this pass. The claim audit (F9, F10 in `docs/CLAIM_REGISTER.md`) had withdrawn
-the at-rest claim outright — `pgcrypto` is installed in `setup.ts` under a
-comment promising column-level encryption and a repo-wide search for
-`pgp_sym_encrypt` returns nothing, so the application does not encrypt anything
-at rest — but the fix was only ever applied to the marketing site. The web
-privacy policy is the URL Play reads for the Data safety form, so the claim was
-live on the one page that is submitted to Google. Now corrected to match F9/F10:
-UK storage with the AI exception stated, and encryption in transit only, with
-at-rest named as the infrastructure provider's responsibility.
+"Hosted in the United Kingdom with a GDPR-compliant infrastructure provider".
+The claim audit (F9, F10 in `docs/CLAIM_REGISTER.md`) had withdrawn the at-rest
+claim, but the fix was only ever applied to the marketing site, and the web
+privacy policy is the URL Play reads for the Data safety form. Corrected.
 
-The other half of that correction is the "GDPR-compliant infrastructure
-provider" phrasing, which was compliance language asserted on a customer's
-behalf. A care provider is the controller here; we are the processor. We can
-describe the contract we hold with our own host, but we do not certify that a
-customer's processing of health data is compliant.
+⚠️ **What the encryption answer is now, and why it is worded narrowly.** The
+withdrawal turned out to rest on a second wrong diagnosis. Not only was
+`pgcrypto` unused — `apps/api/src/shared/utils/encryption.ts`, a working
+aes-256-GCM implementation, was imported by nothing either, so no column was
+encrypted at all. Encryption has since been implemented for `people.nhs_number`:
+encrypted on write, decrypted on read, key derived per organisation, key
+mandatory at boot, and proven by an integration test that reads the raw column
+over a connection bypassing RLS.
+
+So the Data safety form's encryption answer is **yes, in transit** — and at rest
+only for NHS numbers. Dates of birth, addresses and telephone numbers are still
+plaintext in the database, and the privacy policy now says so in those words. Do
+not let the answer drift into a general "data is encrypted at rest": it is true
+for one column, and T0-15 is the open task for the others.
+
+⚠️ **GDPR-compliant infrastructure provider** was compliance language asserted on
+a customer's behalf. A care provider is the controller here; we are the
+processor. We can describe the contract we hold with our own host, but we do not
+certify that a customer's processing of health data is compliant.
 
 ⚠️ **Retention schedule.** The policy states "Account data: active period + 90
 days after cancellation", but the code erases account data immediately on
