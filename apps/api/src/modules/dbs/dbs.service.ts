@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptRowForOrg } from '../../shared/utils/encrypted-columns';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { DbsCheck, DbsLevel, DbsStatus, DbsSubmitRequest, DbsStats, DbsWorkforce } from './dbs.types';
 import { getVettingScheme } from '../compliance/compliance.vetting';
@@ -85,6 +86,10 @@ export async function createDbsCheck(orgId: string, data: DbsSubmitRequest): Pro
     [data.staff_id, orgId]
   );
   if (sp.rows.length === 0) throw new AppError(404, 'Staff member not found');
+  // `sp.birth_date` is encrypted; `createDbsCheck` stores nothing of it, but the
+  // row is normalised here so a future use of this result cannot pick up
+  // ciphertext by accident.
+  decryptRowForOrg('staff_profiles', sp.rows[0], orgId);
 
   // Refuse at the point of creation, not at submission. A draft DBS check for a
   // Scottish worker is a row that looks like progress and can never complete.
@@ -115,7 +120,10 @@ export async function submitDbsCheck(orgId: string, checkId: string): Promise<Db
      FROM staff_profiles sp JOIN users u ON sp.user_id = u.id WHERE sp.id = $1`,
     [c.staff_id]
   );
-  const staff = sp.rows[0];
+  // Decrypted before it leaves the process. This is the one read path where the
+  // values are sent to a third-party provider, so ciphertext going out by
+  // omission would be both useless to them and a disclosure in its own right.
+  const staff = decryptRowForOrg('staff_profiles', sp.rows[0], orgId)!;
 
   const providerResult = await provider.submitCheck(staff, c.level, c.workforce);
 

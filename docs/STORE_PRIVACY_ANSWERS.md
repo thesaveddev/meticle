@@ -151,16 +151,24 @@ privacy policy is the URL Play reads for the Data safety form. Corrected.
 withdrawal turned out to rest on a second wrong diagnosis. Not only was
 `pgcrypto` unused — `apps/api/src/shared/utils/encryption.ts`, a working
 aes-256-GCM implementation, was imported by nothing either, so no column was
-encrypted at all. Encryption has since been implemented for `people.nhs_number`:
-encrypted on write, decrypted on read, key derived per organisation, key
-mandatory at boot, and proven by an integration test that reads the raw column
-over a connection bypassing RLS.
+encrypted at all. Encryption has since been implemented for twelve columns,
+declared in `apps/api/src/shared/utils/encrypted-columns.ts`: on a person's
+record the NHS number, date of birth, and GP, pharmacy and social worker contact
+details; on a staff member's own profile the date of birth, phone, address, city
+and postcode. Each is encrypted on write, decrypted on every read path, and
+proven against the stored bytes by a sentinel test.
 
-So the Data safety form's encryption answer is **yes, in transit** — and at rest
-only for NHS numbers. Dates of birth, addresses and telephone numbers are still
-plaintext in the database, and the privacy policy now says so in those words. Do
-not let the answer drift into a general "data is encrypted at rest": it is true
-for one column, and T0-15 is the open task for the others.
+So the Data safety form's encryption answer is **yes, in transit and yes at rest
+for those categories**. Two things are still plaintext and the privacy policy
+names them: a named contact's telephone number on a staff profile, and the
+location of a care site. Neither is the subject's own data. Do not let the
+answer drift into an unqualified "all data is encrypted at rest" — that is false
+against the schema, and T0-15 tracks what is left.
+
+⚠️ **Provisioning order, before this ships.** `FIELD_ENCRYPTION_KEY` is now
+mandatory and the API will not start without a well-formed one, so the key must
+exist in production before the deploy that depends on it. It must be the same key
+the API uses, and rotating it later is a dual-key migration rather than a restart.
 
 ⚠️ **GDPR-compliant infrastructure provider** was compliance language asserted on
 a customer's behalf. A care provider is the controller here; we are the

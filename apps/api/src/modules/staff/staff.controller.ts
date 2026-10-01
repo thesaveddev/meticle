@@ -10,6 +10,7 @@ import { AuditRepository } from '../audit/audit.repository';
 import { UserRole } from '@meticle/shared';
 import crypto from 'crypto';
 import { logWarn } from '../../shared/utils/logger';
+import { decryptRowForOrg, encryptUpdate } from '../../shared/utils/encrypted-columns';
 
 async function checkNotLastAdmin(orgId: string | undefined, excludeUserId?: string): Promise<void> {
   if (!orgId) return;
@@ -94,7 +95,13 @@ export class StaffController {
          FROM staff_profiles WHERE user_id = $1`,
       [userId]
     );
-    res.json({ ...user.rows[0], ...(profile.rows[0] || {}) });
+    // The profile projection has no organisation of its own; `staff_profiles`
+    // reaches it through `user_id → users.organization_id`, and this request is
+    // already scoped to one.
+    const decryptedProfile = profile.rows[0]
+      ? decryptRowForOrg('staff_profiles', profile.rows[0], orgId as string)
+      : null;
+    res.json({ ...user.rows[0], ...(decryptedProfile || {}) });
   }
 
   static async addQualification(req: Request, res: Response) {
@@ -330,6 +337,14 @@ export class StaffController {
       if (!location.rows.length) throw new AppError(400, 'Location not found in your organisation');
     }
 
+    // Registered encrypted columns for this table, encrypted together so a new
+    // entry in ENCRYPTED_COLUMNS cannot be missed on this path.
+    const encryptedProfile = encryptUpdate(
+      'staff_profiles',
+      { birth_date: safeBirthDate, phone: phone || null, address: address || null, city: city || null, postal_code: postal_code || null },
+      orgId as string,
+    );
+
     const result = await pool.query(
       `INSERT INTO staff_profiles (user_id, first_name, last_name, birth_date, phone, address, city, country, postal_code, profile_picture_url, location_id, employment_type, contracted_hours_weekly, max_hours_weekly)
 
@@ -349,7 +364,10 @@ export class StaffController {
           contracted_hours_weekly = EXCLUDED.contracted_hours_weekly,
           max_hours_weekly = EXCLUDED.max_hours_weekly
         RETURNING *`,
-       [userId, first_name, last_name, safeBirthDate, phone, address, city, country, postal_code, profile_picture_url, location_id || null, employment_type || null, contracted_hours_weekly || null, max_hours_weekly || null]
+       [userId, first_name, last_name,
+        encryptedProfile.birth_date, encryptedProfile.phone, encryptedProfile.address,
+        encryptedProfile.city, country, encryptedProfile.postal_code,
+        profile_picture_url, location_id || null, employment_type || null, contracted_hours_weekly || null, max_hours_weekly || null]
     );
 
     // Notify the user if profile was changed by an admin/manager
@@ -366,7 +384,10 @@ export class StaffController {
       }
     }
 
-    res.json(result.rows[0]);
+    // Decrypted on the way out. `RETURNING *` hands back ciphertext, and
+    // returning it raw would show a staff member an AES blob in place of their
+    // own date of birth.
+    res.json(decryptRowForOrg('staff_profiles', result.rows[0], orgId as string));
   }
 
   static async updatePayProfile(req: Request, res: Response) {
@@ -672,6 +693,11 @@ export class StaffController {
     const userId = req.user!.userId;
     const orgId = req.user!.organizationId;
     const { first_name, last_name, phone, address, city, postal_code, profile_picture_url } = req.body;
+    const encryptedProfile = encryptUpdate(
+      'staff_profiles',
+      { phone: phone || null, address: address || null, city: city || null, postal_code: postal_code || null },
+      orgId as string,
+    );
 
     const result = await pool.query(
       `INSERT INTO staff_profiles (user_id, first_name, last_name, phone, address, city, postal_code, profile_picture_url)
@@ -685,10 +711,13 @@ export class StaffController {
          postal_code = COALESCE(EXCLUDED.postal_code, staff_profiles.postal_code),
          profile_picture_url = COALESCE(EXCLUDED.profile_picture_url, staff_profiles.profile_picture_url)
        RETURNING *`,
-      [userId, first_name || null, last_name || null, phone || null, address || null, city || null, postal_code || null, profile_picture_url || null]
+      [userId, first_name || null, last_name || null,
+       encryptedProfile.phone, encryptedProfile.address, encryptedProfile.city,
+       encryptedProfile.postal_code, profile_picture_url || null]
     );
 
-    res.json(result.rows[0]);
+    // Decrypted on the way out; `RETURNING *` hands back ciphertext.
+    res.json(decryptRowForOrg('staff_profiles', result.rows[0], orgId as string));
   }
 
   /** POST /staff/me/photo — upload profile photo (any authenticated user) */

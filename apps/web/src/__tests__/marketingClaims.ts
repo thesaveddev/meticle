@@ -290,7 +290,7 @@ export const REGISTERED_CLAIMS: {
     label: 'AES-256 / encryption at rest',
     pattern: /AES-?256|encrypted at rest/i,
     status: 'verified',
-    evidence: 'Scoped to one named column. `people.nhs_number` is encrypted with aes-256-gcm under an HKDF-derived per-organisation key (`apps/api/src/shared/utils/encryption.ts`), written encrypted on create and update, decrypted on read in the people and reporting repositories, and proven by an integration test that reads the raw column over a connection bypassing RLS. FIELD_ENCRYPTION_KEY is now mandatory: the API refuses to start without a well-formed one. Everything else is unencrypted — dates of birth, addresses and phone numbers are still plaintext, and pgcrypto is still installed and unused. Migration 137 widened the column from VARCHAR(20), which could not hold a ciphertext.',
+    evidence: 'Scoped to a named set of columns, declared in `apps/api/src/shared/utils/encrypted-columns.ts`. On `people`: nhs_number, date_of_birth, gp_phone, gp_address, pharmacy_phone, pharmacy_address, social_worker_phone. On `staff_profiles`: birth_date, phone, address, city, postal_code. Each is encrypted with aes-256-gcm under an HKDF-derived per-organisation key, written encrypted on create and update, and decrypted on every read path that returns it — including the DBS submission that sends address, postcode and date of birth to a third-party provider, and the AI prompts that interpolate a date of birth into `new Date()`. Proven against the stored column by `encrypted-columns.sentinel.test.ts` over a connection bypassing RLS. FIELD_ENCRYPTION_KEY is mandatory: the API refuses to start without a well-formed one. Still unencrypted: `emergency_contacts.phone` (a third party\'s number), `locations.address` (a care site), names, and every non-date-of-birth date column.',
     evidencePath: 'apps/api/src/shared/utils/encryption.ts',
     owner: 'Opeyemi',
     closesOn: 'T0-15',
@@ -298,7 +298,7 @@ export const REGISTERED_CLAIMS: {
     // marketingClaims.test.ts rather than by an allowance here: this registry
     // records claims, FORBIDDEN_CLAIMS blocks them, and a permitted phrasing
     // would have let a blanket "encrypted at rest" back onto the page.
-    notes: 'Went through three states and each one was documented as if it were settled. First "implemented twice", then "not implemented at all", now "implemented for NHS numbers only". The middle state was the dangerous one: encryption.ts existed, nothing imported it, and the register said column-level encryption "genuinely exists", so the recorded fix was to set FIELD_ENCRYPTION_KEY — which would have changed nothing. Widening T0-15 from "is the key set" to "is anything actually calling encryptField" was the actual repair. What remains is adoption on dates of birth, addresses and phone numbers, and pgcrypto should go if pgcrypt is not going to be used. Do not let this entry drift into implying more coverage than the migrations prove.',
+    notes: 'Went through four states, each documented as if it were settled. First "implemented twice", then "not implemented at all", then "NHS numbers only", now a named set of twelve columns. The middle state was the dangerous one: encryption.ts existed, nothing imported it, and the register said column-level encryption "genuinely exists", so the recorded fix was to set FIELD_ENCRYPTION_KEY — which would have changed nothing. Widening T0-15 from "is the key set" to "is anything actually calling encryptField" was the actual repair. The list now lives in one registry that a sentinel checks against the stored bytes, so a column cannot be added to it without being proven. pgcrypto is still installed and unused and should be dropped. Do not let this entry drift into implying more coverage than the sentinel asserts.',
   },
   {
     label: 'TLS 1.3',
@@ -401,14 +401,14 @@ export const REQUIRED_DISCLAIMERS: {
   },
   {
     label: 'The encryption claim names the field it covers',
-    phrase: /NHS numbers are encrypted/i,
-    why: 'At-rest encryption is real for exactly one column — people.nhs_number — and nothing else. A policy that said simply "encrypted at rest" would be false against the schema, and would stay false however many columns are added later, because the sentence would not move. Naming the field keeps the claim tied to what a migration can actually prove.',
+    phrase: /NHS numbers, dates of birth, addresses and telephone numbers held on a person/i,
+    why: 'At-rest encryption is real for a named set of columns and no others: the NHS number, date of birth, GP, pharmacy and social worker contact details on a person, and the date of birth, phone, address, city and postcode on a staff member\'s own profile. A policy that said simply "encrypted at rest" would be false against the schema, and would stay false however many columns are added later, because the sentence would not move. Naming the fields keeps the claim tied to what a migration can actually prove.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
   {
     label: 'The unencrypted remainder is still disclosed',
     phrase: /not currently encrypted/i,
-    why: 'Dates of birth, addresses and phone numbers are still plaintext in the database (T0-15). This sentence is the only thing stopping a reader inferring that the whole record is encrypted, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
+    why: 'Not everything is encrypted. A named contact\'s telephone number on a staff profile is still plaintext in the database, as is the location of a care site. This sentence is the only thing stopping a reader inferring that the whole record is encrypted, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
 ]

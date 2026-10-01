@@ -1,4 +1,5 @@
 import pool, { migrateQuery } from '../../shared/database';
+import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 export class FamilyPortalRepository {
   private static readonly MEMBER_UPDATE_COLUMNS = new Set(['name', 'email', 'relationship', 'phone']);
@@ -105,7 +106,11 @@ export class FamilyPortalRepository {
        WHERE fm.access_token = $1 AND fm.status IN ('invited','active') AND fm.token_expires_at > NOW()`,
       [token]
     );
-    return result.rows[0] || null;
+    // `su.date_of_birth` is an encrypted `people` column. `fm.*` puts the
+    // organisation on the row, and that is the context the key is derived from,
+    // so no second lookup is needed. Encrypted columns this projection does not
+    // select are simply absent from the row and are skipped.
+    return decryptRowsForOrg('people', result.rows.slice(0, 1), result.rows[0]?.organization_id)[0] ?? null;
   }
 
   // Used by controller to get person info for invitation email (skips 'active' check)

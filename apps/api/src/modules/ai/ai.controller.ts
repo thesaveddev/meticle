@@ -9,6 +9,7 @@ import { PROMPTS } from './ai.prompts';
 import { migrateQuery } from '../../shared/database';
 import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
+import { decryptField } from '../../shared/utils/encryption';
 
 /**
  * Centralised AI call helper with budget enforcement and provider fallback.
@@ -625,7 +626,7 @@ export class AIController {
 
     const { system, user } = await renderOrgPrompt('daily_note_generation', {
       person_name: `${su.first_name} ${su.last_name}`,
-      date_of_birth: su.date_of_birth || 'Unknown',
+      date_of_birth: decryptField(su.date_of_birth, orgId) || 'Unknown',
       room_number: su.room_number || 'N/A',
       allergies: Array.isArray(su.allergies) ? su.allergies.join(', ') || 'None known' : 'None known',
       dietary_requirements: su.dietary_requirements || 'None noted',
@@ -824,7 +825,7 @@ export class AIController {
 
       const userPrompt = userTemplate
         .replace('{{person_name}}', `${su.first_name} ${su.last_name}`)
-        .replace('{{date_of_birth}}', su.date_of_birth ? new Date(su.date_of_birth).toLocaleDateString('en-GB') : 'Unknown')
+        .replace('{{date_of_birth}}', su.date_of_birth ? new Date(decryptField(su.date_of_birth, orgId) as string).toLocaleDateString('en-GB') : 'Unknown')
         .replace('{{room_number}}', su.room_number || 'Unknown')
         .replace('{{allergies}}', 'None on file')
         .replace('{{dietary_requirements}}', 'None on file')
@@ -932,7 +933,7 @@ export class AIController {
     const person = personResult.rows[0];
     const { system, user } = await renderOrgPrompt('meal_plan_generation', {
       person_name: `${person.first_name} ${person.last_name}`,
-      date_of_birth: person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString('en-GB') : 'Unknown',
+      date_of_birth: person.date_of_birth ? new Date(decryptField(person.date_of_birth, orgId) as string).toLocaleDateString('en-GB') : 'Unknown',
       dietary_type: person.dietary_type || 'Standard',
       texture_modified: person.texture_modified || 'None',
       vegetarian: person.vegetarian ? 'Yes' : 'No',
@@ -1039,7 +1040,7 @@ export class AIController {
     const person = personResult.rows[0];
     const { system, user } = await renderOrgPrompt('weekly_meal_plan', {
       person_name: `${person.first_name} ${person.last_name}`,
-      date_of_birth: person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString('en-GB') : 'Unknown',
+      date_of_birth: person.date_of_birth ? new Date(decryptField(person.date_of_birth, orgId) as string).toLocaleDateString('en-GB') : 'Unknown',
       dietary_type: person.dietary_type || 'Standard',
       texture_modified: person.texture_modified || 'None',
       vegetarian: person.vegetarian ? 'Yes' : 'No',

@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptRowForOrg, encryptUpdate, orgIdForStaffProfile } from '../../shared/utils/encrypted-columns';
 
 export interface StaffProfileRow {
   id: string;
@@ -13,11 +14,14 @@ export interface StaffProfileRow {
 export class StaffRepository {
   static async createProfile(data: Partial<StaffProfileRow>): Promise<StaffProfileRow> {
     const { user_id, first_name, last_name, employment_status, birth_date } = data;
+    // `staff_profiles` carries no organization_id, so the key context is resolved
+    // from `user_id` before the row is written.
+    const orgId = await orgIdForStaffProfile(user_id as string);
     const result = await query(
       'INSERT INTO staff_profiles (user_id, first_name, last_name, employment_status, birth_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [user_id, first_name, last_name, employment_status, birth_date]
+      [user_id, first_name, last_name, employment_status, encryptUpdate('staff_profiles', { birth_date }, orgId as string).birth_date]
     );
-    return result.rows[0];
+    return decryptRowForOrg('staff_profiles', result.rows[0], orgId as string)!;
   }
 
   static async getProfileByUserId(userId: string): Promise<StaffProfileRow | null> {
