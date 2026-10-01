@@ -402,13 +402,13 @@ export const REQUIRED_DISCLAIMERS: {
   {
     label: 'The encryption claim names the field it covers',
     phrase: /NHS numbers, dates of birth, addresses and telephone numbers held on a person/i,
-    why: 'At-rest encryption is real for a named set of columns and no others: the NHS number, date of birth, GP, pharmacy and social worker contact details on a person, and the date of birth, phone, address, city and postcode on a staff member\'s own profile. A policy that said simply "encrypted at rest" would be false against the schema, and would stay false however many columns are added later, because the sentence would not move. Naming the fields keeps the claim tied to what a migration can actually prove.',
+    why: 'At-rest encryption is real for a named set of columns and no others: identifiers and contact details on a person, on a staff member\'s own profile, and on a named family or next-of-kin contact. A policy that said simply "encrypted at rest" would be false against the schema, and would stay false however many columns are added later, because the sentence would not move. Naming the fields keeps the claim tied to what a migration can actually prove.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
   {
     label: 'The unencrypted remainder is still disclosed',
     phrase: /not currently encrypted/i,
-    why: 'Not everything is encrypted. A named contact\'s telephone number on a staff profile is still plaintext in the database, as is the location of a care site. This sentence is the only thing stopping a reader inferring that the whole record is encrypted, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
+    why: 'Not everything is encrypted, and the most significant omission is the one that matters most: clinical narrative records — care workers\' written notes, incident and investigation records, risk assessments — are still plaintext in the database. This sentence is the only thing stopping a reader inferring that a care record is protected in full, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
 ]

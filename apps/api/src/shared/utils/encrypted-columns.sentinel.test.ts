@@ -116,6 +116,87 @@ describe('every column registered as encrypted is ciphertext at rest', () => {
     })
   })
 
+  describe('third-party contact details', () => {
+    it('encrypts a family contact\'s phone and email, including inside a person row', async () => {
+      // The nested case is the one that matters. `findById` returns family
+      // contacts as a `json_agg` inside the person row, so decrypting only the
+      // top-level columns would leave a family's numbers as ciphertext in the
+      // middle of a care record — which reads as corruption, not as a decision.
+      const org = await createOrg()
+      const location = await createLocation({ organizationId: org.id })
+      const mgr = await createUser({
+        email: `fc-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
+        password: 'TestPass123!',
+        role: 'MANAGER',
+        organization_id: org.id,
+      })
+      const token = generateToken(mgr)
+      const person = await request(app)
+        .post('/people')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ first_name: 'Ada', last_name: 'Lovelace', date_of_birth: '1815-12-10', location_id: location.id })
+      expect(person.status, JSON.stringify(person.body)).toBe(201)
+
+      const contact = await request(app)
+        .post(`/people/${person.body.id}/family-contacts`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Byron', relationship: 'Brother', phone: '0800 111 222', email: 'byron@example.com' })
+      expect(contact.status, JSON.stringify(contact.body)).toBe(201)
+      // Decrypted on the way out, or the caller stores ciphertext in a form.
+      expect(contact.body.phone).toBe('0800 111 222')
+      expect(contact.body.email).toBe('byron@example.com')
+
+      const stored = await migrateQuery('SELECT phone, email FROM family_contacts WHERE id = $1', [contact.body.id])
+      for (const column of ENCRYPTED_COLUMNS.family_contacts) {
+        expect(isCiphertext(stored.rows[0][column]), `${column} is stored as ${JSON.stringify(stored.rows[0][column])}`).toBe(true)
+      }
+
+      const got = await request(app).get(`/people/${person.body.id}`).set('Authorization', `Bearer ${token}`)
+      expect(got.status).toBe(200)
+      const nested = (got.body.family_contacts ?? []).find((c: any) => c.id === contact.body.id)
+      expect(nested, 'family contact should be present in the person payload').toBeDefined()
+      expect(nested.phone).toBe('0800 111 222')
+      expect(nested.email).toBe('byron@example.com')
+      expect(isCiphertext(nested.phone)).toBe(false)
+    })
+
+    it('encrypts a staff member\'s emergency contact number', async () => {
+      const org = await createOrg()
+      const user = await createUser({
+        email: `ec-${Date.now()}@test.com`,
+        password: 'TestPass123!',
+        role: 'CARE_WORKER',
+        organization_id: org.id,
+      })
+      const token = generateToken(user)
+      await request(app).patch('/staff/me/profile').set('Authorization', `Bearer ${token}`).send({ phone: '07700 900999' })
+
+      // The route is ORG_ADMIN-only, and unlike the profile endpoints it does not
+      // fall through to self — so the admin acts on their own record here.
+      const admin = await createUser({
+        email: `ec-admin-${Date.now()}@test.com`,
+        password: 'TestPass123!',
+        role: 'ORG_ADMIN',
+        organization_id: org.id,
+      })
+      await request(app).patch('/staff/me/profile').set('Authorization', `Bearer ${generateToken(admin)}`).send({ phone: '07700 900999' })
+      const adminToken = generateToken(admin)
+      // The route addresses `:staffId`, which is the `staff_profiles` id, not the
+      // user id.
+      const adminProfile = await migrateQuery('SELECT id FROM staff_profiles WHERE user_id = $1', [admin.id])
+
+      const created = await request(app)
+        .post(`/staff/${adminProfile.rows[0].id}/emergency-contacts`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Next of kin', relationship: 'Partner', phone: '07700 900888' })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+      expect(created.body.phone).toBe('07700 900888')
+
+      const stored = await migrateQuery('SELECT phone FROM emergency_contacts WHERE id = $1', [created.body.id])
+      expect(isCiphertext(stored.rows[0].phone), `phone is stored as ${JSON.stringify(stored.rows[0].phone)}`).toBe(true)
+    })
+  })
+
   describe('staff_profiles', () => {
     const PII = {
       birth_date: '1990-05-05',

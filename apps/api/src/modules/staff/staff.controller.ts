@@ -608,8 +608,10 @@ export class StaffController {
     const { staffId } = req.params;
     await requireSameOrgForStaff(user, staffId);
     const { name, relationship, phone } = req.body;
-    const result = await StaffRepository.addEmergencyContact(staffId, name, relationship, phone);
-    res.status(201).json(result.rows[0]);
+    // The repository returns the decrypted row itself rather than the pg result,
+    // so it can hand back plaintext for an encrypted column.
+    const contact = await StaffRepository.addEmergencyContact(staffId, name, relationship, phone);
+    res.status(201).json(contact);
   }
 
   static async getEmergencyContacts(req: Request, res: Response) {

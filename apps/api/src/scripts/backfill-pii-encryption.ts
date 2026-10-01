@@ -46,6 +46,15 @@ const TARGETS: {
 }[] = [
   { table: 'people', keyset: 'id', orgExpression: 'organization_id' },
   { table: 'staff_profiles', keyset: 'id', orgExpression: '(SELECT u.organization_id FROM users u WHERE u.id = user_id)' },
+  // Third-party contacts. The key context is the tenant holding the record, not
+  // the person named in it.
+  { table: 'family_contacts', keyset: 'id', orgExpression: '(SELECT p.organization_id FROM people p WHERE p.id = person_id)' },
+  {
+    table: 'emergency_contacts',
+    keyset: 'id',
+    orgExpression:
+      '(SELECT u.organization_id FROM users u JOIN staff_profiles sp ON sp.user_id = u.id WHERE sp.id = staff_id)',
+  },
 ]
 
 async function backfillTable(target: (typeof TARGETS)[number]): Promise<void> {

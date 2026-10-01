@@ -1,5 +1,5 @@
 import { query } from '../../shared/database';
-import { decryptRowForOrg, encryptUpdate, orgIdForStaffProfile } from '../../shared/utils/encrypted-columns';
+import { decryptRowForOrg, decryptRowsForOrg, encryptUpdate, orgIdForStaffProfile } from '../../shared/utils/encrypted-columns';
 
 export interface StaffProfileRow {
   id: string;
@@ -52,15 +52,21 @@ export class StaffRepository {
   }
 
   static async addEmergencyContact(staffId: string, name: string, relationship: string, phone: string) {
-    return query(
+    // The number belongs to a third party; the key context is the staff member's
+    // organisation, which is two hops from `emergency_contacts.staff_id`.
+    const orgId = await orgIdForStaffProfile(staffId);
+    const encrypted = encryptUpdate('emergency_contacts', { phone }, orgId as string);
+    const result = await query(
       'INSERT INTO emergency_contacts (staff_id, name, relationship, phone) VALUES ($1, $2, $3, $4) RETURNING *',
-      [staffId, name, relationship, phone]
+      [staffId, name, relationship, encrypted.phone]
     );
+    return decryptRowForOrg('emergency_contacts', result.rows[0], orgId as string);
   }
 
   static async getEmergencyContacts(staffId: string) {
     const result = await query('SELECT * FROM emergency_contacts WHERE staff_id = $1 ORDER BY name', [staffId]);
-    return result.rows;
+    const orgId = await orgIdForStaffProfile(staffId);
+    return decryptRowsForOrg('emergency_contacts', result.rows, orgId as string);
   }
 
   static async deleteEmergencyContact(contactId: string) {

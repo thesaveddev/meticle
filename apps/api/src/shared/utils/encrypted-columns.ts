@@ -49,6 +49,25 @@ export const ENCRYPTED_COLUMNS: Record<string, readonly string[]> = {
     'social_worker_phone',
   ],
   staff_profiles: ['birth_date', 'phone', 'address', 'city', 'postal_code'],
+  // A third party's contact details, held because they are the person to call
+  // in an emergency. Encrypted under the *subject's* organisation key, which is
+  // worth being explicit about: the key context is the tenant that holds the
+  // record, not the person named in it.
+  family_contacts: ['phone', 'email'],
+  emergency_contacts: ['phone'],
+};
+
+/**
+ * Columns on a parent row that are a `json_agg` of a child table, mapped to that
+ * table so the nested rows decrypt too.
+ *
+ * `PersonRepository.findById` returns `family_contacts` as an aggregated JSON
+ * array inside the person row. Decrypting only the top-level columns would leave
+ * a family's phone numbers as ciphertext in the middle of a care record, which is
+ * worse than leaving them plain: it looks like corruption rather than a decision.
+ */
+export const NESTED_JSON_TABLES: Record<string, string> = {
+  family_contacts: 'family_contacts',
 };
 
 export function encryptedColumns(table: string): readonly string[] {
@@ -81,7 +100,18 @@ export interface OrgScopedRow extends RawRow {
 
 /** Decrypts a row that carries its own `organization_id`. */
 export function decryptRow<T extends OrgScopedRow>(table: string, row: T): T {
-  return decryptColumnsFor(table, row, row?.organization_id) as T;
+  const decrypted = decryptColumnsFor(table, row, row?.organization_id) as T;
+  if (!decrypted || !row?.organization_id) return decrypted;
+
+  // Nested `json_agg` children arrive as parsed arrays on the parent row.
+  for (const [column, childTable] of Object.entries(NESTED_JSON_TABLES)) {
+    const nested = decrypted[column];
+    if (!Array.isArray(nested)) continue;
+    (decrypted as Record<string, unknown>)[column] = nested.map((child: RawRow) =>
+      decryptColumnsFor(childTable, child, row.organization_id),
+    );
+  }
+  return decrypted;
 }
 
 /** Decrypts many rows that each carry their own `organization_id`. */
@@ -143,6 +173,31 @@ export async function orgIdForStaffProfile(staffIdOrUserId: string): Promise<str
       WHERE sp.id = $1 OR sp.user_id = $1
       LIMIT 1`,
     [staffIdOrUserId],
+  );
+  return result.rows[0]?.organization_id ?? null;
+}
+
+/**
+ * Resolves the organisation for a `family_contacts` row, which carries only a
+ * `person_id`. Same reasoning as above: the key context is the tenant holding the
+ * record.
+ */
+export async function orgIdForPerson(personId: string): Promise<string | null> {
+  const { query } = await import('../database');
+  const result = await query('SELECT organization_id FROM people WHERE id = $1', [personId]);
+  return result.rows[0]?.organization_id ?? null;
+}
+
+/** The same two hops, addressed by the contact's own id. */
+export async function orgIdForFamilyContact(contactId: string): Promise<string | null> {
+  const { query } = await import('../database');
+  const result = await query(
+    `SELECT p.organization_id
+       FROM family_contacts fc
+       JOIN people p ON p.id = fc.person_id
+      WHERE fc.id = $1
+      LIMIT 1`,
+    [contactId],
   );
   return result.rows[0]?.organization_id ?? null;
 }

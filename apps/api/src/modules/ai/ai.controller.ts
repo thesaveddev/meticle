@@ -10,6 +10,7 @@ import { migrateQuery } from '../../shared/database';
 import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
 import { decryptField } from '../../shared/utils/encryption';
+import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 /**
  * Centralised AI call helper with budget enforcement and provider fallback.
@@ -1415,7 +1416,10 @@ export class AIController {
 
       if (capability === 'family_communication_draft' && personId) {
         const family = await pool.query(`SELECT id, name, relationship, email FROM family_contacts WHERE person_id = $1`, [personId]);
-        records.push(...family.rows.map((r: any) => ({ source_type: 'family_contact', source_id: String(r.id), ...r })));
+        // `email` is an encrypted `family_contacts` column; decrypted here because
+        // it is about to be summarised into a draft that leaves the process.
+        const familyRows = decryptRowsForOrg('family_contacts', family.rows, orgId);
+        records.push(...familyRows.map((r: any) => ({ source_type: 'family_contact', source_id: String(r.id), ...r })));
       }
       const sourceIds = records.map((r: any) => ({ type: r.source_type, id: r.source_id, url: sourceUrl(r.source_type, r.source_id, r) })).filter((source: any) => source.url);
       const sourceUrlByKey = new Map(records.map((r: any) => [`${r.source_type}:${r.source_id}`, sourceUrl(r.source_type, r.source_id, r)]));

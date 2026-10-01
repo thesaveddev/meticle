@@ -1,6 +1,6 @@
 import { query } from '../../shared/database';
 import { encryptField } from '../../shared/utils/encryption';
-import { decryptRow, decryptRows, encryptUpdate, encryptedColumns } from '../../shared/utils/encrypted-columns';
+import { decryptRow, decryptRows, decryptRowForOrg, encryptUpdate, encryptedColumns, orgIdForPerson, orgIdForFamilyContact } from '../../shared/utils/encrypted-columns';
 
 /**
  * `people` rows carry their own `organization_id`, which is what the per-tenant
@@ -364,23 +364,37 @@ export class PersonRepository {
   // ---- Family Contacts ----
   static async createFamilyContact(data: Partial<FamilyContactRow>) {
     const { person_id, name, relationship, phone, email, is_emergency_contact } = data;
+    // `family_contacts` carries a person_id and no organization, so the key
+    // context comes from the person it belongs to.
+    const orgId = await orgIdForPerson(person_id as string);
+    const encrypted = encryptUpdate(
+      'family_contacts',
+      { phone: phone ?? null, email: email ?? null },
+      orgId as string,
+    );
     const result = await query(
       `INSERT INTO family_contacts (person_id, name, relationship, phone, email, is_emergency_contact) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [person_id, name, relationship, phone, email, is_emergency_contact || false]
+      [person_id, name, relationship, encrypted.phone, encrypted.email, is_emergency_contact || false]
     );
-    return result.rows[0];
+    return decryptRowForOrg('family_contacts', result.rows[0], orgId as string);
   }
 
   static async updateFamilyContact(id: string, data: Partial<FamilyContactRow>) {
+    // Resolved from the contact's own id, because the update payload carries no
+    // organisation and the caller may not have passed one.
+    const orgId = await orgIdForFamilyContact(id);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
       if (!PersonRepository.FAMILY_CONTACT_UPDATE_COLUMNS.has(k)) continue;
+      const value = encryptedColumns('family_contacts').includes(k)
+        ? encryptUpdate('family_contacts', { [k]: v }, orgId as string)[k]
+        : v;
       fields.push(`${k} = $${idx++}`);
-      params.push(v);
+      params.push(value);
     }
     params.push(id);
     const result = await query(`UPDATE family_contacts SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, params);
-    return result.rows[0] || null;
+    return result.rows[0] ? decryptRowForOrg('family_contacts', result.rows[0], orgId as string) : null;
   }
 
   static async deleteFamilyContact(id: string) {
