@@ -88,9 +88,6 @@ export async function refreshDisposableEmailBlocklist(): Promise<void> {
   }
 }
 
-export function blocklistLastRefresh(): Date | null { return _lastRefresh; }
-export function blocklistSize(): number { return domainSet.size; }
-
 export function isDisposableEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
@@ -119,8 +116,6 @@ export function mxHostIsDisposable(host: string): boolean {
 export const mxResolver: { resolveMx: typeof dns.resolveMx } = {
   resolveMx: dns.resolveMx.bind(dns),
 };
-
-export const _resolveMx = mxResolver.resolveMx;
 
 export async function isDisposableEmailByMx(email: string): Promise<boolean> {
   const domain = email.split('@')[1]?.toLowerCase();
