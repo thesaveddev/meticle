@@ -1,0 +1,53 @@
+Question ID (machine readable),Response (machine readable),Response value,Answer requirement,Human-friendly question label
+DATA_SAFETY_COLLECTS_OR_SHARES_USER_DATA,COLLECTS_OR_SHARES_USER_DATA,,SINGLE_CHOICE,"Data collection and security
+Does your app collect or share any of the required user data types?
+Yes"
+DATA_SAFETY_ENCRYPTED_IN_TRANSIT,ENCRYPTED_IN_TRANSIT,,REQUIRED,"Data collection and security
+Is all of the user data collected by your app encrypted in transit?"
+DATA_SAFETY_DELETION_REQUEST_MECHANISM,DELETION_REQUEST_MECHANISM,,REQUIRED,"Data collection and security
+Do you provide a way for users to request that their data is deleted?"
+PSL_DATA_TYPES_LOCATION,PSL_PRECISE_LOCATION,,MULTIPLE_CHOICE,"Location
+Precise location
+..."
+PSL_DATA_TYPES_LOCATION,PSL_APPROX_LOCATION,,MULTIPLE_CHOICE,"Location
+Approximate location
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_NAME,,MULTIPLE_CHOICE,"Personal info
+Name
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_EMAIL_ADDRESS,,MULTIPLE_CHOICE,"Personal info
+Email address
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_USER_IDS,,MULTIPLE_CHOICE,"Personal info
+User IDs
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_ADDRESS,,MULTIPLE_CHOICE,"Personal info
+Address
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_PHONE_NUMBER,,MULTIPLE_CHOICE,"Personal info
+Phone number
+..."
+PSL_DATA_TYPES_PERSONAL,PSL_OTHER_INFO,,MULTIPLE_CHOICE,"Personal info
+Other info
+..."
+PSL_DATA_TYPES_FINANCIAL,PSL_OTHER_FINANCIAL_INFO,,MULTIPLE_CHOICE,"Financial info
+Other financial info
+..."
+PSL_DATA_TYPES_HEALTH_AND_FITNESS,PSL_HEALTH_INFO,,MULTIPLE_CHOICE,"Health and fitness
+Health info
+..."
+PSL_DATA_TYPES_MESSAGES,PSL_OTHER_IN_APP_MESSAGES,,MULTIPLE_CHOICE,"Messages
+Other in-app messages
+..."
+PSL_DATA_TYPES_PHOTOS_AND_VIDEOS,PSL_PHOTOS,,MULTIPLE_CHOICE,"Photos and videos
+Photos
+..."
+PSL_DATA_TYPES_APP_ACTIVITY,PSL_OTHER_USER_GENERATED_CONTENT,,MULTIPLE_CHOICE,"App activity
+Other user-generated content
+..."
+PSL_DATA_TYPES_APP_ACTIVITY,PSL_APP_INTERACTIONS,,MULTIPLE_CHOICE,"App activity
+App interactions
+..."
+PSL_DATA_TYPES_DEVICE_IDS,PSL_DEVICE_OR_OTHER_IDS,,MULTIPLE_CHOICE,"Device or other IDs
+Device or other IDs
+..."

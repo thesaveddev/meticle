@@ -1,12 +1,17 @@
 /**
  * The tour is the thing that makes the screenshots repeatable, so it is worth
- * knowing it walks the six shots in order, sets up each shot's scene before
+ * knowing it walks the shots in order, sets up each shot's scene before
  * navigating to it, and only announces a shot once the screen has had time to
  * settle. The sleeps are injected, so this runs in milliseconds.
+ *
+ * The tour walks `TOUR_SHOTS`, not `CAPTURE_SHOTS`. The login shot is announced
+ * by the bootstrap while `LoginScreen` is genuinely mounted, because capture
+ * mode signs the app in before the tour ever starts. A tour that included it
+ * would photograph a signed-in app under a "Sign in" caption.
  */
 import { renderHook, waitFor } from '@testing-library/react-native'
 import { useCaptureTour } from '../useCaptureTour'
-import { CAPTURE_SHOTS } from '../shots'
+import { CAPTURE_SHOTS, TOUR_SHOTS } from '../shots'
 import { CAPTURE_IDS } from '../fixtures'
 
 // The tour is inert unless a dev build was bundled with EXPO_PUBLIC_CAPTURE_MODE=1,
@@ -38,14 +43,26 @@ function renderTour(ready = true) {
 }
 
 describe('capture tour', () => {
-  it('walks every shot in order and announces each one', async () => {
+  it('walks every tour shot in order and announces each one', async () => {
     const { onTarget } = renderTour()
     await waitFor(() => expect(announceDone).toHaveBeenCalledTimes(1))
 
     const announced = announceShot.mock.calls.map((call: any[]) => call[0].id)
-    expect(announced).toEqual(CAPTURE_SHOTS.map(shot => shot.id))
-    expect(onTarget).toHaveBeenCalledTimes(CAPTURE_SHOTS.length)
+    expect(announced).toEqual(TOUR_SHOTS.map(shot => shot.id))
+    expect(onTarget).toHaveBeenCalledTimes(TOUR_SHOTS.length)
     expect(announceError).not.toHaveBeenCalled()
+  })
+
+  it('never announces the login shot, because by now the app is signed in', async () => {
+    const { onTarget } = renderTour()
+    await waitFor(() => expect(announceDone).toHaveBeenCalled())
+
+    const announced = announceShot.mock.calls.map((call: any[]) => call[0].id)
+    expect(announced).not.toContain('00-login')
+    expect(onTarget.mock.calls.map((call: any[]) => call[0].kind)).not.toContain('login')
+    // And the tour really is shorter than the full list, rather than the login
+    // shot being skipped by coincidence.
+    expect(TOUR_SHOTS.length).toBe(CAPTURE_SHOTS.length - 1)
   })
 
   it('sets each shot\u2019s scene before navigating to it, so the offline rail is populated before the screenshot', async () => {

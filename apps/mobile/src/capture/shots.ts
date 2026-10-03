@@ -15,6 +15,7 @@ import { CAPTURE_IDS } from './fixtures'
 
 /** Where the tour should send the app. Mirrors the `Screen` union in App.tsx. */
 export type CaptureTarget =
+  | { kind: 'login' }
   | { kind: 'tab'; tab: 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' }
   | { kind: 'visit'; visitId: string }
   | { kind: 'clientDetail'; personId: string }
@@ -38,10 +39,55 @@ export interface CaptureShot {
   dwellMs: number
 }
 
-/** Screens that load several requests need longer than the default before a shot. */
-const SETTLE_MS = 1200
+/**
+ * How long a shot is held on screen before the tour moves on.
+ *
+ * This was 1200ms, which assumed the screen was already rendered when its shot
+ * was announced. On a slow machine the app is still booting at that point —
+ * fonts, splash, fixture hydration — so the whole seven-shot tour announced
+ * itself in about nine seconds and every capture landed on the same unrendered
+ * frame. Three of the seven came out byte-identical and one was blank, all of
+ * them valid 1080x1920 PNGs that passed Play's format rules.
+ *
+ * 8s puts the tour at roughly a minute, which is long enough for a slow first
+ * render and still a short enough run to repeat freely. The host script reads
+ * these same values out of this file and waits the same length after taking its
+ * picture, so the two sides cannot drift apart.
+ *
+ * Screens that load several requests ask for a little more on top of this.
+ */
+const SETTLE_MS = 8000
 
+/**
+ * This shot is the odd one out, and it is the reason it is here at all.
+ *
+ * Capture mode signs the app in with fixture data before the normal boot path
+ * looks for a session, which is what makes the other shots repeatable. It also
+ * means `LoginScreen` is never mounted during a tour, so the screen a user
+ * meets first is the one screen a capture run cannot reach on its own.
+ *
+ * So it is announced by the bootstrap rather than by the tour hook — before
+ * `installCaptureMode()` — and it is the one shot that therefore requires the
+ * app to be *cold-started*. A reload from Metro leaves the session in place and
+ * this shot is silently skipped, which is why `App.tsx` announces it explicitly
+ * and the host script says so on timeout.
+ *
+ * The comment sits outside the object on purpose. The host script reads this
+ * file as text with a regex, and a block comment *inside* an entry widened the
+ * gap between `storeCaption` and `dwellMs` enough for that regex to run past
+ * the end of this object and swallow the one after it — which silently deleted
+ * `01-today` from the shot list and logged `00-login` twice.
+ */
 export const CAPTURE_SHOTS: CaptureShot[] = [
+  {
+    index: 0,
+    id: '00-login',
+    title: 'Sign in',
+    storeCaption: 'One sign-in for the whole care team. Second factor, no shared logins.',
+    scene: 'default',
+    target: { kind: 'login' },
+    dwellMs: SETTLE_MS,
+  },
   {
     index: 1,
     id: '01-today',
@@ -101,3 +147,20 @@ export const CAPTURE_SHOTS: CaptureShot[] = [
 export function captureShotById(id: string): CaptureShot | undefined {
   return CAPTURE_SHOTS.find(shot => shot.id === id)
 }
+
+/**
+ * The one shot the tour does not drive.
+ *
+ * Derived from the array rather than written out a second time. A duplicate
+ * literal here looked harmless but was a real defect: the host script reads
+ * this file as text and matched it, so `00-login` appeared twice in the plan
+ * and the shot count guard failed.
+ */
+export const LOGIN_SHOT: CaptureShot = (() => {
+  const login = CAPTURE_SHOTS.find(shot => shot.target.kind === 'login')
+  if (!login) throw new Error('No login shot in CAPTURE_SHOTS; the bootstrap cannot announce it')
+  return login
+})()
+
+/** Shots the tour walks to, as opposed to the one the bootstrap announces. */
+export const TOUR_SHOTS: CaptureShot[] = CAPTURE_SHOTS.filter(shot => shot.target.kind !== 'login')

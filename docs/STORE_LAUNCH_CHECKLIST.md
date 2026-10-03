@@ -1,8 +1,14 @@
 # Store launch checklist — Meticle Care mobile
 
-Status after the config-only remediation pass, the real brand asset swap, and
-the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
-`docs/STORE_PRIVACY_ANSWERS.md`.
+Status after the config-only remediation pass, the real brand asset swap, the
+account-deletion fix, and the first internal-track draft. Detail lives in
+`docs/STORE_RELEASE_RUNBOOK.md`, `docs/STORE_PRIVACY_ANSWERS.md`, and
+`docs/PLAY_REVIEWER_GUIDE.md`.
+
+One correction worth stating up front: an earlier pass of this list reported a
+`BILLING_RESTRICTED` blocker for the Play reviewer. It was derived from the
+**local dev database** and does not apply to the production organisation the
+reviewer signs in to. Nothing about billing is blocked.
 
 The store work is separate from the email-domain work in
 `docs/EMAIL_SECURITY_RUNBOOK.md`, which has its own open decision.
@@ -41,30 +47,95 @@ submission, so it was checked against the primary source rather than assumed.
   confirmed against the resolved manifest of a real build already on this
   machine: `android:targetSdkVersion="36"`, `android:minSdkVersion="24"`.
   Expo SDK 57 ships API 36 by default, which is why this needed nothing.
-- **`SYSTEM_ALERT_WINDOW` ships in the release manifest.** It is written by
-  Expo's prebuild template directly into the app's own
-  `android/app/src/main/AndroidManifest.xml`, not merged in from a library — the
-  manifest merger blame report attributes it to that file, and the only
-  `SYSTEM_ALERT_WINDOW` anywhere in the dependency tree is React Native's own
-  *debug* manifest. It is not in `app.json`, so it was never a deliberate
-  choice. Play treats permissions that access sensitive information as
-  declaration-gated: a permission that is not needed for a core functionality
-  promoted in the store listing is grounds for rejection. A care-visiting app
-  cannot justify drawing over other apps. **Expect to declare or remove it.**
-- **The declaration form also demands a video and sign-in credentials.** Play
-  evaluates permission requests during release and may require the Permissions
-  Declaration Form, which needs a written core-functionality justification, a
-  video walkthrough, and — because Meticle Care has no public content — a
-  **test username and password** for a real organisation and staff account.
-  Only accounts created specifically for review should be supplied, never a
-  production user's.
+- **`SYSTEM_ALERT_WINDOW` is blocked in Expo's Android config.** Added
+  `android.permission.SYSTEM_ALERT_WINDOW` to `android.blockedPermissions` in
+  `apps/mobile/app.json`. Fresh prebuild output omits it from the app manifest
+  and emits the Android manifest-merger remove directive. The SOS button is an
+  in-app React Native control; it uses the regular alert/action sheet and phone
+  dialler, and has no overlay API dependency. Confirm the permission is absent
+  from the merged release manifest on the next Android release build before
+  upload (not verifiable on this machine because Java is unavailable).
+- **Play reviewer access is separate from permissions.** Add the test username
+  and password in Play Console's **App access** section so reviewers can reach
+  gated content. Do not store the password in this repository. Since
+  `SYSTEM_ALERT_WINDOW` is blocked, no justification for that permission should
+  be needed if it is absent from the final app bundle.
+
+## Verified live against the Play API — 2 October 2026
+
+These were checked with the service account against the real
+`androidpublisher` API rather than assumed. No release was published.
+
+| Check | Result |
+| --- | --- |
+| Service account authenticates | OK — `meticlecare-play@meticlecare.iam.gserviceaccount.com` |
+| Google Play Android Developer API enabled | Yes — an edit was created and deleted successfully |
+| App `com.meticlecare.mobile` exists in Play Console | Yes — `edits.insert` returned an edit id |
+| Any release in any track | **None.** `internal`, `alpha`, `beta` and `production` are all empty |
+| Any APK or AAB ever uploaded | **None** — both artifact lists are empty |
+| Store listing | Only `defaultLanguage: en-GB`; no title, description, or screenshots set |
+| `versionCode 1` already consumed | **No** — nothing has been uploaded, so `1` is still free |
+
+### The existing AAB must not be submitted
+
+The `production` profile already had a finished store build
+(`0759fd18-27de-40e7-9be4-62b4f84ce5c3`, 26 September 2026). Its
+`base/manifest/AndroidManifest.xml` was extracted and decoded: it **contains
+`android.permission.SYSTEM_ALERT_WINDOW`**, which is the permission
+`android.blockedPermissions` now removes. `aapt2` cannot dump an AAB and
+`strings` is not on PATH on this machine, so the protobuf manifest was decoded
+directly; both SYSTEM_ALERT_WINDOW and the package name are present, and
+`RECORD_AUDIO`, the external-storage permissions, `MANAGE_EXTERNAL_STORAGE`
+and `QUERY_ALL_PACKAGES` are absent.
+
+That build predates the `app.json` fix and is not an ancestor of `master`, so
+it cannot be patched. It was **not** submitted: Play requires strictly
+increasing `versionCode`, and uploading it would permanently burn `1` on a
+bundle that contradicts the app's own policy declaration. A fresh build was
+started instead.
+
+## Still blocking a real production release
+
+| Blocker | Why it matters | Owner |
+| --- | --- | --- |
+| ~~No store screenshots~~ | **Tooling ready 2 October 2026**, but nothing captured yet. Seven-shot scripted capture exists and now includes the login screen, and each file is checked against Play's format rules (24-bit PNG, no alpha — which `adb screencap` gets wrong by default). **Not verified end to end: this machine has no emulator package and no AVD.** | Needs an emulator |
+| ~~Store icon is 1024×1024~~ | **Solved 3 October 2026.** A compliant 512×512 32-bit icon and a 1024×500 feature graphic now exist, generated by `brand/build-from-supplied.mjs` from the supplied brand kit and validated by `npm run brand:check`. They are installed at `store-assets/play-icon-512.png` and `store-assets/play-feature-graphic-1024x500.png`, wired into `app.json`, and **still need uploading to Play by hand.** See `brand/README.md`. |
+| ~~No feature graphic~~ | **Solved** — same as above |
+| Data safety form | Must match the privacy answers in `docs/STORE_PRIVACY_ANSWERS.md` | You, in Play Console |
+| Content rating questionnaire | Unanswered; blocks production | You, in Play Console |
+| ~~Play reviewer hits `BILLING_RESTRICTED`~~ | **Never existed. Corrected 2 October 2026.** The expired-trial evidence came from the *local* dev database (`localhost:5432/meticle`) and was mistaken for production; the app calls `https://meticlecare.com/api` (`apps/mobile/src/services/api.ts`), whose organisation is active. There is no billing blocker, nothing to seed and nothing to arm. Migration `140_time_boxed_review_access` exists but no row holds a grant, so it is inert. | Nothing |
+| No upload-key backup | EAS holds the keystore ("Build Credentials 1LdWOI-6iH"); losing Expo access means losing the key | You |
+
+## First draft is uploaded — 2 October 2026
+
+Build `2668b5cd-5e38-47cb-aa0f-f551ea9413db` was submitted and confirmed
+through the Play API, not just by EAS's own success message:
+
+```
+tracks/internal -> { "name": "0.1.0", "versionCodes": ["1"], "status": "draft" }
+bundles          -> versionCode 1, sha256 40e9eb8e0f98538a71e20e68649c4c4157e493b58e103c7a99b68deb477d9e4c
+```
+
+The sha256 matches the downloaded AAB byte for byte, so the upload is verified
+end to end. `alpha`, `beta` and `production` remain empty and nothing is
+reviewable or installable.
+
+The uploaded manifest was extracted and decoded before submission:
+`SYSTEM_ALERT_WINDOW`, `RECORD_AUDIO`, the external-storage permissions,
+`MANAGE_EXTERNAL_STORAGE` and `QUERY_ALL_PACKAGES` are all **absent**. Package
+is `com.meticlecare.mobile`.
+
+The service account key used for the upload was deleted from the working tree
+immediately afterwards, as agreed. **Rotate it in Google Cloud** before the next
+publish — the key that just authorised this upload is no longer needed and
+should not be reused.
 
 ## The three audit findings that did **not** need fixing
 
-- **`expo-dev-client` in `dependencies`** — flagged as leaking
-  `SYSTEM_ALERT_WINDOW`. In SDK 57 its `android/src/main/AndroidManifest.xml` is
-  empty and its merged manifest declares zero permissions. It is also what makes
-  `developmentClient: true` work, so it stays.
+- **`expo-dev-client` in `dependencies`** — previously flagged as leaking
+  `SYSTEM_ALERT_WINDOW`. In SDK 57 its own Android manifest is empty; the
+  permission came from Expo's generated app manifest and is now blocked there.
+  It is also what makes `developmentClient: true` work, so it stays.
 - **Android release signing on `signingConfigs.debug`** — real in the local
   CNG output, but `android/` is gitignored and EAS signs with a managed
   keystore. Not a repo problem.
@@ -103,20 +174,21 @@ submission, so it was checked against the primary source rather than assumed.
 
 ## Still blocked — needs credentials, a device, or a legal decision
 
-- **A Google Play review test account, with written access instructions.** Meticle
-  Care requires sign-in, so Play's review of the permissions declaration and of
-  the store listing needs working credentials for a seeded organisation and staff
-  user. Play's own guidance is explicit that only dedicated test credentials
-  should be given. Nothing in the repo can stand in for this.
-- **`SYSTEM_ALERT_WINDOW` in the release manifest.** See above. Either it gets a
-  defensible core-functionality justification, or it gets removed from the
-  generated manifest before the first upload. It is currently in neither state.
-
+- **Google Play reviewer access is your own account, and that is deliberate.**
+  `itsopeyemi@gmail.com` is the existing ORG_ADMIN; its role is preserved. The
+  production organisation is active and holds only dummy data, so handing your
+  own login to Play reviewers exposes nothing. Nothing needs seeding and no
+  billing change is required — an earlier version of this list claimed
+  otherwise on the strength of a local dev database, which was simply the wrong
+  tenant. Revisit when the organisation holds real records. See
+  `docs/PLAY_REVIEWER_GUIDE.md`; the password belongs only in Play Console's
+  secure App access form.
 - **Play upload key + EAS managed keystore.** Exact commands in the runbook. The
   one trap: the first bundle you upload fixes the upload key forever.
-- **Play Data safety and Apple App Privacy forms.** Answers drafted from the
-  code in `docs/STORE_PRIVACY_ANSWERS.md`. They need your sign-off, not more
-  engineering.
+- **Play Data safety and Apple App Privacy forms.** The draft answers are in
+  `docs/STORE_PRIVACY_ANSWERS.md`. In Play Console, open the app and go to
+  **Policy and programs → App content → Data safety**. They need your sign-off,
+  not more engineering.
 - **Retention lawful basis** for keeping a worker's professional name after
   deletion. A DPO or legal adviser should confirm the position. The public
   deletion page now states what is kept and why, so this position is published

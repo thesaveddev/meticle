@@ -32,6 +32,13 @@ commercial or legal position rather than a code fact, it is marked ⚠️.
 
 ## Google Play — Data safety form
 
+**Where to complete it:** In Google Play Console, open the Meticle Care app and go to
+**Policy and programs → App content → Data safety**. This document is the draft
+answer source; the form itself is completed and submitted in Play Console.
+
+**Data Protection Officer:** Adetoye — `dpo@meticlecare.com` (also listed on the
+public privacy policy).
+
 Top-level: **Your app collects or shares some of the required user data types: Yes**
 
 | Data type | Collected | Shared | Purpose |
@@ -181,6 +188,7 @@ self-deletion. Immediate erasure is stricter than the policy promises, so it is
 not a conflict — but there is no scheduled 90-day purge job, so anything that
 depends on that clause is not implemented.
 
-⚠️ **Confirm the lawful basis for retaining the professional name with your DPO
-or legal adviser** before the Data safety form is submitted. The engineering
-supports it; the policy position is a legal call.
+⚠️ **Confirm the lawful basis for retaining the professional name with the DPO
+(Adetoye, `dpo@meticlecare.com`) or a legal adviser** before the Data safety
+form is submitted. The engineering supports it; the policy position is a legal
+call.

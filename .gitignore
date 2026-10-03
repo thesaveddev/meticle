@@ -42,3 +42,21 @@ Store assets/
 store-assets/
 *.apk
 *.aab
+
+# Google Play / EAS service account keys. These are bearer credentials for the
+# Play publishing API: committing one hands anyone who clones the repo the
+# ability to upload releases to the store. They belong in a password manager or
+# an env var, never in the working tree.
+*service*account*.json
+*play*key*.json
+google-services*.json
+meticlecare-*.json
+*.p12
+*.keystore
+*.jks
+
+# Play Data safety CSV exports. `template.csv` is downloaded from the developer
+# account and `generated.csv` is derived from it; neither is source, and the
+# export contains the full declaration.
+store/data-safety/template.csv
+store/data-safety/generated.csv

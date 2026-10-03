@@ -48,6 +48,8 @@ import { EmergencyButton, organisationSosContacts } from './src/components/Emerg
 import { isCaptureMode } from './src/capture/mode'
 import { installCaptureMode, captureQueueFor, captureMisses } from './src/capture/install'
 import { useCaptureTour } from './src/capture/useCaptureTour'
+import { announceShot } from './src/capture/signal'
+import { LOGIN_SHOT } from './src/capture/shots'
 import { CAPTURE_INCIDENT_DRAFT } from './src/capture/fixtures'
 import type { CaptureScene, CaptureTarget } from './src/capture/shots'
 
@@ -230,7 +232,17 @@ function AppInner() {
       // Capture mode signs the app in with fixture data before the normal boot
       // path looks for a session, so every line below runs exactly as it does
       // on a real launch.
-      if (isCaptureMode()) await installCaptureMode()
+      //
+      // The login screenshot is taken here, in the gap between a cold start and
+      // being signed in, because that is the only moment `LoginScreen` is on
+      // screen during a capture run: `installCaptureMode()` immediately puts a
+      // session in place, and every screen after this one is behind it. Announce
+      // first, hold long enough to be photographed, then sign in.
+      if (isCaptureMode()) {
+        await announceShot(LOGIN_SHOT)
+        await new Promise(resolve => setTimeout(resolve, LOGIN_SHOT.dwellMs))
+        await installCaptureMode()
+      }
       const stored = await readSession()
       if (!stored) { setBooting(false); return }
       try {
@@ -283,7 +295,14 @@ function AppInner() {
       setScreenStack([{ kind: 'tabs' }, { kind: 'clientDetail', personId: target.personId }])
       return
     }
-    setScreenStack([{ kind: 'tabs' }, { kind: 'incident', personId: target.personId, visitId: target.visitId }])
+    if (target.kind === 'incident') {
+      setScreenStack([{ kind: 'tabs' }, { kind: 'incident', personId: target.personId, visitId: target.visitId }])
+      return
+    }
+    // 'login' is never routed to here — the bootstrap announces that shot before
+    // this handler exists. The branch exists so the handler stays total: it used
+    // to fall through to `incident` unconditionally, which compiled only
+    // because `incident` was the last member of the union.
   }, [visits])
 
   useCaptureTour({

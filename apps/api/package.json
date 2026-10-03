@@ -8,6 +8,7 @@
     "start": "node -r scripts/no-deprecation.js dist/index.js",
     "setup-db": "ts-node -r ./scripts/no-deprecation.js src/shared/database/setup.ts",
     "backfill:pii-encryption": "ts-node -r ./scripts/no-deprecation.js src/scripts/backfill-pii-encryption.ts",
+    "seed:play-reviewer": "ts-node -r ./scripts/no-deprecation.js src/scripts/seed-play-reviewer.ts",
     "certs:generate": "ts-node scripts/generate-certs.ts",
     "test": "vitest run",
     "test:watch": "vitest"

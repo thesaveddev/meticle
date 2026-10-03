@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="9. Contact">
-        <p>Data Protection Officer: dpo@meticlecare.com<br/>Privacy concerns: privacy@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
+        <p>Data Protection Officer: Adetoye (dpo@meticlecare.com)<br/>Privacy concerns: privacy@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
       </Section>
     </Container>
     </>

@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { formatDateOnly } from '../utils/dateFormat'
+import { parseJsonArrayColumn } from '../utils/safeJson'
 import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
@@ -127,7 +128,9 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const personName = `${person.first_name} ${person.last_name}`
   const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
   const visibleTabs = isDomiciliary ? TABS.filter(item => item.key !== 'meds') : TABS
-  const allergies = typeof person.allergies === 'string' ? JSON.parse(person.allergies || '[]') : (person.allergies || [])
+  // These are text columns holding JSON that a human may have filled in as a bare
+  // word ("Peanut", "N/A"). An unguarded parse crashed this whole screen.
+  const allergies = parseJsonArrayColumn(person.allergies)
   const carePlans = (person.care_plans || []).filter((cp: any) => cp.status === 'active')
   const allCarePlans = person.care_plans || []
   const contacts = person.family_contacts || []
@@ -791,17 +794,17 @@ function PersonalTab({ person, c }: any) {
 
       <Card title="Flags & Tags" c={c}>
         {(() => {
-          const flags = typeof person.flags === 'string' ? JSON.parse(person.flags || '[]') : (person.flags || [])
-          const tags = typeof person.tags === 'string' ? JSON.parse(person.tags || '[]') : (person.tags || [])
+          const flags = parseJsonArrayColumn(person.flags)
+          const tags = parseJsonArrayColumn(person.tags)
           if (flags.length === 0 && tags.length === 0) return <Text style={[styles.emptyText, { color: c.muted }]}>No flags or tags</Text>
           return (
             <View style={styles.tagRow}>
-              {flags.map((f: string, i: string) => (
+              {flags.map((f: string, i: number) => (
                 <View key={`f${i}`} style={[styles.tag, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
                   <Text style={[styles.tagText, { color: '#DC2626' }]}>{f}</Text>
                 </View>
               ))}
-              {tags.map((t: string, i: string) => (
+              {tags.map((t: string, i: number) => (
                 <View key={`t${i}`} style={[styles.tag, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }]}>
                   <Text style={[styles.tagText, { color: c.primary }]}>{t}</Text>
                 </View>

@@ -33,7 +33,10 @@
   "submit": {
     "production": {
       "ios": {},
-      "android": {}
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
     }
   }
 }

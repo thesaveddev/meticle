@@ -21,6 +21,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { conformScreenshot, checkScreenshotSet, formatReport } from './play-screenshot-spec.mjs'
 
 const execFileAsync = promisify(execFile)
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -52,8 +53,15 @@ function fail(message) {
   process.exit(1)
 }
 
+/**
+ * How many screenshots the store listing is written around. Kept as a named
+ * constant so the guard below can name it, and so raising the count is an edit
+ * somebody makes on purpose.
+ */
+const EXPECTED_SHOT_COUNT = 7
+
 const USAGE = `
-  Takes the six Meticle Care store screenshots from a running capture build.
+  Takes the seven Meticle Care store screenshots from a running capture build.
 
     --platform ios|android   Required. Which device to photograph.
     --out <dir>              Where to write. Default: <repo>/store-assets/screenshots/<platform>
@@ -62,6 +70,9 @@ const USAGE = `
     --timeout <seconds>      How long to wait for each shot. Default: 90.
     --dry-run                Print the plan and exit. Touches nothing.
     --print-launch           Print the two commands that start the capture build.
+
+  The login shot (00-login) is announced during app start-up, so it only appears
+  on a cold start. Reloading from Metro keeps the session and skips it.
 `
 
 /* ─── The shot list ─────────────────────────────────────────── */
@@ -73,7 +84,13 @@ const USAGE = `
 function readShotList() {
   const source = readFileSync(join(APP_ROOT, 'src/capture/shots.ts'), 'utf8')
   const shots = []
-  const blockPattern = /\{\s*index:\s*(\d+),\s*id:\s*'([^']+)',\s*title:\s*'([^']*)',\s*storeCaption:\s*'([^']*)',[\s\S]*?dwellMs:\s*([A-Za-z0-9_ +]+?),?\s*\}/g
+  // The gap between `storeCaption` and `dwellMs` is matched lazily, and the match
+// is anchored by requiring `dwellMs` to be the *last* property — `,\s*\}`. A
+// plain `[\s\S]*?` will happily run past the end of its own object into the
+// next entry when an entry contains a block comment, which deleted `01-today`
+// from the plan and logged `00-login` twice: a capture that quietly ships the
+// wrong screenshots rather than failing.
+const blockPattern = /\{\s*index:\s*(\d+),\s*id:\s*'([^']+)',\s*title:\s*'([^']*)',\s*storeCaption:\s*'([^']*)',[\s\S]*?dwellMs:\s*([A-Za-z0-9_ +]+?),\s*\}/g
   let match
   while ((match = blockPattern.exec(source)) !== null) {
     shots.push({
@@ -85,7 +102,19 @@ function readShotList() {
     })
   }
   if (shots.length === 0) fail('Could not read the shot list from src/capture/shots.ts. Has its shape changed?')
-  if (shots.length !== 6) fail(`The shot list has ${shots.length} shots, not 6. The store listing expects six.`)
+  // A duplicate id means two entries were matched for one shot, which is how
+  // the login entry got listed twice while another silently vanished. Checked
+  // separately from the count, because the count alone did not catch it.
+  const ids = shots.map(shot => shot.id)
+  const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i)
+  if (duplicates.length) fail(`Duplicate shot ids in the shot list: ${[...new Set(duplicates)].join(', ')}.`)
+  // Deliberately exact rather than a range. Adding or removing a screenshot
+  // renumbers the listing, so it has to be a decision someone makes on purpose
+  // rather than something that slips through because a new entry happened to
+  // still satisfy a bound. Play's own limit is 2-8 phone screenshots.
+  if (shots.length !== EXPECTED_SHOT_COUNT) {
+    fail(`The shot list has ${shots.length} shots, not ${EXPECTED_SHOT_COUNT}. The store listing expects ${EXPECTED_SHOT_COUNT}. If that is deliberate, change EXPECTED_SHOT_COUNT and the listing captions together.`)
+  }
   return shots
 }
 
@@ -195,7 +224,15 @@ const platform = {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
-async function waitForShot(target, appId, device, timeoutSeconds) {
+/**
+ * Wait for the app to announce `target` and then photograph the device.
+ *
+ * `target` is the platform key ('ios' | 'android') and `shot` is the entry from
+ * the app's own shot list. These are two different things: passing the shot
+ * where the platform key belongs throws "Cannot read properties of undefined"
+ * on the first shot, before anything is captured.
+ */
+async function waitForShot(target, shot, appId, device, timeoutSeconds) {
   const deadline = Date.now() + timeoutSeconds * 1000
   let lastSeq = -1
   while (Date.now() < deadline) {
@@ -204,11 +241,14 @@ async function waitForShot(target, appId, device, timeoutSeconds) {
       lastSeq = signal.seq
       if (signal.state === 'error') fail(`The app reported an error during the capture tour: ${signal.error}`)
       if (signal.state === 'done') return { done: signal }
-      if (signal.state === 'shot' && signal.shot === target.id) return { shot: signal }
+      if (signal.state === 'shot' && signal.shot === shot.id) return { shot: signal }
     }
     await sleep(400)
   }
-  fail(`Timed out after ${timeoutSeconds}s waiting for "${target.id}". Is the app running with EXPO_PUBLIC_CAPTURE_MODE=1? Run with --print-launch to see the command.`)
+  const coldStart = shot.id === '00-login'
+    ? ' The login shot is only announced on a cold start — fully quit the app (not just reload from Metro) and run this again.'
+    : ''
+  fail(`Timed out after ${timeoutSeconds}s waiting for "${shot.id}". Is the app running with EXPO_PUBLIC_CAPTURE_MODE=1?${coldStart} Run with --print-launch to see the command.`)
 }
 
 function launchInstructions(target, appId) {
@@ -273,15 +313,22 @@ async function main() {
   const captured = []
   for (const shot of wanted) {
     process.stdout.write(`  ${String(shot.index).padStart(2, '0')}/${wanted.length}  ${shot.id.padEnd(22)} waiting for the screen…`)
-    await waitForShot(shot, identifier, device, args.timeout)
+    await waitForShot(args.platform, shot, identifier, device, args.timeout)
     const destination = join(outDir, `${shot.id}.png`)
     platform[args.platform].capture(device, destination)
     if (!existsSync(destination)) fail(`The screenshot for ${shot.id} was not written.`)
     console.log(` saved`)
     captured.push({ ...shot, file: destination })
-    // The app holds the screen for its dwell time; do not race it to the next
-    // shot or the capture lands mid-transition.
-    await sleep(shot.dwellMs)
+    // No sleep here on purpose. The app holds each screen for its own dwell
+    // time, and the `waitForShot` at the top of the next iteration already
+    // blocks until that shot is announced — so this loop resynchronises itself.
+    //
+    // Sleeping a fixed dwell as well meant the two clocks ran in parallel: a
+    // capture takes real time over adb, and that time was added on top of the
+    // dwell, so every shot pushed the script a little further behind the tour.
+    // Once it was behind by more than one dwell it could never catch up, and it
+    // sat waiting for a shot the app had already passed — 00-login saved and
+    // then a timeout on every remaining shot, with the app reporting `done`.
   }
 
   // The app reports which endpoints its fixtures could not answer when the tour
@@ -290,6 +337,13 @@ async function main() {
   const done = await platform[args.platform].readStep(device, identifier)
   const misses = done?.state === 'done' ? (done.misses || []) : []
 
+  // Play wants 24-bit PNG with no alpha, and screencap/simctl both emit RGBA.
+  // Conform them here rather than discovering it at upload time.
+  const conformed = captured.map(shot => conformScreenshot(shot.file))
+  const setCheck = checkScreenshotSet(conformed)
+  console.log(`\n  Play format check`)
+  console.log(formatReport(conformed, setCheck).join('\n'))
+
   const manifest = {
     capturedAt: new Date().toISOString(),
     platform: args.platform,
@@ -297,6 +351,10 @@ async function main() {
     app: identifier,
     shots: captured.map(({ index, id, title, storeCaption, file }) => ({ index, id, title, storeCaption, file: file.replace(`${REPO_ROOT}/`, '') })),
     fixtureMisses: misses,
+    playFormat: {
+      ok: setCheck.ok,
+      shots: conformed.map(r => ({ file: r.path.replace(`${REPO_ROOT}/`, ''), width: r.width, height: r.height, bytes: r.bytes, rewrittenTo24Bit: r.rewrote, ok: r.ok })),
+    },
   }
   writeFileSync(join(outDir, 'capture-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
   writeFileSync(join(outDir, 'store-listing-copy.md'), listingCopy(manifest))
@@ -304,6 +362,9 @@ async function main() {
   console.log(`\n  ${captured.length} screenshot(s) saved.`)
   console.log(`  Manifest:  ${join(outDir, 'capture-manifest.json')}`)
   console.log(`  Copy:      ${join(outDir, 'store-listing-copy.md')}`)
+  if (!setCheck.ok) {
+    console.log('\n  WARNING: some screenshots do not meet Play\'s format requirements. See above.')
+  }
   if (misses.length) {
     console.log(`\n  WARNING: the app asked for ${misses.length} endpoint(s) the fixtures do not answer.`)
     console.log('  A screen may be emptier in the image than it should be:')
@@ -328,9 +389,11 @@ function listingCopy(manifest) {
   }
   lines.push('## Before uploading')
   lines.push('')
-  lines.push('- Play wants at least 2 phone screenshots, 16:9 or 9:16, 320–3840 px on the long edge.')
-  lines.push('- Apple wants a 6.9" and a 6.5" set; only one size is mandatory.')
+  lines.push('- Play wants 2–8 phone screenshots, each side 320–3840 px, aspect ratio 16:9 or 9:16, up to 8 MB.')
+  lines.push('- Screenshots are 24-bit PNG with no alpha. The capture script rewrites them; do not re-export with alpha.')
   lines.push('- These are device-resolution images. If Play rejects the aspect ratio, crop rather than rescale.')
+  lines.push('- Apple wants a 6.9" and a 6.5" set; only one size is mandatory.')
+  lines.push('- The login shot needs a cold start of the app. A reload from Metro keeps the session and skips it.')
   lines.push('- Check nothing in the image identifies a real client. The fixtures are invented, but the app chrome is not.')
   lines.push('')
   return lines.join('\n')

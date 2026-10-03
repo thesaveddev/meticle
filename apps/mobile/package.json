@@ -15,6 +15,7 @@
     "capture:android": "node scripts/capture-store-screenshots.mjs --platform android",
     "capture:plan:ios": "node scripts/capture-store-screenshots.mjs --platform ios --dry-run",
     "capture:plan:android": "node scripts/capture-store-screenshots.mjs --platform android --dry-run",
+    "capture:spec-test": "node scripts/play-screenshot-spec.test.mjs",
     "eas-build-post-install": "npm run verify",
     "build:dev": "eas build --profile development",
     "build:preview": "eas build --profile preview",

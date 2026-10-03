@@ -10,6 +10,13 @@ export interface AuthUser {
   role: UserRole;
   organizationId?: string;
   billingRestricted?: boolean;
+  /**
+   * True when this request is covered by a time-boxed review grant
+   * (migration 140). Set on the request only — never in the signed token — so
+   * revoking or expiring the grant takes effect on the very next request rather
+   * than whenever the holder's token happens to expire.
+   */
+  reviewAccess?: boolean;
 }
 
 declare global {
@@ -128,13 +135,37 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const isExempt = subExemptPaths.some(p => path.startsWith(p));
     if (!isExempt && decoded.organizationId) {
       const orgResult = await query(
-        `SELECT subscription_status, trial_ends_at, current_period_end, grace_period_ends_at FROM organizations WHERE id = $1`,
+        `SELECT subscription_status, trial_ends_at, current_period_end, grace_period_ends_at, review_access_expires_at
+           FROM organizations WHERE id = $1`,
         [decoded.organizationId]
       );
       if (orgResult.rows.length > 0) {
         const org = orgResult.rows[0];
         const status = org.subscription_status;
         const now = new Date();
+
+        // Time-boxed review access (migration 140). NULL for every organisation
+        // that has not been granted it deliberately, which is every real
+        // tenant, so this branch does not run in normal operation at all.
+        //
+        // The comparison is against NOW() on every request rather than a stored
+        // boolean, so a grant expires on its own with no cleanup job and no
+        // redeploy. It is checked *before* any other subscription logic so that
+        // a reviewer reaching an expired trial gets the full product rather
+        // than the read-only grace-period allowlist — a reviewer has to be able
+        // to exercise write paths to review them.
+        const reviewAccessUntil = org.review_access_expires_at
+          ? new Date(org.review_access_expires_at)
+          : null;
+        if (reviewAccessUntil && reviewAccessUntil > now) {
+          decoded.reviewAccess = true;
+          // `req.user` has to be set here as well as at the end of this
+          // middleware: returning early without it leaves every downstream
+          // handler reading an unset request user.
+          req.user = decoded;
+          return next();
+        }
+
         const trialEnded = org.trial_ends_at && new Date(org.trial_ends_at) < now;
         const periodEnded = org.current_period_end && new Date(org.current_period_end) < now;
         const graceEndsAt = org.grace_period_ends_at ? new Date(org.grace_period_ends_at) : null;

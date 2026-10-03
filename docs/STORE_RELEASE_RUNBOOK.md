@@ -2,7 +2,16 @@
 
 The remaining work is all credential- or device-dependent. Nothing here can be
 done from a laptop without an Expo account, a Google Play developer account and
-an Apple Developer account.
+an Apple Developer account. Play reviewer access instructions are in
+`docs/PLAY_REVIEWER_GUIDE.md`; enter the password only in Play Console's secure
+App access fields, never in the repository. The reviewer account is
+`itsopeyemi@gmail.com`, the existing ORG_ADMIN, with its role preserved. The
+production organisation is active and holds only dummy data, so no separate
+login is needed and no billing change is required before testing reviewer
+navigation. An earlier version of this runbook claimed the trial had expired
+and the billing middleware would block app data; that came from reading the
+*local* dev database, which is not the tenant the reviewer signs in to, and it
+was wrong. See `docs/PLAY_REVIEWER_GUIDE.md`.
 
 ## 1. Android signing
 
@@ -91,7 +100,7 @@ Minimum requirements, checked against Google Play Console Help on 1 Oct 2026
 | App icon (store listing) | **512×512**, 32-bit PNG with alpha, max 1024 KB | `apps/mobile/assets/icon.png` is 1024×1024 at 766 KB. Wrong size for this slot — it needs a 512×512 export. The oversized original is still the right source. |
 | Short description | 80 characters | Written in `app.json` |
 | Feature graphic | **1024×500**, JPEG or 24-bit PNG, **no alpha channel** | Not made |
-| Phone screenshots | **At least four**, minimum 1080 px; 9:16 portrait or 16:9 landscape (landscape minimum 1920×1080). **Up to eight.** | Six scripted — see below |
+| Phone screenshots | **At least four**, minimum 1080 px; 9:16 portrait or 16:9 landscape (landscape minimum 1920×1080). **Up to eight.** | Seven scripted — see below |
 | Tablet / Chromebook screenshots | At least four, 1080–7680 px, 16:9 or 9:16 | Optional, and would need a separate capture |
 
 Two figures in this runbook were wrong until now and are corrected above. It
@@ -107,23 +116,110 @@ equivalent minimum worth citing without checking it directly:
 | --- | --- |
 | Apple | 6.9" and 6.5" iPhone sets. Only one size is mandatory. 1290×2796 (6.7"/6.9") and 1242×2688 or 1284×2778 (6.5") are accepted. |
 
-### The six shots, and how to take them
+### The seven shots, and how to take them
 
 The shot list, in the order a reviewer reads them:
 
-1. Today / visit list — the first screen a care worker sees
-2. Visit in progress with check-in, showing the location capture
-3. Client detail — care notes, body map, medication
-4. Report an incident — the safeguarding path
-5. Chat — team communication
-6. Offline sync rail — the differentiator
+1. Sign in — the first screen anyone meets
+2. Today / visit list — the first screen a care worker sees
+3. Visit in progress with check-in, showing the location capture
+4. Client detail — care notes, body map, medication
+5. Report an incident — the safeguarding path
+6. Chat — team communication
+7. Offline sync rail — the differentiator
 
 That list is written down once, in `apps/mobile/src/capture/shots.ts`, with the
 line of store copy that goes under each image. Re-shooting after a rebuild does
 not mean re-deciding what to photograph.
 
+**The login shot is the odd one out.** Capture mode signs the app in with
+fixture data before anything else, which is what makes the other six
+repeatable — and which also means `LoginScreen` is never on screen during a
+tour. So the app announces that shot itself, during start-up, in the gap
+before it signs in.
+
+The consequence is that **the login shot only appears on a cold start.** A
+reload from Metro keeps the session and the shot is silently skipped. Fully
+quit the app before a run that needs all seven.
+
 **Do them by hand if you have to — but the scripted route is one command and
-gives you the same six images every time.**
+gives you the same seven images every time.**
+
+#### Verified Android setup (3 October 2026)
+
+The emulator this needs is now installed and known to work. What was actually
+run, so it does not have to be rediscovered:
+
+```bash
+# 1. SDK pieces (the machine had adb and platform-tools but no emulator)
+sdkmanager --install "emulator" "system-images;android-34;google_apis;x86_64"
+
+# 2. One AVD. **The screen must be 9:16.**
+avdmanager create avd -n meticle-capture \
+  -k "system-images;android-34;google_apis;x86_64" -d pixel_5
+
+# 3. Resize it. The Pixel profile's default is 1080x2340, which is 2.17:1.
+#    Play rejects anything beyond 2:1, so every screenshot would be refused.
+sed -i 's/^hw.lcd.height=.*/hw.lcd.height=1920/' ~/.android/avd/meticle-capture.avd/config.ini
+
+# 4. Boot headless
+emulator -avd meticle-capture -no-window -no-audio -no-boot-anim \
+         -no-snapshot -gpu swiftshader_indirect
+```
+
+**The emulator refuses to start unless roughly 2560 MB of Windows commit is
+free**, and it computes that requirement itself — passing `-memory` or editing
+`hw.ramSize` does not lower it. A Firefox window was enough to stop it on a
+16 GB machine. Close something before trying.
+
+The build that works is the **EAS `development` profile**, not a local Gradle
+build: `assembleDebug` fails locally with 42 `ld.lld` errors in
+`react-native-worklets` (`undefined symbol: std::__ndk1::...`, the C++ runtime
+is never added to the link line), which the EAS toolchain does not reproduce.
+
+```bash
+cd apps/mobile
+npx eas-cli build --platform android --profile development   # dev client, debuggable
+adb install -r <the .apk>                                        # run-as needs debuggable
+adb reverse tcp:8081 tcp:8081
+EXPO_PUBLIC_CAPTURE_MODE=1 npx expo start --dev-client --port 8081
+node scripts/capture-store-screenshots.mjs --platform android
+```
+
+Two things about this sequence that are not obvious:
+
+- **Start the capture script before you cold-start the app.** `00-login` is
+  announced once, during boot; if the watcher is not already polling, that shot
+  is gone.
+- **After `adb shell pm clear`, dismiss the dev-client's one-time "developer
+  menu" intro** before capturing, or it sits across the bottom of all seven
+  images. It only reappears after a data clear.
+
+#### Known: the run is not yet reproducible on a slow machine
+
+A full seven-shot set has been captured and passed Play's format checks, but
+the images are not yet uploadable. On this machine the app takes long enough to
+boot that the first three shots photograph one unrendered frame — the three
+files come out byte-identical — and the fourth lands on a blank screen. The
+format checker passes regardless, because a flat grey frame is a valid PNG at
+1080x1920.
+
+**So a green format check is not evidence the screenshots are good.** Open them.
+The most likely fixes are to raise the per-shot dwell times in
+`src/capture/shots.ts`, or to run the capture on a machine with more free memory
+so the emulator boots faster.
+
+#### Play's format rules, checked for you
+
+Screenshots are a different asset from the icon: Play wants **24-bit PNG with
+no alpha**, and `adb screencap` emits 32-bit RGBA. The capture script rewrites
+each file and then checks every one against Play's published rules — 320–3840px
+per side, aspect ratio within 2:1, under 8MB, 2–8 screenshots — and records the
+result in `capture-manifest.json` under `playFormat`.
+
+If a capture ever arrives with genuinely translucent pixels the script refuses
+to flatten it rather than compositing the transparency onto black, which would
+look subtly wrong in the listing and nobody would notice until it shipped.
 
 #### How the scripted capture works
 
@@ -176,10 +272,10 @@ alongside two files it generates for you:
 **Check the images before uploading them.** The script reports endpoints the
 fixtures do not answer, which is how a screen that rendered emptier than it
 should have shows up. Treat a non-empty list as a blocker rather than a note:
-it means some panel in one of the six images is empty, and the image still
+it means some panel in one of the seven images is empty, and the image still
 looks plausible enough to publish. The fix is to add the missing fixture to
 `src/capture/fixtures.ts` and re-run, not to upload and hope. The script cannot
-check anything else — that is what the six-shot test suite cannot do for you.
+check anything else — that is what the seven-shot test suite cannot do for you.
 
 #### What is deterministic, and what is not
 

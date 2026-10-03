@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef } from 'react'
 import { isCaptureMode } from './mode'
-import { CAPTURE_SHOTS, type CaptureScene, type CaptureTarget } from './shots'
+import { TOUR_SHOTS, type CaptureScene, type CaptureTarget } from './shots'
 import { announceDone, announceError, announceShot } from './signal'
 
 /** How long a screen is given to finish its own requests before the shot. */
@@ -56,7 +56,11 @@ export function useCaptureTour({ ready, onScene, onTarget, misses, sleep = delay
     let cancelled = false
     ;(async () => {
       try {
-        for (const shot of CAPTURE_SHOTS) {
+        // `TOUR_SHOTS`, not `CAPTURE_SHOTS`: the login shot is announced by the
+        // bootstrap while LoginScreen is genuinely mounted. Walking to it here
+        // would photograph a signed-in app labelled as the sign-in screen,
+        // which is worse than not having the shot at all.
+        for (const shot of TOUR_SHOTS) {
           if (cancelled) return
           onScene(shot.scene)
           onTarget(shot.target)

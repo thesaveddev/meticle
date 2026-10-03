@@ -1,0 +1,251 @@
+{
+  "$comment": [
+    "Single source of truth for the Meticle Care Google Play listing.",
+    "Everything in `pushable` is set through the Play Developer API by",
+    "`npm run store:publish`. Everything in `consoleOnly` cannot be — see the",
+    "field's own note for which API is missing it, because that is not a",
+    "limitation of this script but of Google's v3 surface."
+  ],
+
+  "packageName": "com.meticlecare.mobile",
+
+  "pushable": {
+    "defaultLanguage": "en-GB",
+
+    "listings": {
+      "en-GB": {
+        "title": "Meticle Care",
+        "shortDescription": "Visits, care records and compliance, on the move.",
+        "fullDescription": "Meticle Care is a mobile app for care workers and the managers who support them. It keeps the visit, the record behind it and the compliance that surrounds it in one place, on the phone the worker already carries.\n\nFOR CARE WORKERS\n\nYour day, without the guesswork. Today's visits with the people you are due to see, the times, and what each call needs. Check in and out at the door. Write the care note while the detail is fresh. Raise an incident and get a straight answer about what happens next. Message a colleague without leaving the visit you are in.\n\nFOR MANAGERS\n\nThe overview a manager needs between visits: who is on shift, who is running late, which visits are unsigned, and how the week's hours are adding up. Care plans, risk assessments and body maps for the people on your round. Timesheets, mileage and payslips without a spreadsheet in sight.\n\nWHAT IT RECORDS\n\nCare notes and daily notes, body maps and monitoring records, medication and safeguarding entries, incident reports, visit timesheets, annual leave and availability, open shifts and swap requests, and staff chat.\n\nBUILT FOR THE ROUND\n\nWorks offline and syncs when you have signal, because a basement or a rural signal blackspot is not an excuse to lose a note. Sign in with a second factor. Every record carries who looked at it and when, so an audit is a query rather than an investigation.\n\nMeticle Care is software for regulated care. It does not replace clinical judgement, and it is not a medical device."
+      }
+    },
+
+    "images": {
+      "icon": {
+        "file": "brand/png/play-icon-512@512.png",
+        "type": "icon",
+        "note": "512x512, 32-bit PNG with an alpha channel, artwork fully opaque. Run `npm run brand:check` before publishing."
+      },
+      "featureGraphic": {
+        "file": "brand/png/play-feature-graphic-1024x500@1024.png",
+        "type": "featureGraphic",
+        "note": "1024x500, 24-bit PNG with NO alpha channel. Play crops this per surface, so keep meaningful content centred."
+      }
+    },
+
+    "dataSafety": {
+      "$comment": [
+        "Submitted to Play by CSV, not JSON: applications.dataSafety takes the",
+        "CSV you would export from Play Console.",
+        "",
+        "Question and response identifiers are NOT hardcoded here. They come from",
+        "the template Play itself exports, because the identifiers are long,",
+        "opaque and undocumented in full - a single guessed one makes Play reject",
+        "the whole file. See store/data-safety/README.md."
+      ],
+      "requiresTemplate": "store/data-safety/template.csv",
+      "generatedOutput": "store/data-safety/generated.csv",
+
+      "collectsOrSharesUserData": true,
+      "encryptedInTransit": true,
+      "providesDeletionRequestMechanism": true,
+
+      "data": [
+        {
+          "group": "location",
+          "type": "precise",
+          "label": "Location - precise location",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Conditional. Read only when the worker's employer has location recording switched on AND that worker has agreed to it (migration 133). A worker who declines, or has not yet answered, has no position read, sent, stored or plotted. Silence is not agreement."
+        },
+        {
+          "group": "personalInfo",
+          "type": "name",
+          "label": "Personal info - name",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "users table."
+        },
+        {
+          "group": "personalInfo",
+          "type": "emailAddress",
+          "label": "Personal info - email address",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Erasable: self-deletion rewrites it to a deleted-<uuid> placeholder."
+        },
+        {
+          "group": "personalInfo",
+          "type": "userIds",
+          "label": "Personal info - user IDs",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Account id and staff id."
+        },
+        {
+          "group": "personalInfo",
+          "type": "address",
+          "label": "Personal info - address",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "The address of the care site, plus the worker's own address on staff_profiles."
+        },
+        {
+          "group": "personalInfo",
+          "type": "phoneNumber",
+          "label": "Personal info - phone number",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Still plaintext on a staff profile for a named third-party contact; the worker's own is encrypted (migration 139). T0-15 tracks the remainder."
+        },
+        {
+          "group": "personalInfo",
+          "type": "otherInfo",
+          "label": "Personal info - other info (date of birth)",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Date of birth, encrypted on both the person's record and the staff profile. Care provision is the reason it exists."
+        },
+        {
+          "group": "financialInfo",
+          "type": "otherFinancialInfo",
+          "label": "Financial info - other financial info (payroll, mileage)",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Timesheets, mileage claims and payslips. Meticle Care does not take payment for the subscription; the mobile app has no billing flow."
+        },
+        {
+          "group": "healthAndFitness",
+          "type": "healthInfo",
+          "label": "Health and fitness - health info",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Care notes, body maps, risk assessments, medication and safeguarding records for the people receiving care."
+        },
+        {
+          "group": "messages",
+          "type": "otherInAppMessages",
+          "label": "Messages - other in-app messages",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Staff-to-staff chat. The worker's contacts are not accessed."
+        },
+        {
+          "group": "photosAndVideos",
+          "type": "photos",
+          "label": "Photos and videos - photos",
+          "collected": true,
+          "shared": false,
+          "required": false,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Optional: evidence attached to a visit or incident. A worker can use the app fully without it."
+        },
+        {
+          "group": "appActivity",
+          "type": "otherUserGeneratedContent",
+          "label": "App activity - other user-generated content (care notes)",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "The care record itself is user-generated content."
+        },
+        {
+          "group": "appActivity",
+          "type": "appInteractions",
+          "label": "App activity - app interactions (audit log)",
+          "collected": true,
+          "shared": false,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": [],
+          "notes": "Audit log of who viewed or changed a record and when. Retention here is deliberate: attribution of care activity."
+        },
+        {
+          "group": "deviceOrOtherIds",
+          "type": "deviceOrOtherIds",
+          "label": "Device or other IDs - push token",
+          "collected": true,
+          "shared": true,
+          "required": true,
+          "ephemeral": false,
+          "collectionPurposes": ["appFunctionality"],
+          "sharingPurposes": ["appFunctionality"],
+          "notes": "The only third-party transfer in the mobile path: the device push token and notification payload go to Expo so reminders can be delivered. No other processor is involved."
+        }
+      ],
+
+      "signOff": {
+        "$comment": [
+          "Not a code fact. Both must be confirmed by a human before the form is",
+          "submitted; the API cannot express them and Play will not verify them."
+        ],
+        "lawfulBasisForRetainingProfessionalName": "UNCONFIRMED - confirm with the DPO (dpo@meticlecare.com) or a legal adviser. The code supports the retention; the policy position is a legal call. See docs/STORE_PRIVACY_ANSWERS.md."
+      }
+    }
+  },
+
+  "consoleOnly": {
+    "contact": {
+      "email": "dpo@meticlecare.com",
+      "note": "No `edits.contact` resource exists in androidpublisher v3 - verified against the discovery document, which lists edits sub-resources as: apks, bundles, countryavailability, deobfuscationfiles, details, expansionfiles, images, listings, testers, tracks. Play Console: Grow users > Store presence > Main store listing."
+    },
+    "categories": {
+      "game": false,
+      "note": "No `edits.categories` resource exists in androidpublisher v3 either - same discovery document. These two endpoints existed historically and were removed. Choose in Play Console; Medical and Business are the obvious pair for this app."
+    },
+    "targetAudience": {
+      "note": "Target audience and content rating are under Policy > App content in Play Console and are not in the API. Content rating is a questionnaire, not a value you can push."
+    },
+    "privacyPolicyUrl": {
+      "value": "https://meticlecare.com/privacy",
+      "note": "Required before the Data safety section will publish, but set in Play Console rather than through the API."
+    }
+  }
+}
