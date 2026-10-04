@@ -276,7 +276,7 @@ export default function SolutionsPage() {
                   ? 'Domiciliary care is inspected by CQC in England, the Care Inspectorate in Scotland, CIW in Wales and RQIA in Northern Ireland. MeticleCare supports the evidence and governance work your service needs — without claiming to guarantee any regulatory outcome.'
                   : 'Supported living services operate under the same four UK regulatory frameworks. The platform helps your team maintain the continuous, evidence-rich record that inspection-ready services require.'}
               </Typography>
-              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/compliance')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Explore compliance</Button>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/compliance')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Explore compliance</Button>
             </Grid>
             <Grid item xs={12} md={7}>
               <Grid container spacing={2}>
@@ -312,7 +312,7 @@ export default function SolutionsPage() {
           <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
             Talk to the team about how MeticleCare works for {isHomecare ? 'domiciliary' : 'supported living'} providers.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>

@@ -60,3 +60,11 @@ meticlecare-*.json
 # export contains the full declaration.
 store/data-safety/template.csv
 store/data-safety/generated.csv
+
+# Visual regression scratch output. The baselines under
+# tests/visual/__screenshots__ are deliberately NOT ignored — they are the
+# reviewed record of what the design system is supposed to look like, and a
+# harness whose baselines are untracked cannot gate anything.
+playwright-report/
+tests/visual/__results__/
+test-results/

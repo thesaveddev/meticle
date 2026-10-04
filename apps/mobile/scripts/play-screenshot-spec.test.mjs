@@ -120,22 +120,96 @@ test('accepts a normal 1080x1920 phone capture', () => {
 });
 
 test('set check rejects fewer than two screenshots', () => {
-  const one = conformScreenshot(write('set1.png', makePng(1080, 1920, { alpha: true })));
+  const one = conformScreenshot(write('set1.png', makePng(1080, 1920, { alpha: true, shade: 40 })));
   const check = checkScreenshotSet([one]);
   assert.equal(check.ok, false);
   assert.ok(check.checks.some(c => !c.ok && /minimum 2/.test(c.message)));
 });
 
 test('set check rejects more than eight screenshots', () => {
+  // Distinct images, so this exercises the count rule alone. Identical files
+  // would now fail for the duplicate rule too and the assertion below would
+  // pass for the wrong reason.
   const many = Array.from({ length: 9 }, (_, i) =>
-    conformScreenshot(write(`set${i}.png`, makePng(1080, 1920, { alpha: true }))));
+    conformScreenshot(write(`set${i}.png`, makePng(1080, 1920, { alpha: true, shade: 20 + i * 10 }))));
   assert.equal(checkScreenshotSet(many).ok, false);
+  assert.ok(checkScreenshotSet(many).checks.some(c => !c.ok && /too many/.test(c.message)));
 });
 
 test('set check passes for a compliant run', () => {
+  // Distinct images. A run of six copies of one frame is the exact defect the
+  // duplicate check exists to catch, so it must not be this test's happy path.
   const good = Array.from({ length: 6 }, (_, i) =>
-    conformScreenshot(write(`good${i}.png`, makePng(1080, 1920, { alpha: true }))));
+    conformScreenshot(write(`good${i}.png`, makePng(1080, 1920, { alpha: true, shade: 20 + i * 10 }))));
   assert.equal(checkScreenshotSet(good).ok, true);
+});
+
+test('conformScreenshot reports a digest of the bytes it wrote', () => {
+  const result = conformScreenshot(write('digest.png', makePng(64, 64, { alpha: true })));
+  assert.equal(typeof result.digest, 'string');
+  assert.match(result.digest, /^[0-9a-f]{64}$/);
+});
+
+test('set check rejects a run of byte-identical screenshots', () => {
+  // The real failure: seven copies of one frame, every one of them a valid
+  // 24-bit 1080x1920 PNG under the size limit. Format checks passed and the
+  // capture reported success.
+  const frame = makePng(1080, 1920, { alpha: true });
+  const ids = ['00-login', '01-today', '02-visit-in-progress', '03-client-detail',
+    '04-report-incident', '05-chat', '06-offline-sync'];
+  const dupes = ids.map(id => conformScreenshot(write(`${id}.png`, frame)));
+
+  const check = checkScreenshotSet(dupes);
+  assert.equal(check.ok, false, 'seven identical frames must not pass the set check');
+  const reported = check.checks.find(c => !c.ok && /identical/.test(c.message));
+  assert.ok(reported, 'the duplicate check must be the one that failed');
+  // It has to name the files, because "something is wrong" is not actionable
+  // when the run is seven images long.
+  for (const id of ids) {
+    assert.ok(reported.message.includes(id), `message should name ${id}`);
+  }
+});
+
+test('set check names only the shots that are actually duplicated', () => {
+  const a = makePng(1080, 1920, { alpha: true, shade: 30 });
+  const b = makePng(1080, 1920, { alpha: true, shade: 90 });
+  const mixed = checkScreenshotSet([
+    conformScreenshot(write('m1.png', a)),
+    conformScreenshot(write('m2.png', b)),
+    conformScreenshot(write('m3.png', a)),
+  ]);
+  assert.equal(mixed.ok, false);
+  const reported = mixed.checks.find(c => !c.ok && /identical/.test(c.message));
+  assert.ok(reported.message.includes('m1.png'));
+  assert.ok(reported.message.includes('m3.png'));
+  assert.ok(!reported.message.includes('m2.png'), 'm2.png is distinct and must not be named');
+});
+
+test('set check rejects a run whose fixtures could not answer an endpoint', () => {
+  // A miss renders a panel empty in an image that still looks publishable.
+  const good = Array.from({ length: 3 }, (_, i) =>
+    conformScreenshot(write(`miss${i}.png`, makePng(1080, 1920, { alpha: true, shade: 20 + i * 10 }))));
+  const check = checkScreenshotSet(good, { misses: ['GET /homecare/staff-notices/staff_location'] });
+  assert.equal(check.ok, false);
+  const reported = check.checks.find(c => !c.ok && /fixtures do not answer/.test(c.message));
+  assert.ok(reported);
+  assert.ok(reported.message.includes('staff-notices'));
+});
+
+test('set check passes a run with no fixture misses', () => {
+  const good = Array.from({ length: 3 }, (_, i) =>
+    conformScreenshot(write(`nomiss${i}.png`, makePng(1080, 1920, { alpha: true, shade: 20 + i * 10 }))));
+  assert.equal(checkScreenshotSet(good, { misses: [] }).ok, true);
+});
+
+test('set check does not treat an absent digest as a duplicate', () => {
+  // Results that never went through conformScreenshot have no digest. Treating
+  // every unknown as the same file would fail a run that is merely missing the
+  // optimisation, which is not the same thing as being a duplicate.
+  const results = Array.from({ length: 3 }, (_, i) => ({
+    path: `/tmp/legacy${i}.png`, width: 1080, height: 1920, bytes: 1024, rewrote: false, ok: true, checks: [],
+  }));
+  assert.equal(checkScreenshotSet(results).ok, true);
 });
 
 test('the documented limits are Play\'s, not guesses', () => {

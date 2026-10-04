@@ -28,6 +28,7 @@
  * the import.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { decodePng, encodePng, readPngHeader, fullyOpaque } from '../../../brand/png.mjs';
 
 export const PLAY_LIMITS = {
@@ -107,6 +108,7 @@ export function conformScreenshot(path) {
     height: header.height,
     bytes,
     rewrote,
+    digest: createHash('sha256').update(finalBuffer).digest('hex'),
     ok: checks.every(c => c.ok),
     checks,
   };
@@ -116,8 +118,20 @@ export function conformScreenshot(path) {
  * Check the set as a whole. Play rejects a listing with fewer than two phone
  * screenshots, which is a property of the run and not of any single file, so
  * it is checked here rather than per shot.
+ *
+ * Two run-level properties are checked here as well, because neither is
+ * visible in a single file and both have produced a set that passed every
+ * per-shot check while being unusable:
+ *
+ *   - **Duplicates.** Seven copies of one frame satisfy every format rule.
+ *     `conformScreenshot` digests the bytes it actually wrote, so an app that
+ *     never moved between shots is caught rather than reported as a success.
+ *   - **Fixture misses.** The app reports which endpoints its fixtures could
+ *     not answer. A miss means a panel renders empty in an image that still
+ *     looks plausible, so it is a failure here and not a note in the log.
  */
-export function checkScreenshotSet(results) {
+export function checkScreenshotSet(results, { misses = [] } = {}) {
+  const name = r => r.path.split(/[\\/]/).pop();
   const checks = [{
     ok: results.length >= PLAY_LIMITS.minShots,
     message: `${results.length} screenshot(s) captured (Play minimum ${PLAY_LIMITS.minShots}, maximum ${PLAY_LIMITS.maxShots})`,
@@ -131,8 +145,37 @@ export function checkScreenshotSet(results) {
     ok: nonCompliant.length === 0,
     message: nonCompliant.length === 0
       ? 'every screenshot meets Play\'s format requirements'
-      : `${nonCompliant.length} screenshot(s) do not: ${nonCompliant.map(r => r.path.split(/[\\/]/).pop()).join(', ')}`,
+      : `${nonCompliant.length} screenshot(s) do not: ${nonCompliant.map(name).join(', ')}`,
   });
+
+  // Group by digest. Results without one are skipped rather than lumped
+  // together: an absent digest is unknown, and treating every unknown as the
+  // same file would fail a run that never called `conformScreenshot`.
+  const groups = new Map();
+  for (const result of results) {
+    if (typeof result.digest !== 'string' || result.digest === '') continue;
+    const group = groups.get(result.digest) ?? [];
+    group.push(result);
+    groups.set(result.digest, group);
+  }
+  const duplicated = [...groups.values()].filter(group => group.length > 1);
+  checks.push({
+    ok: duplicated.length === 0,
+    message: duplicated.length === 0
+      ? `all ${results.length} screenshot(s) are distinct images`
+      : `${duplicated.length} group(s) of identical screenshot(s): `
+        + duplicated.map(group => group.map(name).join(' = ')).join('; ')
+        + '. The app did not move between these shots, so the set does not show the app.',
+  });
+
+  checks.push({
+    ok: misses.length === 0,
+    message: misses.length === 0
+      ? 'the app answered every request the fixtures cover'
+      : `${misses.length} endpoint(s) the fixtures do not answer, so a panel will be empty in the image: `
+        + misses.join(', '),
+  });
+
   return { ok: checks.every(c => c.ok), checks };
 }
 

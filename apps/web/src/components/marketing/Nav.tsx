@@ -196,7 +196,7 @@ export default function Nav() {
                 endIcon={<ArrowForward />}
                 onClick={() => go('/contact')}
                 sx={{
-                  bgcolor: M.teal, color: M.navy, fontWeight: 700,
+                  bgcolor: M.teal, color: M.ink, fontWeight: 700,
                   px: 2.5, py: 1, borderRadius: M.r.md, textTransform: 'none',
                   fontSize: '0.85rem', boxShadow: 'none',
                   '&:hover': { bgcolor: M.tealDark, boxShadow: 'none' },
@@ -282,7 +282,7 @@ export default function Nav() {
               fullWidth variant="contained"
               endIcon={<ArrowForward />}
               onClick={() => go('/contact')}
-              sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem' }}
+              sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem' }}
             >Book a demo</Button>
             <Button
               fullWidth variant="outlined"

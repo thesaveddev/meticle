@@ -2,106 +2,116 @@
 name: MeticleCare Marketing Site
 description: Editorial-operations landing world for a UK care platform — deep navy + a single emerald accent on warm bone grounds, hairline-framed product windows, Inter, charcoal ink.
 colors:
-  navy: "#0F4C81"
-  navy-deep: "#0A3A63"
-  emerald: "#10B981"
-  emerald-deep: "#047857"
-  emerald-hover: "#065F46"
-  ink: "#1B2430"
-  ink-dark: "#141C24"
-  ink-deep: "#1D2733"
-  bone: "#F7F4EE"
-  mist: "#5B6672"
-  hairline: "#E7E1D6"
+  navy: "#0164C8"
+  navy-deep: "#014FB5"
+  brand-blue: "#149DFC"
+  brand-darkest: "#0251B3"
+  sky: "#3DB8FD"
+  sky-bright: "#50C7FD"
+  mint: "#03C6B1"
+  mint-deep: "#02A995"
+  mint-hover: "#046E86"
+  teal: "#028ABA"
+  cyan: "#0187BA"
+  ink: "#0C1B2E"
+  ink-dark: "#081320"
+  ink-deep: "#112539"
+  bone: "#F4F9FC"
+  mist: "#51637A"
+  hairline: "#E3E9F0"
   text-deep: "#3A4551"
-  outline-button-border: "#C9C2B4"
-  window-border: "#E0D9CA"
-  window-chrome: "#FCFAF6"
-  window-chrome-line: "#F0EBE1"
+  outline-button-border: "#C3D2E2"
+  window-border: "#D6E2EE"
+  window-chrome: "#F7FAFE"
+  window-chrome-line: "#E3E9F0"
   button-on-navy: "#FFFFFF"
-  button-on-navy-hover: "#F3F1EA"
-  foot-muted: "#8E98A3"
-  foot-heading: "#E8EBEE"
-  foot-hairline: "rgba(255,255,255,0.12)"
+  button-on-navy-hover: "#EAF2FB"
+  foot-muted: "#8497AC"
+  foot-heading: "#E8EEF6"
   white: "#FFFFFF"
+  foot-hairline: rgba(255,255,255,0.12)
+  compliance-row-hairline: rgba(255,255,255,0.24)
+  step-connector: rgba(3,198,177,0.4)
 typography:
   display:
-    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "3.4rem"
+    fontFamily: Inter, Roboto, Helvetica, Arial, sans-serif
+    fontSize: 3.4rem
     fontWeight: 900
-    lineHeight: 1.06
+    lineHeight: 1
     letterSpacing: "-0.03em"
   headline:
-    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "2.7rem"
+    fontFamily: Inter, Roboto, Helvetica, Arial, sans-serif
+    fontSize: 2.7rem
     fontWeight: 800
     lineHeight: 1.12
     letterSpacing: "-0.025em"
   title:
-    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "1rem"
+    fontFamily: Inter, Roboto, Helvetica, Arial, sans-serif
+    fontSize: 1rem
     fontWeight: 800
   body:
-    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "1.12rem"
+    fontFamily: Inter, Roboto, Helvetica, Arial, sans-serif
+    fontSize: 1.12rem
+    fontWeight: 400
     lineHeight: 1.7
   label:
-    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "0.8rem"
+    fontFamily: Inter, Roboto, Helvetica, Arial, sans-serif
+    fontSize: 0.8rem
     fontWeight: 800
-    letterSpacing: "0.08em"
-    fontFeature: "uppercase"
+    letterSpacing: 0.08em
+    textTransform: uppercase
 rounded:
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
+  sm: 8px
+  md: 14px
+  lg: 20px
+  xl: 28px
 spacing:
-  base: "8px"
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  section: "56px"
-  section-xl: "60px"
+  base: 8px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  section: 56px
+  section-xl: 60px
 components:
   button-primary:
-    backgroundColor: "{colors.navy}"
-    textColor: "{colors.white}"
-    rounded: "{rounded.sm}"
-    padding: "14px 20px"
+    backgroundColor: {colors.navy}
+    textColor: {colors.white}
+    rounded: {rounded.sm}
+    padding: 14px 20px
   button-primary-hover:
-    backgroundColor: "{colors.navy-deep}"
+    backgroundColor: {colors.navy-deep}
   button-outline:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.sm}"
-    padding: "14px 20px"
+    backgroundColor: transparent
+    textColor: {colors.ink}
+    rounded: {rounded.sm}
+    padding: 14px 20px
   button-cta:
-    backgroundColor: "{colors.emerald-deep}"
-    textColor: "{colors.white}"
-    rounded: "{rounded.sm}"
-    padding: "15px 28px"
+    backgroundColor: {colors.mint-deep}
+    textColor: {colors.white}
+    rounded: {rounded.sm}
+    padding: 15px 28px
   button-cta-hover:
-    backgroundColor: "{colors.emerald-hover}"
+    backgroundColor: {colors.mint-hover}
   button-on-navy:
-    backgroundColor: "{colors.button-on-navy}"
-    textColor: "{colors.navy}"
-    rounded: "{rounded.sm}"
+    backgroundColor: {colors.button-on-navy}
+    textColor: {colors.navy}
+    rounded: {rounded.sm}
   button-on-navy-hover:
-    backgroundColor: "{colors.button-on-navy-hover}"
+    backgroundColor: {colors.button-on-navy-hover}
   button-text-link:
-    backgroundColor: "transparent"
-    textColor: "{colors.navy}"
-    rounded: "{rounded.sm}"
+    backgroundColor: transparent
+    textColor: {colors.navy}
+    rounded: {rounded.sm}
   nav-link:
-    textColor: "{colors.mist}"
-    typography: "{typography.body}"
+    textColor: {colors.mist}
+    typography: {typography.body}
   cap-row:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    padding: "20px 0"
+    backgroundColor: transparent
+    textColor: {colors.ink}
+    padding: 20px 0
   framed-window:
-    backgroundColor: "{colors.white}"
-    rounded: "{rounded.lg}"
+    backgroundColor: {colors.white}
+    rounded: {rounded.lg}
 ---
 
 # Design System: MeticleCare Marketing Site

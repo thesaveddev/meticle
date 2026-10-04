@@ -2,62 +2,6 @@
   "schemaVersion": 2,
   "generatedAt": "2026-08-02T00:00:00.000Z",
   "title": "Design System: MeticleCare Marketing Site",
-  "extensions": {
-    "colorMeta": {
-      "navy": { "role": "primary", "displayName": "Deep Navy", "canonical": "#0F4C81", "tonalRamp": ["#061C33", "#082844", "#0A3455", "#0B4069", "#0F4C81", "#45759F", "#7EA0BC", "#B9CBE0"] },
-      "navy-deep": { "role": "primary", "displayName": "Navy Deep", "canonical": "#0A3A63", "tonalRamp": ["#041627", "#062038", "#082B48", "#0A3359", "#0A3A63", "#4A6B8B", "#849CB4", "#BCCDDB"] },
-      "emerald": { "role": "secondary", "displayName": "Emerald", "canonical": "#10B981", "tonalRamp": ["#052E23", "#064534", "#075E45", "#0A7A58", "#10B981", "#38D29B", "#7FE3BF", "#C4F3E3"] },
-      "emerald-deep": { "role": "secondary", "displayName": "Emerald Deep", "canonical": "#047857", "tonalRamp": ["#04241B", "#05352A", "#064839", "#075D4A", "#047857", "#3E9479", "#7BBBA5", "#C0DED3"] },
-      "emerald-hover": { "role": "secondary", "displayName": "Emerald Hover", "canonical": "#065F46", "tonalRamp": ["#032820", "#053A2E", "#064C3D", "#076048", "#065F46", "#3E8B73", "#7BB8A5", "#C2DFD5"] },
-      "ink": { "role": "neutral", "displayName": "Charcoal Ink", "canonical": "#1B2430", "tonalRamp": ["#0B0E13", "#0E1219", "#111720", "#141C24", "#1B2430", "#4A5560", "#7C8690", "#B4BCC3"] },
-      "ink-dark": { "role": "neutral", "displayName": "Ink Dark", "canonical": "#141C24", "tonalRamp": ["#05080C", "#090D12", "#0C1117", "#10161D", "#141C24", "#464F59", "#7C848E", "#B6BCC2"] },
-      "ink-deep": { "role": "neutral", "displayName": "Ink Deep", "canonical": "#1D2733", "tonalRamp": ["#070B11", "#0B1117", "#0F161E", "#121B25", "#1D2733", "#4D5965", "#838C97", "#BDC3C9"] },
-      "bone": { "role": "neutral", "displayName": "Bone", "canonical": "#F7F4EE", "tonalRamp": ["#C9C2B4", "#D5CFC2", "#E0DBD0", "#EBE7DE", "#F2EFE6", "#F7F4EE", "#FAF8F4", "#FDFCFA"] },
-      "mist": { "role": "neutral", "displayName": "Mist", "canonical": "#5B6672", "tonalRamp": ["#262E37", "#303A45", "#3A4551", "#46505B", "#5B6672", "#7E8893", "#A5ADB5", "#D3D8DD"] },
-      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#E7E1D6", "tonalRamp": ["#B9B09E", "#C6BEAC", "#D2CBBA", "#DED8C9", "#E7E1D6", "#EFEAE0", "#F6F3EC", "#FBFAF7"] },
-      "text-deep": { "role": "neutral", "displayName": "Text Deep", "canonical": "#3A4551", "tonalRamp": ["#0F1620", "#16202B", "#1D2936", "#24313F", "#3A4551", "#67727E", "#9AA3AC", "#D0D4D9"] },
-      "outline-button-border": { "role": "neutral", "displayName": "Outline Button Border", "canonical": "#C9C2B4", "tonalRamp": ["#A69E8D", "#B6AE9E", "#C5BDAF", "#C9C2B4", "#D6D0C5", "#E3DFD6", "#F0EDE7", "#FBFAF7"] },
-      "window-border": { "role": "neutral", "displayName": "Window Border", "canonical": "#E0D9CA", "tonalRamp": ["#B7AF9D", "#C4BCA9", "#D2CBB9", "#E0D9CA", "#E8E3D8", "#F1EDE5", "#F8F6F1", "#FCFBF8"] },
-      "window-chrome": { "role": "neutral", "displayName": "Window Chrome", "canonical": "#FCFAF6", "tonalRamp": ["#E5E1D6", "#EBE8DF", "#F1EFE8", "#F6F4EE", "#FCFAF6", "#FDFCFA", "#FEFEFD", "#FFFFFF"] },
-      "window-chrome-line": { "role": "neutral", "displayName": "Window Chrome Line", "canonical": "#F0EBE1", "tonalRamp": ["#D2CBB9", "#DAD3C2", "#E3DCCA", "#EAE4D6", "#F0EBE1", "#F6F2EB", "#FAF8F3", "#FDFCFA"] },
-      "button-on-navy": { "role": "neutral", "displayName": "Button On Navy", "canonical": "#FFFFFF", "tonalRamp": ["#E6E6E6", "#ECECEC", "#F2F2F2", "#F7F7F7", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] },
-      "button-on-navy-hover": { "role": "neutral", "displayName": "Button On Navy Hover", "canonical": "#F3F1EA", "tonalRamp": ["#D5D2C8", "#DFDCD3", "#E8E6DE", "#EEECE5", "#F3F1EA", "#F8F7F3", "#FBFBF8", "#FEFEFC"] },
-      "foot-muted": { "role": "neutral", "displayName": "Foot Muted", "canonical": "#8E98A3", "tonalRamp": ["#3B434D", "#4E5762", "#616B76", "#747E89", "#8E98A3", "#A8B0B9", "#C6CCD2", "#E5E8EB"] },
-      "foot-heading": { "role": "neutral", "displayName": "Foot Heading", "canonical": "#E8EBEE", "tonalRamp": ["#ADB5BD", "#C2C8CF", "#D5D9DF", "#E0E3E7", "#E8EBEE", "#F0F2F4", "#F7F8FA", "#FDFDFE"] },
-      "foot-hairline": { "role": "neutral", "displayName": "Foot Hairline", "canonical": "rgba(255,255,255,0.12)", "tonalRamp": ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.08)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.24)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.6)", "rgba(255,255,255,0.8)", "rgba(255,255,255,1)"] },
-      "white": { "role": "neutral", "displayName": "White", "canonical": "#FFFFFF", "tonalRamp": ["#E6E6E6", "#ECECEC", "#F2F2F2", "#F7F7F7", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] }
-    },
-    "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero and final-CTA headlines only — 900 weight, -0.03em tracking." },
-      "headline": { "displayName": "Headline", "purpose": "Section h2s — 800 weight, -0.025em tracking, maxWidth 520-720px." },
-      "title": { "displayName": "Title", "purpose": "Row titles, step titles, showcase/compliance rows, role headings." },
-      "body": { "displayName": "Body", "purpose": "Lead subs at 1.12rem/1.7 line-height; secondary copy 0.86-0.98rem in mist." },
-      "label": { "displayName": "Label", "purpose": "Uppercase eyebrows — 800, navy, 0.08em tracking; mega-menu/footer categories at 0.66rem." }
-    },
-    "shadows": [
-      { "name": "window-hero", "value": "0 32px 64px -28px rgba(20, 32, 45, 0.4)", "purpose": "Seats the hero framed dashboard window on the bone desk." },
-      { "name": "window-showcase", "value": "0 32px 64px -28px rgba(20, 32, 45, 0.35)", "purpose": "Same framed window, slightly softer, in the mid-page showcase." },
-      { "name": "toast", "value": "0 20px 44px -20px rgba(20, 32, 45, 0.45)", "purpose": "Floats the care-note toast over the hero window chrome." },
-      { "name": "mega-menu", "value": "0 24px 56px -20px rgba(20, 32, 45, 0.22)", "purpose": "The 760px Features mega menu." },
-      { "name": "dropdown", "value": "0 20px 44px -18px rgba(20, 32, 45, 0.2)", "purpose": "The About dropdown panel." }
-    ],
-    "motion": [
-      { "name": "entrance-rise", "value": "transform: translateY(24px) → translateY(0); opacity: 0 → 1", "purpose": "The single authored page entrance — the hero visual column, triggered 80ms after mount." },
-      { "name": "entrance-ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Easing for the 0.9s hero rise; opacity fades over the same 0.9s with 'ease'." },
-      { "name": "toast-delay", "value": "opacity 0.6s ease 1.05s", "purpose": "The care-note toast fades in after the hero entrance completes." },
-      { "name": "pulse", "value": "opacity 1 ↔ 0.35, 2.4s ease-in-out infinite", "purpose": "The window-chrome 'Live' dot. Disabled under prefers-reduced-motion." },
-      { "name": "micro-hover", "value": "color 0.15s ease, transform 0.15s ease", "purpose": "Capability-row arrow slide (translateX 4px) and title recolor on hover." },
-      { "name": "dropdown-reveal", "value": "all 0.18s ease", "purpose": "Mega menu and About dropdown opacity/visibility/translateY(-4px) reveal on hover." },
-      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce", "purpose": "Skips the entrance entirely (content renders instantly) and kills the Live-dot pulse." }
-    ],
-    "breakpoints": [
-      { "name": "xs", "value": "0px" },
-      { "name": "sm", "value": "600px" },
-      { "name": "md", "value": "900px" },
-      { "name": "lg", "value": "1200px" },
-      { "name": "xl", "value": "1536px" }
-    ]
-  },
   "components": [
     {
       "name": "Primary Button",
@@ -145,12 +89,36 @@
       "Keyboard reachable everywhere: nav, mega-menu links, capability rows all handle Enter/Space with a 2px emerald focus-visible ring."
     ],
     "rules": [
-      { "name": "The One Accent Rule", "body": "Emerald #10B981 appears only as small marks — square dots, 2px rules, the live dot, the focus ring. It never fills a section band and never sets paragraph text. Its rarity is the point.", "section": "colors" },
-      { "name": "The Two-Key Rule", "body": "Navy is the identity, emerald the accent, and everything else is warm neutral. No third hue enters the system anywhere in the landing build.", "section": "colors" },
-      { "name": "The Inter-Only Rule", "body": "No second typeface anywhere in the marketing build. Hierarchy comes from weight (400-900), tracking, size, and case — never a face change.", "section": "typography" },
-      { "name": "The Tight-Head Rule", "body": "Every display and headline sits at negative tracking (-0.02em to -0.03em) with a max width. Never re-expand a headline to fill a column.", "section": "typography" },
-      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows are reserved for objects meant to float or seat (windows, toasts, menus) and are never used for hover feedback on cards or rows.", "section": "elevation" },
-      { "name": "The Framed Window Rule", "body": "Product imagery always carries the window silhouette: 24px corners, a 1px #E0D9CA frame, a chrome title bar (#FCFAF6, hairline #F0EBE1 bottom) and, in the hero, a pulsing Live dot and overlay toast. No product screenshot ever sits flat on the page un-framed.", "section": "shapes" }
+      {
+        "name": "The One Accent Rule",
+        "body": "Emerald #10B981 appears only as small marks — square dots, 2px rules, the live dot, the focus ring. It never fills a section band and never sets paragraph text. Its rarity is the point.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Key Rule",
+        "body": "Navy is the identity, emerald the accent, and everything else is warm neutral. No third hue enters the system anywhere in the landing build.",
+        "section": "colors"
+      },
+      {
+        "name": "The Inter-Only Rule",
+        "body": "No second typeface anywhere in the marketing build. Hierarchy comes from weight (400-900), tracking, size, and case — never a face change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tight-Head Rule",
+        "body": "Every display and headline sits at negative tracking (-0.02em to -0.03em) with a max width. Never re-expand a headline to fill a column.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Shadows are reserved for objects meant to float or seat (windows, toasts, menus) and are never used for hover feedback on cards or rows.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Framed Window Rule",
+        "body": "Product imagery always carries the window silhouette: 24px corners, a 1px #E0D9CA frame, a chrome title bar (#FCFAF6, hairline #F0EBE1 bottom) and, in the hero, a pulsing Live dot and overlay toast. No product screenshot ever sits flat on the page un-framed.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do keep every product screenshot inside a framed window (24px corners, 1px #E0D9CA, chrome bar, deep ink shadow) — never flat, never on a gradient.",
@@ -166,6 +134,524 @@
       "Don't re-expand headlines to fill columns; tight tracking and a max width are the voice.",
       "Don't lift cards with hover shadows; change ink/border color and let the arrow slide 4px instead.",
       "Don't use a second typeface — Inter at 400-900 is the entire scale."
+    ]
+  },
+  "generatedFrom": "scripts/design/palette.mjs",
+  "extensions": {
+    "colorMeta": {
+      "navy": {
+        "role": "primary",
+        "displayName": "Brand Blue",
+        "canonical": "#0164C8",
+        "tonalRamp": [
+          "#000A20",
+          "#002552",
+          "#004085",
+          "#005AB6",
+          "#2E79D7",
+          "#579AF0",
+          "#92C1FF",
+          "#D4E6FF"
+        ]
+      },
+      "navy-deep": {
+        "role": "primary",
+        "displayName": "Brand Deep Blue",
+        "canonical": "#014FB5",
+        "tonalRamp": [
+          "#000923",
+          "#002258",
+          "#003C8E",
+          "#1157BC",
+          "#3977D9",
+          "#5E98F2",
+          "#96BFFF",
+          "#D5E6FF"
+        ]
+      },
+      "brand-blue": {
+        "role": "primary",
+        "displayName": "Brand Bright Blue",
+        "canonical": "#149DFC",
+        "tonalRamp": [
+          "#000C1B",
+          "#002847",
+          "#004574",
+          "#0061A1",
+          "#007FCF",
+          "#3F9EED",
+          "#84C4FF",
+          "#D0E8FF"
+        ]
+      },
+      "brand-darkest": {
+        "role": "primary",
+        "displayName": "Brand Darkest",
+        "canonical": "#0251B3",
+        "tonalRamp": [
+          "#000A22",
+          "#002356",
+          "#003D8C",
+          "#1158B9",
+          "#3978D6",
+          "#5F98EF",
+          "#95C0FF",
+          "#D5E6FF"
+        ]
+      },
+      "sky": {
+        "role": "primary",
+        "displayName": "Sky",
+        "canonical": "#3DB8FD",
+        "tonalRamp": [
+          "#000D18",
+          "#002A40",
+          "#00486A",
+          "#006593",
+          "#0083BD",
+          "#43A2DA",
+          "#79C8FA",
+          "#CBEAFF"
+        ]
+      },
+      "sky-bright": {
+        "role": "primary",
+        "displayName": "Sky Bright",
+        "canonical": "#50C7FD",
+        "tonalRamp": [
+          "#000D16",
+          "#002B3C",
+          "#004964",
+          "#00668A",
+          "#0085B3",
+          "#45A4CF",
+          "#7BC9F0",
+          "#C6EBFF"
+        ]
+      },
+      "mint": {
+        "role": "accent",
+        "displayName": "Mint",
+        "canonical": "#03C6B1",
+        "tonalRamp": [
+          "#000F0C",
+          "#002E28",
+          "#004E45",
+          "#006D61",
+          "#008E7E",
+          "#2DAE9D",
+          "#6FD2C2",
+          "#A5F7E8"
+        ]
+      },
+      "mint-deep": {
+        "role": "accent",
+        "displayName": "Mint Deep",
+        "canonical": "#02A995",
+        "tonalRamp": [
+          "#000F0C",
+          "#002E27",
+          "#004E44",
+          "#006D60",
+          "#008E7D",
+          "#44AC9B",
+          "#7BD0C0",
+          "#AEF5E7"
+        ]
+      },
+      "mint-hover": {
+        "role": "accent",
+        "displayName": "Accent Deep",
+        "canonical": "#046E86",
+        "tonalRamp": [
+          "#000E13",
+          "#002C37",
+          "#004A5C",
+          "#006880",
+          "#37869C",
+          "#60A3B9",
+          "#8EC8DB",
+          "#BCEEFF"
+        ]
+      },
+      "teal": {
+        "role": "accent",
+        "displayName": "Teal",
+        "canonical": "#028ABA",
+        "tonalRamp": [
+          "#000D16",
+          "#002B3D",
+          "#004964",
+          "#00668B",
+          "#1885B1",
+          "#4FA3CC",
+          "#81C8ED",
+          "#C6EBFF"
+        ]
+      },
+      "cyan": {
+        "role": "accent",
+        "displayName": "Cyan",
+        "canonical": "#0187BA",
+        "tonalRamp": [
+          "#000D16",
+          "#002A3E",
+          "#004866",
+          "#00668D",
+          "#1A84B3",
+          "#50A3CE",
+          "#82C8EF",
+          "#C8EAFF"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0C1B2E",
+        "tonalRamp": [
+          "#040B17",
+          "#1B2737",
+          "#354357",
+          "#4E5F75",
+          "#6B7C92",
+          "#8A9AAF",
+          "#B1BFD2",
+          "#D9E6F7"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink Dark",
+        "canonical": "#081320",
+        "tonalRamp": [
+          "#050C14",
+          "#1E2733",
+          "#384351",
+          "#525F6F",
+          "#6E7C8C",
+          "#8D9AA9",
+          "#B4BFCD",
+          "#DCE6F2"
+        ]
+      },
+      "ink-deep": {
+        "role": "neutral",
+        "displayName": "Ink Deep",
+        "canonical": "#112539",
+        "tonalRamp": [
+          "#020C18",
+          "#182838",
+          "#324458",
+          "#4A6077",
+          "#677D93",
+          "#879BB0",
+          "#AEC0D3",
+          "#D7E7F7"
+        ]
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "Mist Ground",
+        "canonical": "#F4F9FC",
+        "tonalRamp": [
+          "#090B0D",
+          "#242729",
+          "#3F4345",
+          "#5A5E61",
+          "#777B7D",
+          "#95999B",
+          "#BBBEC0",
+          "#E2E5E7"
+        ]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#51637A",
+        "tonalRamp": [
+          "#040B17",
+          "#1B2737",
+          "#344457",
+          "#4E5F75",
+          "#6B7C92",
+          "#8A9AAF",
+          "#B0BFD2",
+          "#D9E6F7"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E3E9F0",
+        "tonalRamp": [
+          "#090B0E",
+          "#23272B",
+          "#3F4348",
+          "#595E64",
+          "#767B81",
+          "#94999E",
+          "#BABEC3",
+          "#E1E5E9"
+        ]
+      },
+      "text-deep": {
+        "role": "neutral",
+        "displayName": "Text Deep",
+        "canonical": "#3A4551",
+        "tonalRamp": [
+          "#060C12",
+          "#1F2730",
+          "#3A434E",
+          "#545F6B",
+          "#707C88",
+          "#8F9AA5",
+          "#B5BFC9",
+          "#DDE6EF"
+        ]
+      },
+      "outline-button-border": {
+        "role": "neutral",
+        "displayName": "Outline Button Border",
+        "canonical": "#C3D2E2",
+        "tonalRamp": [
+          "#060C13",
+          "#1E2731",
+          "#39444F",
+          "#525F6D",
+          "#6F7C89",
+          "#8E9AA6",
+          "#B4BFCB",
+          "#DCE6F0"
+        ]
+      },
+      "window-border": {
+        "role": "neutral",
+        "displayName": "Window Border",
+        "canonical": "#D6E2EE",
+        "tonalRamp": [
+          "#070C11",
+          "#20272E",
+          "#3B434C",
+          "#555F69",
+          "#727C86",
+          "#9099A3",
+          "#B6BFC7",
+          "#DEE6ED"
+        ]
+      },
+      "window-chrome": {
+        "role": "neutral",
+        "displayName": "Window Chrome",
+        "canonical": "#F7FAFE",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#252729",
+          "#404245",
+          "#5B5E61",
+          "#787A7E",
+          "#96989B",
+          "#BCBEC1",
+          "#E3E5E7"
+        ]
+      },
+      "window-chrome-line": {
+        "role": "neutral",
+        "displayName": "Window Chrome Line",
+        "canonical": "#E3E9F0",
+        "tonalRamp": [
+          "#090B0E",
+          "#23272B",
+          "#3F4348",
+          "#595E64",
+          "#767B81",
+          "#94999E",
+          "#BABEC3",
+          "#E1E5E9"
+        ]
+      },
+      "button-on-navy": {
+        "role": "neutral",
+        "displayName": "Button On Navy",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262626",
+          "#424242",
+          "#5D5D5D",
+          "#7A7A7A",
+          "#989898",
+          "#BEBEBE",
+          "#E4E4E4"
+        ]
+      },
+      "button-on-navy-hover": {
+        "role": "neutral",
+        "displayName": "Button On Navy Hover",
+        "canonical": "#EAF2FB",
+        "tonalRamp": [
+          "#080C0F",
+          "#22272C",
+          "#3D4349",
+          "#585E66",
+          "#747B82",
+          "#9399A0",
+          "#B9BEC5",
+          "#E0E5EB"
+        ]
+      },
+      "foot-muted": {
+        "role": "neutral",
+        "displayName": "Foot Muted",
+        "canonical": "#8497AC",
+        "tonalRamp": [
+          "#040C16",
+          "#1B2835",
+          "#354454",
+          "#4E5F72",
+          "#6B7C8F",
+          "#8A9AAC",
+          "#B1BFD0",
+          "#D9E6F4"
+        ]
+      },
+      "foot-heading": {
+        "role": "neutral",
+        "displayName": "Foot Heading",
+        "canonical": "#E8EEF6",
+        "tonalRamp": [
+          "#090B0F",
+          "#23272B",
+          "#3E4348",
+          "#595E65",
+          "#767B81",
+          "#94999F",
+          "#BABEC4",
+          "#E1E5EA"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262626",
+          "#424242",
+          "#5D5D5D",
+          "#7A7A7A",
+          "#989898",
+          "#BEBEBE",
+          "#E4E4E4"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero and final-CTA headlines only — 900 weight, -0.03em tracking."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section h2s — 800 weight, -0.025em tracking, maxWidth 520-720px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Row titles, step titles, showcase/compliance rows, role headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Lead subs at 1.12rem/1.7 line-height; secondary copy 0.86-0.98rem in mist."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase eyebrows — 800, navy, 0.08em tracking; mega-menu/footer categories at 0.66rem."
+      }
+    },
+    "shadows": [
+      {
+        "name": "window-hero",
+        "value": "0 32px 64px -28px rgba(20, 32, 45, 0.4)",
+        "purpose": "Seats the hero framed dashboard window on the bone desk."
+      },
+      {
+        "name": "window-showcase",
+        "value": "0 32px 64px -28px rgba(20, 32, 45, 0.35)",
+        "purpose": "Same framed window, slightly softer, in the mid-page showcase."
+      },
+      {
+        "name": "toast",
+        "value": "0 20px 44px -20px rgba(20, 32, 45, 0.45)",
+        "purpose": "Floats the care-note toast over the hero window chrome."
+      },
+      {
+        "name": "mega-menu",
+        "value": "0 24px 56px -20px rgba(20, 32, 45, 0.22)",
+        "purpose": "The 760px Features mega menu."
+      },
+      {
+        "name": "dropdown",
+        "value": "0 20px 44px -18px rgba(20, 32, 45, 0.2)",
+        "purpose": "The About dropdown panel."
+      }
+    ],
+    "motion": [
+      {
+        "name": "entrance-rise",
+        "value": "transform: translateY(24px) → translateY(0); opacity: 0 → 1",
+        "purpose": "The single authored page entrance — the hero visual column, triggered 80ms after mount."
+      },
+      {
+        "name": "entrance-ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Easing for the 0.9s hero rise; opacity fades over the same 0.9s with 'ease'."
+      },
+      {
+        "name": "toast-delay",
+        "value": "opacity 0.6s ease 1.05s",
+        "purpose": "The care-note toast fades in after the hero entrance completes."
+      },
+      {
+        "name": "pulse",
+        "value": "opacity 1 ↔ 0.35, 2.4s ease-in-out infinite",
+        "purpose": "The window-chrome 'Live' dot. Disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "micro-hover",
+        "value": "color 0.15s ease, transform 0.15s ease",
+        "purpose": "Capability-row arrow slide (translateX 4px) and title recolor on hover."
+      },
+      {
+        "name": "dropdown-reveal",
+        "value": "all 0.18s ease",
+        "purpose": "Mega menu and About dropdown opacity/visibility/translateY(-4px) reveal on hover."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Skips the entrance entirely (content renders instantly) and kills the Live-dot pulse."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "xs",
+        "value": "0px"
+      },
+      {
+        "name": "sm",
+        "value": "600px"
+      },
+      {
+        "name": "md",
+        "value": "900px"
+      },
+      {
+        "name": "lg",
+        "value": "1200px"
+      },
+      {
+        "name": "xl",
+        "value": "1536px"
+      }
     ]
   }
 }

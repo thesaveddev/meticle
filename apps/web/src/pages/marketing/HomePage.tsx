@@ -30,7 +30,10 @@ function CTA({
   const nav = useNavigate()
   const styles = {
     primary: {
-      bgcolor: M.teal, color: M.navy, fontWeight: 700,
+      // Ink, not a blue. Any brand blue on the mint fill lands at 2.7-3.5:1,
+      // which fails WCAG AA for 0.9rem/700 text; ink is 8.02:1 and reads
+      // neutrally against mint instead of clashing with it.
+      bgcolor: M.teal, color: M.ink, fontWeight: 700,
       '&:hover': { bgcolor: M.tealDark },
     },
     secondary: {
@@ -147,17 +150,17 @@ export default function HomePage() {
       />
 
       {/* ═══ 01 · HERO ═══ */}
-      <Box sx={{ bgcolor: M.navy, pt: { xs: 10, md: 16 }, pb: { xs: 8, md: 14 } }}>
+      <Box sx={{ bgcolor: M.card, pt: { xs: 10, md: 16 }, pb: { xs: 8, md: 14 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Box className="mc-animate" sx={sectionIn}>
                 <SectionLabel>MeticleCare</SectionLabel>
-                <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
+                <Typography sx={{ ...M.display, color: M.ink, mb: 3 }}>
                   Run your care operation with confidence.
                 </Typography>
               </Box>
-              <Typography className="mc-animate-delay" sx={{ ...M.bodyLg, color: M.subtle, mb: 5, maxWidth: 480 }} style={{ animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both' }}>
+              <Typography className="mc-animate-delay" sx={{ ...M.bodyLg, color: M.slate, mb: 5, maxWidth: 480 }} style={{ animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both' }}>
                 One platform connecting care delivery, workforce, compliance, medication and reporting for UK domiciliary and supported living providers.
               </Typography>
               <Box className="mc-animate-delay" style={{ animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both' }}>
@@ -168,8 +171,8 @@ export default function HomePage() {
                     onClick={() => nav('/platform')}
                     sx={{
                       px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none',
-                      fontSize: '0.9rem', fontWeight: 600, color: '#fff',
-                      borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+                      fontSize: '0.9rem', fontWeight: 600, color: M.ink,
+                      borderColor: M.subtle, '&:hover': { borderColor: M.navy, bgcolor: M.faint },
                     }}
                   >Explore the platform</Button>
                 </Stack>
@@ -189,7 +192,7 @@ export default function HomePage() {
                         <Stack direction="row" spacing={2.5} alignItems="flex-start" sx={{ py: 2 }}>
                           <Box sx={{
                             width: 40, height: 40, borderRadius: M.r.sm,
-                            bgcolor: i < careDay.length - 1 ? 'rgba(0,201,167,0.1)' : M.teal,
+                            bgcolor: i < careDay.length - 1 ? 'rgba(3,198,177,0.12)' : M.teal,
                             display: 'grid', placeItems: 'center', flexShrink: 0,
                             position: 'relative',
                           }}>
@@ -199,20 +202,20 @@ export default function HomePage() {
                             {i < careDay.length - 1 && (
                               <Box sx={{
                                 position: 'absolute', bottom: -20, left: '50%', transform: 'translateX(-50%)',
-                                width: 1, height: 18, bgcolor: 'rgba(0,201,167,0.2)',
+                                width: 1, height: 18, bgcolor: 'rgba(2,169,149,0.25)',
                               }} />
                             )}
                           </Box>
                           <Box>
-                            <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem', mb: 0.25 }}>{c.step}</Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', lineHeight: 1.5 }}>{c.desc}</Typography>
+                            <Typography sx={{ fontWeight: 700, color: M.ink, fontSize: '0.95rem', mb: 0.25 }}>{c.step}</Typography>
+                            <Typography sx={{ color: M.muted, fontSize: '0.82rem', lineHeight: 1.5 }}>{c.desc}</Typography>
                           </Box>
                         </Stack>
                       </Box>
                     ))}
                   </Stack>
                   {/* Animated signal dot */}
-                  <Box sx={{ mt: 2, height: 2, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+                  <Box sx={{ mt: 2, height: 2, borderRadius: 1, bgcolor: M.faint, position: 'relative', overflow: 'hidden' }}>
                     <Box sx={{
                       position: 'absolute', top: -2, width: 20, height: 6, borderRadius: 3,
                       bgcolor: M.teal, boxShadow: `0 0 12px ${M.teal}60`,
@@ -434,7 +437,7 @@ export default function HomePage() {
       </Box>
 
       {/* ═══ 08 · AI INTELLIGENCE ═══ */}
-      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.navy }}>
+      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.dark }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
@@ -592,7 +595,7 @@ export default function HomePage() {
       </Box>
 
       {/* ═══ 12 · FINAL CTA ═══ */}
-      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.navy, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.dark, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ ...M.display, color: '#fff', mb: 2 }}>
             Run your care operation with more clarity.

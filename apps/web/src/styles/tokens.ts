@@ -55,7 +55,7 @@ export const T = {
   /* Display — hero headlines */
   display: {
     size: 'clamp(2.75rem, 5vw + 1rem, 4.25rem)',
-    height: 1.06,
+    height: 1,
     weight: 800 as const,
     tracking: '-0.035em',
   },
@@ -109,10 +109,10 @@ export const L = {
 /* ─── Radii ───────────────────────────────────────── */
 
 export const R = {
-  sm:   '6px',
-  md:   '10px',
-  lg:   '14px',
-  xl:   '20px',
+  sm:   '8px',
+  md:   '14px',
+  lg:   '20px',
+  xl:   '28px',
   full: '9999px',
 } as const
 

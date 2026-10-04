@@ -86,4 +86,54 @@ jobs:
         run: npm run verify:no-fixtures
         working-directory: apps/mobile
 
+  # The design system used to be two hand-maintained files that had already
+  # drifted from the code they described, and nothing noticed. These two jobs
+  # are the noticing. The first needs no database and no browser, so it is the
+  # cheapest thing in this workflow that can still go red.
+  design-system:
+    name: Design system (drift + palette lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: Design token unit tests
+        run: npm run design:test
+      # Generated artifacts must match scripts/design/palette.mjs. Hand-editing
+      # DESIGN.md or .impeccable/design.json is what this catches.
+      - name: Design artifacts are not stale
+        run: npm run design:check
+      # Off-palette hex literals. Existing debt is baselined; anything new fails.
+      - name: No new off-palette colours
+        run: npm run design:lint
+
+  visual-regression:
+    name: Visual regression (marketing)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=@meticle/shared
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Never --update-snapshots here. Regenerating the baseline in CI would
+      # make the job unfailable and turn it into a slow no-op.
+      - name: Marketing screenshots match baselines
+        run: npm run visual:test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            tests/visual/__results__/
+          retention-days: 7
+
   # Deploy is now handled by .github/workflows/deploy.yml

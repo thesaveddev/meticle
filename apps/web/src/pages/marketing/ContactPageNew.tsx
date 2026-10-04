@@ -112,7 +112,7 @@ export default function ContactPageNew() {
                       <TextField value={form.website} onChange={update('website')} tabIndex={-1} autoComplete="off" aria-hidden="true" sx={{ display: 'none' }} />
                       <FormControlLabel control={<Checkbox checked={form.privacyConsent} onChange={updateConsent('privacyConsent')} required />} label={<Typography variant="body2">I agree to the <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.</Typography>} />
                       <FormControlLabel control={<Checkbox checked={form.marketingConsent} onChange={updateConsent('marketingConsent')} />} label={<Typography variant="body2">Send me occasional product updates and care-technology guidance.</Typography>} />
-                      <Button type="submit" disabled={submitting} variant="contained" endIcon={<ArrowForward />} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>{submitting ? 'Sending…' : 'Book a demo'}</Button>
+                      <Button type="submit" disabled={submitting} variant="contained" endIcon={<ArrowForward />} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>{submitting ? 'Sending…' : 'Book a demo'}</Button>
                       <Typography sx={{ color: M.muted, fontSize: '0.78rem' }}>We use your details to respond to this enquiry. Optional updates are sent only if you opt in. You can unsubscribe at any time.</Typography>
                     </Stack>
                   </form>

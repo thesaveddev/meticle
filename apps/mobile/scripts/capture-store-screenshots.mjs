@@ -340,7 +340,7 @@ async function main() {
   // Play wants 24-bit PNG with no alpha, and screencap/simctl both emit RGBA.
   // Conform them here rather than discovering it at upload time.
   const conformed = captured.map(shot => conformScreenshot(shot.file))
-  const setCheck = checkScreenshotSet(conformed)
+  const setCheck = checkScreenshotSet(conformed, { misses })
   console.log(`\n  Play format check`)
   console.log(formatReport(conformed, setCheck).join('\n'))
 
@@ -353,6 +353,7 @@ async function main() {
     fixtureMisses: misses,
     playFormat: {
       ok: setCheck.ok,
+      checks: setCheck.checks.map(c => ({ ok: c.ok, message: c.message })),
       shots: conformed.map(r => ({ file: r.path.replace(`${REPO_ROOT}/`, ''), width: r.width, height: r.height, bytes: r.bytes, rewrittenTo24Bit: r.rewrote, ok: r.ok })),
     },
   }
@@ -363,12 +364,16 @@ async function main() {
   console.log(`  Manifest:  ${join(outDir, 'capture-manifest.json')}`)
   console.log(`  Copy:      ${join(outDir, 'store-listing-copy.md')}`)
   if (!setCheck.ok) {
-    console.log('\n  WARNING: some screenshots do not meet Play\'s format requirements. See above.')
+    console.log('\n  FAIL: this screenshot set is not uploadable. See the FAIL lines above.')
+    console.log('  Do not upload it — recapture and fix the cause first.')
+    process.exitCode = 1
   }
   if (misses.length) {
-    console.log(`\n  WARNING: the app asked for ${misses.length} endpoint(s) the fixtures do not answer.`)
-    console.log('  A screen may be emptier in the image than it should be:')
+    console.log(`\n  The app asked for ${misses.length} endpoint(s) the fixtures do not answer.`)
+    console.log('  A panel will be emptier in the image than it should be:')
     for (const miss of misses) console.log(`    ${miss}`)
+    console.log('  Add the missing fixture in src/capture/fixtures.ts and re-run, rather than')
+    console.log('  uploading and hoping. An empty panel is still a plausible-looking image.')
   }
   console.log('')
 }
