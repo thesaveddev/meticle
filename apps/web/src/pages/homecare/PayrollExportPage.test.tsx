@@ -9,6 +9,22 @@ vi.mock('../../services/api', () => ({ default: { get: vi.fn(), patch: vi.fn(), 
 
 const mockedApi = vi.mocked(api)
 
+/**
+ * PayrollExportPage filters rows to the current month — it opens its window on
+ * the 1st and closes it today. A hard-coded `scheduled_start` therefore leaves
+ * the window at the next month boundary and the whole table renders empty,
+ * which fails on "Pat Taylor" and on the rate label rather than on anything to
+ * do with the audit. Pin the fixture inside the current month instead, the same
+ * way the other date-sensitive homecare tests were pinned.
+ *
+ * Midday on the 1st keeps it inside the window from UTC-12 to UTC+14.
+ */
+function thisMonthAtNine(): string {
+  const now = new Date()
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  return `${monthStart}T09:00:00.000Z`
+}
+
 function renderPage(initialEntry = '/payroll-timesheets') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -26,12 +42,12 @@ describe('PayrollExportPage rate audit', () => {
     mockedApi.get.mockImplementation(async (url: string) => {
       if (url === '/homecare/timesheets') return { data: [{
         id: 'ts-1', status: 'approved', staff_name: 'Amina Jones', person_name: 'Pat Taylor',
-        scheduled_start: '2026-09-10T09:00:00.000Z', work_minutes: 45, travel_minutes: 12,
+        scheduled_start: thisMonthAtNine(), work_minutes: 45, travel_minutes: 12,
         paid_travel_minutes: 12, mileage_miles: 2.5, hourly_rate_pence: 1500,
         hourly_rate_source: 'carer_profile', hourly_rate_source_label: 'Carer pay profile: Standard weekday',
         mileage_rate_pence: 45, mileage_rate_source: 'organisation_policy', mileage_rate_source_label: 'Organisation mileage policy',
         paid_travel_policy_source: 'organisation_policy', paid_travel_policy_label: 'Organisation policy · travel paid',
-        rate_calculated_at: '2026-09-10T10:00:00.000Z', gross_pay_pence: 1500,
+        rate_calculated_at: `${thisMonthAtNine().slice(0, 10)}T10:00:00.000Z`, gross_pay_pence: 1500,
       }] } as any
       if (url === '/homecare/payroll/exports') return { data: [] } as any
       return { data: [] } as any

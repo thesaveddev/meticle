@@ -1,0 +1,42 @@
+name: Visual baselines
+
+# Regenerates the Playwright baselines ON the Linux runner and uploads them as
+# an artifact for a human to commit.
+#
+# This exists because a screenshot is not a portable artefact. Inter rasterises
+# differently on Windows and on the runner, so a baseline captured on a
+# Windows workstation comes out ~3% different on ubuntu-latest — every glyph
+# edge, and nothing else. On 2026-10-04 that was measured on the first CI run:
+# zero pixels differed in colour, and all 7,217 differing pixels were
+# anti-aliasing on text. Raising `maxDiffPixelRatio` would have "fixed" it by
+# accepting 3% noise everywhere, which would hide real colour and layout
+# changes. The runner's rendering is the canonical one, so the baselines have
+# to come from here.
+#
+# It is deliberately a separate workflow rather than an input on CI. CI must
+# never be able to rewrite the thing it is checking — if the baseline job could
+# update snapshots, the visual job would become an unfailable slow no-op.
+on:
+  workflow_dispatch:
+
+jobs:
+  regenerate:
+    name: Regenerate baselines on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=@meticle/shared
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Regenerate baselines
+        run: npm run visual:update
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: tests/visual/__screenshots__/
+          retention-days: 30
