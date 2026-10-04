@@ -9,6 +9,9 @@
     "setup-db": "ts-node -r ./scripts/no-deprecation.js src/shared/database/setup.ts",
     "backfill:pii-encryption": "ts-node -r ./scripts/no-deprecation.js src/scripts/backfill-pii-encryption.ts",
     "seed:play-reviewer": "ts-node -r ./scripts/no-deprecation.js src/scripts/seed-play-reviewer.ts",
+    "seed:october-visits": "ts-node -r ./scripts/no-deprecation.js src/scripts/seed-october-visits.ts",
+    "seed:verify-october": "ts-node -r ./scripts/no-deprecation.js src/scripts/verify-october-visits.ts",
+    "seed:dedupe-packages": "ts-node -r ./scripts/no-deprecation.js src/scripts/dedupe-care-packages.ts",
     "certs:generate": "ts-node scripts/generate-certs.ts",
     "test": "vitest run",
     "test:watch": "vitest"
