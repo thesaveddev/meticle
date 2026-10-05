@@ -43,12 +43,19 @@ const ORG_ADMIN = {
   role: 'ORG_ADMIN',
 }
 
+const ORG_ADMIN_PERMISSIONS = [
+  'dashboard', 'people', 'emedication', 'staff_directory', 'scheduling', 'marketplace',
+  'agencies', 'leave', 'settings', 'compliance', 'policies', 'incidents', 'reporting',
+  'chat', 'tasks', 'appointments', 'expenses', 'homecare', 'call_scheduling',
+  'mileage_travel', 'payroll_export', 'client_billing', 'billing', 'learn',
+].map(module => ({ module, permission_level: 'view' }))
+
 beforeEach(() => {
   window.localStorage.setItem('user', JSON.stringify(ORG_ADMIN))
   window.localStorage.setItem('accessToken', 'test-token')
   vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })
-    if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: [] } })
+    if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: ORG_ADMIN_PERMISSIONS } })
     if (url.includes('/auth/me')) {
       return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Test Org' } } })
     }
@@ -104,12 +111,12 @@ describe('Layout sidebar navigation', () => {
     expect(screen.getByRole('button', { name: /Care/i })).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('hides supported-living navigation and keeps notifications in the top bar for domiciliary organisations', async () => {
+  it('hides supported-living-only navigation and keeps notifications in the top bar for domiciliary organisations', async () => {
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url === '/settings/org') return Promise.resolve({ data: { service_types: ['domiciliary'] } })
       if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })
       if (url.includes('/chat/unread')) return Promise.resolve({ data: {} })
-      if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: [] } })
+      if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: ORG_ADMIN_PERMISSIONS } })
       if (url.includes('/auth/me')) return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Homecare Org' } } })
       return Promise.resolve({ data: {} })
     })
@@ -118,7 +125,7 @@ describe('Layout sidebar navigation', () => {
     await waitFor(() => expect(screen.getByTestId('page-dashboard')).toBeInTheDocument())
 
     const sidebar = within(screen.getByRole('navigation'))
-    expect(sidebar.queryByText('Mission Control')).not.toBeInTheDocument()
+    expect(sidebar.getByText('Mission Control')).toBeInTheDocument()
     expect(sidebar.queryByText('Appointments')).not.toBeInTheDocument()
     expect(sidebar.queryByText('Expenses')).not.toBeInTheDocument()
     expect(sidebar.queryByText('Tasks')).not.toBeInTheDocument()

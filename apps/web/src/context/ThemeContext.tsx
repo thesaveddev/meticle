@@ -33,8 +33,8 @@ export function useThemeMode() {
   return ctx
 }
 
-export const METICLE_PRIMARY = '#1A2332'
-export const METICLE_SECONDARY = '#6B7280'
+export const METICLE_PRIMARY = '#0F4C81'
+export const METICLE_SECONDARY = '#5B6672'
 export const METICLE_ACCENT = '#10B981'
 
 export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingColors = { primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }) {
@@ -66,14 +66,14 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           }
         : {
             background: {
-              default: '#F7F9F7',
+              default: '#FFFFFF',
               paper: '#FFFFFF',
             },
             text: {
-              primary: '#1A2332',
-              secondary: '#6B7280',
+              primary: '#1B2430',
+              secondary: '#5B6672',
             },
-            divider: '#F3F4F6',
+            divider: '#E7E1D6',
           }),
     },
     typography: {
@@ -103,11 +103,11 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           contained: {
             backgroundColor: mode === 'dark' ? '#34D399' : primary,
             color: mode === 'dark' ? '#07131A' : '#FFFFFF',
-            '&:hover': { backgroundColor: mode === 'dark' ? '#6EE7B7' : (primary === '#1A2332' ? '#0F172A' : primary) },
+            '&:hover': { backgroundColor: mode === 'dark' ? '#6EE7B7' : (primary === METICLE_PRIMARY ? '#0A3A63' : primary) },
           },
           outlined: {
             borderColor: mode === 'dark' ? '#64748B' : '#CBD5E1',
-            '&:hover': { borderColor: mode === 'dark' ? '#34D399' : primary, backgroundColor: mode === 'dark' ? 'rgba(52,211,153,0.08)' : 'rgba(26,35,50,0.04)' },
+            '&:hover': { borderColor: mode === 'dark' ? '#34D399' : primary, backgroundColor: mode === 'dark' ? 'rgba(52,211,153,0.08)' : 'rgba(15,76,129,0.04)' },
           },
         },
       },
@@ -134,14 +134,14 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           root: {
             '& .MuiOutlinedInput-root': {
               borderRadius: 14,
-              color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+              color: mode === 'dark' ? '#F8FAFC' : '#1B2430',
               backgroundColor: mode === 'dark' ? '#111827' : '#FFFFFF',
               '& fieldset': { borderColor: mode === 'dark' ? '#64748B' : '#CBD5E1' },
               '&:hover fieldset': { borderColor: mode === 'dark' ? '#94A3B8' : '#64748B' },
               '&.Mui-focused fieldset': { borderColor: mode === 'dark' ? '#34D399' : primary, borderWidth: 2 },
             },
             '& .MuiInputBase-input': {
-              color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+              color: mode === 'dark' ? '#F8FAFC' : '#1B2430',
               '&::placeholder': { color: mode === 'dark' ? '#94A3B8' : '#64748B', opacity: 1 },
             },
             '& .MuiInputLabel-root': { color: mode === 'dark' ? '#CBD5E1' : '#475569' },
@@ -152,8 +152,8 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       MuiInputBase: {
         styleOverrides: {
           root: {
-            color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
-            '& input, & textarea': { color: mode === 'dark' ? '#F8FAFC' : '#1A2332' },
+            color: mode === 'dark' ? '#F8FAFC' : '#1B2430',
+            '& input, & textarea': { color: mode === 'dark' ? '#F8FAFC' : '#1B2430' },
           },
         },
       },
@@ -169,14 +169,14 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           html: { colorScheme: mode },
           body: {
             scrollbarColor: mode === 'dark' ? '#64748B #111827' : undefined,
-            backgroundColor: mode === 'dark' ? '#0B1220' : '#F7F9F7',
-            color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+            backgroundColor: mode === 'dark' ? '#0B1220' : '#FFFFFF',
+            color: mode === 'dark' ? '#F8FAFC' : '#1B2430',
           },
           '*, *::before, *::after': { borderColor: mode === 'dark' ? '#334155' : undefined },
           'input::placeholder, textarea::placeholder': { color: mode === 'dark' ? '#94A3B8' : '#64748B', opacity: 1 },
           'input:-webkit-autofill': {
             WebkitBoxShadow: `0 0 0 1000px ${mode === 'dark' ? '#111827' : '#FFFFFF'} inset`,
-            WebkitTextFillColor: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+            WebkitTextFillColor: mode === 'dark' ? '#F8FAFC' : '#1B2430',
           },
         },
       },
@@ -210,7 +210,7 @@ function loadBranding(): { colors: BrandingColors; logo: string } {
     if (raw) return JSON.parse(raw)
   } catch {}
   return {
-    colors: { primary_color: '#0F4C81', secondary_color: '#6B7280', accent_color: '#F8FAFC' },
+    colors: { primary_color: '#0F4C81', secondary_color: '#5B6672', accent_color: '#F8FAFC' },
     logo: '',
   }
 }

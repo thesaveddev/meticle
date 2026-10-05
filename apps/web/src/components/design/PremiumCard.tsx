@@ -15,7 +15,7 @@ export function PremiumCard({ children, noBorder = false, sx, ...props }: Premiu
         boxShadow: theme.palette.mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.2)' : '0 1px 3px rgba(26,35,50,0.04)',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         overflow: 'hidden',
-        border: noBorder ? 'none' : `1px solid ${theme.palette.divider}`,
+        border: noBorder ? (theme.palette.mode === 'dark' ? 'none' : `1px solid ${theme.palette.divider}`) : `1px solid ${theme.palette.divider}`,
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(26,35,50,0.06)',
         },
@@ -47,7 +47,7 @@ export function StatCard({ label, value, icon, color, onClick }: StatCardProps) 
         display: 'flex',
         flexDirection: 'column',
         cursor: onClick ? 'pointer' : 'default',
-        '&:hover': onClick ? { transform: 'translateY(-2px)' } : {},
+        '&:hover': onClick ? { transform: 'translateY(-2px)', borderColor: theme.palette.mode === 'dark' ? theme.palette.divider : theme.palette.primary.main } : {},
       }}
       onClick={onClick}
     >

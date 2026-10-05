@@ -9,8 +9,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
-const LOGIN_ILLUSTRATION = '/login-page.jpg';
-
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -155,7 +153,6 @@ export default function LoginPage() {
         borderLeft: '1px solid', borderColor: 'divider'
       }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <img src={LOGIN_ILLUSTRATION} alt="Meticle Care dashboard" style={{ width: '100%', marginBottom: '32px', borderRadius: 8 }} />
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
             Care records, medication, staffing and compliance — one working view.
           </Typography>

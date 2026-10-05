@@ -350,7 +350,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       if (org?.primary_color || org?.logo_url) {
         updateBranding({
           primary_color: org.primary_color || '#0F4C81',
-          secondary_color: org.secondary_color || '#6B7280',
+          secondary_color: org.secondary_color || METICLE_SECONDARY,
           accent_color: org.accent_color || '#F8FAFC',
         }, org.logo_url || '')
       }
@@ -462,7 +462,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               onClick={toggleGroup}
               sx={{
                 borderRadius: 1.5, py: 0.5, px: 1.5, mb: 0.25, minHeight: 32,
-                '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#F7F9F7' },
+                '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#F7F4EE' },
               }}
             >
               <ListItemText
@@ -482,10 +482,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   sx={{ 
                     borderRadius: 2,
                     '&.Mui-selected': {
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : `${branding.primary_color}15`,
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : `${branding.primary_color}12`,
                       color: branding.primary_color,
                       '& .MuiListItemIcon-root': { color: branding.primary_color },
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : `${branding.primary_color}15` }
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : `${branding.primary_color}18` }
                     },
                     '&:hover': { bgcolor: theme.palette.action.hover },
                     '&.Mui-disabled': { opacity: 0.45 },
@@ -546,7 +546,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           bgcolor: theme.palette.background.paper,
-          borderBottom: 'none',
+          borderBottom: `1px solid ${theme.palette.divider}`,
           boxShadow: theme.palette.mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.2)' : '0 1px 3px rgba(26,35,50,0.04)',
           color: theme.palette.text.primary
         }}

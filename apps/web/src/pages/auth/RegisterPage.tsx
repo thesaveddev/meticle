@@ -7,8 +7,6 @@ import { UserRole } from '@meticle/shared'
 import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
-const REGISTER_ILLUSTRATION = '/signup-page.jpg';
-
 const PASSWORD_RULES = [
   { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
   { key: 'upper', label: 'One uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
@@ -225,7 +223,6 @@ export default function RegisterPage() {
               ))}
             </Stack>
           )}
-          <img src={REGISTER_ILLUSTRATION} alt="Trust Illustration" style={{ width: '100%', opacity: 0.5 }} />
         </Box>
       </Box>
 

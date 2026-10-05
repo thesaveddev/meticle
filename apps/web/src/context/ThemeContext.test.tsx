@@ -38,6 +38,19 @@ describe('ThemeModeProvider zoom scale', () => {
     ;(document.documentElement.style as any).zoom = ''
   })
 
+  it('defaults to a white-first light theme when no preference is stored', () => {
+    renderProvider()
+    expect(screen.getByTestId('mode')).toHaveTextContent('light')
+    expect(window.localStorage.getItem('theme-mode')).toBe('light')
+  })
+
+  it('restores an explicitly saved dark preference', () => {
+    window.localStorage.setItem('theme-mode', 'dark')
+    renderProvider()
+    expect(screen.getByTestId('mode')).toHaveTextContent('dark')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
   it('toggles dark mode, updates the document theme and persists it', () => {
     renderProvider()
     expect(screen.getByTestId('mode')).toHaveTextContent('light')

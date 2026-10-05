@@ -2,16 +2,16 @@
 
 :root {
   /* Brand Colors — Deep Navy + Teal */
-  --primary: #1A2332;
-  --primary-dark: #0F172A;
+  --primary: #0F4C81;
+  --primary-dark: #0A3A63;
   --primary-light: #EDF2F7;
   --accent: #10B981;
   --accent-light: #ECFDF5;
   
   /* Backgrounds — Warm off-white */
   --bg-white: #FFFFFF;
-  --bg-secondary: #F7F9F7;
-  --bg-page: #F7F9F7;
+  --bg-secondary: #F7F4EE;
+  --bg-page: #FFFFFF;
   
   /* Status Colors — Soft */
   --success: #10B981;
@@ -22,13 +22,13 @@
   --error-light: #FEF2F2;
   
   /* Text Colors */
-  --text-main: #1A2332;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
+  --text-main: #1B2430;
+  --text-secondary: #5B6672;
+  --text-muted: #5B6672;
   
   /* Borders & Dividers — Subtle */
-  --border-light: #F3F4F6;
-  --border-medium: #E5E7EB;
+  --border-light: #E7E1D6;
+  --border-medium: #D8D2C7;
   
   /* Shadows — Ultra soft */
   --shadow-sm: 0 1px 3px rgba(26, 35, 50, 0.04);
@@ -86,6 +86,7 @@
 
 html, body {
   color-scheme: light;
+  overflow-x: clip;
 }
 
 [data-theme="dark"] {

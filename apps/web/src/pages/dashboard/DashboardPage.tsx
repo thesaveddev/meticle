@@ -255,7 +255,7 @@ export default function DashboardPage() {
 
       {/* Onboarding Checklist */}
       {isAdmin && org && !hideOnboarding && !onboardComplete && (
-        <PremiumCard noBorder sx={{ p: 4, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
+        <PremiumCard noBorder sx={{ p: 4, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F7F4EE' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Welcome — let's get you set up</Typography>
@@ -289,9 +289,13 @@ export default function DashboardPage() {
                     border: `1px solid ${step.done ? '#BBF7D0' : theme.palette.divider}`,
                     cursor: 'pointer',
                     transition: 'border-color 0.2s ease',
-                    '&:hover': { borderColor: '#1A2332' },
+                    '&:hover': { borderColor: theme.palette.primary.main },
+                    '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
                   }}
                   onClick={() => navigate(step.path)}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(step.path) } }}
                 >
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Box
