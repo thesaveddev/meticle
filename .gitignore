@@ -68,3 +68,19 @@ store/data-safety/generated.csv
 playwright-report/
 tests/visual/__results__/
 test-results/
+
+# Session/media upload scrap that is not application source. The pipeline's
+# server-change classifier diffs apps/api, apps/web, packages, deploy.sh and
+# docker-compose files, so dropping these here keeps them out of release
+# classification and out of the repo.videos/
+section-*.png
+
+# Mobile-only feature files that ship through EAS, not through this API/web
+# image pipeline. Kept local to the mobile checkout, not part of the server
+# release candidate.
+apps/mobile/src/services/incidentQueue.ts
+
+# Mica action framework source. Part of the reusable voice-action layer; shipped
+# as first-class app modules rather than scratch.
+# (No ignore here: ai.actions.ts, ai.gateway.ts, actions/ and the new migrations
+# are intentional release content.)
