@@ -1,0 +1,35 @@
+# Manual-only baseline refresh for tests/visual/__screenshots__.
+#
+# The gating job in ci.yml ("Marketing screenshots match baselines") must never
+# run with --update-snapshots: that would make it unfailable. But a baseline
+# generated on a developer's machine compares against screenshots rendered on
+# ubuntu-latest, and text antialiasing alone pushes dense pages past the 1%
+# diff budget. This workflow exists so the committed baselines can be rendered
+# on the exact runner image the gate uses, then reviewed as images and committed
+# by a human — the gate stays independent and still fails on real drift.
+name: Visual baseline refresh
+
+on:
+  workflow_dispatch:
+
+jobs:
+  regenerate:
+    name: Regenerate marketing screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=@meticle/shared
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Re-render the baselines
+        run: npx playwright test --update-snapshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: tests/visual/__screenshots__/
+          retention-days: 7
