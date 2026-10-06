@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { spacing, typography, FONT, useAppColors } from '../theme'
+import { CHART_PALETTE, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -37,12 +37,12 @@ const STATUS_FILTERS = [
 ]
 
 const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  scheduled: { bg: '#FEF3C7', text: '#92400E' },
-  en_route: { bg: '#DBEAFE', text: '#1E40AF' },
-  checked_in: { bg: '#D1FAE5', text: '#065F46' },
-  completed: { bg: '#DCFCE7', text: '#166534' },
-  missed: { bg: '#FEE2E2', text: '#991B1B' },
-  cancelled: { bg: '#F3F4F6', text: '#6B7280' },
+  scheduled: { bg: '#FFF7E6', text: '#9A6700' },
+  en_route: { bg: '#EAF3FF', text: '#175CD3' },
+  checked_in: { bg: '#EAFBF5', text: '#087A55' },
+  completed: { bg: '#EAFBF5', text: '#087A55' },
+  missed: { bg: '#FEF0F0', text: '#B42318' },
+  cancelled: { bg: '#F7F9FC', text: '#667085' },
 }
 
 function timeStr(iso: string) {
@@ -59,7 +59,7 @@ function dateStr(iso: string) {
 }
 
 function getAvatarColor(name: string) {
-  const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444']
+  const AVATAR_COLORS = CHART_PALETTE
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
@@ -169,16 +169,16 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
               <Text style={[s.dateHeader, { color: c.subtle }]}>{date}</Text>
               {items.map((v: any) => {
                 const hasOverdue = ['scheduled', 'en_route'].includes(v.status) && new Date(v.scheduled_end) < new Date()
-                const sc = hasOverdue ? { bg: '#FEE2E2', text: '#991B1B' } : (STATUS_STYLE[v.status] || STATUS_STYLE.scheduled)
+                const sc = hasOverdue ? { bg: '#FEF0F0', text: '#B42318' } : (STATUS_STYLE[v.status] || STATUS_STYLE.scheduled)
                 return (
                   <Pressable
                     key={v.id}
                     onPress={() => { hapticLight(); onSelect?.(v) }}
-                    style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.base, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: c.borderLight, borderLeftWidth: hasOverdue ? 3 : 0, borderLeftColor: hasOverdue ? (c.danger || '#DC2626') : 'transparent' }, pressed && { backgroundColor: c.surfaceAlt }]}
+                    style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.base, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: c.borderLight, borderLeftWidth: hasOverdue ? 3 : 0, borderLeftColor: hasOverdue ? (c.danger || '#EF4444') : 'transparent' }, pressed && { backgroundColor: c.surfaceAlt }]}
                   >
                     {/* Time */}
                     <View style={s.timeCol}>
-                      <Text style={[s.timeStart, { color: hasOverdue ? (c.danger || '#DC2626') : c.ink }]}>{timeStr(v.scheduled_start)}</Text>
+                      <Text style={[s.timeStart, { color: hasOverdue ? (c.danger || '#EF4444') : c.ink }]}>{timeStr(v.scheduled_start)}</Text>
                       <Text style={[s.timeEnd, { color: c.muted }]}>{timeStr(v.scheduled_end)}</Text>
                     </View>
 

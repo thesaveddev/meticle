@@ -50,17 +50,17 @@ interface IncidentStats {
 }
 
 const severityConfig: Record<string, { label: string; color: string; bg: string }> = {
-  low: { label: 'Low', color: '#047857', bg: '#E9F7F0' },
-  medium: { label: 'Medium', color: '#D97706', bg: '#FFF5D9' },
-  high: { label: 'High', color: '#DC2626', bg: '#FDECEC' },
-  critical: { label: 'Critical', color: '#B91C1C', bg: '#FEE2E2' },
+  low: { label: 'Low', color: '#087A55', bg: '#EAFBF5' },
+  medium: { label: 'Medium', color: '#F59E0B', bg: '#FFF7E6' },
+  high: { label: 'High', color: '#EF4444', bg: '#FEF0F0' },
+  critical: { label: 'Critical', color: '#B42318', bg: '#FEF0F0' },
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  reported: { label: 'Reported', color: 'text.secondary', bg: '#F3F4F6' },
-  investigating: { label: 'Investigating', color: '#0F4C81', bg: '#E0F2FE' },
-  resolved: { label: 'Resolved', color: '#047857', bg: '#E9F7F0' },
-  closed: { label: 'Closed', color: 'text.secondary', bg: '#F3F4F6' },
+  reported: { label: 'Reported', color: 'text.secondary', bg: '#F7F9FC' },
+  investigating: { label: 'Investigating', color: '#2F80ED', bg: '#EAF3FF' },
+  resolved: { label: 'Resolved', color: '#087A55', bg: '#EAFBF5' },
+  closed: { label: 'Closed', color: 'text.secondary', bg: '#F7F9FC' },
 }
 
 function dateLabel(d: string) {
@@ -159,19 +159,19 @@ export default function IncidentsPage() {
       {stats && (
         <Grid container spacing={2.5} sx={{ mb: 4 }}>
           <Grid item xs={6} sm={4} md={2.4}>
-            <StatCard label="Total" value={stats.total} icon={<IncidentIcon />} color="#6B7280" />
+            <StatCard label="Total" value={stats.total} icon={<IncidentIcon />} color="#667085" />
           </Grid>
           <Grid item xs={6} sm={4} md={2.4}>
-            <StatCard label="Open" value={stats.open} icon={<IncidentIcon />} color="#D97706" />
+            <StatCard label="Open" value={stats.open} icon={<IncidentIcon />} color="#F59E0B" />
           </Grid>
           <Grid item xs={6} sm={4} md={2.4}>
             <StatCard label="Resolved" value={stats.resolved} icon={<ResolveIcon />} color="#10B981" />
           </Grid>
           <Grid item xs={6} sm={4} md={2.4}>
-            <StatCard label="High Severity" value={stats.high_severity} icon={<IncidentIcon />} color="#DC2626" />
+            <StatCard label="High Severity" value={stats.high_severity} icon={<IncidentIcon />} color="#EF4444" />
           </Grid>
           <Grid item xs={6} sm={4} md={2.4}>
-            <StatCard label="Near Misses" value={stats.near_misses} icon={<IncidentIcon />} color="#7C3AED" />
+            <StatCard label="Near Misses" value={stats.near_misses} icon={<IncidentIcon />} color="#8B7CF6" />
           </Grid>
         </Grid>
       )}
@@ -258,7 +258,7 @@ export default function IncidentsPage() {
                           <Stack direction="row" alignItems="center" gap={1}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{inc.title}</Typography>
                             {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
-                            {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
+                            {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#F4F8FF', color: '#8B7CF6' }} />}
                             {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
                           </Stack>
                           {inc.description && (
@@ -322,7 +322,7 @@ export default function IncidentsPage() {
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack direction="row" alignItems="center" gap={1.5}>
-                <IncidentIcon sx={{ color: severityConfig[selectedIncident.severity]?.color || '#6B7280' }} />
+                <IncidentIcon sx={{ color: severityConfig[selectedIncident.severity]?.color || '#667085' }} />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>{selectedIncident.title}</Typography>
               </Stack>
               <IconButton onClick={() => setSelectedIncident(null)} size="small"><CloseIcon /></IconButton>
@@ -338,7 +338,7 @@ export default function IncidentsPage() {
                       sx={{ bgcolor: severityConfig[selectedIncident.severity]?.bg, color: severityConfig[selectedIncident.severity]?.color, fontWeight: 600 }} />
                     <Chip label={statusConfig[selectedIncident.status]?.label || selectedIncident.status}
                       sx={{ bgcolor: statusConfig[selectedIncident.status]?.bg, color: statusConfig[selectedIncident.status]?.color, fontWeight: 600 }} />
-                    {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
+                    {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#F4F8FF', color: '#8B7CF6' }} />}
                     {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
                     {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
                   </Stack>
@@ -401,12 +401,12 @@ export default function IncidentsPage() {
                       <Stack spacing={1}>
                         {selectedIncident.actions.map((action: any) => (
                           <Stack key={action.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
-                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: action.completed_at ? '#10B981' : '#D97706', flexShrink: 0 }} />
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: action.completed_at ? '#10B981' : '#F59E0B', flexShrink: 0 }} />
                             <Typography variant="body2" sx={{ flex: 1, textDecoration: action.completed_at ? 'line-through' : 'none', color: action.completed_at ? 'text.secondary' : 'text.primary' }}>
                               {action.title}
                             </Typography>
                             {action.due_date && !action.completed_at && (
-                              <Typography variant="caption" sx={{ color: '#D97706' }}>Due {dateLabel(action.due_date)}</Typography>
+                              <Typography variant="caption" sx={{ color: '#F59E0B' }}>Due {dateLabel(action.due_date)}</Typography>
                             )}
                           </Stack>
                         ))}

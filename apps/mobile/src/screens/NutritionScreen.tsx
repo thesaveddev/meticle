@@ -19,10 +19,10 @@ const MEAL_TYPES = [
 ] as const
 
 const APPETITE_LEVELS = [
-  { key: 'poor', label: 'Poor', color: '#DC2626' },
-  { key: 'fair', label: 'Fair', color: '#D97706' },
-  { key: 'good', label: 'Good', color: '#16A34A' },
-  { key: 'excellent', label: 'Excellent', color: '#059669' },
+  { key: 'poor', label: 'Poor', color: '#EF4444' },
+  { key: 'fair', label: 'Fair', color: '#F59E0B' },
+  { key: 'good', label: 'Good', color: '#10B981' },
+  { key: 'excellent', label: 'Excellent', color: '#087A55' },
 ] as const
 
 interface Props {
@@ -293,12 +293,12 @@ const styles = StyleSheet.create({
   fluidPercent: { ...typography.small, marginTop: spacing.xs, textAlign: 'right' },
 
   /* Flags */
-  flagsCard: { backgroundColor: colors.warningSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: '#FDE68A', padding: spacing.base },
-  flagsTitle: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: spacing.sm },
+  flagsCard: { backgroundColor: colors.warningSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: '#FFF7E6', padding: spacing.base },
+  flagsTitle: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: '#9A6700', marginBottom: spacing.sm },
   flagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  flagChip: { backgroundColor: '#FEF3C7', borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: '#FDE68A' },
-  flagText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: '#92400E' },
-  flagNote: { ...typography.small, color: '#78350F', marginTop: spacing.sm },
+  flagChip: { backgroundColor: '#FFF7E6', borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: '#FFF7E6' },
+  flagText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: '#9A6700' },
+  flagNote: { ...typography.small, color: '#9A6700', marginTop: spacing.sm },
 
   /* Section */
   sectionHead: { fontFamily: 'System', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: colors.subtle },

@@ -40,9 +40,9 @@ describe('MeticleSplashScreen', () => {
         : node.props.style
       return style?.backgroundColor
     }
-    expect(flat(blue)).toBe('#3B9FE8')
-    expect(flat(cyan)).toBe('#39C5D9')
-    expect(flat(teal)).toBe('#4FD9B1')
+    expect(flat(blue)).toBe('#2F80ED')
+    expect(flat(cyan)).toBe('#55BFD3')
+    expect(flat(teal)).toBe('#5CC8B7')
   })
 
   it('parks the layers instead of animating when reduce motion is on', async () => {

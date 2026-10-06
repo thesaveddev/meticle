@@ -11,9 +11,9 @@ const { DAYS, toLocalDateStr, isDayPast, shiftMatchesDay, shiftDurationHours, sh
 
 const roleColor = (role?: string) => {
   switch (role) {
-    case 'ORG_ADMIN': return { bg: '#DBEAFE', fg: '#1E40AF' }
-    case 'MANAGER': return { bg: '#EDE9FE', fg: '#5B21B6' }
-    default: return { bg: '#D1FAE5', fg: '#065F46' }
+    case 'ORG_ADMIN': return { bg: '#EAF3FF', fg: '#175CD3' }
+    case 'MANAGER': return { bg: '#E8FAF6', fg: '#0C9E89' }
+    default: return { bg: '#EAFBF5', fg: '#087A55' }
   }
 }
 
@@ -70,17 +70,17 @@ export default function RosterView(props: RotaViewProps) {
               const short = stats.filter(x => !x.ok)
               return (
                 <TableCell key={i} sx={{
-                  fontWeight: 700, bgcolor: today ? '#E7EEF4' : '#F8FAFC', textAlign: 'center',
+                  fontWeight: 700, bgcolor: today ? '#E6EAF0' : '#F8FAFC', textAlign: 'center',
                   position: 'sticky', top: 0, zIndex: 2, minWidth: 120, fontSize: '0.7rem',
                 }}>
                   <Stack direction="row" spacing={0.4} alignItems="center" justifyContent="center">
                     <Box>
-                      <Box sx={{ fontWeight: 800, color: today ? '#0F4C81' : '#1B2430', lineHeight: 1.1 }}>{DAYS[i]}</Box>
+                      <Box sx={{ fontWeight: 800, color: today ? '#2F80ED' : '#17202A', lineHeight: 1.1 }}>{DAYS[i]}</Box>
                       <Box sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 500 }}>{d.getDate()}</Box>
                     </Box>
                     {short.length > 0 ? (
                       <Tooltip title={short.map(x => `${x.loc.name}: ${x.cnt}/${x.need}`).join(', ')}>
-                        <WarningIcon sx={{ fontSize: 13, color: '#D97706' }} />
+                        <WarningIcon sx={{ fontSize: 13, color: '#F59E0B' }} />
                       </Tooltip>
                     ) : stats.length > 0 ? (
                       <CheckIcon sx={{ fontSize: 13, color: '#10B981' }} />
@@ -88,7 +88,7 @@ export default function RosterView(props: RotaViewProps) {
                     {canEdit && !isReadOnly && !past && (
                       <IconButton size="small" onClick={() => props.onOpenShiftDialog(d)} sx={{ p: 0.2 }}
                         aria-label={`Add shift for ${DAYS[i]}`}>
-                        <AddIcon sx={{ fontSize: 13, color: '#0F4C81' }} />
+                        <AddIcon sx={{ fontSize: 13, color: '#2F80ED' }} />
                       </IconButton>
                     )}
                   </Stack>
@@ -111,7 +111,7 @@ export default function RosterView(props: RotaViewProps) {
             return (
               <TableRow key={staff.staff_id} sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                 <TableCell sx={{
-                  position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1, minWidth: 170, borderRight: '1px solid #F3F4F6',
+                  position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1, minWidth: 170, borderRight: '1px solid #F7F9FC',
                 }}>
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Box sx={{ minWidth: 0 }}>
@@ -135,7 +135,7 @@ export default function RosterView(props: RotaViewProps) {
                       bgcolor: today ? '#F7FAFC' : 'inherit', p: 0.5,
                     }}>
                       {cellShifts.length === 0 ? (
-                        <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#D1D5DB' }}>—</Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#D8DEE7' }}>—</Typography>
                       ) : (
                         <Stack spacing={0.3}>
                           {cellShifts.map(s => {
@@ -148,7 +148,7 @@ export default function RosterView(props: RotaViewProps) {
                                   onClick={() => props.onOpenDetail(s)}
                                   sx={{
                                     cursor: 'pointer', height: 17, fontSize: '0.55rem', fontWeight: 700,
-                                    bgcolor: vis.chipBg, color: vis.chipFg, width: '100%', '&:hover': { filter: 'brightness(0.97)', borderColor: '#0F4C81' },
+                                    bgcolor: vis.chipBg, color: vis.chipFg, width: '100%', '&:hover': { filter: 'brightness(0.97)', borderColor: '#2F80ED' },
                                   }}
                                 />
                               </Tooltip>

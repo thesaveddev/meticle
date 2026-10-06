@@ -9,22 +9,22 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { IconBruise, IconWound, IconRash, IconInjection, IconBurn, IconWarning, IconScar, IconSwelling, IconSkinTear, IconAlert, IconBody } from '../components/Icons'
 
 const CONDITION_TYPES = [
-  { key: 'bruise', label: 'Bruise', color: '#7C3AED', IconComponent: IconBruise },
-  { key: 'wound', label: 'Wound', color: '#DC2626', IconComponent: IconWound },
-  { key: 'rash', label: 'Rash', color: '#EA580C', IconComponent: IconRash },
-  { key: 'injection', label: 'Injection', color: '#2563EB', IconComponent: IconInjection },
-  { key: 'burn', label: 'Burn', color: '#DC2626', IconComponent: IconBurn },
-  { key: 'pressure_sore', label: 'Pressure sore', color: '#9333EA', IconComponent: IconWarning },
-  { key: 'scar', label: 'Scar', color: '#6B7280', IconComponent: IconScar },
-  { key: 'swelling', label: 'Swelling', color: '#0891B2', IconComponent: IconSwelling },
-  { key: 'skin_tear', label: 'Skin tear', color: '#BE123C', IconComponent: IconSkinTear },
-  { key: 'other', label: 'Other', color: '#6B7280', IconComponent: IconAlert },
+  { key: 'bruise', label: 'Bruise', color: '#8B7CF6', IconComponent: IconBruise },
+  { key: 'wound', label: 'Wound', color: '#EF4444', IconComponent: IconWound },
+  { key: 'rash', label: 'Rash', color: '#F59E0B', IconComponent: IconRash },
+  { key: 'injection', label: 'Injection', color: '#2F80ED', IconComponent: IconInjection },
+  { key: 'burn', label: 'Burn', color: '#EF4444', IconComponent: IconBurn },
+  { key: 'pressure_sore', label: 'Pressure sore', color: '#8B7CF6', IconComponent: IconWarning },
+  { key: 'scar', label: 'Scar', color: '#667085', IconComponent: IconScar },
+  { key: 'swelling', label: 'Swelling', color: '#0C9E89', IconComponent: IconSwelling },
+  { key: 'skin_tear', label: 'Skin tear', color: '#B42318', IconComponent: IconSkinTear },
+  { key: 'other', label: 'Other', color: '#667085', IconComponent: IconAlert },
 ] as const
 
 const SEVERITIES = [
-  { key: 'mild', label: 'Mild', color: '#16A34A' },
-  { key: 'moderate', label: 'Moderate', color: '#D97706' },
-  { key: 'severe', label: 'Severe', color: '#DC2626' },
+  { key: 'mild', label: 'Mild', color: '#10B981' },
+  { key: 'moderate', label: 'Moderate', color: '#F59E0B' },
+  { key: 'severe', label: 'Severe', color: '#EF4444' },
 ] as const
 
 // Body zones mapped to approximate x,y coordinates on the body diagram

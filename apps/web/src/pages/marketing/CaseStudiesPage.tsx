@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-const INK = '#1B2430'
-const NAVY = '#0F4C81'
+const INK = '#17202A'
+const NAVY = '#2F80ED'
 const EMERALD = '#10B981'
-const BONE = '#F7F4EE'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const BONE = '#F7F9FC'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 
 const pilotAreas = [
   { icon: <Tune sx={{ color: NAVY }} />, title: 'Operational visibility', body: 'Agree the measures that matter to your service: visit completion, staffing pressure, outstanding actions and reporting time.' },

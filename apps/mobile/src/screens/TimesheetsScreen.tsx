@@ -113,10 +113,10 @@ export function TimesheetsScreen({ session, onBack }: Props) {
   ]
 
   const filterColors: Record<string, { bg: string; text: string }> = {
-    pending: { bg: '#FEF3C7', text: '#92400E' },
-    approved: { bg: '#DCFCE7', text: '#166534' },
-    rejected: { bg: '#FEE2E2', text: '#991B1B' },
-    draft: { bg: '#F3F4F6', text: '#6B7280' },
+    pending: { bg: '#FFF7E6', text: '#9A6700' },
+    approved: { bg: '#EAFBF5', text: '#087A55' },
+    rejected: { bg: '#FEF0F0', text: '#B42318' },
+    draft: { bg: '#F7F9FC', text: '#667085' },
   }
 
   return (
@@ -182,8 +182,8 @@ export function TimesheetsScreen({ session, onBack }: Props) {
           {[
             { label: 'Visits', value: String(filtered.length), color: c.primary },
             { label: 'Work', value: fmtHours(totalWork), color: c.success },
-            { label: 'Travel', value: fmtHours(totalTravel), color: '#3B82F6' },
-            { label: 'Pay', value: money(totalPay), color: '#8B5CF6' },
+            { label: 'Travel', value: fmtHours(totalTravel), color: '#2F80ED' },
+            { label: 'Pay', value: money(totalPay), color: '#087A55' },
           ].map(s => (
             <View key={s.label} style={{ flex: 1, backgroundColor: c.surface, borderRadius: radii.md, padding: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: c.border }}>
               <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 15, fontWeight: '800', color: s.color }}>{s.value}</Text>
@@ -259,10 +259,10 @@ export function TimesheetsScreen({ session, onBack }: Props) {
                   {/* ── Breakdown chips ── */}
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
                     {[
-                      { label: 'Work', value: fmtHours(ts.work_minutes), bg: '#F0FDF4', color: '#166534' },
-                      { label: 'Travel', value: fmtHours(ts.paid_travel_minutes), bg: '#EFF6FF', color: '#1E40AF' },
-                      { label: 'Miles', value: fmtMiles(ts.mileage_miles), bg: '#F5F3FF', color: '#5B21B6' },
-                      { label: 'Tasks', value: tasksTotal > 0 ? `${tasksDone}/${tasksTotal}` : '—', bg: tasksTotal > 0 && tasksDone === tasksTotal ? '#F0FDF4' : tasksTotal > 0 ? '#FFFBEB' : '#F3F4F6', color: tasksTotal > 0 && tasksDone === tasksTotal ? '#166534' : tasksTotal > 0 ? '#92400E' : '#6B7280' },
+                      { label: 'Work', value: fmtHours(ts.work_minutes), bg: '#EAFBF5', color: '#087A55' },
+                      { label: 'Travel', value: fmtHours(ts.paid_travel_minutes), bg: '#F4F8FF', color: '#175CD3' },
+                      { label: 'Miles', value: fmtMiles(ts.mileage_miles), bg: '#E8FAF6', color: '#0C9E89' },
+                      { label: 'Tasks', value: tasksTotal > 0 ? `${tasksDone}/${tasksTotal}` : '—', bg: tasksTotal > 0 && tasksDone === tasksTotal ? '#EAFBF5' : tasksTotal > 0 ? '#FFF7E6' : '#F7F9FC', color: tasksTotal > 0 && tasksDone === tasksTotal ? '#087A55' : tasksTotal > 0 ? '#9A6700' : '#667085' },
                     ].map(chip => (
                       <View key={chip.label} style={{ backgroundColor: chip.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, fontWeight: '500', color: chip.color }}>{chip.label}: {chip.value}</Text>
@@ -299,11 +299,11 @@ export function TimesheetsScreen({ session, onBack }: Props) {
                         style={({ pressed }) => [{
                           flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
                           backgroundColor: c.surface, borderRadius: radii.md, paddingVertical: spacing.sm + 2,
-                          borderWidth: 1, borderColor: '#DC2626',
+                          borderWidth: 1, borderColor: '#EF4444',
                         }, pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }]}
                       >
-                        <Ionicons name="close-circle-outline" size={16} color="#DC2626" />
-                        <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, fontWeight: '600', color: '#DC2626' }}>Reject</Text>
+                        <Ionicons name="close-circle-outline" size={16} color="#EF4444" />
+                        <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, fontWeight: '600', color: '#EF4444' }}>Reject</Text>
                       </Pressable>
 
                       <Pressable
@@ -337,8 +337,8 @@ export function TimesheetsScreen({ session, onBack }: Props) {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
           <View style={{ backgroundColor: c.surface, borderRadius: radii.xl, padding: spacing.lg, width: '100%', maxWidth: 360, ...elevation.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="close-circle" size={20} color="#DC2626" />
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF0F0', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close-circle" size={20} color="#EF4444" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 17, fontWeight: '700', color: c.ink }}>Reject Timesheet</Text>
@@ -374,7 +374,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
               <Pressable
                 onPress={handleReject}
                 disabled={processing === rejectModal?.id}
-                style={({ pressed }) => [{ flex: 1, backgroundColor: '#DC2626', borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center' }, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [{ flex: 1, backgroundColor: '#EF4444', borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center' }, pressed && { opacity: 0.7 }]}
               >
                 {processing === rejectModal?.id ? (
                   <ActivityIndicator size={14} color="#FFFFFF" />

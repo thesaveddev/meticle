@@ -71,7 +71,7 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
   return (
     <Box>
 
-      <Box sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      <Box sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <CardElement options={{
           style: { base: { fontSize: '16px', color: 'text.primary', '::placeholder': { color: 'text.secondary' } } },
           hidePostalCode: true,
@@ -82,7 +82,7 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       <Stack direction="row" spacing={1}>
         <Button variant="contained" onClick={handleStripeSubmit} disabled={processing || !stripe}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
+          sx={{ bgcolor: '#2F80ED', textTransform: 'none', flex: 1 }}>
           {processing ? <CircularProgress size={20} /> : 'Save Card'}
         </Button>
 
@@ -107,7 +107,7 @@ function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boole
 function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: () => void; onRemove: () => void }) {
   const bg = pm.card_brand === 'amex' ? 'linear-gradient(135deg, #1A1F71, #2E86AB)' :
     pm.card_brand === 'mastercard' ? 'linear-gradient(135deg, #EB001B, #F79E1B)' :
-    'linear-gradient(135deg, #0F4C81, #2563EB)'
+    'linear-gradient(135deg, #2F80ED, #2F80ED)'
 
   return (
     <Box sx={{
@@ -365,7 +365,7 @@ function BillingPageInner() {
           {message}
         </Alert>
       )}      {isRedirectedFromBlock && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FDE68A' }}>
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FFF7E6' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2">
             {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
@@ -374,7 +374,7 @@ function BillingPageInner() {
       )}
 
       {!isActive && !isDomiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: 'notice.error.bg' }}>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEF0F0', bgcolor: 'notice.error.bg' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" fontWeight={800} color='notice.error.fg' sx={{ mb: 0.5 }}>
@@ -397,7 +397,7 @@ function BillingPageInner() {
                   variant="contained"
                   size="small"
                   disabled={retrying}
-                  sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 700 }}
+                  sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 700 }}
                   onClick={async () => {
                     setRetrying(true)
                     setMessage('')
@@ -434,7 +434,7 @@ function BillingPageInner() {
                 variant="contained"
                 size="small"
                 disabled={updating}
-                sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A66' }, textTransform: 'none', fontWeight: 700 }}
+                sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#2674D9' }, textTransform: 'none', fontWeight: 700 }}
                 onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
               >
                 {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
@@ -445,7 +445,7 @@ function BillingPageInner() {
       )}
 
       {isTrialActive && (
-        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.info.bg', border: '1px solid #BAE6FD' }}>
+        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.info.bg', border: '1px solid #EAF3FF' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Trial limitations</Typography>
           <Typography variant="body2" color='notice.info.fg'>
             Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
@@ -516,19 +516,19 @@ function BillingPageInner() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#6B7280">Current Plan</Typography>
+            <Typography variant="body2" color="#667085">Current Plan</Typography>
             <Typography variant="h5" sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{isDomiciliary ? 'Sales-led agreement' : subscription?.plan || '—'}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#6B7280">Status</Typography>
+            <Typography variant="body2" color="#667085">Status</Typography>
             <Chip label={statusLabel} color={statusColor} size="small" sx={{ fontWeight: 700, textTransform: 'capitalize', mt: 0.5 }} />
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#6B7280">{!isActive ? 'Expired On' : 'Next Billing Date'}</Typography>
+            <Typography variant="body2" color="#667085">{!isActive ? 'Expired On' : 'Next Billing Date'}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
               {!isActive
                 ? (subscription?.trialEndsAt || subscription?.currentPeriodEnd)
@@ -544,15 +544,15 @@ function BillingPageInner() {
       </Grid>
 
       {isOrgAdmin && isDomiciliary && billingConfig?.domiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200' }}>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: '#E6EAF0' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Domiciliary VAT & travel settings</Typography>
-              <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>
+              <Typography variant="body2" color="#667085" sx={{ mt: 0.5 }}>
                 Client charges are calculated from each care package’s billing profile or package override in Visits & Packages. These settings control invoice VAT and paid travel policy; they do not change your MeticleCare subscription.
               </Typography>
             </Box>
-            <Button variant="contained" onClick={saveBillingConfig} disabled={savingBillingConfig} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, bgcolor: '#0F4C81', textTransform: 'none' }}>
+            <Button variant="contained" onClick={saveBillingConfig} disabled={savingBillingConfig} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, bgcolor: '#2F80ED', textTransform: 'none' }}>
               {savingBillingConfig ? <CircularProgress size={18} color="inherit" /> : 'Save settings'}
             </Button>
           </Stack>
@@ -585,7 +585,7 @@ function BillingPageInner() {
       {isOrgAdmin && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Payment Methods</Typography>            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
-              sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2 }}>
+              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 2 }}>
             Add Card
           </Button>
         </Stack>
@@ -608,21 +608,21 @@ function BillingPageInner() {
           {PLANS.map((plan) => (
             <Card key={plan.id} sx={{
               flex: 1, position: 'relative', overflow: 'visible',
-              border: subscription?.plan === plan.id ? '2px solid #0F4C81' : '1px solid #E5E7EB', borderRadius: 3,
+              border: subscription?.plan === plan.id ? '2px solid #2F80ED' : '1px solid #E6EAF0', borderRadius: 3,
             }}>
               {plan.popular && (
-                <Box sx={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', bgcolor: '#0F4C81', color: 'white', px: 2, py: 0.5, borderRadius: 9999, fontSize: '0.75rem', fontWeight: 800, zIndex: 10 }}>
+                <Box sx={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', bgcolor: '#2F80ED', color: 'white', px: 2, py: 0.5, borderRadius: 9999, fontSize: '0.75rem', fontWeight: 800, zIndex: 10 }}>
                   Most Popular
                 </Box>
               )}
               <CardContent sx={{ pt: plan.popular ? 5 : 3, pb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{plan.name}</Typography>
-                <Typography sx={{ color: '#0F4C81', fontSize: '2.5rem', fontWeight: 800 }}>
+                <Typography sx={{ color: '#2F80ED', fontSize: '2.5rem', fontWeight: 800 }}>
                   £{plan.price}<Typography component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 400 }}>/month</Typography>
                 </Typography>
-                <Typography variant="body2" color="#6B7280" sx={{ mt: 1, mb: 2 }}>{plan.description}</Typography>
+                <Typography variant="body2" color="#667085" sx={{ mt: 1, mb: 2 }}>{plan.description}</Typography>
                 <Stack spacing={1}>
-                  {plan.features.map((f) => <Typography key={f} variant="body2" color="#374151">✓ {f}</Typography>)}
+                  {plan.features.map((f) => <Typography key={f} variant="body2" color="#344054">✓ {f}</Typography>)}
                 </Stack>
               </CardContent>
               <Box sx={{ px: 3, pb: 3 }}>
@@ -680,7 +680,7 @@ function BillingPageInner() {
       <Dialog open={!!removeCardDialog} onClose={() => setRemoveCardDialog('')} maxWidth="xs" fullWidth>
         <DialogTitle>Remove Card</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280">Are you sure you want to remove this card?</Typography>
+          <Typography variant="body2" color="#667085">Are you sure you want to remove this card?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRemoveCardDialog('')}>Cancel</Button>
@@ -692,7 +692,7 @@ function BillingPageInner() {
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{!isActive ? 'Switch and Renew' : subscription?.plan && selectedPlan !== subscription.plan ? 'Switch Plan' : 'Change Plan'}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280">
+          <Typography variant="body2" color="#667085">
             {!isActive
               ? <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan and renew your subscription?</>
               : <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan?</>

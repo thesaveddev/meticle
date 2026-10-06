@@ -105,21 +105,21 @@ export default function FamilyPortalPage() {
     const isExpired = msg.includes('expired') || expired
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'notice.subtle.bg', p: 2 }}>
-        <Paper sx={{ p: 5, textAlign: 'center', maxWidth: 440, borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
-          <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: isRevoked ? '#FEF2F2' : '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
-            <WarningIcon sx={{ fontSize: 36, color: isRevoked ? '#DC2626' : '#D97706' }} />
+        <Paper sx={{ p: 5, textAlign: 'center', maxWidth: 440, borderRadius: 3, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: isRevoked ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
+            <WarningIcon sx={{ fontSize: 36, color: isRevoked ? '#EF4444' : '#F59E0B' }} />
           </Box>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
             {isRevoked ? 'Access Revoked' : isExpired ? 'Link Expired' : 'Link Invalid'}
           </Typography>
-          <Typography color="#6B7280" sx={{ mb: 3, lineHeight: 1.6 }}>
+          <Typography color="#667085" sx={{ mb: 3, lineHeight: 1.6 }}>
             {isRevoked
               ? 'This portal link has been revoked by the care provider. Please contact them if you need continued access.'
               : isExpired
                 ? 'This link has passed its expiry date. Each link is valid for a limited time for security. Ask the care provider for a new one.'
                 : 'This link could not be verified. It may be malformed, expired, or revoked. Contact the care provider for a new access link.'}
           </Typography>
-          <Typography variant="caption" color="#9CA3AF">
+          <Typography variant="caption" color="#98A2B3">
             Need help? Contact the care home directly.
           </Typography>
         </Paper>
@@ -132,7 +132,7 @@ export default function FamilyPortalPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Header */}
-      <Box sx={{ bgcolor: '#0F4C81', color: 'white', p: 4, pb: 6 }}>
+      <Box sx={{ bgcolor: '#2F80ED', color: 'white', p: 4, pb: 6 }}>
         <PageContainer>
           <Stack direction="row" spacing={3} alignItems="center">
             <Avatar src={su.photo_url || undefined}
@@ -156,7 +156,7 @@ export default function FamilyPortalPage() {
 
       {/* Tabs */}
       <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto', mt: -2, px: 2 }}>
-        <Paper sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'grey.200' }}>
+        <Paper sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: '#E6EAF0' }}>
           <Tabs value={portalTab} onChange={(_, v) => setPortalTab(v)} sx={{ px: 2, pt: 1, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 }, flexWrap: 'wrap' }}>
             <Tab label="Visits" />
             <Tab label="Care Notes" />
@@ -171,19 +171,19 @@ export default function FamilyPortalPage() {
             {/* Upcoming Visits */}
             {portalTab === 0 && (
               visitsLoading ? <CircularProgress /> :
-              visits.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No upcoming visits</Typography> :
+              visits.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No upcoming visits</Typography> :
               <Stack spacing={2}>
                 {visits.map((v: any) => (
-                  <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                  <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography fontWeight={700}>{v.label}</Typography>
-                        <Typography variant="body2" color="#4B5563">
+                        <Typography variant="body2" color="#475467">
                           {new Date(v.scheduled_start).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           {' — '}
                           {new Date(v.scheduled_end).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </Typography>
-                        {v.carer_name && <Typography variant="caption" color="#6B7280">Carer: {v.carer_name}</Typography>}
+                        {v.carer_name && <Typography variant="caption" color="#667085">Carer: {v.carer_name}</Typography>}
                       </Box>
                       <Chip label={v.status.replace('_', ' ')} size="small"
                         color={v.status === 'completed' ? 'success' : v.status === 'en_route' || v.status === 'checked_in' ? 'primary' : 'default'} />
@@ -196,7 +196,7 @@ export default function FamilyPortalPage() {
             {/* Care Notes */}
             {portalTab === 1 && (
               notesLoading ? <CircularProgress /> :
-              careNotes.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No care notes yet</Typography> :
+              careNotes.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No care notes yet</Typography> :
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
@@ -224,17 +224,17 @@ export default function FamilyPortalPage() {
             {/* Care Plans */}
             {portalTab === 2 && (
               plansLoading ? <CircularProgress /> :
-              carePlans.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No care plans available</Typography> :
+              carePlans.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No care plans available</Typography> :
               <Stack spacing={2}>
                 {carePlans.map((p: any) => (
-                  <Paper key={p.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                  <Paper key={p.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Typography fontWeight={700}>{p.title}</Typography>
                     <Chip label={p.category} size="small" sx={{ mt: 0.5 }} />
-                    {p.description && <Typography variant="body2" color="#4B5563" sx={{ mt: 1 }}>{p.description}</Typography>}
-                    {p.mobility_level && <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mt: 0.5 }}>Mobility: {p.mobility_level}</Typography>}
-                    {p.communication_needs && <Typography variant="caption" color="#6B7280" sx={{ display: 'block' }}>Communication: {p.communication_needs}</Typography>}
-                    {p.likes_dislikes && <Typography variant="caption" color="#6B7280" sx={{ display: 'block' }}>Likes/Dislikes: {p.likes_dislikes}</Typography>}
-                    {p.review_date && <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', mt: 0.5 }}>Review: {formatDate(p.review_date)}</Typography>}
+                    {p.description && <Typography variant="body2" color="#475467" sx={{ mt: 1 }}>{p.description}</Typography>}
+                    {p.mobility_level && <Typography variant="caption" color="#667085" sx={{ display: 'block', mt: 0.5 }}>Mobility: {p.mobility_level}</Typography>}
+                    {p.communication_needs && <Typography variant="caption" color="#667085" sx={{ display: 'block' }}>Communication: {p.communication_needs}</Typography>}
+                    {p.likes_dislikes && <Typography variant="caption" color="#667085" sx={{ display: 'block' }}>Likes/Dislikes: {p.likes_dislikes}</Typography>}
+                    {p.review_date && <Typography variant="caption" color="#98A2B3" sx={{ display: 'block', mt: 0.5 }}>Review: {formatDate(p.review_date)}</Typography>}
                   </Paper>
                 ))}
               </Stack>
@@ -243,7 +243,7 @@ export default function FamilyPortalPage() {
             {/* Goals */}
             {portalTab === 3 && (
               goalsLoading ? <CircularProgress /> :
-              goals.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No goals set yet</Typography> :
+              goals.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No goals set yet</Typography> :
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
@@ -259,8 +259,8 @@ export default function FamilyPortalPage() {
                         <TableCell>{g.target_date ? formatDate(g.target_date) : '—'}</TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{ width: 80, height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
-                              <Box sx={{ width: `${g.progress || 0}%`, height: '100%', bgcolor: g.progress >= 100 ? '#16A34A' : '#0F4C81', borderRadius: 3 }} />
+                            <Box sx={{ width: 80, height: 6, bgcolor: '#E6EAF0', borderRadius: 3, overflow: 'hidden' }}>
+                              <Box sx={{ width: `${g.progress || 0}%`, height: '100%', bgcolor: g.progress >= 100 ? '#10B981' : '#2F80ED', borderRadius: 3 }} />
                             </Box>
                             <Typography variant="caption">{g.progress || 0}%</Typography>
                           </Stack>
@@ -276,7 +276,7 @@ export default function FamilyPortalPage() {
             {/* Health Observations */}
             {portalTab === 4 && (
               obsLoading ? <CircularProgress /> :
-              observations.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No health observations recorded</Typography> :
+              observations.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No health observations recorded</Typography> :
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
@@ -302,7 +302,7 @@ export default function FamilyPortalPage() {
             {/* Medications */}
             {portalTab === 5 && (
               medsLoading ? <CircularProgress /> :
-              medications.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No active medications</Typography> :
+              medications.length === 0 ? <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No active medications</Typography> :
               <Stack spacing={2}>
                 {allergies.length > 0 && (
                   <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #FCA5A5', bgcolor: 'notice.error.bg' }}>
@@ -315,14 +315,14 @@ export default function FamilyPortalPage() {
                   </Paper>
                 )}
                 {medications.map((m: any) => (
-                  <Paper key={m.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                  <Paper key={m.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography fontWeight={700}>{m.medication_name}</Typography>
-                        <Typography variant="body2" color="#4B5563">
+                        <Typography variant="body2" color="#475467">
                           {m.dosage} — {m.frequency} ({m.route})
                         </Typography>
-                        {m.prescribed_by && <Typography variant="caption" color="#6B7280">Prescribed by: {m.prescribed_by}</Typography>}
+                        {m.prescribed_by && <Typography variant="caption" color="#667085">Prescribed by: {m.prescribed_by}</Typography>}
                       </Box>
                       <Chip label="Active" size="small" color="success" />
                     </Stack>
@@ -335,13 +335,13 @@ export default function FamilyPortalPage() {
             {portalTab === 6 && (
               <Box>
                 <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Send a Message to the Care Team</Typography>
-                <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Your message will be sent to the care team managing {su.first_name}'s care. They will respond as soon as possible.</Typography>
+                <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>Your message will be sent to the care team managing {su.first_name}'s care. They will respond as soon as possible.</Typography>
                 {contactSuccess && <Alert severity="success" sx={{ mb: 2 }}>{contactSuccess}</Alert>}
                 {contactError && <Alert severity="error" sx={{ mb: 2 }}>{contactError}</Alert>}
                 <Stack spacing={2}>
                   <TextField label="Subject" value={contactSubject} onChange={e => setContactSubject(e.target.value)} fullWidth size="small" />
                   <TextField label="Message" value={contactMessage} onChange={e => setContactMessage(e.target.value)} fullWidth multiline rows={5} size="small" />
-                  <Button variant="contained" onClick={handleContactSubmit} disabled={!contactSubject || !contactMessage || contactSending} sx={{ bgcolor: '#0F4C81', textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}>
+                  <Button variant="contained" onClick={handleContactSubmit} disabled={!contactSubject || !contactMessage || contactSending} sx={{ bgcolor: '#2F80ED', textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}>
                     {contactSending ? 'Sending...' : 'Send Message'}
                   </Button>
                 </Stack>

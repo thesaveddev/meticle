@@ -20,11 +20,11 @@ import WeeklyMealGrid from '../../components/nutrition/WeeklyMealGrid';
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
   { value: 'morning_snack', label: 'Morning Snack', color: '#10B981', icon: '🍎' },
-  { value: 'lunch', label: 'Lunch', color: '#3B82F6', icon: '🍽️' },
-  { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B5CF6', icon: '🥤' },
+  { value: 'lunch', label: 'Lunch', color: '#2F80ED', icon: '🍽️' },
+  { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B7CF6', icon: '🥤' },
   { value: 'dinner', label: 'Dinner', color: '#EF4444', icon: '🌙' },
-  { value: 'evening_snack', label: 'Evening Snack', color: '#EC4899', icon: '🍪' },
-  { value: 'supplement', label: 'Supplement', color: '#6366F1', icon: '💊' },
+  { value: 'evening_snack', label: 'Evening Snack', color: '#8B7CF6', icon: '🍪' },
+  { value: 'supplement', label: 'Supplement', color: '#6B8AFD', icon: '💊' },
 ];
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
@@ -182,7 +182,7 @@ export default function MealPlanPage() {
           variant={viewMode === 'weekly' ? 'contained' : 'outlined'}
           startIcon={<AIIcon />}
           onClick={() => setViewMode('weekly')}
-          sx={{ borderRadius: 2, fontWeight: 700, bgcolor: viewMode === 'weekly' ? '#7C3AED' : undefined, '&:hover': { bgcolor: viewMode === 'weekly' ? '#6D28D9' : undefined } }}
+          sx={{ borderRadius: 2, fontWeight: 700, bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined, '&:hover': { bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined } }}
         >
           Weekly Planner
         </Button>
@@ -237,7 +237,7 @@ export default function MealPlanPage() {
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{tpl.name}</Typography>
                           {tpl.generated_by_ai && (
                             <Chip icon={<AIIcon sx={{ fontSize: 12 }} />} label="AI-generated" size="small"
-                              sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                              sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
                           )}
                           {!tpl.is_active && <Chip label="Inactive" size="small" />}
                         </Stack>
@@ -351,7 +351,7 @@ export default function MealPlanPage() {
       {/* AI Meal Plan Generator Dialog */}
       <Dialog open={aiDlg} onClose={() => setAiDlg(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AIIcon sx={{ color: '#7C3AED' }} /> AI Meal Plan Generator
+          <AIIcon sx={{ color: '#8B7CF6' }} /> AI Meal Plan Generator
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
@@ -390,7 +390,7 @@ export default function MealPlanPage() {
             <Button variant="contained" startIcon={generateMealPlan.isPending ? <CircularProgress size={16} /> : <AIIcon />}
               onClick={() => generateMealPlan.mutate(aiForm)}
               disabled={!aiForm.personId || generateMealPlan.isPending}
-              sx={{ mt: 2, bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' } }}>
+              sx={{ mt: 2, bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' } }}>
               {generateMealPlan.isPending ? 'Generating...' : 'Generate Meal Plan'}
             </Button>
           </Box>
@@ -399,9 +399,9 @@ export default function MealPlanPage() {
             <Box>
               <Divider sx={{ mb: 2 }} />
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <AIIcon sx={{ color: '#7C3AED', fontSize: 20 }} />
+                <AIIcon sx={{ color: '#8B7CF6', fontSize: 20 }} />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>{aiResult.plan_name}</Typography>
-                <Chip label="AI-generated draft" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700 }} />
+                <Chip label="AI-generated draft" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700 }} />
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 A dietitian or manager must review allergen, texture and portion decisions before use.

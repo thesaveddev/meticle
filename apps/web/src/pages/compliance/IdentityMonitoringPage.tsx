@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, IconButton, Tooltip, Card, CardContent, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Alert, CircularProgress } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 import { Refresh as RefreshIcon, NotificationsActive as RemindIcon, Download as DownloadIcon, Upload as UploadIcon, Autorenew as RenewIcon, CheckCircle as RenewDoneIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -183,21 +184,24 @@ export default function IdentityMonitoringPage() {
   return (
     <PageContainer>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4">DBS & Identity Monitoring</Typography>
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" startIcon={<UploadIcon />} onClick={() => setUploadOpen(true)}>Upload Document</Button>
-          <Button startIcon={<RefreshIcon />} onClick={() => queryClient.invalidateQueries({ queryKey: ['identity-dashboard'] })}>
-            Refresh
-          </Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="DBS & Identity Monitoring"
+        subtitle="Track DBS checks and identity documents."
+        actions={
+          <>
+            <Button variant="contained" startIcon={<UploadIcon />} onClick={() => setUploadOpen(true)}>Upload Document</Button>
+            <Button startIcon={<RefreshIcon />} onClick={() => queryClient.invalidateQueries({ queryKey: ['identity-dashboard'] })}>
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', mb: 4 }}>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={800}>{counts.compliant}</Typography>
               </Box>
               <Typography variant="body2" fontWeight={700} color='notice.success.fg'>Compliant</Typography>
@@ -206,9 +210,9 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #FDE68A', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={800}>{counts.incomplete}</Typography>
               </Box>
               <Typography variant="body2" fontWeight={700} color='notice.warning.fg'>Missing Docs</Typography>
@@ -217,9 +221,9 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #FED7AA', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EA580C', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={800}>{counts.expiring}</Typography>
               </Box>
               <Typography variant="body2" fontWeight={700} color='notice.warning.fg'>Expiring Soon</Typography>
@@ -228,9 +232,9 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #FECDD3', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={800}>{counts.expired}</Typography>
               </Box>
               <Typography variant="body2" fontWeight={700} color='notice.error.fg'>Expired</Typography>

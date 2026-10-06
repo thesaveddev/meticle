@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Button, Stack, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Tabs, Tab, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Checkbox, ListItemText } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 import { Add as AddIcon, Group as GroupIcon, Edit as EditIcon, Delete as DeleteIcon, Send as SendIcon, RemoveCircleOutline as RemoveIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -100,15 +101,15 @@ export default function StaffEngagementPage() {
     <PageContainer>
 
       {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{feedback.message}</Alert>}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4">Staff Engagement Surveys</Typography>
-        <Stack direction="row" spacing={1}>
-          {templates && templates.length > 0 && (
+      <PageHeader
+        title="Staff Engagement Surveys"
+        subtitle="Measure and improve staff engagement."
+        actions={
+          templates && templates.length > 0 && (
             <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setSendOpen(true)}>Send Survey to All Staff</Button>
-          )}
-          
-        </Stack>
-      </Stack>
+          )
+        }
+      />
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab label="Dashboard" />
@@ -121,7 +122,7 @@ export default function StaffEngagementPage() {
           {aggregate && aggregate.total > 0 && (
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0' }}>
+                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <GroupIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
                     <Typography variant="h4" fontWeight={800}>{aggregate.total}</Typography>
@@ -131,7 +132,7 @@ export default function StaffEngagementPage() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #BAE6FD' }}>
+                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <Typography variant="h4" fontWeight={800} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
                     <Typography variant="body2" color="text.secondary">Avg Score / 5</Typography>
@@ -139,9 +140,9 @@ export default function StaffEngagementPage() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E2E8F0' }}>
+                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={800} color="#0F4C81">
+                    <Typography variant="h4" fontWeight={800} color="#2F80ED">
                       {aggregate.total > 0 ? Math.round((avgAll / 5) * 100) : '—'}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Engagement Score</Typography>
@@ -160,7 +161,7 @@ export default function StaffEngagementPage() {
                     <Grid item xs={12} sm={6} md={4} key={key}>
                       <Paper variant="outlined" sx={{ p: 2 }}>
                         <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{key}</Typography>
-                        <Typography variant="h5" fontWeight={700} color={val >= 4 ? '#16A34A' : val >= 3 ? '#F59E0B' : '#DC2626'}>
+                        <Typography variant="h5" fontWeight={700} color={val >= 4 ? '#087A55' : val >= 3 ? '#9A6700' : '#B42318'}>
                           {val.toFixed(1)}
                         </Typography>
                       </Paper>

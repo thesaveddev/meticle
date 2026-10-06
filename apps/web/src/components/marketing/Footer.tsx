@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Stack, Typography, Link } from '@mui/material'
+import { Box, Container, Stack, Typography, Link } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
 
@@ -36,74 +36,34 @@ const cols = {
 
 export default function Footer() {
   return (
-    <Box component="footer" sx={{ bgcolor: M.dark, color: '#fff' }}>
+    <Box component="footer" sx={{ bgcolor: M.card, color: M.ink, borderTop: `1px solid ${M.faint}` }}>
       <Container maxWidth="lg">
-        <Grid container spacing={{ xs: 4, md: 6 }} sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 5, md: 7 } }}>
-          {/* Brand */}
-          <Grid item xs={12} md={3.5}>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.04em', mb: 2 }}>
-              Meticle<span style={{ color: M.teal }}>Care</span>
+        <Box sx={{ py: { xs: 3, md: 3.5 }, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'space-between', gap: 3 }}>
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.04em' }}>
+              Meticle<span style={{ color: M.tealDeep }}>Care</span>
             </Typography>
-            <Typography sx={{ color: M.muted, fontSize: '0.875rem', lineHeight: 1.65, mb: 3, maxWidth: 280 }}>
-              Care operations software for domiciliary and supported living providers across the UK.
+            <Typography sx={{ color: M.slate, fontSize: '0.82rem', lineHeight: 1.5, mt: 0.5 }}>
+              Care operations for domiciliary and supported living providers.
             </Typography>
-            <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-              {['England', 'Scotland', 'Wales', 'Northern Ireland'].map((n) => (
-                <Typography key={n} sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.04em' }}>{n}</Typography>
-              ))}
-            </Stack>
-          </Grid>
-
-          {/* Link columns */}
-          {Object.entries(cols).map(([title, links]) => (
-            <Grid item key={title} xs={6} sm={4} md={2.75}>
-              <Typography sx={{ ...M.overline, color: '#94A3B8', mb: 2.5, display: 'block' }}>{title}</Typography>
-              <Stack spacing={1.25}>
-                {links.map((link) => (
-                  <Link
-                    key={link.name}
-                    component={RouterLink}
-                    to={link.path}
-                    underline="hover"
-                    sx={{
-                      color: '#CBD5E1', fontSize: '0.82rem',
-                      transition: `color ${M.transition.fast}`,
-                      '&:hover': { color: '#fff' },
-                    }}
-                  >{link.name}</Link>
-                ))}
-              </Stack>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* Bottom bar */}
-      <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.06)', py: { xs: 2.5, md: 3 }, bgcolor: M.darkMid }}>
-        <Container maxWidth="lg">
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-            spacing={2}
-          >
-            <Typography sx={{ color: '#94A3B8', fontSize: '0.78rem' }}>
-              © {new Date().getFullYear()} 34Orients Ltd. MeticleCare is a product of 34Orients Ltd. All rights reserved.
-            </Typography>
-            <Stack direction="row" spacing={2.5}>
-              {['Privacy Policy', 'Terms of Use', 'Cookie Policy'].map((t) => (
-                <Link
-                  key={t}
-                  component={RouterLink}
-                  to={`/${t.toLowerCase().replace(/ /g, '-')}`}
-                  underline="hover"
-                  sx={{ color: '#94A3B8', fontSize: '0.75rem', '&:hover': { color: '#fff' } }}
-                >{t}</Link>
-              ))}
-            </Stack>
+          </Box>
+          <Stack direction="row" spacing={{ xs: 1.5, sm: 2.5 }} flexWrap="wrap" useFlexGap>
+            {Object.entries(cols).map(([title, links]) => (
+              <Link key={title} component={RouterLink} to={links[0].path} underline="hover" sx={{ color: M.navy, fontSize: '0.84rem', fontWeight: 600, whiteSpace: 'nowrap', '&:hover': { color: M.tealDeep } }}>{title}</Link>
+            ))}
           </Stack>
-        </Container>
-      </Box>
+        </Box>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ borderTop: `1px solid ${M.faint}`, py: 2 }}>
+          <Typography sx={{ color: M.slate, fontSize: '0.76rem' }}>
+            © {new Date().getFullYear()} 34Orients Ltd. MeticleCare is a product of 34Orients Ltd. All rights reserved.
+          </Typography>
+          <Stack direction="row" spacing={{ xs: 1.5, sm: 2.5 }} flexWrap="wrap" useFlexGap>
+            {['Privacy Policy', 'Terms of Use', 'Cookie Policy'].map((t) => (
+              <Link key={t} component={RouterLink} to={`/${t.toLowerCase().replace(/ /g, '-')}`} underline="hover" sx={{ color: M.slate, fontSize: '0.76rem', whiteSpace: 'nowrap', '&:hover': { color: M.navy } }}>{t}</Link>
+            ))}
+          </Stack>
+        </Stack>
+      </Container>
     </Box>
   )
 }

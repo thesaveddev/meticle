@@ -51,12 +51,12 @@ export const ShiftCard = memo(function ShiftCard({
       sx={{
         cursor: 'pointer',
         borderRadius: '10px',
-        border: '1px solid #E4E4DD',
+        border: '1px solid #E6EAF0',
         bgcolor: isOpen ? '#FFFDF5' : '#FFFFFF',
         boxShadow: 'none',
         transition: 'box-shadow .15s ease, border-color .15s ease, transform .15s ease',
         '&:hover': {
-          borderColor: '#0F4C81',
+          borderColor: '#2F80ED',
           boxShadow: '0 6px 16px -6px rgba(15,76,129,0.25)',
           transform: 'translateY(-1px)',
         },
@@ -75,7 +75,7 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Header: location + type + actions */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.4, gap: 0.5 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#0F4C81',
+              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#2F80ED',
               textTransform: 'uppercase', letterSpacing: '0.04em',
               textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0,
             }}>
@@ -98,7 +98,7 @@ export const ShiftCard = memo(function ShiftCard({
                   {canEdit && !isReadOnly && canEditShift && (
                     <Tooltip title="Delete">
                       <IconButton size="small" sx={{ p: 0.4 }} onClick={() => onDeleteShift(shift.id)} aria-label="Delete shift">
-                        <DeleteIcon sx={{ fontSize: 13, color: '#DC2626' }} />
+                        <DeleteIcon sx={{ fontSize: 13, color: '#EF4444' }} />
                       </IconButton>
                     </Tooltip>
                   )}
@@ -110,7 +110,7 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Time + duration + open state */}
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.35 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 800, color: '#1B2430',
+              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 800, color: '#17202A',
               fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
             }}>
               {shift._startLabel} – {shift._endLabel}
@@ -153,17 +153,17 @@ export const ShiftCard = memo(function ShiftCard({
               {canEdit && !isReadOnly && canEditShift ? (
                 <ToggleButtonGroup size="small" value={shift.agency_covered ? 'covered' : 'uncovered'} exclusive
                   onChange={() => onToggleCoverage(shift.id, shift.agency_covered)}
-                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D1D5DB', textTransform: 'none', fontWeight: 700 } }}>
-                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#D1FAE5' : 'transparent', color: shift.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'notice.success.bg' } }}>
+                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D8DEE7', textTransform: 'none', fontWeight: 700 } }}>
+                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#EAFBF5' : 'transparent', color: shift.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                     Yes
                   </ToggleButton>
-                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FEF3C7' : 'transparent', color: !shift.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
+                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FFF7E6' : 'transparent', color: !shift.agency_covered ? '#9A6700' : '#98A2B3', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
                     No
                   </ToggleButton>
                 </ToggleButtonGroup>
               ) : (
                 <Chip label={shift.agency_covered ? 'Covered' : 'Uncovered'} size="small"
-                  sx={{ height: 15, fontSize: '0.55rem', bgcolor: shift.agency_covered ? '#D1FAE5' : '#FEF3C7', color: shift.agency_covered ? '#065F46' : '#92400E', fontWeight: 700 }} />
+                  sx={{ height: 15, fontSize: '0.55rem', bgcolor: shift.agency_covered ? '#EAFBF5' : '#FFF7E6', color: shift.agency_covered ? '#087A55' : '#9A6700', fontWeight: 700 }} />
               )}
             </Stack>
           )}
@@ -199,13 +199,13 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       display: 'inline-flex', alignItems: 'center', gap: 0.35,
       height: compact ? 17 : 19, px: 0.5,
       borderRadius: '999px',
-      border: '1px solid #E4E4DD',
+      border: '1px solid #E6EAF0',
       bgcolor: 'notice.subtle.bg',
     }}>
       <Box sx={{
         width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
         display: 'grid', placeItems: 'center',
-        bgcolor: '#E0E7F1', color: '#0F4C81',
+        bgcolor: '#E0E7F1', color: '#2F80ED',
         fontSize: '0.42rem', fontWeight: 800, lineHeight: 1,
       }}>
         {initials}
@@ -225,10 +225,10 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
         </Box>
       )}
       {isCurrent && !isPast && (
-        <SwapHorizIcon sx={{ fontSize: 11, cursor: 'pointer', color: '#0F4C81', ml: 0.1 }} onClick={onSwap} />
+        <SwapHorizIcon sx={{ fontSize: 11, cursor: 'pointer', color: '#2F80ED', ml: 0.1 }} onClick={onSwap} />
       )}
       {canDelete && (
-        <CloseIcon sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', ml: 0.1, '&:hover': { color: '#DC2626' } }} onClick={onDelete} />
+        <CloseIcon sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', ml: 0.1, '&:hover': { color: '#EF4444' } }} onClick={onDelete} />
       )}
     </Box>
   )
@@ -239,7 +239,7 @@ function ButtonBlock({ onClick }: { onClick: (e: any) => void }) {
     <Box component="span">
       <Tooltip title="Claim as overtime">
         <Chip label="Claim OT" icon={<ClaimIcon sx={{ fontSize: 11 }} />} size="small" variant="outlined"
-          onClick={onClick} sx={{ height: 19, fontSize: '0.58rem', fontWeight: 700, mt: 0.3, cursor: 'pointer', color: '#B45309', borderColor: '#F59E0B' }} />
+          onClick={onClick} sx={{ height: 19, fontSize: '0.58rem', fontWeight: 700, mt: 0.3, cursor: 'pointer', color: '#9A6700', borderColor: '#F59E0B' }} />
       </Tooltip>
     </Box>
   )

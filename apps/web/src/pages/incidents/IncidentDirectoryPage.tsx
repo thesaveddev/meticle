@@ -97,7 +97,7 @@ export default function IncidentDirectoryPage() {
       {/* Stats — 4 focused cards */}
       {stats && (
         <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{(stats.reported || 0) + (stats.investigating || 0)}</Typography>
@@ -105,7 +105,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
             <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
               <Stack direction="row" spacing={0.5} alignItems="center">
-                <DotIcon sx={{ fontSize: 8, color: '#D97706' }} />
+                <DotIcon sx={{ fontSize: 8, color: '#F59E0B' }} />
                 <Typography variant="caption" color="text.secondary">{stats.reported || 0} reported</Typography>
               </Stack>
               <Stack direction="row" spacing={0.5} alignItems="center">
@@ -115,15 +115,15 @@ export default function IncidentDirectoryPage() {
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Critical &amp; High</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1, color: '#DC2626' }}>{(stats.critical || 0)}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1, color: '#EF4444' }}>{(stats.critical || 0)}</Typography>
               {stats.high > 0 && <Typography variant="caption" color="text.secondary">{stats.high} high</Typography>}
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{stats.open_actions || 0}</Typography>
@@ -135,7 +135,7 @@ export default function IncidentDirectoryPage() {
             )}
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Near Misses</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{stats.near_misses || 0}</Typography>
@@ -149,7 +149,7 @@ export default function IncidentDirectoryPage() {
       )}
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <TextField size="small" placeholder="Search incidents..." value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -209,7 +209,7 @@ export default function IncidentDirectoryPage() {
       )}
 
       {!isLoading && filtered && filtered.length > 0 && (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -231,7 +231,7 @@ export default function IncidentDirectoryPage() {
                     <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
                       {i.category_name && <Typography variant="caption" color="text.secondary">{i.category_name}</Typography>}
-                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, fontSize: 10, height: 20 }} />}
                       {i.is_confidential && <Chip icon={<LockIcon sx={{ fontSize: 12 }} />} label="Confidential" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.primary', fontWeight: 700, fontSize: 10, height: 20 }} />}
                     </Stack>
                   </TableCell>
@@ -351,7 +351,7 @@ export default function IncidentDirectoryPage() {
 
 function LoadingState() {
   return (
-    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
       <CircularProgress size={28} sx={{ color: NAVY }} />
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incidents...</Typography>
     </Paper>

@@ -1,6 +1,6 @@
 import Constants from 'expo-constants'
 import { File, Paths } from 'expo-file-system'
-import type { AuthSession, HomecareVisit, MobileUser } from '../types'
+import type { AuthSession, HomecareVisit, IncidentReportPayload, MobileUser } from '../types'
 import { clearSession, readSession, writeSession } from './storage'
 
 const configuredBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl
@@ -551,17 +551,17 @@ export async function markNotificationsRead(token: string): Promise<void> {
 }
 
 /* ─── Incidents ───────────────────────────────────────────── */
-export async function reportIncident(token: string, data: {
-  title: string
-  description?: string
-  category_id?: string
-  severity: string
-  location?: string
-  is_near_miss?: boolean
-  incident_date: string
-  incident_time?: string
-  person_ids?: string[]
-}): Promise<any> {
+export interface IncidentCategory {
+  id: string
+  name: string
+  is_active: boolean
+}
+
+export async function getIncidentCategories(token: string): Promise<IncidentCategory[]> {
+  return request<IncidentCategory[]>('/incidents/categories', {}, token)
+}
+
+export async function reportIncident(token: string, data: IncidentReportPayload & { client_submission_id?: string }): Promise<any> {
   return request('/incidents', { method: 'POST', body: JSON.stringify(data) }, token)
 }
 

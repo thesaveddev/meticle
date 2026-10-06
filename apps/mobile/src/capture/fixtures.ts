@@ -566,7 +566,7 @@ const VISIT_TASKS = [
  * half-written one is what a carer actually sees when something has happened.
  */
 export const CAPTURE_INCIDENT_DRAFT = {
-  category: 'fall',
+  categoryId: '11111111-1111-4111-8111-111111111111',
   severity: 'medium',
   title: 'Unwitnessed fall in the hallway',
   description:
@@ -610,6 +610,10 @@ export function captureRoutes(now: Date = new Date()): Record<string, unknown> {
     'GET /homecare/exceptions': [],
     'GET /notifications': [],
     'GET /notifications/unread-count': { count: 1 },
+    'GET /incidents/categories': [
+      { id: '11111111-1111-4111-8111-111111111111', name: 'Fall', is_active: true },
+      { id: 'cap-incident-category-medication', name: 'Medication', is_active: true },
+    ],
     'GET /chat/unread': { [CAPTURE_IDS.channelCareTeam]: 2 },
     'GET /chat/channels': CHAT_CHANNELS,
     'GET /chat/ensure-general': { id: CAPTURE_IDS.channelCareTeam, name: 'Care team — North Manchester' },

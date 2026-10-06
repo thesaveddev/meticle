@@ -9,41 +9,41 @@
 
 export const P = {
   /* Primary — deep, serious, trustworthy */
-  navy:       '#0B1426',
-  navyMid:    '#162033',
-  navyLight:  '#1E2D45',
-  slate:      '#475569',
-  slateLight: '#64748B',
+  navy:       '#17202A',
+  navyMid:    '#1E293B',
+  navyLight:  '#334155',
+  slate:      '#475467',
+  slateLight: '#667085',
   muted:      '#94A3B8',
   subtle:     '#CBD5E1',
-  faint:      '#F1F5F9',
+  faint:      '#F5F7FA',
 
   /* Surfaces */
-  paper:      '#FAFBFC',
-  warm:       '#F8F6F3',
+  paper:      '#FBFCFE',
+  warm:       '#F7F9FC',
   card:       '#FFFFFF',
 
   /* Accent — distinctive teal, not generic healthcare */
-  teal:       '#00C9A7',
-  tealDark:   '#00A88C',
-  tealLight:  '#E0F7F1',
-  tealDeep:   '#065F56',
+  teal:       '#10BFA5',
+  tealDark:   '#0C9E89',
+  tealLight:  '#E8FAF6',
+  tealDeep:   '#087A55',
 
   /* Secondary accent — indigo for contrast */
-  indigo:     '#6366F1',
-  indigoLight:'#EEF2FF',
+  indigo:     '#6B8AFD',
+  indigoLight:'#F4F8FF',
 
   /* Status */
   red:        '#EF4444',
-  redLight:   '#FEF2F2',
+  redLight:   '#FEF0F0',
   amber:      '#F59E0B',
-  amberLight: '#FFFBEB',
-  green:      '#22C55E',
-  greenLight: '#F0FDF4',
+  amberLight: '#FFF7E6',
+  green:      '#10B981',
+  greenLight: '#EAFBF5',
 
   /* Dark sections */
-  dark:       '#0B1426',
-  darkMid:    '#111827',
+  dark:       '#17202A',
+  darkMid:    '#17202A',
   darkCard:   '#1E293B',
 } as const
 

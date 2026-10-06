@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
           <Box sx={{ mb: 6 }}>
             <Typography
               variant="h4"
-              sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }}
+              sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }}
               onClick={() => navigate('/')}
             >
               Meticle Care
@@ -81,14 +81,14 @@ export default function ForgotPasswordPage() {
               {/* MUI Alert, not a hand-built coloured box.
 
                   This notice was a div with `bgcolor: 'success.light'` and a
-                  hardcoded `#166534` label on top. `success.light` is a
+                  hardcoded `#087A55` label on top. `success.light` is a
                   mid-saturated green in MUI's *light* palette, but the palette
                   is theme-driven and this app persists a dark mode
                   (ThemeContext writes `mode` to localStorage). In dark mode
-                  `success.light` is still that same green while `#166534` is
+                  `success.light` is still that same green while `#087A55` is
                   near-black forest green — the confirmation a carer is asked to
                   trust became the least legible thing on the page, and the
-                  `#BBF7D0` border read as a glowing outline. Alert derives its
+                  `#EAFBF5` border read as a glowing outline. Alert derives its
                   background, text and icon from the active palette, so it is
                   correct in both modes. */}
               <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} icon={<MailIcon fontSize="inherit" />}>
@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
-                        '&.Mui-focused fieldset': { borderColor: '#0F4C81' },
+                        '&.Mui-focused fieldset': { borderColor: '#2F80ED' },
                       },
                     }}
                   />
@@ -171,9 +171,9 @@ export default function ForgotPasswordPage() {
                   size="large"
                   disabled={loading}
                   sx={{
-                    bgcolor: '#0F4C81', py: 1.8, fontWeight: 700,
+                    bgcolor: '#2F80ED', py: 1.8, fontWeight: 700,
                     borderRadius: 2, fontSize: '1rem', textTransform: 'none',
-                    '&:hover': { bgcolor: '#0D3F6E' },
+                    '&:hover': { bgcolor: '#2674D9' },
                   }}
                 >
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'Send reset link'}
@@ -184,7 +184,7 @@ export default function ForgotPasswordPage() {
                     Remember your password?{' '}
                     <Link
                       onClick={() => navigate('/login')}
-                      sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}
+                      sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}
                     >
                       Sign in
                     </Link>

@@ -83,7 +83,7 @@ export default function SurveyFormPage() {
   if (error && !formData) return (
     <Box sx={{ maxWidth: 480, mx: 'auto', p: 3 }}>
       <Paper sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5" sx={{ mb: 2, color: '#DC2626' }}>Survey Unavailable</Typography>
+        <Typography variant="h5" sx={{ mb: 2, color: '#EF4444' }}>Survey Unavailable</Typography>
         <Typography color="text.secondary">{error}</Typography>
       </Paper>
     </Box>
@@ -92,7 +92,7 @@ export default function SurveyFormPage() {
   if (done) return (
     <Box sx={{ maxWidth: 480, mx: 'auto', p: 3 }}>
       <Paper sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5" sx={{ color: '#16A34A', mb: 2 }}>Thank You!</Typography>
+        <Typography variant="h5" sx={{ color: '#10B981', mb: 2 }}>Thank You!</Typography>
         <Typography color="text.secondary">Your feedback has been submitted successfully.</Typography>
         <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 3 }}>Go to Meticle Care</Button>
       </Paper>
@@ -102,7 +102,7 @@ export default function SurveyFormPage() {
   return (
     <Box sx={{ maxWidth: 560, mx: 'auto', mt: 4, p: 2 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" sx={{ color: '#0F4C81', mb: 1 }}>
+        <Typography variant="h5" sx={{ color: '#2F80ED', mb: 1 }}>
           {type === 'satisfaction' ? 'Share Your Feedback' : 'Staff Engagement Survey'}
         </Typography>
         {formData?.org_name && (

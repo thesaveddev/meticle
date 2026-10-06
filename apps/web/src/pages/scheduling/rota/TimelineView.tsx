@@ -86,15 +86,15 @@ export default function TimelineView(props: RotaViewProps) {
             <Tooltip key={i} title={short > 0 ? `${short} location${short > 1 ? 's' : ''} short` : 'All locations covered'}>
               <Chip
                 label={`${DAYS[i]} ${d.getDate()}`}
-                icon={short > 0 ? <WarningIcon sx={{ fontSize: 12, color: '#D97706' }} /> : undefined}
+                icon={short > 0 ? <WarningIcon sx={{ fontSize: 12, color: '#F59E0B' }} /> : undefined}
                 size="small"
                 onClick={() => setDayIndex(i)}
                 sx={{
                   cursor: 'pointer', fontWeight: 700, fontSize: '0.65rem', minWidth: 58, textAlign: 'center',
                   '& .MuiChip-icon': { ml: '6px', mr: '-4px' },
-                  bgcolor: i === dayIndex ? '#0F4C81' : isToday ? '#E7EEF4' : '#F3F4F6',
-                  color: i === dayIndex ? '#fff' : isToday ? '#0F4C81' : '#4B5563',
-                  '&:hover': { bgcolor: i === dayIndex ? '#0A3A61' : '#E5E7EB' },
+                  bgcolor: i === dayIndex ? '#2F80ED' : isToday ? '#E6EAF0' : '#F7F9FC',
+                  color: i === dayIndex ? '#FFFFFF' : isToday ? '#2F80ED' : '#475467',
+                  '&:hover': { bgcolor: i === dayIndex ? '#2674D9' : '#E6EAF0' },
                 }}
               />
             </Tooltip>
@@ -117,10 +117,10 @@ export default function TimelineView(props: RotaViewProps) {
           {HOURS.map(h => (
             <Box key={h} sx={{
               position: 'absolute', left: h * PIXELS_PER_HOUR, top: 0, bottom: 0,
-              borderLeft: h % 4 === 0 ? '1px solid #E5E7EB' : '1px dashed #F1F5F9',
+              borderLeft: h % 4 === 0 ? '1px solid #E6EAF0' : '1px dashed #F5F7FA',
             }} />
           ))}
-          <Box sx={{ position: 'absolute', left: totalWidth, top: 0, bottom: 0, borderLeft: '1px solid #E5E7EB' }} />
+          <Box sx={{ position: 'absolute', left: totalWidth, top: 0, bottom: 0, borderLeft: '1px solid #E6EAF0' }} />
           {isToday && (
             <Box sx={{ position: 'absolute', left: nowMinutes / 60 * PIXELS_PER_HOUR, top: 0, bottom: 0 }}>
               <Box sx={{ position: 'absolute', top: -3, left: -3, width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981' }} />
@@ -137,19 +137,19 @@ export default function TimelineView(props: RotaViewProps) {
               {/* Location label */}
               <Box sx={{ position: 'absolute', left: -140, top: 2, width: 130, pr: 1 }}>
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#1B2430', lineHeight: 1.15 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#17202A', lineHeight: 1.15 }}>
                     {loc.name}
                   </Typography>
                   {stats && (
                     stats.ok
                       ? <CheckIcon sx={{ fontSize: 13, color: '#10B981' }} />
                       : <Tooltip title={`${stats.cnt}/${stats.need}${stats.care > stats.min ? ` (${stats.care} care-needs)` : ''}`}>
-                          <WarningIcon sx={{ fontSize: 13, color: '#D97706' }} />
+                          <WarningIcon sx={{ fontSize: 13, color: '#F59E0B' }} />
                         </Tooltip>
                   )}
                 </Stack>
                 {stats && (
-                  <Typography variant="caption" sx={{ fontSize: '0.55rem', color: stats.ok ? '#047857' : '#B45309', fontWeight: 600, display: 'block' }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.55rem', color: stats.ok ? '#087A55' : '#9A6700', fontWeight: 600, display: 'block' }}>
                     {stats.ok ? 'Covered' : `${stats.cnt}/${stats.need} short`}
                   </Typography>
                 )}
@@ -218,7 +218,7 @@ export default function TimelineView(props: RotaViewProps) {
                   <Box className="rota-add-pill" sx={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(0.96)',
                     display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, borderRadius: '999px',
-                    bgcolor: '#0F4C81', color: '#fff', fontSize: '0.6rem', fontWeight: 700, pointerEvents: 'none',
+                    bgcolor: '#2F80ED', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 700, pointerEvents: 'none',
                     opacity: 0, transition: 'opacity 0.15s ease, transform 0.15s ease',
                   }}>
                     <AddIcon sx={{ fontSize: 12 }} />Add shift

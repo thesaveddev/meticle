@@ -7,6 +7,7 @@ import { Add as AddIcon, Delete as DeleteIcon, RateReview } from '@mui/icons-mat
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AppButton from '../../components/design/AppButton'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 import api from '../../services/api'
 import { formatDateOnly } from '../../utils/dateFormat'
 
@@ -47,9 +48,9 @@ const TYPE_LABELS: Record<SupervisionType, string> = {
   appraisal: 'Appraisal',
 }
 
-const OVERDUE = '#DC2626'
+const OVERDUE = '#EF4444'
 const DUE = '#F59E0B'
-const OK = '#16A34A'
+const OK = '#10B981'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -133,17 +134,15 @@ export default function SupervisionsPage() {
 
   return (
     <PageContainer>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Supervisions</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            A record of every supervision. CQC expects each member of staff to be supervised at least once in six months.
-          </Typography>
-        </Box>
-        <AppButton variant="secondary" onClick={() => { summary.refetch(); records.refetch() }} loading={summary.isFetching}>
-          Refresh
-        </AppButton>
-      </Stack>
+      <PageHeader
+        title="Supervisions"
+        subtitle="A record of every supervision. CQC expects each member of staff to be supervised at least once in six months."
+        actions={
+          <AppButton variant="secondary" onClick={() => { summary.refetch(); records.refetch() }} loading={summary.isFetching}>
+            Refresh
+          </AppButton>
+        }
+      />
 
       <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'notice.subtle.bg' }}>
         <CardContent sx={{ p: 3 }}>

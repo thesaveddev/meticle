@@ -152,25 +152,25 @@ export default function AvailabilityPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 2.5 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
-          <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: 'grid', placeItems: 'center', bgcolor: '#E8F6F0', color: '#047857' }}><ScheduleIcon /></Box>
+          <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: 'grid', placeItems: 'center', bgcolor: '#E8FAF6', color: '#087A55' }}><ScheduleIcon /></Box>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
             <Typography variant="body2" color="text.secondary">A clear weekly pattern for planning care visits.</Typography>
             <ContextualLearnLink topic="dom-availability-areas" />
           </Box>
         </Stack>
-        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={() => setTab(visibleTabs.findIndex(t => t.key === 'add'))} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add availability</Button>}
+        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={() => setTab(visibleTabs.findIndex(t => t.key === 'add'))} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add availability</Button>}
       </Stack>
 
       {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1.5, mb: 2.5 }}>
         {[
-          { value: visibleRecords.length, label: 'Time windows', color: '#0F4C81' },
-          { value: activeDays, label: 'Days covered', color: '#047857' },
-          { value: `${totalHours.toFixed(1)}h`, label: 'Planned each week', color: '#B45309' },
+          { value: visibleRecords.length, label: 'Time windows', color: '#2F80ED' },
+          { value: activeDays, label: 'Days covered', color: '#087A55' },
+          { value: `${totalHours.toFixed(1)}h`, label: 'Planned each week', color: '#9A6700' },
         ].map(item => (
-          <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, borderColor: '#E5E7EB' }}>
+          <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, borderColor: '#E6EAF0' }}>
             <Typography variant="h5" sx={{ fontWeight: 800, color: item.color }}>{item.value}</Typography>
             <Typography variant="caption" color="text.secondary">{item.label}</Typography>
           </Paper>
@@ -184,27 +184,27 @@ export default function AvailabilityPage() {
         </TextField>
       )}
 
-      <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', borderColor: '#E5E7EB' }}>
-        <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E5E7EB', '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 50 } }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', borderColor: '#E6EAF0' }}>
+        <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E6EAF0', '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 50 } }}>
           {visibleTabs.map(t => <Tab key={t.key} label={t.label} />)}
         </Tabs>
 
         {activeTab === 'pattern' && (
           <Box>
-            <Box sx={{ px: 2, py: 1.25, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
+            <Box sx={{ px: 2, py: 1.25, bgcolor: 'notice.subtle.bg', borderBottom: '1px solid #E6EAF0' }}>
               <Typography variant="caption" color="text.secondary">Compact view · select a time window to remove it</Typography>
             </Box>
             {DAYS.map((dayName, dayIndex) => {
               const records = byDay[dayIndex] || []
               return (
-                <Box key={dayName} sx={{ display: 'grid', gridTemplateColumns: { xs: '78px minmax(0, 1fr)', sm: '120px minmax(0, 1fr)' }, alignItems: 'center', gap: 1.5, minHeight: 52, px: 2, py: 0.75, borderBottom: '1px solid #F1F5F9' }}>
+                <Box key={dayName} sx={{ display: 'grid', gridTemplateColumns: { xs: '78px minmax(0, 1fr)', sm: '120px minmax(0, 1fr)' }, alignItems: 'center', gap: 1.5, minHeight: 52, px: 2, py: 0.75, borderBottom: '1px solid #F5F7FA' }}>
                   <Stack direction="row" alignItems="center" gap={0.75}>
                     {records.length > 0 ? <CheckCircleOutline sx={{ fontSize: 15, color: '#10B981' }} /> : <Box sx={{ width: 15 }} />}
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: records.length ? '#1F2937' : '#9CA3AF' }}>{dayName.slice(0, 3)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: records.length ? '#1F2937' : '#98A2B3' }}>{dayName.slice(0, 3)}</Typography>
                   </Stack>
                   <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
                     {records.length === 0 ? <Typography variant="caption" color="text.secondary">Not set</Typography> : records.map(record => (
-                      <Chip key={record.id} label={`${formatTime(record.start_time)} – ${formatTime(record.end_time)}${record.staff_name ? ` · ${record.staff_name}` : ''}`} size="small" onDelete={canEdit ? () => deleteAvailability(record.id) : undefined} deleteIcon={<DeleteOutline />} sx={{ bgcolor: '#E8F6F0', color: '#047857', fontWeight: 600, '& .MuiChip-deleteIcon': { color: '#047857' } }} />
+                      <Chip key={record.id} label={`${formatTime(record.start_time)} – ${formatTime(record.end_time)}${record.staff_name ? ` · ${record.staff_name}` : ''}`} size="small" onDelete={canEdit ? () => deleteAvailability(record.id) : undefined} deleteIcon={<DeleteOutline />} sx={{ bgcolor: '#E8FAF6', color: '#087A55', fontWeight: 600, '& .MuiChip-deleteIcon': { color: '#087A55' } }} />
                     ))}
                   </Stack>
                 </Box>
@@ -225,13 +225,13 @@ export default function AvailabilityPage() {
                 const records = recordsForDate(date)
                 const leave = leaveForDate(date)
                 return (
-                  <Box key={dateKey(date)} sx={{ display: 'grid', gridTemplateColumns: { xs: '82px minmax(0, 1fr)', sm: '150px minmax(0, 1fr)' }, gap: 1.5, alignItems: 'center', p: 1.25, borderRadius: 2, bgcolor: leave.length ? '#FFF7ED' : '#F8FAFC', border: '1px solid', borderColor: leave.length ? '#FED7AA' : '#E5E7EB' }}>
+                  <Box key={dateKey(date)} sx={{ display: 'grid', gridTemplateColumns: { xs: '82px minmax(0, 1fr)', sm: '150px minmax(0, 1fr)' }, gap: 1.5, alignItems: 'center', p: 1.25, borderRadius: 2, bgcolor: leave.length ? '#FFF7E6' : '#F8FAFC', border: '1px solid', borderColor: leave.length ? '#FFF7E6' : '#E6EAF0' }}>
                     <Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Typography><Typography variant="caption" color="text.secondary">{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Typography></Box>
                     <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
-                      {leave.map(item => <Chip key={`leave-${item.id}`} label={`${item.leave_type_name} · ${item.status}`} size="small" sx={{ bgcolor: item.status === 'approved' ? '#FEE2E2' : '#FEF3C7', color: item.status === 'approved' ? '#991B1B' : '#92400E', fontWeight: 700 }} />)}
-                      {!leave.length && records.map(record => <Chip key={record.id} label={`${formatTime(record.start_time)} – ${formatTime(record.end_time)}`} size="small" sx={{ bgcolor: '#E8F6F0', color: '#047857', fontWeight: 600 }} />)}
+                      {leave.map(item => <Chip key={`leave-${item.id}`} label={`${item.leave_type_name} · ${item.status}`} size="small" sx={{ bgcolor: item.status === 'approved' ? '#FEF0F0' : '#FFF7E6', color: item.status === 'approved' ? '#B42318' : '#9A6700', fontWeight: 700 }} />)}
+                      {!leave.length && records.map(record => <Chip key={record.id} label={`${formatTime(record.start_time)} – ${formatTime(record.end_time)}`} size="small" sx={{ bgcolor: '#E8FAF6', color: '#087A55', fontWeight: 600 }} />)}
                       {!leave.length && !records.length && <Typography variant="caption" color="text.secondary">No availability recorded</Typography>}
-                      {leave.length > 0 && <Typography variant="caption" sx={{ alignSelf: 'center', color: '#9A3412', fontWeight: 600 }}>Unavailable for visits</Typography>}
+                      {leave.length > 0 && <Typography variant="caption" sx={{ alignSelf: 'center', color: '#9A6700', fontWeight: 600 }}>Unavailable for visits</Typography>}
                     </Stack>
                   </Box>
                 )
@@ -251,28 +251,28 @@ export default function AvailabilityPage() {
                 <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                   <Box component="thead">
                     <Box component="tr">
-                      <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1.5, borderBottom: '2px solid #E5E7EB', fontWeight: 700, fontSize: '0.8rem', color: '#6B7280' }}>Carer</Box>
+                      <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1.5, borderBottom: '2px solid #E6EAF0', fontWeight: 700, fontSize: '0.8rem', color: '#667085' }}>Carer</Box>
                       {DAYS.map(d => (
-                        <Box key={d} component="th" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '2px solid #E5E7EB', fontWeight: 700, fontSize: '0.75rem', color: '#6B7280' }}>{d.slice(0, 3)}</Box>
+                        <Box key={d} component="th" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '2px solid #E6EAF0', fontWeight: 700, fontSize: '0.75rem', color: '#667085' }}>{d.slice(0, 3)}</Box>
                       ))}
-                      <Box component="th" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '2px solid #0F4C81', fontWeight: 700, fontSize: '0.8rem', color: '#0F4C81' }}>Weekly</Box>
+                      <Box component="th" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '2px solid #2F80ED', fontWeight: 700, fontSize: '0.8rem', color: '#2F80ED' }}>Weekly</Box>
                     </Box>
                   </Box>
                   <Box component="tbody">
                     {weeklySummary.map((s: any) => (
-                      <Box key={s.staff_id} component="tr" sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
-                        <Box component="td" sx={{ py: 1.5, px: 1.5, borderBottom: '1px solid #F3F4F6', fontWeight: 600, fontSize: '0.85rem' }}>{s.staff_name}</Box>
+                      <Box key={s.staff_id} component="tr" sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
+                        <Box component="td" sx={{ py: 1.5, px: 1.5, borderBottom: '1px solid #F7F9FC', fontWeight: 600, fontSize: '0.85rem' }}>{s.staff_name}</Box>
                         {s.daily_hours.map((h: number, i: number) => (
-                          <Box key={i} component="td" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '1px solid #F3F4F6' }}>
+                          <Box key={i} component="td" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '1px solid #F7F9FC' }}>
                             {h > 0 ? (
-                              <Chip label={`${h}h`} size="small" sx={{ bgcolor: h >= 8 ? '#DCFCE7' : h >= 4 ? '#FEF9C3' : '#FEE2E2', color: h >= 8 ? '#166534' : h >= 4 ? '#92400E' : '#991B1B', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+                              <Chip label={`${h}h`} size="small" sx={{ bgcolor: h >= 8 ? '#EAFBF5' : h >= 4 ? '#FFF7E6' : '#FEF0F0', color: h >= 8 ? '#087A55' : h >= 4 ? '#9A6700' : '#B42318', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
                             ) : (
-                              <Typography sx={{ color: '#D1D5DB', fontSize: '0.75rem' }}>—</Typography>
+                              <Typography sx={{ color: '#D8DEE7', fontSize: '0.75rem' }}>—</Typography>
                             )}
                           </Box>
                         ))}
-                        <Box component="td" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '1px solid #F3F4F6' }}>
-                          <Typography sx={{ fontWeight: 800, color: s.weekly_hours >= 30 ? '#047857' : s.weekly_hours >= 15 ? '#D97706' : '#DC2626', fontSize: '0.85rem' }}>{s.weekly_hours}h</Typography>
+                        <Box component="td" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '1px solid #F7F9FC' }}>
+                          <Typography sx={{ fontWeight: 800, color: s.weekly_hours >= 30 ? '#087A55' : s.weekly_hours >= 15 ? '#F59E0B' : '#EF4444', fontSize: '0.85rem' }}>{s.weekly_hours}h</Typography>
                         </Box>
                       </Box>
                     ))}
@@ -301,7 +301,7 @@ export default function AvailabilityPage() {
               <Divider />
               <Stack direction="row" justifyContent="flex-end" gap={1}>
                 <Button onClick={() => setTab(0)}>Back to schedule</Button>
-                <Button variant="contained" onClick={addAvailability} disabled={saving || (!isCarer && !selectedStaff)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+                <Button variant="contained" onClick={addAvailability} disabled={saving || (!isCarer && !selectedStaff)} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
                   {saving ? <CircularProgress size={18} color="inherit" /> : 'Save time window'}
                 </Button>
               </Stack>

@@ -37,7 +37,7 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
  */
 const regulators = [
   {
-    slug: 'cqc', code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2563EB',
+    slug: 'cqc', code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2F80ED',
     desc: 'CQC uses its own assessment approach and quality statements. MeticleCare helps providers organise care records, workforce evidence, incidents, reviews and governance information for their own inspection-readiness work.',
     guidance: [
       'CQC assesses services against five key questions: Safe, Effective, Caring, Responsive and Well-led.',
@@ -50,7 +50,7 @@ const regulators = [
     evidenceFocus: ['Quality statements alignment', 'Staff training and supervision evidence', 'Person-centred care demonstrations', 'Governance and leadership evidence', 'Risk management and incident follow-up'],
   },
   {
-    slug: 'care-inspectorate', code: 'Care Inspectorate', name: 'Care Inspectorate', nation: 'Scotland', color: '#DC2626',
+    slug: 'care-inspectorate', code: 'Care Inspectorate', name: 'Care Inspectorate', nation: 'Scotland', color: '#EF4444',
     desc: "The Care Inspectorate operates within Scotland's health and social care context. MeticleCare helps teams keep evidence, reviews, actions and operational records organised.",
     guidance: [
       'The Care Inspectorate is established under the Public Services Reform (Scotland) Act 2010.',
@@ -61,7 +61,7 @@ const regulators = [
     evidenceFocus: ['Quality indicator evidence', 'National Care Standards alignment', 'People\'s experience and outcomes', 'Continuous improvement evidence', 'Staff and management oversight'],
   },
   {
-    slug: 'ciw', code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales', color: '#059669',
+    slug: 'ciw', code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales', color: '#087A55',
     desc: 'Care Inspectorate Wales has its own regulatory and inspection context. MeticleCare helps Welsh providers connect everyday records, governance and follow-up actions.',
     guidance: [
       'CIW registers and inspects services under the Regulation and Inspection of Social Care (Wales) Act 2016.',
@@ -72,7 +72,7 @@ const regulators = [
     evidenceFocus: ['Essential Quality Standards evidence', 'Person-centred care records', 'Safeguarding and protection evidence', 'Staff training and deployment records', 'Management and leadership evidence'],
   },
   {
-    slug: 'rqia', code: 'RQIA', name: 'Regulation and Quality Improvement Authority', nation: 'Northern Ireland', color: '#7C3AED',
+    slug: 'rqia', code: 'RQIA', name: 'Regulation and Quality Improvement Authority', nation: 'Northern Ireland', color: '#8B7CF6',
     desc: 'RQIA regulates health and social care services in Northern Ireland. MeticleCare supports structured records, workforce information, incidents and actions.',
     guidance: [
       'RQIA is established under the Health and Personal Social Services (Quality, Improvement and Regulation) (Northern Ireland) Order 2003.',
@@ -376,8 +376,8 @@ export function ComplianceOverviewPage() {
       <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ p: 3, bgcolor: M.amberLight, borderRadius: M.r.md,  }}>
-            <Typography sx={{ fontWeight: 700, color: '#92400E', mb: 0.5 }}>Important context</Typography>
-            <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            <Typography sx={{ fontWeight: 700, color: '#9A6700', mb: 0.5 }}>Important context</Typography>
+            <Typography sx={{ color: '#9A6700', fontSize: '0.9rem', lineHeight: 1.6 }}>
               MeticleCare is a software tool, not a regulator, legal adviser or substitute for your organisation's policies and professional judgement. Requirements differ by nation and service type. The responsibility for compliance remains with the provider.
             </Typography>
           </Box>
@@ -437,7 +437,7 @@ export function RegulatorPage() {
           <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, maxWidth: 640, mb: 4 }}>
             {r.desc}
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: r.color, color: '#fff', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Talk to us</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: r.color, color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Talk to us</Button>
         </Container>
       </Box>
 
@@ -503,7 +503,7 @@ export function RegulatorPage() {
             ))}
           </Grid>
           <Box sx={{ mt: 5, p: 3, bgcolor: M.amberLight, borderRadius: M.r.md,  }}>
-            <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            <Typography sx={{ color: '#9A6700', fontSize: '0.9rem', lineHeight: 1.6 }}>
               MeticleCare is a software tool, not a regulator. Requirements differ by nation and service type. The responsibility for compliance remains with the provider.
             </Typography>
           </Box>

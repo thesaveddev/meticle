@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', p: 4 }}>
           <Paper sx={{ p: 4, maxWidth: 500, textAlign: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Something went wrong</Typography>
-            <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+            <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
               {this.state.error?.message || 'An unexpected error occurred.'}
             </Typography>
             <Button variant="contained" onClick={() => window.location.reload()}>

@@ -75,10 +75,9 @@ test-results/
 # classification and out of the repo.videos/
 section-*.png
 
-# Mobile-only feature files that ship through EAS, not through this API/web
-# image pipeline. Kept local to the mobile checkout, not part of the server
-# release candidate.
-apps/mobile/src/services/incidentQueue.ts
+# The incident queue is real app source with committed tests that import it;
+# ignoring it left the tree uncheckable (every fresh clone failed typecheck).
+# Mobile ships through EAS, but it lives in this repo and must stay green in CI.
 
 # Mica action framework source. Part of the reusable voice-action layer; shipped
 # as first-class app modules rather than scratch.

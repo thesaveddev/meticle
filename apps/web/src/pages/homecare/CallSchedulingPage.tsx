@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
@@ -10,6 +10,7 @@ import {
   Stop as CheckOutIcon, Search as SearchIcon,
 } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
@@ -23,11 +24,11 @@ const localDate = (date: Date) => {
 }
 
 const statusColor = (s: string) => {
-  if (s === 'completed') return { bg: '#E9F7F0', color: '#047857' }
-  if (s === 'missed' || s === 'cancelled') return { bg: '#FDECEC', color: '#B42318' }
-  if (s === 'checked_in') return { bg: '#E0F2FE', color: '#0F4C81' }
-  if (s === 'en_route') return { bg: '#EDE9FE', color: '#7C3AED' }
-  return { bg: '#F3F4F6', color: 'text.secondary' }
+  if (s === 'completed') return { bg: '#EAFBF5', color: '#087A55' }
+  if (s === 'missed' || s === 'cancelled') return { bg: '#FEF0F0', color: '#B42318' }
+  if (s === 'checked_in') return { bg: '#EAF3FF', color: '#2F80ED' }
+  if (s === 'en_route') return { bg: '#F4F8FF', color: '#8B7CF6' }
+  return { bg: '#F7F9FC', color: 'text.secondary' }
 }
 
 const PAGE_SIZE = 15
@@ -41,6 +42,9 @@ export default function CallSchedulingPage() {
   const [assignStaffId, setAssignStaffId] = useState('')
   const [detailVisit, setDetailVisit] = useState<any>(null)
   const [page, setPage] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedVisitId = searchParams.get('visit')
+  const requestedDate = searchParams.get('date')
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
   const qc = useQueryClient()
@@ -58,6 +62,18 @@ export default function CallSchedulingPage() {
       params: { from: dayStr, to: nextDayStr }
     }).then(r => Array.isArray(r.data) ? r.data : []),
   })
+
+  useEffect(() => {
+    if (!requestedVisitId || !requestedDate || requestedDate === dayStr) return
+    const target = new Date(`${requestedDate}T12:00:00`)
+    const todayLocal = new Date()
+    todayLocal.setHours(0, 0, 0, 0)
+    const targetLocal = new Date(target)
+    targetLocal.setHours(0, 0, 0, 0)
+    const dayOffset = Math.round((targetLocal.getTime() - todayLocal.getTime()) / 86400000)
+    setOffset(dayOffset)
+    setPage(0)
+  }, [requestedVisitId, requestedDate, dayStr])
 
   const { data: staff = [] } = useQuery({
     queryKey: ['homecare-staff-for-schedule'],
@@ -80,6 +96,22 @@ export default function CallSchedulingPage() {
       api.patch(`/homecare/visits/${visitId}`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['homecare-visits-schedule'] }),
   })
+
+  useEffect(() => {
+    if (!requestedVisitId) return
+    const visit = visits.find((candidate: any) => candidate.id === requestedVisitId)
+    if (visit) setDetailVisit(visit)
+  }, [requestedVisitId, visits])
+
+  const closeVisitDetails = () => {
+    setDetailVisit(null)
+    if (searchParams.has('visit')) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('visit')
+      nextParams.delete('date')
+      setSearchParams(nextParams, { replace: true })
+    }
+  }
 
   const sorted = [...visits].sort((a: any, b: any) => new Date(a.scheduled_start || a.visit_date).getTime() - new Date(b.scheduled_start || b.visit_date).getTime())
 
@@ -133,7 +165,7 @@ export default function CallSchedulingPage() {
           label={`${dateLabel(dayStr)} — ${sorted.length} calls`}
           color={offset === 0 ? 'primary' : 'default'}
           onClick={() => setOffset(0)}
-          sx={{ fontWeight: 700, bgcolor: offset === 0 ? '#0F4C81' : undefined, color: offset === 0 ? 'white' : undefined }}
+          sx={{ fontWeight: 700, bgcolor: offset === 0 ? '#2F80ED' : undefined, color: offset === 0 ? 'white' : undefined }}
         />
         <Button size="small" onClick={() => setOffset(o => o + 1)} sx={{ minWidth: 'auto' }}><ChevronRightIcon /></Button>
       </Stack>
@@ -149,7 +181,7 @@ export default function CallSchedulingPage() {
             sx={{
               fontWeight: 600, cursor: 'pointer',
               bgcolor: statusFilter === status ? statusColor(status).bg : 'transparent',
-              border: `1px solid ${statusFilter === status ? statusColor(status).color : '#E5E7EB'}`,
+              border: `1px solid ${statusFilter === status ? statusColor(status).color : '#E6EAF0'}`,
               color: statusFilter === status ? statusColor(status).color : 'text.secondary',
             }}
           />
@@ -180,7 +212,7 @@ export default function CallSchedulingPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
         <>
-          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -216,7 +248,7 @@ export default function CallSchedulingPage() {
                         {v.person_address && <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', maxWidth: 200 }}>{v.person_address}</Typography>}
                       </TableCell>
                       <TableCell>
-                        {v.carer_name || <Typography sx={{ color: '#D97706', fontWeight: 600, fontSize: '0.85rem' }}>Unassigned</Typography>}
+                        {v.carer_name || <Typography sx={{ color: '#F59E0B', fontWeight: 600, fontSize: '0.85rem' }}>Unassigned</Typography>}
                       </TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{v.package_name || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2">{dur != null ? `${dur} min` : '—'}</Typography></TableCell>
@@ -228,28 +260,28 @@ export default function CallSchedulingPage() {
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             {!v.assigned_staff_id && (
                               <Tooltip title="Assign carer">
-                                <IconButton size="small" onClick={() => { setAssignDialog(v); setAssignStaffId('') }} sx={{ color: '#0F4C81' }}>
+                                <IconButton size="small" onClick={() => { setAssignDialog(v); setAssignStaffId('') }} sx={{ color: '#2F80ED' }}>
                                   <AssignIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {isOpen && v.status === 'scheduled' && (
                               <Tooltip title="Mark as en route">
-                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'en_route' })} sx={{ color: '#7C3AED' }}>
+                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'en_route' })} sx={{ color: '#8B7CF6' }}>
                                   <CheckInIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {isOpen && v.status === 'en_route' && (
                               <Tooltip title="Check in">
-                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'checked_in' })} sx={{ color: '#0F4C81' }}>
+                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'checked_in' })} sx={{ color: '#2F80ED' }}>
                                   <CheckInIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {isOpen && v.status === 'checked_in' && (
                               <Tooltip title="Check out">
-                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'completed' })} sx={{ color: '#047857' }}>
+                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'completed' })} sx={{ color: '#087A55' }}>
                                   <CheckOutIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -291,14 +323,14 @@ export default function CallSchedulingPage() {
           <Button onClick={() => setAssignDialog(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" disabled={!assignStaffId || assignVisit.isPending}
             onClick={() => { if (assignDialog) assignVisit.mutate({ visitId: assignDialog.id, staffId: assignStaffId }) }}
-            sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
+            sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}>
             {assignVisit.isPending ? <CircularProgress size={18} color="inherit" /> : 'Assign'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Detail dialog */}
-      <Dialog open={!!detailVisit} onClose={() => setDetailVisit(null)} fullWidth maxWidth="sm">
+      <Dialog open={!!detailVisit} onClose={closeVisitDetails} fullWidth maxWidth="sm">
         <DialogTitle>Call details</DialogTitle>
         <DialogContent>
           {detailVisit && (
@@ -342,7 +374,7 @@ export default function CallSchedulingPage() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailVisit(null)} sx={{ textTransform: 'none' }}>Close</Button>
+          <Button onClick={closeVisitDetails} sx={{ textTransform: 'none' }}>Close</Button>
         </DialogActions>
       </Dialog>
     </PageContainer>

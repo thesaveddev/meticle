@@ -44,7 +44,7 @@ import { useSubscriptionStatus } from './SubscriptionGuard'
 import { useThemeMode, METICLE_PRIMARY, METICLE_SECONDARY } from '../context/ThemeContext'
 import { useTheme } from '@mui/material/styles'
 
-const drawerWidth = 260
+const drawerWidth = 248
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate()
@@ -84,7 +84,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
   interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
   const [primaryServiceType, setPrimaryServiceType] = useState<string | null>(null)
-  const [serviceTypesLoaded, setServiceTypesLoaded] = useState(false)
+  const [serviceTypesLoaded, setServiceTypesLoaded] = useState(() => !Boolean(rawUser.id))
   // An organisation can switch carer location off entirely. The API refuses the
   // map endpoint when it is, so hiding the link is a courtesy rather than the
   // control — but a nav item that leads to a 403 reads as a broken product.
@@ -362,8 +362,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       setLocationName(u.location_name || '')
       if (org?.primary_color || org?.logo_url) {
         updateBranding({
-          primary_color: org.primary_color || '#0F4C81',
-          secondary_color: org.secondary_color || '#6B7280',
+          primary_color: org.primary_color || METICLE_PRIMARY,
+          secondary_color: org.secondary_color || METICLE_SECONDARY,
           accent_color: org.accent_color || '#F8FAFC',
         }, org.logo_url || '')
       }
@@ -420,24 +420,20 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
-      <Toolbar sx={{ px: 3, flexDirection: 'column', alignItems: 'flex-start', pt: 2 }}>
-        {logoUrl ? (
-          <Box component="img" src={logoUrl} alt={orgName || 'Meticle Care'}
-            sx={{ height: 40, maxWidth: 180, objectFit: 'contain', mb: 0.5 }} />
-        ) : (
-          <Typography variant="h5" sx={{ fontWeight: 900, color: branding.primary_color, letterSpacing: '-1.5px' }}>
-            Meticle Care
-          </Typography>
-        )}
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper, overflow: 'hidden' }}>
+      <Box sx={{ minHeight: 76, px: 2.5, py: 1.5, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
+          <Box component="img" src={logoUrl || '/logo-mark.svg'} alt={logoUrl ? (orgName || 'Meticle Care') : 'MeticleCare'} sx={{ width: logoUrl ? 'auto' : 32, height: 32, maxWidth: 150, objectFit: 'contain', flexShrink: 0 }} />
+          {!logoUrl && <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>MeticleCare</Typography>}
+        </Stack>
         {orgName && (
-          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600, mt: 0.5 }}>
-            {orgName}{locationName ? ` - ${locationName}` : ''}
+          <Typography variant="caption" noWrap sx={{ color: theme.palette.text.secondary, mt: 0.75, pl: logoUrl ? 0 : 0.25 }}>
+            {orgName}{locationName ? ` · ${locationName}` : ''}
           </Typography>
         )}
-      </Toolbar>
-      <Divider sx={{ mb: 2 }} />
-      <List sx={{ px: 2, flexGrow: 1 }}>
+      </Box>
+      <Divider />
+      <List sx={{ px: 1.5, py: 1.5, flexGrow: 1, minHeight: 0, overflowY: 'auto' }}>
         {userRole === UserRole.SUPER_ADMIN && (
           <ListItem disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
@@ -446,22 +442,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               disabled={sidebarDisabled}
               sx={{
                 borderRadius: 2,
-                bgcolor: '#FEF3C7',
-                border: '1px solid #FCD34D',
+                color: theme.palette.warning.dark,
+                bgcolor: theme.palette.warning.light,
                 mb: 1,
-                '&.Mui-selected': { bgcolor: '#FDE68A', '& .MuiListItemIcon-root': { color: '#92400E' } },
-                '&:hover': { bgcolor: '#FDE68A' },
+                '&.Mui-selected': { bgcolor: theme.palette.warning.light, '& .MuiListItemIcon-root': { color: theme.palette.warning.dark } },
+                '&:hover': { bgcolor: theme.palette.warning.light },
                 '&.Mui-disabled': { opacity: 0.45 },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: '#92400E' }}><AdminIcon /></ListItemIcon>
-              <ListItemText primary="Platform Admin" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 700, color: '#92400E' }} />
+              <ListItemIcon sx={{ minWidth: 36, color: theme.palette.warning.dark }}><AdminIcon sx={{ fontSize: 20 }} /></ListItemIcon>
+              <ListItemText primary="Platform Admin" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600, color: theme.palette.warning.dark }} />
             </ListItemButton>
           </ListItem>
         )}
         {filteredGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.label)
-          const hasActiveChild = group.items.some(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
           const toggleGroup = () => setCollapsedGroups(prev => {
             const next = new Set(prev)
             if (next.has(group.label)) next.delete(group.label)
@@ -471,16 +466,17 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           return (
           <Box key={group.label} sx={{ mb: 0.5 }}>
             <ListItemButton
+              aria-label={group.label}
               aria-expanded={!isCollapsed}
               onClick={toggleGroup}
               sx={{
-                borderRadius: 1.5, py: 0.5, px: 1.5, mb: 0.25, minHeight: 32,
-                '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#F7F9F7' },
+                borderRadius: 1.5, py: 0.5, px: 1, mb: 0.5, minHeight: 32,
+                '&:hover': { bgcolor: theme.palette.action.hover },
               }}
             >
               <ListItemText
                 primary={group.label}
-                primaryTypographyProps={{ fontSize: '0.65rem', fontWeight: 700, color: hasActiveChild ? branding.primary_color : theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1 }}
+                primaryTypographyProps={{ fontSize: '0.6875rem', fontWeight: 600, color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}
               />
               {isCollapsed ? <ExpandMoreIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} /> : <ExpandLessIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} />}
             </ListItemButton>
@@ -489,29 +485,32 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               return (
               <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton 
+                  aria-current={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)) ? 'page' : undefined}
                   onClick={disabled ? undefined : () => handleNavigate(item.path)}
                   selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}
                   disabled={disabled}
                   sx={{ 
-                    borderRadius: 2,
+                    borderRadius: 1.5,
+                    minHeight: 40,
+                    px: 1.25,
                     '&.Mui-selected': {
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : `${branding.primary_color}15`,
-                      color: branding.primary_color,
-                      '& .MuiListItemIcon-root': { color: branding.primary_color },
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : `${branding.primary_color}15` }
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF',
+                      color: '#2F80ED',
+                      '& .MuiListItemIcon-root': { color: '#2F80ED' },
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.22)' : '#EAF3FF' }
                     },
                     '&:hover': { bgcolor: theme.palette.action.hover },
                     '&.Mui-disabled': { opacity: 0.45 },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
+                  <ListItemIcon sx={{ minWidth: 36, color: theme.palette.text.secondary, '& .MuiSvgIcon-root': { fontSize: 20 } }}>
                     {item.text === 'Communication' ? (
                       <Badge badgeContent={chatUnreadCount > 99 ? '99+' : chatUnreadCount} color="error" max={99} invisible={chatUnreadCount === 0}>
                         {item.icon}
                       </Badge>
                     ) : item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+                  <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }} />
                   {item.text === 'Communication' && chatUnreadCount > 0 && (
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#EF4444', mr: 1, flexShrink: 0 }} />
                   )}
@@ -524,13 +523,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         })}
       </List>
       <Divider />
-      <List sx={{ p: 2 }}>
+      <List sx={{ px: 1.5, py: 1.5, flexShrink: 0 }}>
         {userRole === UserRole.SUPER_ADMIN && (
           <ListItem disablePadding>
             <ListItemButton sx={{ borderRadius: 2 }}
               onClick={() => handleNavigate('/learn')} selected={location.pathname === '/learn'}>
-              <ListItemIcon sx={{ minWidth: 40, color: location.pathname === '/learn' ? '#0F4C81' : '#6B7280' }}><SchoolIcon /></ListItemIcon>
-              <ListItemText primary="Learn" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+              <ListItemIcon sx={{ minWidth: 36, color: location.pathname === '/learn' ? METICLE_PRIMARY : theme.palette.text.secondary }}><SchoolIcon sx={{ fontSize: 20 }} /></ListItemIcon>
+              <ListItemText primary="Learn" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }} />
             </ListItemButton>
           </ListItem>
         )}
@@ -538,10 +537,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           const disabled = sidebarDisabled && item.text !== 'Billing' && item.text !== 'Learn'
           return (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
+            <ListItemButton disabled={disabled} sx={{ borderRadius: 1.5, minHeight: 40, px: 1.25, '&.Mui-selected': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF', color: METICLE_PRIMARY, '& .MuiListItemIcon-root': { color: METICLE_PRIMARY } }, '&.Mui-disabled': { opacity: 0.45 }, '&:hover': { bgcolor: theme.palette.action.hover } }}
               onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}>
-              <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? branding.primary_color : theme.palette.text.secondary }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+              <ListItemIcon sx={{ minWidth: 36, color: !disabled && location.pathname === item.path ? METICLE_PRIMARY : theme.palette.text.secondary, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }} />
             </ListItemButton>
           </ListItem>
           )
@@ -559,40 +558,40 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           bgcolor: theme.palette.background.paper,
-          borderBottom: 'none',
-          boxShadow: theme.palette.mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.2)' : '0 1px 3px rgba(26,35,50,0.04)',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          boxShadow: 'none',
           color: theme.palette.text.primary
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1.5, sm: 3 }, minHeight: '64px !important' }}>
           <IconButton
             color="inherit"
             edge="start"
+            aria-label="Open navigation"
             onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ mr: 1.5, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
           
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: branding.primary_color, flexShrink: 0 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, display: { xs: 'none', sm: 'block' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {activeModuleLabel}
             </Typography>
-          </Stack>
+          </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} size="small" sx={{ bgcolor: theme.palette.action.hover }} onClick={handleOpenNotif}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <IconButton aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} size="small" sx={{ width: 38, height: 38, bgcolor: 'transparent', color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover, color: 'text.primary' } }} onClick={handleOpenNotif}>
               <Badge badgeContent={unreadCount} color="error" max={99}>
                 <NotificationsIcon fontSize="small" />
               </Badge>
             </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', p: 0.5, borderRadius: 2, '&:hover': { bgcolor: theme.palette.action.hover } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
-              <Avatar src={profilePic || undefined} sx={{ width: 32, height: 32, bgcolor: branding.primary_color, fontSize: '0.8rem' }}>
+            <Box component="button" type="button" aria-label={`Account menu for ${userName}`} aria-haspopup="menu" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ appearance: 'none', border: 0, bgcolor: 'transparent', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer', p: 0.5, borderRadius: 2, '&:hover': { bgcolor: theme.palette.action.hover } }}>
+              <Avatar src={profilePic || undefined} sx={{ width: 34, height: 34, bgcolor: theme.palette.mode === 'dark' ? '#243B5A' : '#EAF3FF', color: METICLE_PRIMARY, fontSize: '0.8rem', fontWeight: 600 }}>
                 {profilePic ? '' : userInitial.toUpperCase()}
               </Avatar>
               <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
-                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>{userName}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1 }}>{userName}</Typography>
                 <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : userRole === UserRole.ORG_ADMIN ? 'Admin' : userRole === UserRole.MANAGER ? 'Manager' : 'Staff'}</Typography>
               </Box>
             </Box>
@@ -611,7 +610,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper },
           }}
         >
           {drawer}
@@ -620,7 +619,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper },
           }}
           open
         >
@@ -632,7 +631,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         component="main"
         ref={mainRef}
         tabIndex={-1}
-        sx={{ flexGrow: 1, px: 'var(--page-padding-x)', pt: 'var(--page-padding-top)', pb: 'var(--page-padding-bottom)', width: { md: `calc(100% - ${drawerWidth}px)` }, outline: 'none' }}
+        sx={{ flexGrow: 1, minWidth: 0, px: 'var(--page-padding-x)', pt: 'var(--page-padding-top)', pb: 'var(--page-padding-bottom)', width: { md: `calc(100% - ${drawerWidth}px)` }, outline: 'none' }}
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
@@ -645,6 +644,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               p: 2,
               mb: 3,
               borderRadius: 2,
+              boxShadow: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -676,11 +676,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <Paper
             elevation={0}
             sx={{
-              bgcolor: '#FFFBEB',
-              border: '1px solid #FDE68A',
+              bgcolor: '#FFF7E6',
+              border: '1px solid #FFF7E6',
               p: 2,
               mb: 3,
               borderRadius: 2,
+              boxShadow: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -688,10 +689,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             }}
           >
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#B45309' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#9A6700' }}>
                 Payment Past Due
               </Typography>
-              <Typography variant="body2" sx={{ color: '#D97706', mt: 0.5 }}>
+              <Typography variant="body2" sx={{ color: '#F59E0B', mt: 0.5 }}>
                 There was a problem renewing your subscription. Access continues for now, but your account may be suspended if payment isn't updated.
                 {rawUser.role === UserRole.ORG_ADMIN ? ' Please update your billing information.' : ' Please contact your organization admin.'}
               </Typography>
@@ -700,7 +701,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <Button
                 variant="contained"
                 size="small"
-                sx={{ bgcolor: '#F59E0B', '&:hover': { bgcolor: '#D97706' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                sx={{ bgcolor: '#F59E0B', '&:hover': { bgcolor: '#F59E0B' }, whiteSpace: 'nowrap', flexShrink: 0 }}
                 onClick={() => navigate('/billing')}
               >
                 Update Billing
@@ -715,7 +716,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
-        PaperProps={{ sx: { width: 200, mt: 1, border: `1px solid ${theme.palette.divider}`, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' } }}
+        PaperProps={{ sx: { width: 216, mt: 1, border: `1px solid ${theme.palette.divider}`, boxShadow: 'var(--shadow-lg)' } }}
       >
         <MenuItem onClick={() => navigateAndClose('/settings')}>
           <ListItemIcon><ProfileIcon fontSize="small" /></ListItemIcon>
@@ -732,14 +733,14 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         anchor="right"
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 390 }, borderLeft: `1px solid ${theme.palette.divider}` } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, borderLeft: `1px solid ${theme.palette.divider}`, boxShadow: 'none' } }}
       >
         <Box sx={{ minHeight: '100%', bgcolor: theme.palette.background.default }}>
           <Box sx={{ px: 3, pt: 3, pb: 2, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
               <Box>
-                <Typography variant="overline" sx={{ color: branding.primary_color, fontWeight: 800, letterSpacing: 1.2 }}>Inbox</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Notifications</Typography>
+                <Typography variant="overline" sx={{ color: branding.primary_color, fontWeight: 600, letterSpacing: 1 }}>Inbox</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Notifications</Typography>
                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.75 }}>Updates that need your attention.</Typography>
               </Box>
               <IconButton aria-label="Close notifications" size="small" onClick={() => setNotifOpen(false)}>
@@ -759,7 +760,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             ) : notifications.length === 0 ? (
               <Box sx={{ py: 10, px: 3, textAlign: 'center' }}>
                 <Box sx={{ width: 48, height: 48, mx: 'auto', mb: 2, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: `${branding.primary_color}12`, color: branding.primary_color }}><NotificationsIcon /></Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Nothing new</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Nothing new</Typography>
                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>You’re up to date.</Typography>
               </Box>
             ) : (
@@ -768,7 +769,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   <Paper key={n.id} component="button" type="button" onClick={() => handleMarkAsRead(n.id)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800, mb: 0.5, overflowWrap: 'anywhere' }}>{n.title || 'Notification'}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: n.read ? 500 : 600, mb: 0.5, overflowWrap: 'anywhere' }}>{n.title || 'Notification'}</Typography>
                         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 1, overflowWrap: 'anywhere' }}>{n.message || 'You have a new update.'}</Typography>
                         <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>{timeAgo(n.created_at)}</Typography>
                       </Box>

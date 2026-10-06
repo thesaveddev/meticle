@@ -9,10 +9,10 @@ import HotelIcon from '@mui/icons-material/Hotel'
 import GroupIcon from '@mui/icons-material/Group'
 
 const SERVICE_TYPES = [
-  { id: 'domiciliary', label: 'Domiciliary Care', desc: 'Home visits, carer routes, mileage tracking, call patterns', icon: DirectionsWalkIcon, color: '#10b981' },
-  { id: 'supported_living', label: 'Supported Living', desc: 'Residential staff, rota planning, shift marketplace', icon: HomeWorkIcon, color: '#3b82f6' },
-  { id: 'residential', label: 'Care Home', desc: 'Bed management, eMedication, daily notes, room checks', icon: HotelIcon, color: '#8b5cf6' },
-  { id: 'live_in', label: 'Live-in Care', desc: '24/7 carer schedules, sleep-in tracking, handover notes', icon: GroupIcon, color: '#f59e0b' },
+  { id: 'domiciliary', label: 'Domiciliary Care', desc: 'Home visits, carer routes, mileage tracking, call patterns', icon: DirectionsWalkIcon, color: '#10B981' },
+  { id: 'supported_living', label: 'Supported Living', desc: 'Residential staff, rota planning, shift marketplace', icon: HomeWorkIcon, color: '#2F80ED' },
+  { id: 'residential', label: 'Care Home', desc: 'Bed management, eMedication, daily notes, room checks', icon: HotelIcon, color: '#8B7CF6' },
+  { id: 'live_in', label: 'Live-in Care', desc: '24/7 carer schedules, sleep-in tracking, handover notes', icon: GroupIcon, color: '#F59E0B' },
 ]
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
@@ -192,7 +192,7 @@ export default function OnboardingFlow() {
   if (hydrating) {
     return (
       <Box role="status" aria-live="polite" sx={{ minHeight: '100vh', bgcolor: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress sx={{ color: '#10b981' }} />
+        <CircularProgress sx={{ color: '#10B981' }} />
       </Box>
     )
   }
@@ -218,7 +218,7 @@ export default function OnboardingFlow() {
               const Icon = type.icon
               const selected = selectedTypes.includes(type.id)
               return (
-                <Card key={type.id} sx={{ bgcolor: selected ? '#1e293b' : '#0f172a', border: `2px solid ${selected ? type.color : 'rgba(255,255,255,0.1)'}`, borderRadius: 2, transition: 'all 0.2s' }}>
+                <Card key={type.id} sx={{ bgcolor: selected ? '#1E293B' : '#0F172A', border: `2px solid ${selected ? type.color : 'rgba(255,255,255,0.1)'}`, borderRadius: 2, transition: 'all 0.2s' }}>
                   <CardActionArea onClick={() => toggleType(type.id)} sx={{ p: 2 }}>
                     <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', p: '0 !important' }}>
                       <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: `${type.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -236,17 +236,17 @@ export default function OnboardingFlow() {
             })}
 
             <Button variant="contained" fullWidth size="large" onClick={handleServiceContinue} disabled={saving || selectedTypes.length === 0}
-              sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700, mt: 2 }}>
+              sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700, mt: 2 }}>
               Continue
             </Button>
 
-            <Typography variant="caption" sx={{ color: '#64748b', textAlign: 'center', display: 'block', mt: 1 }}>
+            <Typography variant="caption" sx={{ color: '#667085', textAlign: 'center', display: 'block', mt: 1 }}>
               You can change your service types later in Settings. At least one is required to configure the right modules and permissions.
             </Typography>
           </Stack>
         ) : step === 2 ? (
           /* Step 2: Org details */
-          <Stack spacing={3} sx={{ bgcolor: '#1e293b', p: 4, borderRadius: 3 }}>
+          <Stack spacing={3} sx={{ bgcolor: '#1E293B', p: 4, borderRadius: 3 }}>
             {isOrg ? (
               <>
                 <Box>
@@ -259,22 +259,22 @@ export default function OnboardingFlow() {
                   </Stack>
                 </Box>
                 <TextField label="Organization Name" fullWidth value={name} onChange={e => setName(e.target.value)}
-                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0F172A', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
                 <TextField label="Address (optional)" fullWidth multiline rows={2} value={address} onChange={e => setAddress(e.target.value)}
-                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& textarea': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0F172A', '& textarea': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>Invite team members (optional)</Typography>
                   <Stack direction="row" spacing={1}>
                     <TextField size="small" placeholder="email@example.com" fullWidth value={emailInput}
                       onChange={e => setEmailInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEmail() } }}
-                      sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
-                    <Button variant="contained" onClick={addEmail} sx={{ bgcolor: '#10b981', whiteSpace: 'nowrap' }}>Add</Button>
+                      sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#0F172A', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                    <Button variant="contained" onClick={addEmail} sx={{ bgcolor: '#10B981', whiteSpace: 'nowrap' }}>Add</Button>
                   </Stack>
                   {invites.length > 0 && (
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       {invites.map(email => (
                         <Chip key={email} label={email} size="small" onDelete={() => setInvites(invites.filter(e => e !== email))}
-                          sx={{ color: 'white', bgcolor: '#0f172a', '& .MuiChip-deleteIcon': { color: 'text.secondary' } }} />
+                          sx={{ color: 'white', bgcolor: '#0F172A', '& .MuiChip-deleteIcon': { color: 'text.secondary' } }} />
                       ))}
                     </Stack>
                   )}
@@ -282,25 +282,25 @@ export default function OnboardingFlow() {
               </>
             ) : (
               <TextField label="Your Name" fullWidth value={name} onChange={e => setName(e.target.value)}
-                sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0F172A', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
             )}
             <Stack direction="row" spacing={2}>
               <Button variant="outlined" fullWidth onClick={() => setStep(1)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep2Submit} disabled={saving || (isOrg ? !name.trim() || selectedTypes.length === 0 : !name.trim())}
-                sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }}>
+                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Continue'}
               </Button>
             </Stack>
           </Stack>
         ) : step === 3 ? (
           /* Step 3: Type-specific welcome guide */
-          <Stack spacing={3} sx={{ bgcolor: '#1e293b', p: 4, borderRadius: 3 }}>
+          <Stack spacing={3} sx={{ bgcolor: '#1E293B', p: 4, borderRadius: 3 }}>
             {/* --- Domiciliary guide --- */}
             {selectedTypes.includes('domiciliary') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#10b981', fontWeight: 700, mb: 1 }}>Domiciliary Care — What to do next</Typography>
-                  <Typography sx={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                  <Typography variant="subtitle2" sx={{ color: '#10B981', fontWeight: 700, mb: 1 }}>Domiciliary Care — What to do next</Typography>
+                  <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for home visits, carer routes, mileage tracking and payroll. Here is the recommended setup order:
                   </Typography>
                 </Box>
@@ -313,7 +313,7 @@ export default function OnboardingFlow() {
                   { num: 6, title: 'Review the dashboard', desc: 'Once visits are scheduled, the dashboard shows daily route, carer locations, and exceptions. Payroll summaries live on Payroll & Timesheets under Carer totals.', link: '/dashboard' },
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
@@ -328,8 +328,8 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('supported_living') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#3b82f6', fontWeight: 700, mb: 1 }}>Supported Living — What to do next</Typography>
-                  <Typography sx={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                  <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 700, mb: 1 }}>Supported Living — What to do next</Typography>
+                  <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for staff scheduling, shift marketplace, compliance tracking and daily notes. Here is the recommended setup order:
                   </Typography>
                 </Box>
@@ -342,7 +342,7 @@ export default function OnboardingFlow() {
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows staffing coverage, compliance scores, upcoming shifts, and incident alerts at a glance.', link: '/dashboard' },
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#2F80ED', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
@@ -357,8 +357,8 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('residential') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#8b5cf6', fontWeight: 700, mb: 1 }}>Care Home — What to do next</Typography>
-                  <Typography sx={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                  <Typography variant="subtitle2" sx={{ color: '#8B7CF6', fontWeight: 700, mb: 1 }}>Care Home — What to do next</Typography>
+                  <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for bed management, eMedication, daily notes and room checks. Here is the recommended setup order:
                   </Typography>
                 </Box>
@@ -371,7 +371,7 @@ export default function OnboardingFlow() {
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows bed occupancy, medication status, incident alerts and daily notes summary.', link: '/dashboard' },
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#8B7CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
@@ -386,8 +386,8 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('live_in') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#f59e0b', fontWeight: 700, mb: 1 }}>Live-in Care — What to do next</Typography>
-                  <Typography sx={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                  <Typography variant="subtitle2" sx={{ color: '#F59E0B', fontWeight: 700, mb: 1 }}>Live-in Care — What to do next</Typography>
+                  <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for 24/7 carer schedules, sleep-in tracking and handover notes. Here is the recommended setup order:
                   </Typography>
                 </Box>
@@ -400,7 +400,7 @@ export default function OnboardingFlow() {
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows the current carer, handover status, next rotation, and any exceptions or missed check-ins.', link: '/dashboard' },
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
@@ -411,13 +411,13 @@ export default function OnboardingFlow() {
                 ))}
               </>
             )}
-            <Alert severity="info" sx={{ bgcolor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: 'text.secondary' }}>
+            <Alert severity="info" sx={{ bgcolor: '#1E293B', border: '1px solid rgba(255,255,255,0.1)', color: 'text.secondary' }}>
               You can do all of this later from the dashboard. This guide is here to help you get started quickly.
             </Alert>
             <Stack direction="row" spacing={2}>
               <Button variant="outlined" fullWidth onClick={() => setStep(2)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep3Submit} disabled={saving}
-                sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }}>
+                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Go to Dashboard'}
               </Button>
             </Stack>

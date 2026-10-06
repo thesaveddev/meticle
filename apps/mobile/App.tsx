@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Alert, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
+import { Alert, AppState, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
@@ -10,10 +10,11 @@ import { canApproveOpenCalls, canClaimOpenCalls } from './src/utils/openCalls'
 import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
-import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
+import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, QueuedIncidentReport, VisitAction } from './src/types'
 import { readSession, clearSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
+import { flushIncidentQueue, getIncidentQueue } from './src/services/incidentQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
@@ -142,6 +143,7 @@ function AppInner() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [queue, setQueue] = useState<OfflineVisitAction[]>([])
+  const [pendingIncidentReports, setPendingIncidentReports] = useState<QueuedIncidentReport[]>([])
   const [tab, setTab] = useState<TabKey>('today')
   const [refreshing, setRefreshing] = useState(false)
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
@@ -176,6 +178,12 @@ function AppInner() {
   }, [screenStack.length, popScreen])
 
   const loadQueue = useCallback(async () => setQueue(await getQueue()), [])
+  const loadIncidentQueue = useCallback(async (activeSession: AuthSession) => {
+    setPendingIncidentReports(await getIncidentQueue(
+      activeSession.user.id,
+      activeSession.user.organizationId || activeSession.organization?.id || null
+    ))
+  }, [])
 
   // Organisation SOS contacts, taken from the session so the emergency sheet
   // still has them when the device is offline.
@@ -224,8 +232,15 @@ function AppInner() {
   const sync = useCallback(async (activeSession = session) => {
     if (!activeSession) return
     try { await flushQueue(activeSession.accessToken) } catch {}
+    const incidentResult = await flushIncidentQueue(
+      activeSession.accessToken,
+      activeSession.user.id,
+      activeSession.user.organizationId || activeSession.organization?.id || null
+    ).catch(() => null)
     await loadQueue()
-  }, [loadQueue, session])
+    await loadIncidentQueue(activeSession)
+    return incidentResult
+  }, [loadIncidentQueue, loadQueue, session])
 
   useEffect(() => {
     ;(async () => {
@@ -253,7 +268,7 @@ function AppInner() {
         // next request.
         const live = (await readSession()) || stored
         const active = { ...live, user: current.user, organization: current.organization }
-        setSession(active); await loadQueue(); await loadVisits(active)
+        setSession(active); await loadQueue(); await loadIncidentQueue(active); await loadVisits(active)
         if (!isCaptureMode()) registerForPushNotifications(active.accessToken).catch(() => {})
         loadPendingClaims(active)
         getUnreadNotificationCount(active.accessToken).then(setUnreadCount).catch(() => {})
@@ -262,7 +277,7 @@ function AppInner() {
       finally { setBooting(false) }
     })()
     return () => { removeNotificationListeners() }
-  }, [loadQueue, loadVisits, loadPendingClaims])
+  }, [loadIncidentQueue, loadQueue, loadVisits, loadPendingClaims])
 
   /* ─── Store-screenshot capture tour ─────────────────────────── */
   // Inert unless EXPO_PUBLIC_CAPTURE_MODE=1 is set in a dev build. The tour asks
@@ -356,6 +371,24 @@ function AppInner() {
 
   useEffect(() => {
     if (!session?.accessToken) return
+    const retryIncidentReports = () => {
+      if (AppState.currentState !== 'active') return
+      flushIncidentQueue(
+        session.accessToken,
+        session.user.id,
+        session.user.organizationId || session.organization?.id || null
+      ).then(() => loadIncidentQueue(session)).catch(() => {})
+    }
+    retryIncidentReports()
+    const stateSubscription = AppState.addEventListener('change', state => {
+      if (state === 'active') retryIncidentReports()
+    })
+    const retryInterval = setInterval(retryIncidentReports, 30_000)
+    return () => { stateSubscription.remove(); clearInterval(retryInterval) }
+  }, [loadIncidentQueue, session])
+
+  useEffect(() => {
+    if (!session?.accessToken) return
     const interval = setInterval(() => {
       getChatUnread(session.accessToken)
         .then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0)))
@@ -389,7 +422,7 @@ function AppInner() {
     try {
       const active = await login(email, password)
       setSession(active); setTab('today'); setScreenStack([{ kind: 'tabs' }])
-      await loadQueue(); await loadVisits(active)
+      await loadQueue(); await loadIncidentQueue(active); await loadVisits(active)
       registerForPushNotifications(active.accessToken).catch(() => {})
     } catch (error: any) { setLoginError(error.message || 'Could not sign in.') }
     finally { setLoginLoading(false) }
@@ -415,12 +448,16 @@ function AppInner() {
     // first and make the carer choose knowingly if anything is left.
     if (session?.accessToken) {
       await flushQueue(session.accessToken).catch(() => null)
+      await flushIncidentQueue(session.accessToken, session.user.id, session.user.organizationId || session.organization?.id || null).catch(() => null)
+
       const stranded = (await getQueue()).filter(item => item.state !== 'synced').length
-      if (stranded > 0) {
+      const strandedReports = await getIncidentQueue(session.user.id, session.user.organizationId || session.organization?.id || null)
+      if (stranded > 0 || strandedReports.length > 0) {
+        const pendingCount = stranded + strandedReports.length
         const proceed = await new Promise<boolean>(resolve => {
           Alert.alert(
-            `${stranded} action${stranded === 1 ? '' : 's'} not yet saved`,
-            'These are visit check-ins or check-outs that have not reached the server. Signing out now will lose them.',
+            `${pendingCount} item${pendingCount === 1 ? '' : 's'} not yet synced`,
+            `${stranded} visit action${stranded === 1 ? '' : 's'} may be lost on sign-out. ${strandedReports.length} incident report${strandedReports.length === 1 ? ' stays' : 's stay'} encrypted on this device and will sync only if this same account signs in again.`,
             [
               { text: 'Keep me signed in', style: 'cancel', onPress: () => resolve(false) },
               { text: 'Sign out anyway', style: 'destructive', onPress: () => resolve(true) },
@@ -432,7 +469,7 @@ function AppInner() {
       }
     }
     await logout()
-    setSession(null); setVisits([]); setQueue([]); setScreenStack([{ kind: 'tabs' }])
+    setSession(null); setVisits([]); setQueue([]); setPendingIncidentReports([]); setScreenStack([{ kind: 'tabs' }])
   }
 
   /** Deactivates the signed-in account, then signs out. Wired to Settings. */
@@ -440,7 +477,7 @@ function AppInner() {
     if (!session?.accessToken) return
     await selfDeactivate(session.accessToken)
     await clearSession()
-    setSession(null); setVisits([]); setQueue([]); setScreenStack([{ kind: 'tabs' }])
+    setSession(null); setVisits([]); setQueue([]); setPendingIncidentReports([]); setScreenStack([{ kind: 'tabs' }])
   }, [session?.accessToken])
 
   const user: MobileUser | null = session?.user || null
@@ -525,7 +562,7 @@ function AppInner() {
     case 'swap':
       return frame(<SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack>)
     case 'incident':
-      return frame(<SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} initialDraft={isCaptureMode() ? CAPTURE_INCIDENT_DRAFT : undefined} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack>)
+      return frame(<SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} initialDraft={isCaptureMode() ? CAPTURE_INCIDENT_DRAFT : undefined} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session); loadIncidentQueue(session) }} /></SwipeBack>)
     case 'chat':
       return frame(<SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'notifications':
@@ -576,7 +613,7 @@ function AppInner() {
         </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
-          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
+          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} pendingIncidentReports={pendingIncidentReports} />}
           {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 
@@ -595,7 +632,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} initialChannelId={captureChannelId} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} queue={activeQueue} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} pendingIncidentReports={pendingIncidentReports} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

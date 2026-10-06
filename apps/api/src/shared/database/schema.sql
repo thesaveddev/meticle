@@ -725,6 +725,7 @@ CREATE TABLE IF NOT EXISTS incidents (
     category_id UUID REFERENCES incident_categories(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    witnesses TEXT,
     incident_date DATE NOT NULL DEFAULT CURRENT_DATE,
     incident_time TIME,
     location VARCHAR(255),
@@ -737,6 +738,8 @@ CREATE TABLE IF NOT EXISTS incidents (
     outcomes TEXT,
     is_near_miss BOOLEAN DEFAULT FALSE,
     is_confidential BOOLEAN DEFAULT FALSE,
+    client_submission_id UUID,
+    visit_id UUID,
     investigation_notes TEXT,
     lessons_learned TEXT,
     reported_by UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -781,6 +784,10 @@ CREATE INDEX IF NOT EXISTS idx_incidents_org ON incidents(organization_id);
 CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_incidents_date ON incidents(incident_date);
 CREATE INDEX IF NOT EXISTS idx_incidents_severity ON incidents(severity);
+CREATE INDEX IF NOT EXISTS idx_incidents_visit_id ON incidents(visit_id) WHERE visit_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_incidents_submission_idempotency
+    ON incidents (organization_id, reported_by, client_submission_id)
+    WHERE client_submission_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_incident_categories_org ON incident_categories(organization_id);
 CREATE INDEX IF NOT EXISTS idx_incident_involved_incident ON incident_involved_residents(incident_id);
 CREATE INDEX IF NOT EXISTS idx_incident_actions_incident ON incident_actions(incident_id);

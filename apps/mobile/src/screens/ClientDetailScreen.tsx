@@ -186,8 +186,8 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
                 </View>
               )}
               {person.requires_two_staff && (
-                <View style={[styles.tag, { backgroundColor: '#FFF7ED', borderColor: '#FDBA74' }]}>
-                  <Text style={[styles.tagText, { color: '#C2410C' }]}>2-person</Text>
+                <View style={[styles.tag, { backgroundColor: '#FFF7E6', borderColor: '#FFF7E6' }]}>
+                  <Text style={[styles.tagText, { color: '#9A6700' }]}>2-person</Text>
                 </View>
               )}
             </View>
@@ -244,9 +244,9 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
         {/* High risks alert */}
         {highRisks.length > 0 && (
-          <View style={[styles.alertCard, { backgroundColor: '#FFF7ED' }]}>
-            <Ionicons name="shield-checkmark" size={16} color="#C2410C" />
-            <Text style={[styles.alertText, { color: '#C2410C' }]}>{highRisks.length} high/critical risk{highRisks.length > 1 ? 's' : ''}</Text>
+          <View style={[styles.alertCard, { backgroundColor: '#FFF7E6' }]}>
+            <Ionicons name="shield-checkmark" size={16} color="#9A6700" />
+            <Text style={[styles.alertText, { color: '#9A6700' }]}>{highRisks.length} high/critical risk{highRisks.length > 1 ? 's' : ''}</Text>
           </View>
         )}
 
@@ -616,8 +616,8 @@ function RisksTab({ risks, c }: any) {
   const riskColors: Record<string, { bg: string; text: string; icon: string }> = {
     low: { bg: c.successSurface, text: c.successDeep, icon: 'checkmark-circle-outline' },
     medium: { bg: c.warningSurface, text: c.warning, icon: 'alert-circle-outline' },
-    high: { bg: '#FEF2F2', text: '#DC2626', icon: 'warning-outline' },
-    critical: { bg: '#FEE2E2', text: '#B91C1C', icon: 'skull-outline' },
+    high: { bg: '#FEF0F0', text: '#EF4444', icon: 'warning-outline' },
+    critical: { bg: '#FEF0F0', text: '#B42318', icon: 'skull-outline' },
   }
   return (
     <View>
@@ -800,8 +800,8 @@ function PersonalTab({ person, c }: any) {
           return (
             <View style={styles.tagRow}>
               {flags.map((f: string, i: number) => (
-                <View key={`f${i}`} style={[styles.tag, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                  <Text style={[styles.tagText, { color: '#DC2626' }]}>{f}</Text>
+                <View key={`f${i}`} style={[styles.tag, { backgroundColor: '#FEF0F0', borderColor: '#FEF0F0' }]}>
+                  <Text style={[styles.tagText, { color: '#EF4444' }]}>{f}</Text>
                 </View>
               ))}
               {tags.map((t: string, i: number) => (

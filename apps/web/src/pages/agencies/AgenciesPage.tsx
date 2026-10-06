@@ -190,7 +190,7 @@ export default function AgenciesPage() {
     <PageContainer>
 
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-        <BusinessIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
+        <BusinessIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>Agency Management</Typography>
         {savings && (
           <Chip label={`Net ${Number(savings.net_savings) >= 0 ? 'Saved' : 'Cost'}: ${formatCurrency(Math.abs(savings.net_savings))}`}
@@ -216,7 +216,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAgency({ name: '', contact_name: '', contact_phone: '', contact_email: '', address: '', notes: '', status: 'active', contract_start_date: '', contract_end_date: '' }); setAgencyDialog(true) }}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Agency</Button>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Agency</Button>
           </Stack>
           {agenciesLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -262,7 +262,7 @@ export default function AgenciesPage() {
               {agencies.length > rowsPerPage && <TablePagination component="div" count={agencies.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />}
             </TableContainer>
           )}
-          {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #DBEAFE', borderRadius: 2, bgcolor: 'notice.subtle.bg' }}>
+          {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #EAF3FF', borderRadius: 2, bgcolor: 'notice.subtle.bg' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}><Box><Typography variant="overline" color="primary">Agency workspace</Typography><Typography variant="h5" fontWeight={800}>{selectedAgency.name}</Typography><Typography variant="body2" color="text.secondary">{selectedAgency.address || 'No address recorded'} · {selectedAgency.contact_name || 'No contact person'}</Typography></Box><Button onClick={() => setSelectedAgency(null)}>Close workspace</Button></Stack>
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}><Chip label={selectedAgency.status || 'Active'} color="success" /><Chip icon={<StarIcon />} label={`${selectedAgency.rating || '—'} agency rating`} variant="outlined" /><Chip label={`${selectedAgency.active_workers || selectedAgencyWorkers.length} workers`} variant="outlined" /></Stack>
             <Tabs value={agencyView} onChange={(_, v) => setAgencyView(v)}><Tab value="overview" label="Details" /><Tab value="workers" label={`Workers (${selectedAgencyWorkers.length})`} /><Tab value="rates" label={`Rates (${selectedAgencyRates.length})`} /></Tabs>
@@ -295,8 +295,8 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setAgencyDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveAgency} disabled={agencySaving} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-                {agencySaving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Save'}
+              <Button variant="contained" onClick={handleSaveAgency} disabled={agencySaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+                {agencySaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
           </Dialog>
@@ -308,7 +308,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditWorker({ agency_id: agencies[0]?.id || '', first_name: '', last_name: '', role: '', phone: '', email: '', dbs_check_date: '', dbs_expiry_date: '', mandatory_training_completed: false, status: 'active', rating: '', notes: '' }); setWorkerDialog(true) }}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Worker</Button>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Worker</Button>
           </Stack>
           {workersLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -336,7 +336,7 @@ export default function AgenciesPage() {
                       <TableCell>{w.role || '—'}</TableCell>
                       <TableCell>{w.phone || '—'}</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem' }}>{w.dbs_expiry_date ? formatDate(w.dbs_expiry_date) : '—'}</TableCell>
-                      <TableCell>{w.mandatory_training_completed ? <CheckCircle sx={{ color: '#16A34A', fontSize: 18 }} /> : <Cancel sx={{ color: '#DC2626', fontSize: 18 }} />}</TableCell>
+                      <TableCell>{w.mandatory_training_completed ? <CheckCircle sx={{ color: '#10B981', fontSize: 18 }} /> : <Cancel sx={{ color: '#EF4444', fontSize: 18 }} />}</TableCell>
                       <TableCell>{w.rating ? <><StarIcon sx={{ fontSize: 14, color: '#F59E0B', verticalAlign: 'middle' }} /> {w.rating}</> : '—'}</TableCell>
                       <TableCell>{statusChip(w.status)}</TableCell>
                       <TableCell align="right">
@@ -399,8 +399,8 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setWorkerDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveWorker} disabled={workerSaving} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-                {workerSaving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Save'}
+              <Button variant="contained" onClick={handleSaveWorker} disabled={workerSaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+                {workerSaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
           </Dialog>
@@ -412,7 +412,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditRate({ agency_id: agencies[0]?.id || '', shift_type: 'day', rate_per_hour: '', effective_from: new Date().toISOString().split('T')[0], effective_to: '' }); setRateDialog(true) }}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Rate</Button>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Rate</Button>
           </Stack>
           {ratesLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -478,8 +478,8 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setRateDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveRate} disabled={rateSaving} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-                {rateSaving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Save'}
+              <Button variant="contained" onClick={handleSaveRate} disabled={rateSaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+                {rateSaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
           </Dialog>
@@ -547,11 +547,11 @@ export default function AgenciesPage() {
                         <ToggleButtonGroup size="small" value={h.agency_covered ? 'covered' : 'uncovered'} exclusive
                           onChange={() => handleToggleCoverage(h.id, h.agency_covered)}
                           disabled={updatingCoverage === h.id}
-                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 700, border: '1px solid #D1D5DB' } }}>
-                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#D1FAE5' : 'transparent', color: h.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'notice.success.bg' } }}>
+                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 700, border: '1px solid #D8DEE7' } }}>
+                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#EAFBF5' : 'transparent', color: h.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                             Covered
                           </ToggleButton>
-                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FEF3C7' : 'transparent', color: !h.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
+                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FFF7E6' : 'transparent', color: !h.agency_covered ? '#9A6700' : '#98A2B3', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
                             Uncovered
                           </ToggleButton>
                         </ToggleButtonGroup>
@@ -574,17 +574,17 @@ export default function AgenciesPage() {
               {savings && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   {[
-                    { label: 'Total Agency Shifts', value: savings.total_shifts, color: '#0F4C81' },
-                    { label: 'Completed Shifts', value: savings.completed_shifts, color: '#16A34A' },
-                    { label: 'Total Agency Spend', value: formatCurrency(savings.total_agency_cost), color: '#DC2626' },
-                    { label: 'Avg Agency Rate/hr', value: formatCurrency(savings.avg_agency_hourly_rate), color: '#D97706' },
-                    { label: 'Internal Rate/hr', value: formatCurrency(savings.internal_hourly_rate), color: '#0F4C81' },
-                    { label: 'Net Savings', value: formatCurrency(savings.net_savings), color: Number(savings.net_savings) >= 0 ? '#16A34A' : '#DC2626' },
+                    { label: 'Total Agency Shifts', value: savings.total_shifts, color: '#2F80ED' },
+                    { label: 'Completed Shifts', value: savings.completed_shifts, color: '#10B981' },
+                    { label: 'Total Agency Spend', value: formatCurrency(savings.total_agency_cost), color: '#EF4444' },
+                    { label: 'Avg Agency Rate/hr', value: formatCurrency(savings.avg_agency_hourly_rate), color: '#F59E0B' },
+                    { label: 'Internal Rate/hr', value: formatCurrency(savings.internal_hourly_rate), color: '#2F80ED' },
+                    { label: 'Net Savings', value: formatCurrency(savings.net_savings), color: Number(savings.net_savings) >= 0 ? '#10B981' : '#EF4444' },
                   ].map(card => (
                     <Grid item xs={12} sm={6} md={4} key={card.label}>
                       <Card variant="outlined" sx={{ borderRadius: 1 }}>
                         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                          <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 600 }}>{card.label}</Typography>
+                          <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{card.label}</Typography>
                           <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>{card.value}</Typography>
                         </CardContent>
                       </Card>
@@ -612,7 +612,7 @@ export default function AgenciesPage() {
                           <TableCell>{new Date(m.month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</TableCell>
                           <TableCell align="right">{m.shifts}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(m.total_cost)}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700, color: Number(m.net_savings) >= 0 ? '#16A34A' : '#DC2626' }}>{formatCurrency(m.net_savings)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700, color: Number(m.net_savings) >= 0 ? '#10B981' : '#EF4444' }}>{formatCurrency(m.net_savings)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

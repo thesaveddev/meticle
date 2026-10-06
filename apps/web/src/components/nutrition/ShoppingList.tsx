@@ -82,7 +82,7 @@ const PRINT_STYLES = `
       page-break-inside: avoid;
     }
     .shopping-item {
-      border-bottom: 1px solid #E5E7EB !important;
+      border-bottom: 1px solid #E6EAF0 !important;
     }
   }
 `
@@ -180,7 +180,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
       {/* Controls */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" className="no-print" sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <CartIcon sx={{ color: '#059669', fontSize: 24 }} />
+          <CartIcon sx={{ color: '#087A55', fontSize: 24 }} />
           <Box>
             <Typography variant="subtitle2" fontWeight={700}>Weekly Shopping List</Typography>
             <Typography variant="caption" color="text.secondary">
@@ -197,7 +197,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
             variant="outlined" size="small"
             startIcon={loading ? <CircularProgress size={14} /> : <CartIcon />}
             onClick={generateList} disabled={loading}
-            sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#059669', color: '#059669' }}
+            sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#087A55', color: '#087A55' }}
           >
             {shoppingList ? 'Regenerate' : 'Generate Shopping List'}
           </Button>
@@ -206,7 +206,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
               variant="contained" size="small"
               startIcon={<PrintIcon />}
               onClick={handlePrint}
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#059669' }}
+              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#087A55' }}
             >
               Print
             </Button>
@@ -224,11 +224,11 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
         <Paper
           sx={{
             p: 4, textAlign: 'center', borderRadius: 2,
-            border: '1px solid #E5E7EB', bgcolor: '#F0FDF4',
+            border: '1px solid #E6EAF0', bgcolor: '#EAFBF5',
           }}
           className="no-print"
         >
-          <CartIcon sx={{ fontSize: 48, color: '#059669', mb: 1 }} />
+          <CartIcon sx={{ fontSize: 48, color: '#087A55', mb: 1 }} />
           <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
             Generate Shopping List
           </Typography>
@@ -238,7 +238,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           <Button
             variant="contained" startIcon={<CartIcon />}
             onClick={generateList}
-            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, borderRadius: 2, textTransform: 'none' }}
+            sx={{ bgcolor: '#087A55', '&:hover': { bgcolor: '#087A55' }, borderRadius: 2, textTransform: 'none' }}
           >
             Generate Shopping List
           </Button>
@@ -246,8 +246,8 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
       )}
 
       {loading && (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <CircularProgress size={36} sx={{ color: '#059669', mb: 2 }} />
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E6EAF0' }}>
+          <CircularProgress size={36} sx={{ color: '#087A55', mb: 2 }} />
           <Typography variant="body1" fontWeight={600}>Generating shopping list...</Typography>
           <Typography variant="body2" color="text.secondary">
             Consolidating ingredients from the weekly plan
@@ -262,7 +262,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           <Paper variant="outlined" sx={{ p: 2.5, mb: 2 }} className="no-print">
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Box>
-                <Typography variant="h6" fontWeight={800} color="#059669">
+                <Typography variant="h6" fontWeight={800} color="#087A55">
                   Shopping List
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -274,13 +274,13 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                   label={`${totalChecked}/${totalItems} checked`}
                   size="small"
                   sx={{
-                    bgcolor: totalChecked === totalItems && totalItems > 0 ? '#DCFCE7' : '#F3F4F6',
-                    color: totalChecked === totalItems && totalItems > 0 ? '#166534' : '#374151',
+                    bgcolor: totalChecked === totalItems && totalItems > 0 ? '#EAFBF5' : '#F7F9FC',
+                    color: totalChecked === totalItems && totalItems > 0 ? '#087A55' : '#344054',
                     fontWeight: 600,
                   }}
                 />
                 {shoppingList.estimated_prep_time_minutes && (
-                  <Typography variant="caption" color="#6B7280">
+                  <Typography variant="caption" color="#667085">
                     Est. prep time: {shoppingList.estimated_prep_time_minutes} min
                   </Typography>
                 )}
@@ -290,11 +290,11 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
             {/* Progress bar */}
             {totalItems > 0 && (
               <Box sx={{ mt: 1.5 }}>
-                <Box sx={{ width: '100%', bgcolor: '#E5E7EB', borderRadius: 1, height: 6, overflow: 'hidden' }}>
+                <Box sx={{ width: '100%', bgcolor: '#E6EAF0', borderRadius: 1, height: 6, overflow: 'hidden' }}>
                   <Box
                     sx={{
                       width: `${(totalChecked / totalItems) * 100}%`,
-                      bgcolor: '#059669',
+                      bgcolor: '#087A55',
                       height: 6,
                       borderRadius: 1,
                       transition: 'width 0.3s',
@@ -306,11 +306,11 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           </Paper>
 
           {/* Print Header */}
-          <Box sx={{ mb: 2, pb: 1, borderBottom: '2px solid #059669' }} className="no-print" style={{ display: 'none' }}>
-            <Typography variant="h5" fontWeight={800} color="#059669">
+          <Box sx={{ mb: 2, pb: 1, borderBottom: '2px solid #087A55' }} className="no-print" style={{ display: 'none' }}>
+            <Typography variant="h5" fontWeight={800} color="#087A55">
               Shopping List
             </Typography>
-            <Typography variant="subtitle1" color="#374151">
+            <Typography variant="subtitle1" color="#344054">
               {weeklyPlan.plan_name || 'Weekly Meal Plan'} — {weeklyPlan.person_context?.name}
             </Typography>
           </Box>
@@ -327,7 +327,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                 key={catKey}
                 variant="outlined"
                 className="shopping-category"
-                sx={{ mb: 1.5, overflow: 'hidden', border: '1px solid #E5E7EB' }}
+                sx={{ mb: 1.5, overflow: 'hidden', border: '1px solid #E6EAF0' }}
               >
                 {/* Category Header */}
                 <Stack
@@ -337,7 +337,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                   sx={{
                     px: 2, py: 1.5,
                     bgcolor: '#F9FAFB',
-                    borderBottom: isExpanded ? '1px solid #E5E7EB' : 'none',
+                    borderBottom: isExpanded ? '1px solid #E6EAF0' : 'none',
                     cursor: 'pointer',
                   }}
                   onClick={() => toggleCategory(catKey)}
@@ -351,8 +351,8 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                       label={`${checkedInCategory}/${category.items.length}`}
                       size="small"
                       sx={{
-                        bgcolor: checkedInCategory === category.items.length ? '#DCFCE7' : '#F3F4F6',
-                        color: checkedInCategory === category.items.length ? '#166534' : '#6B7280',
+                        bgcolor: checkedInCategory === category.items.length ? '#EAFBF5' : '#F7F9FC',
+                        color: checkedInCategory === category.items.length ? '#087A55' : '#667085',
                         fontWeight: 600,
                         height: 20,
                       }}
@@ -378,7 +378,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                                 checked={isChecked}
                                 onChange={() => toggleItem(itemKey)}
                                 size="small"
-                                sx={{ color: '#059669', '&.Mui-checked': { color: '#059669' } }}
+                                sx={{ color: '#087A55', '&.Mui-checked': { color: '#087A55' } }}
                               />
                             }
                             label={
@@ -390,7 +390,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                                       fontWeight={600}
                                       sx={{
                                         textDecoration: isChecked ? 'line-through' : 'none',
-                                        color: isChecked ? '#9CA3AF' : '#1F2937',
+                                        color: isChecked ? '#98A2B3' : '#1F2937',
                                       }}
                                     >
                                       {item.name}
@@ -401,8 +401,8 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                                         size="small"
                                         sx={{
                                           height: 18,
-                                          bgcolor: '#ECFDF5',
-                                          color: '#065F46',
+                                          bgcolor: '#EAFBF5',
+                                          color: '#087A55',
                                           fontWeight: 600,
                                           fontSize: '0.65rem',
                                         }}
@@ -410,7 +410,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                                     )}
                                   </Stack>
                                   {item.used_in && item.used_in.length > 0 && (
-                                    <Typography variant="caption" color="#9CA3AF" sx={{ fontSize: '0.65rem' }}>
+                                    <Typography variant="caption" color="#98A2B3" sx={{ fontSize: '0.65rem' }}>
                                       Used in: {item.used_in.join(', ')}
                                     </Typography>
                                   )}
@@ -421,13 +421,13 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                                           key={ai}
                                           label={a}
                                           size="small"
-                                          sx={{ height: 16, bgcolor: '#FEE2E2', color: '#991B1B', fontSize: '0.6rem' }}
+                                          sx={{ height: 16, bgcolor: '#FEF0F0', color: '#B42318', fontSize: '0.6rem' }}
                                         />
                                       ))}
                                     </Stack>
                                   )}
                                   {item.notes && (
-                                    <Typography variant="caption" color="#6B7280" sx={{ fontSize: '0.65rem', fontStyle: 'italic' }}>
+                                    <Typography variant="caption" color="#667085" sx={{ fontSize: '0.65rem', fontStyle: 'italic' }}>
                                       {item.notes}
                                     </Typography>
                                   )}
@@ -447,35 +447,35 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
 
           {/* Storage Notes */}
           {shoppingList.storage_notes && shoppingList.storage_notes.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#FFF7ED', border: '1px solid #FED7AA' }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#9A3412' }}>
+            <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#FFF7E6', border: '1px solid #FFF7E6' }}>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#9A6700' }}>
                 🧊 Storage Notes
               </Typography>
               {shoppingList.storage_notes.map((note, i) => (
-                <Typography key={i} variant="body2" color="#78350F" sx={{ mb: 0.5 }}>• {note}</Typography>
+                <Typography key={i} variant="body2" color="#9A6700" sx={{ mb: 0.5 }}>• {note}</Typography>
               ))}
             </Paper>
           )}
 
           {/* Tips */}
           {shoppingList.tips && shoppingList.tips.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#166534' }}>
+            <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#EAFBF5', border: '1px solid #EAFBF5' }}>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#087A55' }}>
                 💡 Kitchen Tips
               </Typography>
               {shoppingList.tips.map((tip, i) => (
-                <Typography key={i} variant="body2" color="#166534" sx={{ mb: 0.5 }}>• {tip}</Typography>
+                <Typography key={i} variant="body2" color="#087A55" sx={{ mb: 0.5 }}>• {tip}</Typography>
               ))}
             </Paper>
           )}
 
           {/* Footer */}
-          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption" color="#9CA3AF">
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #E6EAF0', display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption" color="#98A2B3">
               Shopping list generated from {weeklyPlan.plan_name || 'weekly meal plan'} for {weeklyPlan.person_context?.name}.
               Quantities are estimates for a care home kitchen — adjust as needed.
             </Typography>
-            <Typography variant="caption" color="#9CA3AF" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
+            <Typography variant="caption" color="#98A2B3" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
               Meticle Care © {new Date().getFullYear()}
             </Typography>
           </Box>

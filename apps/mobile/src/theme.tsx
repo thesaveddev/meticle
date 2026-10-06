@@ -7,32 +7,55 @@ export const FONT = 'Inter'
 const THEME_KEY = 'app_theme_mode'
 
 /* ─── Light colors ──────────────────────────────────────────── */
+export const CHART_PALETTE = [
+  '#2F80ED',
+  '#10BFA5',
+  '#10B981',
+  '#F59E0B',
+  '#EF4444',
+  '#8B7CF6',
+  '#6B8AFD',
+  '#94A3B8',
+] as const
+
 export const lightColors = {
-  primary: '#1A2332',
-  primaryLight: '#2D3F54',
-  primarySurface: '#EDF2F7',
+  primary: '#2F80ED',
+  primaryLight: '#2674D9',
+  primarySurface: '#EAF3FF',
   success: '#10B981',
-  successDeep: '#059669',
-  successSurface: '#ECFDF5',
-  warning: '#D97706',
-  warningSurface: '#FFFBEB',
-  danger: '#DC2626',
-  dangerDeep: '#B91C1C',
-  dangerSurface: '#FEF2F2',
-  accent: '#10B981',
-  accentSurface: '#ECFDF5',
-  info: '#0891B2',
-  infoSurface: '#ECFEFF',
-  bg: '#F7F9F7',
+  successDeep: '#087A55',
+  successSurface: '#EAFBF5',
+  successSoft: '#EAFBF5',
+  successText: '#087A55',
+  warningSoft: '#FFF7E6',
+  warningText: '#9A6700',
+  dangerSoft: '#FEF0F0',
+  dangerText: '#B42318',
+  surfaceHover: '#F5F7FA',
+  textMuted: '#667085',
+  textSecondary: '#98A2B3',
+  background: '#F7F9FC',
+  warning: '#F59E0B',
+  warningSurface: '#FFF7E6',
+  danger: '#EF4444',
+  dangerDeep: '#B42318',
+  dangerSurface: '#FEF0F0',
+  accent: '#10BFA5',
+  accentSurface: '#E8FAF6',
+  info: '#2F80ED',
+  infoSurface: '#EAF3FF',
+  bg: '#F7F9FC',
   surface: '#FFFFFF',
-  surfaceAlt: '#F9FAFB',
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  ink: '#1A2332',
-  inkLight: '#374151',
-  muted: '#6B7280',
-  subtle: '#9CA3AF',
+  surfaceAlt: '#FBFCFE',
+  border: '#E6EAF0',
+  borderLight: '#E6EAF0',
+  ink: '#17202A',
+  inkLight: '#344054',
+  muted: '#667085',
+  subtle: '#98A2B3',
   inverse: '#FFFFFF',
+  text: '#17202A',
+  dark: '#0F172A',
 }
 
 /* ─── Dark colors ───────────────────────────────────────────── */
@@ -44,10 +67,10 @@ export const darkColors = {
   successDeep: '#10B981',
   successSurface: '#064E3B',
   warning: '#FBBF24',
-  warningSurface: '#78350F',
+  warningSurface: '#9A6700',
   danger: '#F87171',
   dangerDeep: '#EF4444',
-  dangerSurface: '#7F1D1D',
+  dangerSurface: '#B42318',
   accent: '#34D399',
   accentSurface: '#064E3B',
   info: '#22D3EE',
@@ -57,11 +80,23 @@ export const darkColors = {
   surfaceAlt: '#334155',
   border: '#334155',
   borderLight: '#1E293B',
-  ink: '#F1F5F9',
+  ink: '#F5F7FA',
   inkLight: '#CBD5E1',
   muted: '#94A3B8',
-  subtle: '#64748B',
+  subtle: '#667085',
   inverse: '#0F172A',
+  text: '#F5F7FA',
+  textSecondary: '#CBD5E1',
+  textMuted: '#94A3B8',
+  surfaceHover: '#334155',
+  successSoft: '#064E3B',
+  successText: '#34D399',
+  warningSoft: '#9A6700',
+  warningText: '#FBBF24',
+  dangerSoft: '#B42318',
+  dangerText: '#F87171',
+  background: '#0F172A',
+  dark: '#0F172A',
 }
 
 export type AppColors = typeof lightColors
@@ -122,6 +157,77 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 /* ─── Static default (light) for backward compat ────────────── */
 export const colors = lightColors
 
+/* ─── Mica identity colors (expressive accent, isolated to Mica) ── */
+export const mica = {
+  blue: '#2F80ED',
+  surfaceStrong: '#2A6EE0',
+  surface: '#EAF3FF',
+  blueDark: '#1F5FC4',
+  violet: '#8B7CF6',
+  green: '#10B981',
+  ink: '#17202A',
+} as const
+
+export interface MicaColorSet {
+  readonly blue: string
+  readonly surfaceStrong: string
+  readonly surface: string
+  readonly blueDark: string
+  readonly violet: string
+  readonly green: string
+  readonly ink: string
+}
+
+export const micaGradientStops = ['#2F80ED', '#8B7CF6', '#10B981'] as const
+
+export const shadows = StyleSheet.create({
+  sm: {
+    shadowColor: '#17202A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#17202A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#17202A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+})
+
+export const mcType = {
+  pageTitle: {
+    fontFamily: FONT,
+    fontSize: 22,
+    fontWeight: '700' as const,
+    lineHeight: 28,
+    letterSpacing: -0.4,
+  },
+  body: {
+    fontFamily: FONT,
+    fontSize: 15,
+    fontWeight: '400' as const,
+    lineHeight: 22,
+  },
+  label: {
+    fontFamily: FONT,
+    fontSize: 11,
+    fontWeight: '700' as const,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+} as const
+
 /* ─── Spacing (4pt base) ───────────────────────────────────── */
 export const spacing = {
   xs: 4,
@@ -147,21 +253,21 @@ export const radii = {
 export const elevation = {
   none: { shadowOpacity: 0 },
   sm: {
-    shadowColor: '#1A2332',
+    shadowColor: '#17202A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
   },
   md: {
-    shadowColor: '#1A2332',
+    shadowColor: '#17202A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 3,
   },
   lg: {
-    shadowColor: '#1A2332',
+    shadowColor: '#17202A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,

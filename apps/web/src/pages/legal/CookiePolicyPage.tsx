@@ -4,8 +4,8 @@ import PageMeta from '../../components/PageMeta'
 function S({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81', mb: 2 }}>{title}</Typography>
-      <Typography component="div" variant="body2" color="#374151" sx={{ lineHeight: 1.8 }}>{children}</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 800, color: '#2F80ED', mb: 2 }}>{title}</Typography>
+      <Typography component="div" variant="body2" color="#344054" sx={{ lineHeight: 1.8 }}>{children}</Typography>
     </Box>
   )
 }
@@ -15,8 +15,8 @@ export default function CookiePolicyPage() {
     <>
       <PageMeta title="Cookie Policy | Meticle Care" description="How Meticle Care uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
     <Container maxWidth="md" sx={{ py: 8 }}>
-      <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Cookie Policy</Typography>
-      <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
+      <Typography variant="h3" sx={{ fontWeight: 900, color: '#2F80ED', mb: 1 }}>Cookie Policy</Typography>
+      <Typography variant="body2" color="#667085" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
       <S title="About the Company">
         <p>MeticleCare is a product operated by <strong>34Orients Ltd</strong>, company number <strong>17446318</strong>. Our registered office is 3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS.</p>

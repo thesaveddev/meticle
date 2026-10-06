@@ -3,7 +3,7 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } 
 import { Ionicons } from '@expo/vector-icons'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
-import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
+import type { HomecareVisit, MobileUser, OfflineVisitAction, QueuedIncidentReport } from '../types'
 import { listRideShareRequests, respondRideShareRequest } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconTwoPerson } from '../components/Icons'
 import { SyncRail } from '../components/SyncRail'
@@ -137,7 +137,7 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pendingClaimsCount = 0, onRefresh, refreshing, onSync, session }: {
+export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pendingClaimsCount = 0, onRefresh, refreshing, onSync, session, pendingIncidentReports = [] }: {
   user: MobileUser
   visits: HomecareVisit[]
   queue: OfflineVisitAction[]
@@ -149,6 +149,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pending
   refreshing: boolean
   onSync: () => void
   session?: any
+  pendingIncidentReports?: QueuedIncidentReport[]
 }) {
   const c = useAppColors()
   const timeline = useMemo(() => classifyVisits(visits), [visits])
@@ -239,10 +240,10 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pending
           )}
         </View>
         <View style={styles.headerActions}>
-          {queue.length > 0 ? (
-            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface }]}>
+          {queue.length + pendingIncidentReports.length > 0 ? (
+            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface }]} accessibilityRole="button" accessibilityLabel={`${queue.length + pendingIncidentReports.length} items waiting to sync`}>
               <IconOffline size={14} color={c.warning} />
-              <Text style={[styles.syncBadgeText, { color: c.warning }]}>{queue.length}</Text>
+              <Text style={[styles.syncBadgeText, { color: c.warning }]}>{queue.length + pendingIncidentReports.length}</Text>
             </Pressable>
           ) : (
             <View style={[styles.syncBadgeOk, { backgroundColor: c.surfaceAlt }]}>
@@ -312,8 +313,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pending
       )}
 
       {/* Anything the carer recorded offline that has not reached the server */}
-      {queue.length > 0 && (
-        <SyncRail queue={queue} onSync={onSync} />
+      {(queue.length > 0 || pendingIncidentReports.length > 0) && (
+        <SyncRail queue={queue} incidentReports={pendingIncidentReports} onSync={onSync} />
       )}
 
       {/* Section heading */}

@@ -9,8 +9,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
-const LOGIN_ILLUSTRATION = '/login-page.jpg';
-
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -72,7 +70,7 @@ export default function LoginPage() {
       <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
               Meticle Care
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Welcome back</Typography>
@@ -98,7 +96,7 @@ export default function LoginPage() {
               <Box>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Password</Typography>
-                  <Link onClick={() => navigate('/forgot-password')} sx={{ color: '#0F4C81', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+                  <Link onClick={() => navigate('/forgot-password')} sx={{ color: '#2F80ED', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
                     Forgot password?
                   </Link>
                 </Stack>
@@ -119,20 +117,20 @@ export default function LoginPage() {
 
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <FormControlLabel
-                  control={<Checkbox sx={{ color: 'text.disabled', '&.Mui-checked': { color: '#0F4C81' } }} />}
+                  control={<Checkbox sx={{ color: 'text.disabled', '&.Mui-checked': { color: '#2F80ED' } }} />}
                   label={<Typography variant="body2" sx={{ color: 'text.secondary' }}>Remember me</Typography>}
                 />
               </Stack>
 
               <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-                sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none' }}>
+                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none' }}>
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in to dashboard'}
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Don't have an account?{' '}
-                  <Link onClick={() => navigate('/register')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                  <Link onClick={() => navigate('/register')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
                     Sign Up Free
                   </Link>
                 </Typography>
@@ -155,7 +153,6 @@ export default function LoginPage() {
         borderLeft: '1px solid', borderColor: 'divider'
       }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <img src={LOGIN_ILLUSTRATION} alt="Meticle Care dashboard" style={{ width: '100%', marginBottom: '32px', borderRadius: 8 }} />
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
             Care records, medication, staffing and compliance — one working view.
           </Typography>

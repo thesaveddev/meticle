@@ -34,10 +34,10 @@ type FeatureData = {
 
 function CareDeliveryMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
+    <Box sx={{ p: 2.5, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid #E6EAF0' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B', mb: 1.5 }}>Care Records</Typography>
       {['Margaret Wilson — Support Plan Review', 'John Davies — Daily Note', 'Patricia Lewis — Health Observation', 'Robert Hughes — Body Map Update'].map((item, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < 3 ? '1px solid #E2E8F0' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < 3 ? '1px solid #E6EAF0' : 'none' }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: i === 0 ? 'M.navy' : '#CBD5E1', flexShrink: 0 }} />
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#334155' }}>{item}</Typography>
         </Stack>
@@ -48,23 +48,23 @@ function CareDeliveryMockup() {
 
 function MedicationMockup() {
   const meds = [
-    { name: 'Metformin 500mg', time: '08:00', status: 'given', color: '#22C55E' },
-    { name: 'Amlodipine 5mg', time: '08:00', status: 'given', color: '#22C55E' },
+    { name: 'Metformin 500mg', time: '08:00', status: 'given', color: '#10B981' },
+    { name: 'Amlodipine 5mg', time: '08:00', status: 'given', color: '#10B981' },
     { name: 'Omeprazole 20mg', time: '12:00', status: 'due', color: '#F59E0B' },
     { name: 'Paracetamol 500mg', time: '14:00', status: 'pending', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FFFBEB', borderRadius: 2, border: '1px solid #FEF3C7' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FFF7E6', borderRadius: 2, border: '1px solid #FFF7E6' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#92400E' }}>Medication Record</Typography>
-        <Chip label="MAR" size="small" sx={{ bgcolor: '#FDE68A', color: '#92400E', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#9A6700' }}>Medication Record</Typography>
+        <Chip label="MAR" size="small" sx={{ bgcolor: '#FFF7E6', color: '#9A6700', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
       </Stack>
       {meds.map((m, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FEF3C7' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FFF7E6' : 'none' }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: m.color, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350F' }}>{m.name}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#A16207' }}>{m.time}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A6700' }}>{m.name}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: '#9A6700' }}>{m.time}</Typography>
           </Box>
           <Chip label={m.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: m.color + '20', color: m.color, fontWeight: 600 }} />
         </Stack>
@@ -75,7 +75,7 @@ function MedicationMockup() {
 
 function WorkforceMockup() {
   const staff = [
-    { name: 'Sarah M.', role: 'Senior Carer', compliance: 98, color: '#22C55E' },
+    { name: 'Sarah M.', role: 'Senior Carer', compliance: 98, color: '#10B981' },
     { name: 'James K.', role: 'Care Worker', compliance: 85, color: '#F59E0B' },
     { name: 'Priya S.', role: 'Care Worker', compliance: 72, color: '#EF4444' },
   ]
@@ -83,7 +83,7 @@ function WorkforceMockup() {
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
       {staff.map((s, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #FCE7F3' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Person sx={{ fontSize: 14, color: s.color }} />
           </Box>
@@ -91,7 +91,7 @@ function WorkforceMockup() {
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: M.tealDeep }}>{s.name}</Typography>
             <Typography sx={{ fontSize: '0.6rem', color: M.tealDeep }}>{s.role}</Typography>
           </Box>
-          <Box sx={{ width: 50, height: 4, bgcolor: '#FCE7F3', borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ width: 50, height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${s.compliance}%`, height: '100%', bgcolor: s.color, borderRadius: 2 }} />
           </Box>
           <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.color, minWidth: 30, textAlign: 'right' }}>{s.compliance}%</Typography>
@@ -103,21 +103,21 @@ function WorkforceMockup() {
 
 function ScheduleMockup() {
   const calls = [
-    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', status: 'completed', color: '#22C55E' },
-    { time: '10:30', client: 'John D.', carer: 'James K.', status: 'en route', color: '#7C3AED' },
+    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', status: 'completed', color: '#10B981' },
+    { time: '10:30', client: 'John D.', carer: 'James K.', status: 'en route', color: '#8B7CF6' },
     { time: '11:00', client: 'Patricia L.', carer: null, status: 'unassigned', color: '#F59E0B' },
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', status: 'scheduled', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F0FDF4', borderRadius: 2, border: '1px solid #DCFCE7' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#166534', mb: 1.5 }}>Call Schedule</Typography>
+    <Box sx={{ p: 2.5, bgcolor: '#EAFBF5', borderRadius: 2, border: '1px solid #EAFBF5' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Call Schedule</Typography>
       {calls.map((c, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #DCFCE7' : 'none' }}>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', minWidth: 40 }}>{c.time}</Typography>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #EAFBF5' : 'none' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#087A55', minWidth: 40 }}>{c.time}</Typography>
           <Box sx={{ width: 3, height: 24, bgcolor: c.color, borderRadius: 1, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#14532D' }}>{c.client}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#166534' }}>{c.carer || 'No carer assigned'}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#087A55' }}>{c.client}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: '#087A55' }}>{c.carer || 'No carer assigned'}</Typography>
           </Box>
           <Chip label={c.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
         </Stack>
@@ -130,17 +130,17 @@ function RiskMockup() {
   const items = [
     { title: 'Fall risk — high', status: 'assessed', color: '#EF4444' },
     { title: 'Medication allergy — penicillin', status: 'recorded', color: '#F59E0B' },
-    { title: 'Safeguarding — resolved', status: 'closed', color: '#22C55E' },
+    { title: 'Safeguarding — resolved', status: 'closed', color: '#10B981' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid #FECACA' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#991B1B', mb: 1.5 }}>Risk Assessments</Typography>
+    <Box sx={{ p: 2.5, bgcolor: '#FEF0F0', borderRadius: 2, border: '1px solid #FEF0F0' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#B42318', mb: 1.5 }}>Risk Assessments</Typography>
       {items.map((inc, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #FECACA' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #FEF0F0' : 'none' }}>
           <Warning sx={{ fontSize: 14, color: inc.color, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#7F1D1D' }}>{inc.title}</Typography>
-            <Typography sx={{ fontSize: '0.55rem', color: '#991B1B' }}>{inc.status}</Typography>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#B42318' }}>{inc.title}</Typography>
+            <Typography sx={{ fontSize: '0.55rem', color: '#B42318' }}>{inc.status}</Typography>
           </Box>
         </Stack>
       ))}
@@ -150,21 +150,21 @@ function RiskMockup() {
 
 function ComplianceMockup() {
   const items = [
-    { label: 'DBS Checks', pct: 100, color: '#22C55E' },
+    { label: 'DBS Checks', pct: 100, color: '#10B981' },
     { label: 'Mandatory Training', pct: 87, color: '#F59E0B' },
-    { label: 'Right to Work', pct: 95, color: '#22C55E' },
+    { label: 'Right to Work', pct: 95, color: '#10B981' },
     { label: 'Competency', pct: 68, color: '#EF4444' },
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
       {items.map((item, i) => (
-        <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #EDE9FE' : 'none' }}>
+        <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
             <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.tealDeep }}>{item.label}</Typography>
             <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: item.color }}>{item.pct}%</Typography>
           </Stack>
-          <Box sx={{ height: 4, bgcolor: '#EDE9FE', borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${item.pct}%`, height: '100%', bgcolor: item.color, borderRadius: 2 }} />
           </Box>
         </Box>
@@ -175,20 +175,20 @@ function ComplianceMockup() {
 
 function ReportingMockup() {
   const metrics = [
-    { label: 'Calls completed', value: '47', trend: '+12%', color: '#22C55E' },
-    { label: 'Avg response', value: '23min', trend: '-8%', color: '#3B82F6' },
+    { label: 'Calls completed', value: '47', trend: '+12%', color: '#10B981' },
+    { label: 'Avg response', value: '23min', trend: '-8%', color: '#2F80ED' },
     { label: 'Satisfaction', value: '4.6/5', trend: '+0.2', color: 'M.tealDeep' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#EFF6FF', borderRadius: 2, border: '1px solid #DBEAFE' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E40AF', mb: 1.5 }}>Operational Insights</Typography>
+    <Box sx={{ p: 2.5, bgcolor: '#F4F8FF', borderRadius: 2, border: '1px solid #EAF3FF' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#175CD3', mb: 1.5 }}>Operational Insights</Typography>
       <Grid container spacing={1.5}>
         {metrics.map((m, i) => (
           <Grid item xs={4} key={i}>
-            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #DBEAFE' }}>
+            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #EAF3FF' }}>
               <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: m.color }}>{m.value}</Typography>
-              <Typography sx={{ fontSize: '0.55rem', color: '#1E40AF' }}>{m.label}</Typography>
-              <Typography sx={{ fontSize: '0.6rem', color: '#22C55E', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
+              <Typography sx={{ fontSize: '0.55rem', color: '#175CD3' }}>{m.label}</Typography>
+              <Typography sx={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
             </Box>
           </Grid>
         ))}
@@ -199,19 +199,19 @@ function ReportingMockup() {
 
 function FamilyMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F0FDFA', borderRadius: 2, border: '1px solid #99F6E4' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#134E4A', mb: 1.5 }}>Family View</Typography>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #99F6E4', mb: 1.5 }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F3FCFA', borderRadius: 2, border: '1px solid #E8FAF6' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Family View</Typography>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E8FAF6', mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <CheckCircle sx={{ fontSize: 14, color: '#22C55E' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#134E4A' }}>Visit completed today</Typography>
+          <CheckCircle sx={{ fontSize: 14, color: '#10B981' }} />
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Visit completed today</Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.6rem', color: '#5F7A7A', mt: 0.5 }}>Margaret had a good morning. All tasks completed.</Typography>
+        <Typography sx={{ fontSize: '0.6rem', color: '#667085', mt: 0.5 }}>Margaret had a good morning. All tasks completed.</Typography>
       </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #99F6E4' }}>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E8FAF6' }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <AccessTime sx={{ fontSize: 14, color: '#F59E0B' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#134E4A' }}>Next visit tomorrow</Typography>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Next visit tomorrow</Typography>
         </Stack>
       </Box>
     </Box>
@@ -302,7 +302,7 @@ const features: Record<string, FeatureData> = {
     title: 'Build rotas around real constraints',
     intro: 'Plan visits and shifts using the availability, staffing and operational information your team actually works with.',
     audience: 'Care coordinators and registered managers',
-    color: '#22C55E',
+    color: '#10B981',
     icon: CalendarMonth,
     capabilities: ['Rota and visit planning', 'Availability and leave awareness', 'Open-call marketplace workflows', 'Conflict and coverage visibility', 'Human review before publishing'],
     detailSections: [
@@ -316,7 +316,7 @@ const features: Record<string, FeatureData> = {
     title: 'Identify, record, review and act',
     intro: 'Keep risk information visible and connected to the plans and records that make it meaningful.',
     audience: 'Managers, safeguarding leads and care teams',
-    color: '#F97066',
+    color: '#EF4444',
     icon: Warning,
     capabilities: ['Risk assessment records', 'Review dates and ownership', 'Linked care-plan context', 'Escalation and follow-up actions', 'Auditable changes'],
     detailSections: [
@@ -330,7 +330,7 @@ const features: Record<string, FeatureData> = {
     title: 'Incident management with follow-through',
     intro: 'Record what happened, assign the next action and keep the review history visible.',
     audience: 'Managers, safeguarding leads and responsible individuals',
-    color: '#F97066',
+    color: '#EF4444',
     icon: Warning,
     capabilities: ['Incident recording', 'Severity and category context', 'Actions, owners and due dates', 'Review and escalation history', 'Reporting for governance conversations'],
     detailSections: [
@@ -358,7 +358,7 @@ const features: Record<string, FeatureData> = {
     title: 'See what needs attention',
     intro: 'Bring operational activity into reports that help managers decide what to investigate, improve or follow up.',
     audience: 'Managers, owners and operations teams',
-    color: '#0EA5E9',
+    color: '#55BFD3',
     icon: Insights,
     capabilities: ['Operational reporting', 'Care and workforce oversight', 'Compliance reporting', 'Homecare call reporting', 'Exportable evidence workflows'],
     detailSections: [
@@ -372,7 +372,7 @@ const features: Record<string, FeatureData> = {
     title: 'Keep families connected to care',
     intro: 'Give authorised relatives a respectful, focused view of the information your service chooses to share.',
     audience: 'Families, relatives and care teams',
-    color: '#14B8A6',
+    color: '#10BFA5',
     icon: FamilyRestroom,
     capabilities: ['Authorised portal access', 'Relevant care information', 'Updates and communication', 'Appointment and visit context', 'Access controlled by the service'],
     detailSections: [

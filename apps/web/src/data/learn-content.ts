@@ -9,8 +9,8 @@ function p(text: string) { return `<p>${text}</p>` }
 function li(text: string) { return `<li>${text}</li>` }
 function ul(items: string[]) { return `<ul>${items.map(li).join('')}</ul>` }
 function ol(items: string[]) { return `<ol>${items.map(li).join('')}</ol>` }
-function tip(text: string) { return `<blockquote style="background:#EEF2FF;border-left:4px solid #0F4C81;padding:12px 16px;margin:16px 0;border-radius:4px"><strong>Tip:</strong> ${text}</blockquote>` }
-function warn(text: string) { return `<blockquote style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:12px 16px;margin:16px 0;border-radius:4px"><strong>Important:</strong> ${text}</blockquote>` }
+function tip(text: string) { return `<blockquote style="background:#F4F8FF;border-left:4px solid #2F80ED;padding:12px 16px;margin:16px 0;border-radius:4px"><strong>Tip:</strong> ${text}</blockquote>` }
+function warn(text: string) { return `<blockquote style="background:#FFF7E6;border-left:4px solid #F59E0B;padding:12px 16px;margin:16px 0;border-radius:4px"><strong>Important:</strong> ${text}</blockquote>` }
 function step(n: number, text: string) { return `<p><strong>Step ${n}:</strong> ${text}</p>` }
 
 const s: LearnSection[] = [
@@ -742,7 +742,7 @@ const s: LearnSection[] = [
     h3('Color Customisation') +
     ul(['<strong>Primary Color:</strong> Main brand color (header, buttons, links).','<strong>Secondary Color:</strong> Accent elements.','<strong>Accent Color:</strong> Highlights and badges.']) +
     p('Each color can be selected via:') +
-    ul(['Native <strong>color picker</strong> (click the color swatch to open your OS color picker)','<strong>Preset swatches:</strong> 10 preset colors shown as clickable circles below each color input — Navy (#0F4C81), Emerald (#16A34A), Amber (#F59E0B), Red (#DC2626), Purple (#7C3AED), Cyan (#06B6D4), Gray (#6B7280), Off-white (#F8FAFC), Black (#111827), White (#FFFFFF). Click any swatch to instantly apply that color.']) +
+    ul(['Native <strong>color picker</strong> (click the color swatch to open your OS color picker)','<strong>Preset swatches:</strong> 10 preset colors shown as clickable circles below each color input — Navy (#2F80ED), Emerald (#10B981), Amber (#F59E0B), Red (#EF4444), Purple (#8B7CF6), Cyan (#06B6D4), Gray (#667085), Off-white (#F8FAFC), Black (#17202A), White (#FFFFFF). Click any swatch to instantly apply that color.']) +
     p('Click <strong>Save Branding</strong> to apply all changes. The button shows a loading spinner while saving.') +
     tip('Use your organisation\'s brand colors for a professional look. The colors apply across the entire platform for your organisation.')
 },

@@ -87,6 +87,34 @@ export interface OfflineVisitAction {
   permanent?: boolean
 }
 
+export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical'
+
+export interface IncidentReportPayload {
+  title: string
+  description?: string
+  witnesses?: string
+  category_id?: string
+  severity: IncidentSeverity
+  location?: string
+  is_near_miss?: boolean
+  incident_date: string
+  incident_time?: string
+  person_ids?: string[]
+  visit_id?: string
+}
+
+export interface QueuedIncidentReport extends IncidentReportPayload {
+  id: string
+  createdAt: string
+  state: 'pending' | 'failed'
+  attempts: number
+  ownerId: string
+  organizationId: string | null
+  nextAttemptAt?: string
+  error?: string
+  permanent?: boolean
+}
+
 export interface AvailabilityRecord {
   id: string
   staff_id: string

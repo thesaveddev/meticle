@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
-import { CheckCircle, Cancel, WarningAmber as WarningIcon, Schedule, Person, Undo as UndoIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
+import { PageHeader } from '../../components/ui'
+import { PremiumCard } from '../../components/design/PremiumCard'
+import { EmptyState } from '../../components/design/EmptyState'
+import { CheckCircle, Cancel, WarningAmber as WarningIcon, Person, Undo as UndoIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 export default function OvertimeClaimsPage() {
@@ -118,8 +121,8 @@ export default function OvertimeClaimsPage() {
   }
 
   const shiftTypeChip = (t: string) => {
-    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'notice.subtle.bg', color: '#581C87' }} />
-    if (t === 'wake_night') return <Chip label="Wake Night" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#1E1B4B', color: '#F8FAFC' }} />
+    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'notice.subtle.bg', color: '#8B7CF6' }} />
+    if (t === 'wake_night') return <Chip label="Wake Night" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#8B7CF6', color: '#F8FAFC' }} />
     return <Chip label="Day" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />
   }
 
@@ -149,7 +152,7 @@ export default function OvertimeClaimsPage() {
     const hrs = (new Date(start).getTime() - Date.now()) / (1000 * 60 * 60)
     if (hrs <= 0) return <Chip label="Starting soon" size="small" color="error" sx={{ height: 18, fontSize: '0.6rem' }} />
     if (hrs < 12) return <Chip label={`${Math.round(hrs)}h until start`} size="small" color="warning" sx={{ height: 18, fontSize: '0.6rem' }} />
-    return <Typography variant="caption" color="#6B7280">{Math.round(hrs)}h until start</Typography>
+    return <Typography variant="caption" color="#667085">{Math.round(hrs)}h until start</Typography>
   }
 
   const myFiltered = statusFilter
@@ -163,12 +166,7 @@ export default function OvertimeClaimsPage() {
   return (
     <PageContainer>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Schedule sx={{ color: '#0F4C81', fontSize: 28 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Overtime Claims</Typography>
-        </Stack>
-      </Stack>
+      <PageHeader title="Overtime Claims" subtitle="Review and approve overtime claims." />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
@@ -230,13 +228,13 @@ export default function OvertimeClaimsPage() {
                     {c.su_first_name ? (
                       <Typography variant="body2">{c.su_first_name} {c.su_last_name}</Typography>
                     ) : (
-                      <Typography variant="caption" color="#9CA3AF">—</Typography>
+                      <Typography variant="caption" color="#98A2B3">—</Typography>
                     )}
                   </TableCell>
                   <TableCell>{statusChip(c.assignment_status)}</TableCell>
                   <TableCell>{hoursUntilStart(c.start_time)}</TableCell>
                   <TableCell align="right">
-                    <Typography variant="caption" color="#6B7280">{timeAgo(c.claimed_at)}</Typography>
+                    <Typography variant="caption" color="#667085">{timeAgo(c.claimed_at)}</Typography>
                   </TableCell>
                 </TableRow>
               ))}
@@ -286,12 +284,12 @@ export default function OvertimeClaimsPage() {
                     {c.su_first_name ? (
                       <Typography variant="body2">{c.su_first_name} {c.su_last_name}</Typography>
                     ) : (
-                      <Typography variant="caption" color="#9CA3AF">—</Typography>
+                      <Typography variant="caption" color="#98A2B3">—</Typography>
                     )}
                   </TableCell>
                   <TableCell>{statusChip(c.assignment_status)}</TableCell>
                   <TableCell align="right">
-                    <Typography variant="caption" color="#6B7280">{timeAgo(c.claimed_at)}</Typography>
+                    <Typography variant="caption" color="#667085">{timeAgo(c.claimed_at)}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     {c.assignment_status === 'pending' ? (
@@ -314,7 +312,7 @@ export default function OvertimeClaimsPage() {
                         </Tooltip>
                       </Stack>
                     ) : (
-                      <Typography variant="caption" color="#6B7280">—</Typography>
+                      <Typography variant="caption" color="#667085">—</Typography>
                     )}
                   </TableCell>
                 </TableRow>
@@ -364,11 +362,11 @@ export default function OvertimeClaimsPage() {
                     {c.su_first_name ? (
                       <Typography variant="body2">{c.su_first_name} {c.su_last_name}</Typography>
                     ) : (
-                      <Typography variant="caption" color="#9CA3AF">—</Typography>
+                      <Typography variant="caption" color="#98A2B3">—</Typography>
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="caption" color="#6B7280">{timeAgo(c.claimed_at)}</Typography>
+                    <Typography variant="caption" color="#667085">{timeAgo(c.claimed_at)}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={0.5} justifyContent="center">
@@ -398,15 +396,13 @@ export default function OvertimeClaimsPage() {
       ) : (
         <Box>
           {unclaimedShifts.length === 0 ? (
-            <Paper sx={{ p: 6, textAlign: 'center' }}>
-              <Typography variant="body1" color="#6B7280">All open shifts have been claimed</Typography>
-            </Paper>
+            <EmptyState title="All open shifts have been claimed" description="There are no unclaimed shifts right now." />
           ) : (
             <Stack spacing={1.5}>
               {unclaimedShifts.map((s: any) => {
                 const nearWindow = s.hours_until_start !== null && s.hours_until_start <= 12
                 return (
-                  <Paper key={s.id} sx={{ p: 2, border: nearWindow ? '2px solid #FCA5A5' : '1px solid #E5E7EB', bgcolor: nearWindow ? '#FFF5F5' : 'white' }}>
+                  <PremiumCard noBorder key={s.id} sx={{ p: 2, bgcolor: nearWindow ? '#FEF0F0' : 'background.paper' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Stack spacing={0.5}>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -418,12 +414,12 @@ export default function OvertimeClaimsPage() {
                               size="small" color="error" sx={{ height: 20, fontSize: '0.6rem' }} />
                           )}
                         </Stack>
-                        <Typography variant="body2" color="#6B7280">
+                        <Typography variant="body2" color="#667085">
                           {formatDateShort(s.start_time)} — {formatTimeOnly(s.start_time)} to {formatTimeOnly(s.end_time)}
                           {' ('}{calcDurationHours(s.start_time, s.end_time)}h{')'}
                         </Typography>
                         {(s.su_first_name || s.department_name) && (
-                          <Typography variant="caption" color="#6B7280">
+                          <Typography variant="caption" color="#667085">
                             {s.su_first_name ? `Person: ${s.su_first_name} ${s.su_last_name || ''}` : ''}
                             {s.su_first_name && s.department_name ? ' | ' : ''}
                             {s.department_name ? `Dept: ${s.department_name}` : ''}
@@ -431,14 +427,14 @@ export default function OvertimeClaimsPage() {
                         )}
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="caption" color="#6B7280">
+                        <Typography variant="caption" color="#667085">
                           {s.hours_until_start !== null
                             ? `${Math.round(s.hours_until_start)}h until start`
                             : 'Starting'}
                         </Typography>
                       </Stack>
                     </Stack>
-                  </Paper>
+                  </PremiumCard>
                 )
               })}
             </Stack>
@@ -449,7 +445,7 @@ export default function OvertimeClaimsPage() {
       <Dialog open={!!swapOTDialog} onClose={() => !actionLoading && setSwapOTDialog(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Swap Overtime</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
             Reassign the approved overtime from <strong>{swapOTDialog?.currentStaffName}</strong> to:
           </Typography>
           <FormControl fullWidth size="small">
@@ -464,8 +460,7 @@ export default function OvertimeClaimsPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setSwapOTDialog(null)} disabled={!!actionLoading}>Cancel</Button>
-          <Button variant="contained" onClick={handleSwapOT} disabled={!swapOTNewStaffId || !!actionLoading}
-            sx={{ bgcolor: '#0F4C81' }}>
+          <Button variant="contained" onClick={handleSwapOT} disabled={!swapOTNewStaffId || !!actionLoading}>
             {actionLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Swap'}
           </Button>
         </DialogActions>
@@ -475,7 +470,7 @@ export default function OvertimeClaimsPage() {
       <Dialog open={!!revokeDialog} onClose={() => !actionLoading && setRevokeDialog(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Revoke Overtime Claim</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="#667085" sx={{ mt: 1 }}>
             This will revoke the approved overtime for <strong>{revokeDialog?.staffName}</strong> and return the shift to open/unclaimed status.
           </Typography>
         </DialogContent>

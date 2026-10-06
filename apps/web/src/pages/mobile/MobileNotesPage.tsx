@@ -64,7 +64,7 @@ export default function MobileNotesPage() {
 
   return (
     <Box sx={{ p: 2.5 }}>
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 2, color: '#0F4C81' }}>
+      <Typography variant="h6" fontWeight={800} sx={{ mb: 2, color: '#2F80ED' }}>
         <MicIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Voice Notes
       </Typography>
 
@@ -87,13 +87,13 @@ export default function MobileNotesPage() {
           </TextField>
         </Stack>
 
-        <Paper sx={{ p: 3, borderRadius: 3, bgcolor: recording ? '#FEF2F2' : '#F8FAFC', border: '1px solid', borderColor: 'grey.200', minHeight: 120, textAlign: 'center' }}>
+        <Paper sx={{ p: 3, borderRadius: 3, bgcolor: recording ? '#FEF0F0' : '#F8FAFC', border: '1px solid', borderColor: '#E6EAF0', minHeight: 120, textAlign: 'center' }}>
           {transcript ? (
             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.primary' }}>
               {transcript}
             </Typography>
           ) : (
-            <Typography color="#9CA3AF">
+            <Typography color="#98A2B3">
               {recording ? 'Listening...' : 'Tap the mic and start speaking'}
             </Typography>
           )}
@@ -102,7 +102,7 @@ export default function MobileNotesPage() {
         <Stack direction="row" spacing={1}>
           {!recording ? (
             <Button variant="contained" fullWidth startIcon={<MicIcon />} onClick={startRecording}
-              sx={{ bgcolor: '#DC2626', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
+              sx={{ bgcolor: '#EF4444', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
               Start Recording
             </Button>
           ) : (
@@ -113,7 +113,7 @@ export default function MobileNotesPage() {
           )}
           <Button variant="contained" startIcon={<SendIcon />} onClick={saveNote}
             disabled={!transcript.trim() || !personId || saveNoteMutation.isPending}
-            sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 3, px: 3 }}>
+            sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 3, px: 3 }}>
             {saveNoteMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
           </Button>
         </Stack>

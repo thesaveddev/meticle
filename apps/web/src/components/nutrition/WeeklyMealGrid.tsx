@@ -15,10 +15,10 @@ import api from '../../services/api'
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
   { value: 'morning_snack', label: 'Morning Snack', color: '#10B981', icon: '🍎' },
-  { value: 'lunch', label: 'Lunch', color: '#3B82F6', icon: '🍽️' },
-  { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B5CF6', icon: '🥤' },
+  { value: 'lunch', label: 'Lunch', color: '#2F80ED', icon: '🍽️' },
+  { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B7CF6', icon: '🥤' },
   { value: 'dinner', label: 'Dinner', color: '#EF4444', icon: '🌙' },
-  { value: 'evening_snack', label: 'Evening Snack', color: '#EC4899', icon: '🍪' },
+  { value: 'evening_snack', label: 'Evening Snack', color: '#8B7CF6', icon: '🍪' },
 ]
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -133,7 +133,7 @@ export default function WeeklyMealGrid({ people }: Props) {
     <Box>
       {/* Generator Controls */}
       <Paper variant="outlined" sx={{ p: 2.5, mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <AIIcon sx={{ color: '#7C3AED', fontSize: 28 }} />
+        <AIIcon sx={{ color: '#8B7CF6', fontSize: 28 }} />
         <Box sx={{ flex: 1, minWidth: 200 }}>
           <Typography variant="subtitle2" fontWeight={700}>AI Weekly Meal Planner</Typography>
           <Typography variant="caption" color="text.secondary">Generate a complete 7-day plan tailored to a person's dietary needs</Typography>
@@ -150,7 +150,7 @@ export default function WeeklyMealGrid({ people }: Props) {
         <Button
           variant="contained" startIcon={loading ? <CircularProgress size={16} /> : <AIIcon />}
           onClick={generateWeek} disabled={!personId || loading}
-          sx={{ bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' }, borderRadius: 2 }}
+          sx={{ bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' }, borderRadius: 2 }}
         >
           {loading ? 'Generating...' : 'Generate Weekly Plan'}
         </Button>
@@ -159,7 +159,7 @@ export default function WeeklyMealGrid({ people }: Props) {
             <IconButton
               size="small"
               onClick={() => navigate(`/people/${personId}?tab=nutrition`)}
-              sx={{ color: '#7C3AED', border: '1px solid #E5E7EB', borderRadius: 2 }}
+              sx={{ color: '#8B7CF6', border: '1px solid #E6EAF0', borderRadius: 2 }}
             >
               <OpenInNewIcon fontSize="small" />
             </IconButton>
@@ -203,7 +203,7 @@ export default function WeeklyMealGrid({ people }: Props) {
 
           {/* Weekly Totals */}
           {weeklyPlan.weekly_totals && (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F0FDF4' }}>
+            <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#EAFBF5' }}>
               <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
                 <Chip label={`~${weeklyPlan.weekly_totals.avg_daily_calories} kcal/day`} color="primary" size="small" />
                 <Chip label={`~${weeklyPlan.weekly_totals.avg_daily_fluid_ml}ml fluid/day`} color="info" size="small" />
@@ -232,12 +232,12 @@ export default function WeeklyMealGrid({ people }: Props) {
                     <Paper
                       sx={{
                         py: 1, px: 1.5, textAlign: 'center',
-                        bgcolor: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#EFF6FF' : '#F9FAFB',
-                        border: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+                        bgcolor: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#F4F8FF' : '#F9FAFB',
+                        border: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '2px solid #2F80ED' : '1px solid #E6EAF0',
                         borderRadius: 2,
                       }}
                     >
-                      <Typography variant="subtitle2" fontWeight={700} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#3B82F6' : 'inherit' }}>
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#2F80ED' : 'inherit' }}>
                         {DAY_LABELS[day]}
                       </Typography>
                     </Paper>
@@ -271,7 +271,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                           onClick={() => hasData && setExpandedCell(isExpanded ? null : key)}
                           sx={{
                             py: 1, px: 1, minHeight: 60,
-                            borderColor: isExpanded ? mt.color : '#E5E7EB',
+                            borderColor: isExpanded ? mt.color : '#E6EAF0',
                             borderWidth: isExpanded ? 2 : 1,
                             cursor: hasData ? 'pointer' : 'default',
                             transition: 'all 0.15s',
@@ -292,10 +292,10 @@ export default function WeeklyMealGrid({ people }: Props) {
                               </Typography>
                               {secondary && (
                                 <>
-                                  <Box sx={{ borderTop: '1px dashed #E5E7EB', my: 0.5 }} />
+                                  <Box sx={{ borderTop: '1px dashed #E6EAF0', my: 0.5 }} />
                                   <Stack direction="row" alignItems="center" spacing={0.5}>
                                     <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: mt.color + '60', flexShrink: 0 }} />
-                                    <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem', color: '#6B7280' }}>
+                                    <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem', color: '#667085' }}>
                                       {secondary.name}
                                     </Typography>
                                   </Stack>
@@ -305,15 +305,15 @@ export default function WeeklyMealGrid({ people }: Props) {
                                 </>
                               )}
                               {isExpanded && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E5E7EB' }}>
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E6EAF0' }}>
                                   <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
                                   {primary.items?.slice(0, 4).map((item, i) => (
-                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#6B7280', lineHeight: 1.4 }}>
+                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#667085', lineHeight: 1.4 }}>
                                       • {item.name} ({item.portion})
                                     </Typography>
                                   ))}
                                   {primary.items && primary.items.length > 4 && (
-                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#9CA3AF' }}>
+                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#98A2B3' }}>
                                       +{primary.items.length - 4} more
                                     </Typography>
                                   )}
@@ -321,7 +321,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                                     <>
                                       <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
                                       {secondary.items?.slice(0, 4).map((item, i) => (
-                                        <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#9CA3AF', lineHeight: 1.4 }}>
+                                        <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#98A2B3', lineHeight: 1.4 }}>
                                           • {item.name} ({item.portion})
                                         </Typography>
                                       ))}

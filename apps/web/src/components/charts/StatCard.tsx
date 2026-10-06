@@ -9,7 +9,7 @@ interface StatCardProps {
   trend?: { value: number; direction: 'up' | 'down' | 'flat' }
 }
 
-export default function StatCard({ label, value, color = '#0F4C81', subtitle, trend }: StatCardProps) {
+export default function StatCard({ label, value, color = '#2F80ED', subtitle, trend }: StatCardProps) {
   return (
     <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
       <Stack spacing={1}>
@@ -21,7 +21,7 @@ export default function StatCard({ label, value, color = '#0F4C81', subtitle, tr
             {value}
           </Typography>
           {trend && trend.direction !== 'flat' && (
-            <Stack direction="row" alignItems="center" spacing={0.3} sx={{ color: trend.direction === 'up' ? '#16A34A' : '#DC2626' }}>
+            <Stack direction="row" alignItems="center" spacing={0.3} sx={{ color: trend.direction === 'up' ? '#10B981' : '#EF4444' }}>
               {trend.direction === 'up' ? <TrendingUp sx={{ fontSize: 16 }} /> : <TrendingDown sx={{ fontSize: 16 }} />}
               <Typography variant="caption" sx={{ fontWeight: 700 }}>{Math.abs(trend.value)}%</Typography>
             </Stack>

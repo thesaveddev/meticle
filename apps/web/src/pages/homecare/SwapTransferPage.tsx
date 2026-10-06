@@ -147,11 +147,11 @@ export default function SwapTransferPage() {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   {req.request_type === 'swap' ? (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#E3F2FD', color: '#1565C0' }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAF3FF', color: '#175CD3' }}>
                       <SwapIcon sx={{ fontSize: 18 }} />
                     </Avatar>
                   ) : (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#E8F5E9', color: '#2E7D32' }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAFBF5', color: '#2E7D32' }}>
                       <TransferIcon sx={{ fontSize: 18 }} />
                     </Avatar>
                   )}

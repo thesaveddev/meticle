@@ -23,23 +23,23 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
 
 function DashboardMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
+    <Box sx={{ p: 2.5, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid #E6EAF0' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B' }}>Today's Coverage</Typography>
-        <Chip label="92%" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+        <Chip label="92%" size="small" sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
       </Stack>
-      <Box sx={{ height: 6, bgcolor: '#E2E8F0', borderRadius: 3, mb: 2, overflow: 'hidden' }}>
-        <Box sx={{ width: '92%', height: '100%', bgcolor: '#22C55E', borderRadius: 3 }} />
+      <Box sx={{ height: 6, bgcolor: '#E6EAF0', borderRadius: 3, mb: 2, overflow: 'hidden' }}>
+        <Box sx={{ width: '92%', height: '100%', bgcolor: '#10B981', borderRadius: 3 }} />
       </Box>
       <Grid container spacing={1.5}>
         {[
-          { label: 'Completed', value: '12', color: '#22C55E' },
-          { label: 'In Progress', value: '3', color: '#3B82F6' },
-          { label: 'Upcoming', value: '5', color: '#6B7280' },
+          { label: 'Completed', value: '12', color: '#10B981' },
+          { label: 'In Progress', value: '3', color: '#2F80ED' },
+          { label: 'Upcoming', value: '5', color: '#667085' },
           { label: 'Missed', value: '1', color: '#EF4444' },
         ].map(s => (
           <Grid item xs={6} key={s.label}>
-            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #F1F5F9' }}>
+            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #F5F7FA' }}>
               <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.color }}>{s.value}</Typography>
               <Typography sx={{ fontSize: '0.65rem', color: '#94A3B8' }}>{s.label}</Typography>
             </Box>
@@ -52,23 +52,23 @@ function DashboardMockup() {
 
 function EMARMockup() {
   const meds = [
-    { name: 'Metformin 500mg', time: '08:00', status: 'given', color: '#22C55E' },
-    { name: 'Amlodipine 5mg', time: '08:00', status: 'given', color: '#22C55E' },
+    { name: 'Metformin 500mg', time: '08:00', status: 'given', color: '#10B981' },
+    { name: 'Amlodipine 5mg', time: '08:00', status: 'given', color: '#10B981' },
     { name: 'Omeprazole 20mg', time: '12:00', status: 'due', color: '#F59E0B' },
     { name: 'Paracetamol 500mg', time: '14:00', status: 'pending', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FFFBEB', borderRadius: 2, border: '1px solid #FEF3C7' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FFF7E6', borderRadius: 2, border: '1px solid #FFF7E6' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#92400E' }}>Medication Record</Typography>
-        <Chip label="MAR" size="small" sx={{ bgcolor: '#FDE68A', color: '#92400E', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#9A6700' }}>Medication Record</Typography>
+        <Chip label="MAR" size="small" sx={{ bgcolor: '#FFF7E6', color: '#9A6700', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
       </Stack>
       {meds.map((m, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FEF3C7' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FFF7E6' : 'none' }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: m.color, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350F' }}>{m.name}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#A16207' }}>{m.time}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A6700' }}>{m.name}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: '#9A6700' }}>{m.time}</Typography>
           </Box>
           <Chip label={m.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: m.color + '20', color: m.color, fontWeight: 600 }} />
         </Stack>
@@ -79,7 +79,7 @@ function EMARMockup() {
 
 function WorkforceMockup() {
   const staff = [
-    { name: 'Sarah M.', role: 'Senior Carer', compliance: 98, color: '#22C55E' },
+    { name: 'Sarah M.', role: 'Senior Carer', compliance: 98, color: '#10B981' },
     { name: 'James K.', role: 'Care Worker', compliance: 85, color: '#F59E0B' },
     { name: 'Priya S.', role: 'Care Worker', compliance: 72, color: '#EF4444' },
   ]
@@ -87,7 +87,7 @@ function WorkforceMockup() {
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
       {staff.map((s, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #FCE7F3' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Person sx={{ fontSize: 14, color: s.color }} />
           </Box>
@@ -95,7 +95,7 @@ function WorkforceMockup() {
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: M.tealDeep }}>{s.name}</Typography>
             <Typography sx={{ fontSize: '0.6rem', color: M.tealDeep }}>{s.role}</Typography>
           </Box>
-          <Box sx={{ width: 50, height: 4, bgcolor: '#FCE7F3', borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ width: 50, height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${s.compliance}%`, height: '100%', bgcolor: s.color, borderRadius: 2 }} />
           </Box>
           <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.color, minWidth: 30, textAlign: 'right' }}>{s.compliance}%</Typography>
@@ -107,21 +107,21 @@ function WorkforceMockup() {
 
 function ScheduleMockup() {
   const calls = [
-    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', status: 'completed', color: '#22C55E' },
-    { time: '10:30', client: 'John D.', carer: 'James K.', status: 'en route', color: '#7C3AED' },
+    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', status: 'completed', color: '#10B981' },
+    { time: '10:30', client: 'John D.', carer: 'James K.', status: 'en route', color: '#8B7CF6' },
     { time: '11:00', client: 'Patricia L.', carer: null, status: 'unassigned', color: '#F59E0B' },
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', status: 'scheduled', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F0FDF4', borderRadius: 2, border: '1px solid #DCFCE7' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#166534', mb: 1.5 }}>Call Schedule</Typography>
+    <Box sx={{ p: 2.5, bgcolor: '#EAFBF5', borderRadius: 2, border: '1px solid #EAFBF5' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Call Schedule</Typography>
       {calls.map((c, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #DCFCE7' : 'none' }}>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', minWidth: 40 }}>{c.time}</Typography>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #EAFBF5' : 'none' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#087A55', minWidth: 40 }}>{c.time}</Typography>
           <Box sx={{ width: 3, height: 24, bgcolor: c.color, borderRadius: 1, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#14532D' }}>{c.client}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#166534' }}>{c.carer || 'No carer assigned'}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#087A55' }}>{c.client}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: '#087A55' }}>{c.carer || 'No carer assigned'}</Typography>
           </Box>
           <Chip label={c.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
         </Stack>
@@ -133,21 +133,21 @@ function ScheduleMockup() {
 function IncidentMockup() {
   const incidents = [
     { title: 'Fall risk assessment overdue', severity: 'high', status: 'open', color: '#EF4444' },
-    { title: 'Medication error reported', severity: 'critical', status: 'investigating', color: '#DC2626' },
+    { title: 'Medication error reported', severity: 'critical', status: 'investigating', color: '#EF4444' },
     { title: 'Safeguarding concern logged', severity: 'high', status: 'escalated', color: '#F59E0B' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid #FECACA' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FEF0F0', borderRadius: 2, border: '1px solid #FEF0F0' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#991B1B' }}>Open Incidents</Typography>
-        <Chip label="3 active" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#B42318' }}>Open Incidents</Typography>
+        <Chip label="3 active" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
       </Stack>
       {incidents.map((inc, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < incidents.length - 1 ? '1px solid #FECACA' : 'none' }}>
+        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < incidents.length - 1 ? '1px solid #FEF0F0' : 'none' }}>
           <Warning sx={{ fontSize: 14, color: inc.color, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#7F1D1D' }}>{inc.title}</Typography>
-            <Typography sx={{ fontSize: '0.55rem', color: '#991B1B' }}>{inc.severity} · {inc.status}</Typography>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#B42318' }}>{inc.title}</Typography>
+            <Typography sx={{ fontSize: '0.55rem', color: '#B42318' }}>{inc.severity} · {inc.status}</Typography>
           </Box>
         </Stack>
       ))}
@@ -157,21 +157,21 @@ function IncidentMockup() {
 
 function ComplianceMockup() {
   const items = [
-    { label: 'DBS Checks', pct: 100, color: '#22C55E' },
+    { label: 'DBS Checks', pct: 100, color: '#10B981' },
     { label: 'Mandatory Training', pct: 87, color: '#F59E0B' },
-    { label: 'Right to Work', pct: 95, color: '#22C55E' },
+    { label: 'Right to Work', pct: 95, color: '#10B981' },
     { label: 'Competency Assessments', pct: 68, color: '#EF4444' },
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
       {items.map((item, i) => (
-        <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #EDE9FE' : 'none' }}>
+        <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
             <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.tealDeep }}>{item.label}</Typography>
             <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: item.color }}>{item.pct}%</Typography>
           </Stack>
-          <Box sx={{ height: 4, bgcolor: '#EDE9FE', borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${item.pct}%`, height: '100%', bgcolor: item.color, borderRadius: 2 }} />
           </Box>
         </Box>
@@ -182,20 +182,20 @@ function ComplianceMockup() {
 
 function ReportingMockup() {
   const metrics = [
-    { label: 'Calls completed today', value: '47', trend: '+12%', color: '#22C55E' },
-    { label: 'Average response time', value: '23min', trend: '-8%', color: '#3B82F6' },
+    { label: 'Calls completed today', value: '47', trend: '+12%', color: '#10B981' },
+    { label: 'Average response time', value: '23min', trend: '-8%', color: '#2F80ED' },
     { label: 'Client satisfaction', value: '4.6/5', trend: '+0.2', color: 'M.tealDeep' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#EFF6FF', borderRadius: 2, border: '1px solid #DBEAFE' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E40AF', mb: 1.5 }}>Operational Insights</Typography>
+    <Box sx={{ p: 2.5, bgcolor: '#F4F8FF', borderRadius: 2, border: '1px solid #EAF3FF' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#175CD3', mb: 1.5 }}>Operational Insights</Typography>
       <Grid container spacing={1.5}>
         {metrics.map((m, i) => (
           <Grid item xs={4} key={i}>
-            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #DBEAFE' }}>
+            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #EAF3FF' }}>
               <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: m.color }}>{m.value}</Typography>
-              <Typography sx={{ fontSize: '0.55rem', color: '#1E40AF' }}>{m.label}</Typography>
-              <Typography sx={{ fontSize: '0.6rem', color: '#22C55E', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
+              <Typography sx={{ fontSize: '0.55rem', color: '#175CD3' }}>{m.label}</Typography>
+              <Typography sx={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
             </Box>
           </Grid>
         ))}
@@ -206,21 +206,21 @@ function ReportingMockup() {
 
 function FamilyPortalMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F0FDFA', borderRadius: 2, border: '1px solid #99F6E4' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#134E4A', mb: 1.5 }}>Family View</Typography>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #99F6E4', mb: 1.5 }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F3FCFA', borderRadius: 2, border: '1px solid #E8FAF6' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Family View</Typography>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E8FAF6', mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <CheckCircle sx={{ fontSize: 14, color: '#22C55E' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#134E4A' }}>Visit completed today</Typography>
+          <CheckCircle sx={{ fontSize: 14, color: '#10B981' }} />
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Visit completed today</Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.6rem', color: '#5F7A7A', mt: 0.5 }}>Margaret had a good morning. All tasks completed. Mood was positive.</Typography>
+        <Typography sx={{ fontSize: '0.6rem', color: '#667085', mt: 0.5 }}>Margaret had a good morning. All tasks completed. Mood was positive.</Typography>
       </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #99F6E4' }}>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E8FAF6' }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <AccessTime sx={{ fontSize: 14, color: '#F59E0B' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#134E4A' }}>Next visit tomorrow</Typography>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Next visit tomorrow</Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.6rem', color: '#5F7A7A', mt: 0.5 }}>Scheduled for 10:00 AM with Sarah M.</Typography>
+        <Typography sx={{ fontSize: '0.6rem', color: '#667085', mt: 0.5 }}>Scheduled for 10:00 AM with Sarah M.</Typography>
       </Box>
     </Box>
   )
@@ -285,14 +285,14 @@ const modules = [
     link: '/features/workforce',
   },
   {
-    icon: CalendarMonth, title: 'Scheduling & Rota', color: '#22C55E',
+    icon: CalendarMonth, title: 'Scheduling & Rota', color: '#10B981',
     desc: 'Plan visits and shifts using availability, staffing and operational constraints — with human review before anything is published.',
     features: ['Rota and visit planning', 'Availability and leave awareness', 'Open-call marketplace for unfilled shifts', 'Conflict and coverage detection', 'Manager approval before publishing'],
     tone: 'warm' as const,
     link: '/features/scheduling',
   },
   {
-    icon: Warning, title: 'Risk & Incidents', color: '#F97066',
+    icon: Warning, title: 'Risk & Incidents', color: '#EF4444',
     desc: 'Keep risk information visible, record incidents with follow-through and maintain the review history your governance requires.',
     features: ['Risk assessment records and review dates', 'Incident recording with severity context', 'Actions, owners and due dates', 'Escalation and follow-up history', 'Linked care-plan context'],
     tone: 'light' as const,
@@ -306,14 +306,14 @@ const modules = [
     link: '/compliance',
   },
   {
-    icon: Insights, title: 'Reporting & Intelligence', color: '#0EA5E9',
+    icon: Insights, title: 'Reporting & Intelligence', color: '#55BFD3',
     desc: 'Turn the records your team already keeps into operational reports, evidence and AI-assisted insight.',
     features: ['Operational dashboards and drill-downs', 'Care and workforce reporting', 'Homecare call and visit analytics', 'AI-assisted briefings and summaries', 'Exportable evidence workflows'],
     tone: 'light' as const,
     link: '/features/reporting',
   },
   {
-    icon: FamilyRestroom, title: 'Family Portal', color: '#14B8A6',
+    icon: FamilyRestroom, title: 'Family Portal', color: '#10BFA5',
     desc: 'Give authorised relatives a respectful, focused view of the information your service chooses to share.',
     features: ['Authorised portal access with secure links', 'Relevant care information and updates', 'Communication and feedback channels', 'Appointment and visit context', 'Access controlled entirely by the service'],
     tone: 'warm' as const,
@@ -379,9 +379,9 @@ export default function PlatformPage() {
               <Box sx={{ borderRadius: M.r.lg, overflow: 'hidden', border: `1px solid ${M.subtle}`, boxShadow: M.shadow.xl, bgcolor: M.card }}>
                 <Box sx={{ px: 2, py: 1, borderBottom: `1px solid ${M.faint}`, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#F97066' }} />
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#EF4444' }} />
                     <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#F59E0B' }} />
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#22C55E' }} />
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#10B981' }} />
                   </Box>
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.muted, ml: 1 }}>MeticleCare</Typography>
                 </Box>

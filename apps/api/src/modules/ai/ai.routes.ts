@@ -34,6 +34,18 @@ router.post('/triage/incident', requireRole(UserRole.ORG_ADMIN), asyncHandler(AI
 router.post('/analyze/rota', requireSupportedLivingOnly, requireRole(UserRole.ORG_ADMIN), validate(aiRotaAnalysisSchema), asyncHandler(AIController.analyzeRota));
 router.post('/generate/rota', requireSupportedLivingOnly, requireRole(UserRole.ORG_ADMIN), validate(aiRotaGenerateSchema), asyncHandler(AIController.generateRota));
 router.post('/daily-notes/generate', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiDailyNoteGenerateSchema), asyncHandler(AIController.generateDailyNote));
+
+// Voice-first care note action. This is the reusable voice-action orchestrator
+// the brief asks for. Mica does NOT start the microphone here — that stays on
+// the client. This endpoint implements the server half of the pipeline:
+// intent detection, person disambiguation (ambiguous Grace → 409 candidates),
+// shift normalistion, prompt rendering, structured parse, and the draft the
+// client reviews before persisting via /ai/daily-notes/approve.
+//
+// Deliberately does not validate aiDailyNoteGenerateSchema here: the voice flow
+// sends personName instead of personId and natural-language shift words, so it
+// reuses generateDailyNote after resolving those fields itself.
+router.post('/voice/notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.handleVoiceNoteViaGateway));
 router.post('/daily-notes/approve', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiDailyNoteApproveSchema), asyncHandler(AIController.approveDailyNote));
 router.post('/daily-notes/:noteId/analyze', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.analyzeExistingNote));
 router.get('/audit-logs', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.auditLogs));

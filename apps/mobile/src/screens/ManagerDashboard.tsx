@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { CHART_PALETTE, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -139,16 +139,16 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
             {missed.length > 0 && (
               <Pressable
                 onPress={() => onNavigate?.('allVisits', { status: 'missed' })}
-                style={({ pressed }) => [[s.alertCard, { backgroundColor: c.dangerSurface || '#FEE2E2', borderColor: (c.danger || '#DC2626') + '20' }, pressed && { opacity: 0.8 }]]}
+                style={({ pressed }) => [[s.alertCard, { backgroundColor: c.dangerSurface || '#FEF0F0', borderColor: (c.danger || '#EF4444') + '20' }, pressed && { opacity: 0.8 }]]}
               >
-                <View style={[s.alertIcon, { backgroundColor: c.danger || '#DC2626' }]}>
+                <View style={[s.alertIcon, { backgroundColor: c.danger || '#EF4444' }]}>
                   <IconWarning size={16} color="#FFFFFF" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.alertTitle, { color: c.danger || '#991B1B' }]}>{missed.length} missed {missed.length === 1 ? 'call' : 'calls'}</Text>
+                  <Text style={[s.alertTitle, { color: c.danger || '#B42318' }]}>{missed.length} missed {missed.length === 1 ? 'call' : 'calls'}</Text>
                   <Text style={[s.alertSub, { color: c.muted }]}>{missed.map((v: any) => v.person_name || 'Client').join(', ')}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={c.danger || '#991B1B'} />
+                <Ionicons name="chevron-forward" size={16} color={c.danger || '#B42318'} />
               </Pressable>
             )}
 
@@ -240,7 +240,7 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
               { icon: 'calendar-outline', label: 'All visits', screen: 'allVisits', color: c.success },
               { icon: 'people-circle-outline', label: 'Staff', screen: 'staffDirectory', color: c.primary },
               { icon: 'document-text-outline', label: 'Timesheets', screen: 'timesheets', color: c.warning },
-              { icon: 'trending-up-outline', label: 'Totals', screen: 'carerTotals', color: '#8B5CF6' },
+              { icon: 'trending-up-outline', label: 'Totals', screen: 'carerTotals', color: '#2F80ED' },
             ].map(action => (
               <Pressable
                 key={action.screen}
@@ -261,7 +261,7 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
 }
 
 function getAvatarColor(name: string) {
-  const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444']
+  const AVATAR_COLORS = CHART_PALETTE
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]

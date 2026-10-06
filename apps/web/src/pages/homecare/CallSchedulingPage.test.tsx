@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -61,9 +61,12 @@ describe('CallSchedulingPage', () => {
     renderPage(`/call-scheduling/day?date=${targetDate}&visit=visit-linked-from-incident`)
 
     expect(await screen.findByRole('heading', { name: 'Call details' })).toBeInTheDocument()
-    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument()
-    expect(screen.getByText('Incident follow-up call')).toBeInTheDocument()
-    expect(screen.getByText('Jordan Smith')).toBeInTheDocument()
+    // The client and carer render both in the day's call list and in the
+    // opened details dialog, so assert on the dialog's own content.
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('Ada Lovelace')).toBeInTheDocument()
+    expect(within(dialog).getByText('Incident follow-up call')).toBeInTheDocument()
+    expect(within(dialog).getByText('Jordan Smith')).toBeInTheDocument()
     await waitFor(() => expect(mockedApi.get).toHaveBeenCalledWith('/homecare/visits', {
       params: { from: targetDate, to: nextDateLabel },
     }))

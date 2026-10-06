@@ -23,13 +23,13 @@ export function useDynamicStyles(staticStyles: Record<string, any>): Record<stri
         colorMap[staticVal.toLowerCase()] = dynamicVal
       }
     }
-    // Also map partial color + opacity patterns like "#1A233240"
+    // Also map partial color + opacity patterns like "#17202A40"
     // Map static color + 'XX' opacity suffixes
     for (const key of Object.keys(staticColors) as (keyof typeof staticColors)[]) {
       const sv = staticColors[key] as string
       const dv = (c as any)[key] as string
       if (sv && dv && sv.startsWith('#') && sv.length === 7) {
-        // Map hex + alpha like "#1A2332" + "20" → dynamic equivalent
+        // Map hex + alpha like "#17202A" + "20" → dynamic equivalent
         colorMap[(sv + '20').toLowerCase()] = (dv + '20')
         colorMap[(sv + '30').toLowerCase()] = (dv + '30')
         colorMap[(sv + '40').toLowerCase()] = (dv + '40')

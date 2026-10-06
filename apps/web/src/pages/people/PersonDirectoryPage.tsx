@@ -183,8 +183,8 @@ export default function PersonDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: riskCount > 0 ? '#FDECEC' : '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <WarningIcon sx={{ fontSize: 20, color: riskCount > 0 ? '#DC2626' : '#047857' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: riskCount > 0 ? '#FEF0F0' : '#EAFBF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <WarningIcon sx={{ fontSize: 20, color: riskCount > 0 ? '#EF4444' : '#087A55' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{riskCount}</Typography>

@@ -60,7 +60,7 @@ export default function MfaSetupPage() {
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm">
           <Paper sx={{ p: 4, borderRadius: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: '#0F4C81' }}>MFA Enabled Successfully</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: '#2F80ED' }}>MFA Enabled Successfully</Typography>
             <Alert severity="warning" sx={{ mb: 3 }}>
               Save these 8 backup codes. Each can be used once to log in if you lose access to your authenticator app.
             </Alert>
@@ -88,7 +88,7 @@ export default function MfaSetupPage() {
                 }).catch(() => navigate('/dashboard'))
               }
             }}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, py: 1.5, fontWeight: 700 }}>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' }, py: 1.5, fontWeight: 700 }}>
               {(() => {
                 const raw = localStorage.getItem('user')
                 let isPlatformAdmin = false
@@ -106,8 +106,8 @@ export default function MfaSetupPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle Care</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Set Up Multi-Factor Authentication</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', mb: 1 }}>Meticle Care</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#17202A' }}>Set Up Multi-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Your organisation requires MFA. Scan the QR code with your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
@@ -119,7 +119,7 @@ export default function MfaSetupPage() {
           {qrCode ? (
             <Box sx={{ mb: 3 }}>
               <img src={qrCode} alt="MFA QR Code" style={{ width: 200, height: 200 }} />
-              <Typography variant="body2" color="#6B7280" sx={{ mt: 1 }}>
+              <Typography variant="body2" color="#667085" sx={{ mt: 1 }}>
                 Scan with Google Authenticator, Microsoft Authenticator, or Authy
               </Typography>
               {secret && (
@@ -144,7 +144,7 @@ export default function MfaSetupPage() {
                 inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' } }}
               />
               <Button fullWidth type="submit" variant="contained" size="large" disabled={loading || !qrCode}
-                sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, textTransform: 'none' }}>
+                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, textTransform: 'none' }}>
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify & Enable MFA'}
               </Button>
             </Stack>

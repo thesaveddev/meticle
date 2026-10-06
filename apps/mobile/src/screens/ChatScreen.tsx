@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker'
 import * as Sharing from 'expo-sharing'
 import { connectChatSocket } from '../services/chatSocket'
 import { isCaptureMode } from '../capture/mode'
-import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { CHART_PALETTE, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
@@ -87,7 +87,7 @@ interface Props {
   initialChannelId?: string
 }
 
-const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
+const AVATAR_COLORS = CHART_PALETTE
 
 function getAvatarColor(id: string) {
   let hash = 0
@@ -584,7 +584,7 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
             <Image source={{ uri: imageUris[previewImage.messageId] }} style={previewStyles.image} resizeMode="contain" />
           ) : imageErrors[previewImage.messageId] ? (
             <View style={previewStyles.emptyState}>
-              <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+              <Ionicons name="image-outline" size={48} color="#98A2B3" />
               <Text style={previewStyles.emptyTitle}>Image unavailable</Text>
               <Text style={previewStyles.emptySub}>This image could not be loaded. Try downloading it again.</Text>
               <Pressable onPress={downloadPreviewImage} style={[previewStyles.retryButton, { backgroundColor: c.primary }]}>
@@ -1130,7 +1130,7 @@ const previewStyles = StyleSheet.create({
   image: { flex: 1, width: '100%' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   emptyTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', fontFamily: FONT, textAlign: 'center' },
-  emptySub: { color: '#9CA3AF', fontSize: 13, fontFamily: FONT, textAlign: 'center', lineHeight: 19 },
+  emptySub: { color: '#98A2B3', fontSize: 13, fontFamily: FONT, textAlign: 'center', lineHeight: 19 },
   retryButton: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radii.lg },
   retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', fontFamily: FONT },
   downloadButton: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.lg, marginVertical: spacing.lg },

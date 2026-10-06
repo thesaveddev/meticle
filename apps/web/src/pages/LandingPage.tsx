@@ -43,14 +43,14 @@ const structuredData = {
   ],
 }
 
-const INK = '#1B2430'
-const NAVY = '#0F4C81'
-const NAVY_DEEP = '#0A3A63'
+const INK = '#17202A'
+const NAVY = '#2F80ED'
+const NAVY_DEEP = '#1F68C7'
 const EMERALD = '#10B981'
-const EMERALD_DEEP = '#047857'
-const BONE = '#F7F4EE'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const EMERALD_DEEP = '#087A55'
+const BONE = '#F7F9FC'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 const INK_DARK = '#141C24'
 
 const HERO_IMAGE = '/illustrations/hero-care.svg'
@@ -168,7 +168,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                     transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease',
                   }}
               >
-                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper' }}>
+                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E6EAF0`, bgcolor: 'background.paper' }}>
                   <img src={HERO_IMAGE} alt="Meticle Care dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
                 </Box>
               </Box>
@@ -549,7 +549,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={7}>
-              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
+              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E6EAF0`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'notice.subtle.bg' }}>
                   <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
                 </Stack>

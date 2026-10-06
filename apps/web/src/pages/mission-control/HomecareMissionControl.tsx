@@ -99,8 +99,8 @@ export default function HomecareMissionControl() {
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: totalOpenIssues > 0 ? '#FEF2F2' : '#F0FDF4', display: 'grid', placeItems: 'center' }}>
-            <MissedIcon sx={{ color: totalOpenIssues > 0 ? '#DC2626' : '#22C55E', fontSize: 22 }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: totalOpenIssues > 0 ? '#FEF0F0' : '#EAFBF5', display: 'grid', placeItems: 'center' }}>
+            <MissedIcon sx={{ color: totalOpenIssues > 0 ? '#EF4444' : '#10B981', fontSize: 22 }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>Mission Control</Typography>
@@ -131,7 +131,7 @@ export default function HomecareMissionControl() {
           <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>Call completion</Typography>
-              <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: completionRate >= 90 ? '#22C55E' : completionRate >= 70 ? '#F59E0B' : '#EF4444' }}>
+              <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: completionRate >= 90 ? '#10B981' : completionRate >= 70 ? '#F59E0B' : '#EF4444' }}>
                 {completionRate}%
               </Typography>
             </Stack>
@@ -139,10 +139,10 @@ export default function HomecareMissionControl() {
               variant="determinate"
               value={completionRate}
               sx={{
-                height: 8, borderRadius: 4, bgcolor: '#F1F5F9',
+                height: 8, borderRadius: 4, bgcolor: '#F5F7FA',
                 '& .MuiLinearProgress-bar': {
                   borderRadius: 4,
-                  bgcolor: completionRate >= 90 ? '#22C55E' : completionRate >= 70 ? '#F59E0B' : '#EF4444',
+                  bgcolor: completionRate >= 90 ? '#10B981' : completionRate >= 70 ? '#F59E0B' : '#EF4444',
                 },
               }}
             />
@@ -161,20 +161,20 @@ export default function HomecareMissionControl() {
           {/* Today's alert cards — equal height */}
           <Grid container spacing={1.5} sx={{ mb: 3 }} alignItems="stretch">
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
-              <AlertCard icon={<MissedIcon sx={{ color: '#DC2626', fontSize: 20 }} />} label="Missed today" value={data.missed_today}
-                color="#DC2626" bg="#FEF2F2" onClick={() => nav('/homecare?status=missed')} />
+              <AlertCard icon={<MissedIcon sx={{ color: '#EF4444', fontSize: 20 }} />} label="Missed today" value={data.missed_today}
+                color="#EF4444" bg="#FEF0F0" onClick={() => nav('/homecare?status=missed')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
               <AlertCard icon={<UnassignedIcon sx={{ color: '#F59E0B', fontSize: 20 }} />} label="Unassigned today" value={data.unassigned_today}
-                color="#F59E0B" bg="#FFFBEB" subtitle={`${data.unassigned_upcoming} upcoming`} onClick={() => nav('/call-assignment')} />
+                color="#F59E0B" bg="#FFF7E6" subtitle={`${data.unassigned_upcoming} upcoming`} onClick={() => nav('/call-assignment')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
               <AlertCard icon={<OverdueIcon sx={{ color: '#EF4444', fontSize: 20 }} />} label="Overdue calls" value={data.overdue_calls}
-                color="#EF4444" bg="#FEF2F2" onClick={() => nav('/homecare?status=scheduled')} />
+                color="#EF4444" bg="#FEF0F0" onClick={() => nav('/homecare?status=scheduled')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
-              <AlertCard icon={<CompletedIcon sx={{ color: '#22C55E', fontSize: 20 }} />} label="Completed today" value={data.completed_today}
-                color="#22C55E" bg="#F0FDF4" onClick={() => nav('/homecare?status=completed')} />
+              <AlertCard icon={<CompletedIcon sx={{ color: '#10B981', fontSize: 20 }} />} label="Completed today" value={data.completed_today}
+                color="#10B981" bg="#EAFBF5" onClick={() => nav('/homecare?status=completed')} />
             </Grid>
           </Grid>
 
@@ -185,20 +185,20 @@ export default function HomecareMissionControl() {
 
           <Grid container spacing={1.5} sx={{ mb: 3 }} alignItems="stretch">
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
-              <AlertCard icon={<ComplianceIcon sx={{ color: '#8B5CF6', fontSize: 20 }} />} label="Training expiring" value={data.training_expiring}
-                color="#8B5CF6" bg="#F5F3FF" subtitle="Within 14 days" onClick={() => nav('/compliance/homecare')} />
+              <AlertCard icon={<ComplianceIcon sx={{ color: '#9A6700', fontSize: 20 }} />} label="Training expiring" value={data.training_expiring}
+                color="#9A6700" bg="#FFF7E6" subtitle="Within 14 days" onClick={() => nav('/compliance/homecare')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
-              <AlertCard icon={<ComplianceIcon sx={{ color: '#6366F1', fontSize: 20 }} />} label="Docs expiring" value={data.docs_expiring}
-                color="#6366F1" bg="#EEF2FF" subtitle="DBS, passport, visa" onClick={() => nav('/compliance/homecare')} />
+              <AlertCard icon={<ComplianceIcon sx={{ color: '#9A6700', fontSize: 20 }} />} label="Docs expiring" value={data.docs_expiring}
+                color="#9A6700" bg="#FFF7E6" subtitle="DBS, passport, visa" onClick={() => nav('/compliance/homecare')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
               <AlertCard icon={<IncidentIcon sx={{ color: '#EF4444', fontSize: 20 }} />} label="Open incidents" value={data.open_incidents}
-                color="#EF4444" bg="#FEF2F2" onClick={() => nav('/incidents')} />
+                color="#EF4444" bg="#FEF0F0" onClick={() => nav('/incidents')} />
             </Grid>
             <Grid item xs={6} sm={4} md={3} sx={{ display: 'flex' }}>
               <AlertCard icon={<CarePlanIcon sx={{ color: '#F59E0B', fontSize: 20 }} />} label="Care plans overdue" value={data.overdue_care_plans}
-                color="#F59E0B" bg="#FFFBEB" onClick={() => nav('/people')} />
+                color="#F59E0B" bg="#FFF7E6" onClick={() => nav('/people')} />
             </Grid>
           </Grid>
 
@@ -221,7 +221,7 @@ export default function HomecareMissionControl() {
                           </Typography>
                           <Box sx={{
                             width: '100%', height: barHeight, borderRadius: 1,
-                            bgcolor: d.count > 3 ? '#EF4444' : d.count > 1 ? '#F59E0B' : d.count > 0 ? '#CBD5E1' : '#F1F5F9',
+                            bgcolor: d.count > 3 ? '#EF4444' : d.count > 1 ? '#F59E0B' : d.count > 0 ? '#CBD5E1' : '#F5F7FA',
                             transition: 'height 0.3s', minHeight: 4,
                           }} />
                         </Box>
@@ -258,14 +258,14 @@ export default function HomecareMissionControl() {
                     >
                       <Stack direction="row" alignItems="center" gap={1.5}>
                         <Box sx={{
-                          width: 32, height: 32, borderRadius: '50%', bgcolor: '#FEF2F2',
-                          display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.7rem', color: '#DC2626',
+                          width: 32, height: 32, borderRadius: '50%', bgcolor: '#FEF0F0',
+                          display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.7rem', color: '#EF4444',
                         }}>{c.carer_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</Box>
                         <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{c.carer_name}</Typography>
                       </Stack>
                       <Stack direction="row" alignItems="center" gap={1}>
                         <Chip label={`${c.count} missed`} size="small"
-                          sx={{ bgcolor: c.count > 3 ? '#FEF2F2' : '#FFFBEB', color: c.count > 3 ? '#B91C1C' : '#D97706', fontWeight: 600, fontSize: '0.7rem' }} />
+                          sx={{ bgcolor: c.count > 3 ? '#FEF0F0' : '#FFF7E6', color: c.count > 3 ? '#B42318' : '#F59E0B', fontWeight: 600, fontSize: '0.7rem' }} />
                         {expandedCarer === c.carer_name ? <ExpandLess sx={{ fontSize: 18, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 18, color: 'text.secondary' }} />}
                       </Stack>
                     </Box>
@@ -287,7 +287,7 @@ export default function HomecareMissionControl() {
                           <Button
                             size="small"
                             onClick={(e) => { e.stopPropagation(); nav(`/homecare?status=missed&carer=${encodeURIComponent(c.carer_name)}`) }}
-                            sx={{ textTransform: 'none', color: '#DC2626', fontWeight: 600, fontSize: '0.78rem', justifyContent: 'flex-start', px: 0 }}
+                            sx={{ textTransform: 'none', color: '#EF4444', fontWeight: 600, fontSize: '0.78rem', justifyContent: 'flex-start', px: 0 }}
                             startIcon={<GotoIcon sx={{ fontSize: 14 }} />}
                           >
                             View missed calls for {c.carer_name.split(' ')[0]}

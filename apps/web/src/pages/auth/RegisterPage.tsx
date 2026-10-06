@@ -7,8 +7,6 @@ import { UserRole } from '@meticle/shared'
 import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
-const REGISTER_ILLUSTRATION = '/signup-page.jpg';
-
 const PASSWORD_RULES = [
   { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
   { key: 'upper', label: 'One uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
@@ -216,7 +214,7 @@ export default function RegisterPage() {
                 { t: 'Real-time Visibility', d: 'Audit your entire workforce in one click.' }
               ].map((v, i) => (
                 <Stack key={i} direction="row" spacing={2}>
-                  <CheckIcon sx={{ color: '#16A34A', mt: 0.5 }} />
+                  <CheckIcon sx={{ color: '#10B981', mt: 0.5 }} />
                   <Box>
                     <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{v.t}</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>{v.d}</Typography>
@@ -225,14 +223,13 @@ export default function RegisterPage() {
               ))}
             </Stack>
           )}
-          <img src={REGISTER_ILLUSTRATION} alt="Trust Illustration" style={{ width: '100%', opacity: 0.5 }} />
         </Box>
       </Box>
 
       <Box sx={{ flex: { xs: 1, md: 0.8 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
               Meticle Care
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
@@ -291,7 +288,7 @@ export default function RegisterPage() {
                   InputProps={{
                     endAdornment: emailVerified && !invitation ? (
                       <InputAdornment position="end">
-                        <VerifiedIcon sx={{ color: '#16A34A' }} />
+                        <VerifiedIcon sx={{ color: '#10B981' }} />
                       </InputAdornment>
                     ) : undefined
                   }}
@@ -300,7 +297,7 @@ export default function RegisterPage() {
 
               {/* Email verification section */}
               {!invitation && !emailVerified && (
-                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                   {!codeSent ? (
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Button
@@ -308,7 +305,7 @@ export default function RegisterPage() {
                         size="small"
                         onClick={handleSendCode}
                         disabled={sendingCode || !email || !!errors.email}
-                        sx={{ textTransform: 'none', borderColor: '#0F4C81', color: '#0F4C81', whiteSpace: 'nowrap' }}
+                        sx={{ textTransform: 'none', borderColor: '#2F80ED', color: '#2F80ED', whiteSpace: 'nowrap' }}
                       >
                         {sendingCode ? <CircularProgress size={16} /> : 'Send Verification Code'}
                       </Button>
@@ -319,7 +316,7 @@ export default function RegisterPage() {
                   ) : (
                     <Stack spacing={1.5}>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <VerifiedIcon sx={{ color: '#0F4C81', fontSize: 18 }} />
+                        <VerifiedIcon sx={{ color: '#2F80ED', fontSize: 18 }} />
                         <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                           Enter the 6-digit code sent to {email}
                         </Typography>
@@ -338,7 +335,7 @@ export default function RegisterPage() {
                           size="small"
                           onClick={handleVerifyCode}
                           disabled={verifyingCode || verificationCode.length !== 6}
-                          sx={{ textTransform: 'none', bgcolor: '#0F4C81', whiteSpace: 'nowrap' }}
+                          sx={{ textTransform: 'none', bgcolor: '#2F80ED', whiteSpace: 'nowrap' }}
                         >
                           {verifyingCode ? <CircularProgress size={16} color="inherit" /> : 'Verify'}
                         </Button>
@@ -428,10 +425,10 @@ export default function RegisterPage() {
                       const passed = rule.test(password)
                       return (
                         <Stack key={rule.key} direction="row" spacing={1} alignItems="center">
-                          <Typography sx={{ color: passed ? '#16A34A' : '#9CA3AF', fontSize: '0.75rem' }}>
+                          <Typography sx={{ color: passed ? '#10B981' : '#98A2B3', fontSize: '0.75rem' }}>
                             {passed ? '✓' : '○'}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: passed ? '#16A34A' : '#9CA3AF', fontWeight: passed ? 600 : 400 }}>
+                          <Typography variant="caption" sx={{ color: passed ? '#10B981' : '#98A2B3', fontWeight: passed ? 600 : 400 }}>
                             {rule.label}
                           </Typography>
                         </Stack>
@@ -445,17 +442,17 @@ export default function RegisterPage() {
                 control={
                   <Checkbox
                     {...register('termsAccepted')}
-                    sx={{ '&.Mui-checked': { color: '#0F4C81' } }}
+                    sx={{ '&.Mui-checked': { color: '#2F80ED' } }}
                   />
                 }
                 label={
                   <Typography variant="body2" sx={{ color: 'text.primary' }}>
                     I agree to the{' '}
-                    <Link onClick={() => navigate('/terms')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                    <Link onClick={() => navigate('/terms')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
                       Terms and Conditions
                     </Link>{' '}
                     and{' '}
-                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
                       Privacy Policy
                     </Link>
                   </Typography>
@@ -469,14 +466,14 @@ export default function RegisterPage() {
                 variant="contained"
                 size="large"
                 disabled={loading || (!emailVerified && !invitation) || !termsAccepted}
-                sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
+                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Create account')}
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
+                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
                 </Typography>
               </Box>
             </Stack>

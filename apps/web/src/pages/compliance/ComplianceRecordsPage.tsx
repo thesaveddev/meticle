@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TablePagination, CircularProgress, Alert } from '@mui/material'
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, TablePagination, CircularProgress, Alert } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -34,16 +35,18 @@ export default function ComplianceRecordsPage() {
   return (
     <PageContainer>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={800}>Compliance Records</Typography>
-        <Button variant="outlined" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}
-          sx={{ textTransform: 'none' }}>
-          {seedMutation.isPending ? 'Seeding...' : 'Seed Records'}
-        </Button>
-      </Stack>
+      <PageHeader
+        title="Compliance Records"
+        actions={
+          <Button variant="outlined" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}
+            sx={{ textTransform: 'none' }}>
+            {seedMutation.isPending ? 'Seeding...' : 'Seed Records'}
+          </Button>
+        }
+      />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Table size="small">
           <TableHead><TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>

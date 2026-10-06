@@ -17,7 +17,7 @@ import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
 const QUALITY_RATINGS = [
   { min: 81, label: 'Good', color: '#10B981' },
   { min: 61, label: 'Requires Improvement', color: '#F59E0B' },
-  { min: 0, label: 'Inadequate', color: '#DC2626' },
+  { min: 0, label: 'Inadequate', color: '#EF4444' },
 ]
 
 function getRating(score: number) {
@@ -25,14 +25,14 @@ function getRating(score: number) {
 }
 
 const MODULE_COLORS: Record<string, string> = {
-  training: '#0F4C81',
-  competency: '#6366F1',
+  training: '#2F80ED',
+  competency: '#6B8AFD',
   dbs: '#10B981',
-  evidence: '#D946EF',
+  evidence: '#8B7CF6',
   readiness: '#F59E0B',
-  satisfaction: '#E11D48',
-  engagement: '#0EA5E9',
-  dspt: '#005EB8',
+  satisfaction: '#EF4444',
+  engagement: '#55BFD3',
+  dspt: '#2F80ED',
   nutrition: '#10B981',
 }
 
@@ -113,7 +113,7 @@ export default function CompliancePage() {
   const totalNutritionPeople = nutritionPeople.length
   const nutritionConcerns = nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0 || (n.refused_today || 0) > 0).length
   const nutritionCompliant = totalNutritionPeople > 0 ? Math.round(((totalNutritionPeople - nutritionConcerns) / totalNutritionPeople) * 100) : 100
-  const nutritionRating = nutritionCompliant >= 80 ? { color: '#10B981', label: 'Good' } : nutritionCompliant >= 60 ? { color: '#F59E0B', label: 'Watch' } : { color: '#DC2626', label: 'Concern' }
+  const nutritionRating = nutritionCompliant >= 80 ? { color: '#10B981', label: 'Good' } : nutritionCompliant >= 60 ? { color: '#F59E0B', label: 'Watch' } : { color: '#EF4444', label: 'Concern' }
 
   if (isLoading) {
     return (
@@ -156,7 +156,7 @@ export default function CompliancePage() {
             <Box sx={{ position: 'relative', display: 'inline-flex', my: 1 }}>
               <Box sx={{
                 width: 140, height: 140, borderRadius: '50%',
-                border: `5px solid ${theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9'}`,
+                border: `5px solid ${theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA'}`,
                 position: 'absolute',
               }} />
               <Box sx={{
@@ -192,7 +192,7 @@ export default function CompliancePage() {
                 label="Active Staff"
                 value={totalStaff}
                 icon={<PeopleIcon sx={{ fontSize: 22 }} />}
-                color="#0369A1"
+                color="#175CD3"
                 onClick={() => navigate('/staff')}
               />
             </Grid>
@@ -210,7 +210,7 @@ export default function CompliancePage() {
                 label="Pending Documents"
                 value={pendingDocs}
                 icon={<DocIcon sx={{ fontSize: 22 }} />}
-                color={pendingDocs > 0 ? '#EA580C' : '#10B981'}
+                color={pendingDocs > 0 ? '#F59E0B' : '#10B981'}
                 onClick={() => navigate('/compliance/identity')}
               />
             </Grid>
@@ -219,7 +219,7 @@ export default function CompliancePage() {
                 label="Staff With Gaps"
                 value={staffWithGaps}
                 icon={<WarningIcon sx={{ fontSize: 22 }} />}
-                color={staffWithGaps > 0 ? '#DC2626' : '#10B981'}
+                color={staffWithGaps > 0 ? '#EF4444' : '#10B981'}
                 onClick={() => navigate('/compliance/records')}
               />
             </Grid>
@@ -252,7 +252,7 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="contained" onClick={() => navigate('/compliance/readiness')}
-                  sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
+                  sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
               </Stack>
             )}
             {pendingDocs > 0 && (
@@ -267,7 +267,7 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => navigate('/compliance/identity')}
-                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#FCD34D', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
+                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
               </Stack>
             )}
             {incompleteRequirements > 0 && (
@@ -289,17 +289,17 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => { setExpandedSection('requirements'); navigate('/compliance/records') }}
-                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#FCD34D', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
+                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
               </Stack>
             )}
             {nutritionConcerns > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: nutritionRating.color === '#DC2626' ? '#FEE2E2' : '#FFF5D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: nutritionRating.color === '#EF4444' ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FavoriteIcon sx={{ color: nutritionRating.color, fontSize: 18 }} />
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: nutritionRating.color === '#DC2626' ? '#991B1B' : '#92400E' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }}>
                       {nutritionConcerns} person{nutritionConcerns > 1 ? 's' : ''} with nutrition concerns in the last 7 days
                     </Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
@@ -342,7 +342,7 @@ export default function CompliancePage() {
             { label: 'NHS DSPT', icon: <ShieldIcon sx={{ fontSize: 20 }} />, path: '/compliance/dspt', key: 'dspt' },
             { label: 'Nutrition', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/nutrition', key: 'nutrition' },
           ].map((a) => {
-            const color = MODULE_COLORS[a.key] || '#0F4C81'
+            const color = MODULE_COLORS[a.key] || '#2F80ED'
             return (
               <Grid item key={a.label}>
                 <Box
@@ -418,7 +418,7 @@ function SectionHeader({ label, count, expanded, onToggle, icon }: { label: stri
         <Box sx={{ color: 'text.primary', display: 'flex' }}>{icon}</Box>
         <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>{label}</Typography>
         {count !== undefined && (
-          <Chip label={count} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#0F4C81', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
+          <Chip label={count} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
         )}
       </Stack>
       <IconButton size="small" sx={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: '0.2s', color: theme.palette.text.secondary }}>
@@ -515,8 +515,8 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
                         <Box sx={{ flex: 1, maxWidth: 200 }}>
                           <LinearProgress variant="determinate" value={r.pct} sx={{
                             height: 6, borderRadius: 3,
-                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
-                            '& .MuiLinearProgress-bar': { bgcolor: r.pct === 100 ? '#10B981' : r.pct >= 80 ? '#F59E0B' : '#DC2626', borderRadius: 3 }
+                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                            '& .MuiLinearProgress-bar': { bgcolor: r.pct === 100 ? '#10B981' : r.pct >= 80 ? '#F59E0B' : '#EF4444', borderRadius: 3 }
                           }} />
                         </Box>
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>{r.complete}/{r.total} staff · {r.pct}%</Typography>
@@ -536,14 +536,14 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 2 }}>
             <Box>
-              <Typography variant="subtitle2" sx={{ color: '#047857', fontWeight: 700, mb: 1 }}>Completed ({selectedStats?.completeStaff.length || 0})</Typography>
+              <Typography variant="subtitle2" sx={{ color: '#087A55', fontWeight: 700, mb: 1 }}>Completed ({selectedStats?.completeStaff.length || 0})</Typography>
               {selectedStats?.completeStaff.length ? selectedStats.completeStaff.map((s: any, i: number) => (
                 <Chip key={i} label={s.name} size="small" onClick={() => navigate(`/staff/${s.userId}`)}
                   sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 600, '&:hover': { bgcolor: 'notice.success.bg' } }} />
               )) : <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>None</Typography>}
             </Box>
             <Box>
-              <Typography variant="subtitle2" sx={{ color: '#D97706', fontWeight: 700, mb: 1 }}>Incomplete / Pending ({selectedStats?.incompleteStaff.length || 0})</Typography>
+              <Typography variant="subtitle2" sx={{ color: '#F59E0B', fontWeight: 700, mb: 1 }}>Incomplete / Pending ({selectedStats?.incompleteStaff.length || 0})</Typography>
               {selectedStats?.incompleteStaff.length ? selectedStats.incompleteStaff.map((s: any, i: number) => (
                 <Chip key={i} label={s.name} size="small" onClick={() => navigate(`/staff/${s.userId}`)}
                   sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600, '&:hover': { bgcolor: 'notice.warning.bg' } }} />
@@ -666,11 +666,11 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'approved' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#047857', '&:hover': { bgcolor: 'success.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
+                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#087A55', '&:hover': { bgcolor: 'success.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'rejected' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
+                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
                           </Stack>
                         )}
                       </TableCell>
@@ -723,14 +723,14 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
 const DBS_LEVELS = ['standard', 'enhanced', 'enhanced_with_barred']
 const DBS_WORKFORCE = ['adult', 'child', 'both']
 const DBS_STATUS_COLORS: Record<string, string> = {
-  draft: '#9CA3AF',
-  submitted: '#3B82F6',
+  draft: '#98A2B3',
+  submitted: '#2F80ED',
   in_progress: '#F59E0B',
-  awaiting_identity: '#F97316',
+  awaiting_identity: '#F59E0B',
   clear: '#10B981',
-  disclosure: '#8B5CF6',
-  cancelled: '#6B7280',
-  error: '#DC2626',
+  disclosure: '#8B7CF6',
+  cancelled: '#667085',
+  error: '#EF4444',
 }
 
 function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
@@ -799,8 +799,8 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
             {[
               { label: 'Clear', value: stats?.clear || 0, color: '#10B981' },
               { label: 'In Progress', value: stats?.in_progress || 0, color: '#F59E0B' },
-              { label: 'Awaiting ID', value: stats?.awaiting_identity || 0, color: '#F97316' },
-              { label: 'Expiring Soon', value: stats?.expiring_soon || 0, color: '#DC2626' },
+              { label: 'Awaiting ID', value: stats?.awaiting_identity || 0, color: '#F59E0B' },
+              { label: 'Expiring Soon', value: stats?.expiring_soon || 0, color: '#EF4444' },
             ].map(s => (
               <Chip key={s.label} label={`${s.label}: ${s.value}`} size="small"
                 sx={{ bgcolor: theme.palette.mode === 'dark' ? `${s.color}25` : `${s.color}12`, color: s.color, fontWeight: 700, height: 26, borderRadius: '13px', fontSize: '0.75rem' }} />
@@ -856,7 +856,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
                         {['submitted', 'in_progress', 'awaiting_identity'].includes(c.status) && (
                           <Tooltip title="Poll provider for status update">
                             <IconButton size="small" onClick={() => pollMutation.mutate(c.id)} disabled={pollMutation.isPending}
-                              sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9' } }}>
+                              sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA' } }}>
                               {pollMutation.isPending ? <Typography variant="caption">...</Typography> : <PollIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>

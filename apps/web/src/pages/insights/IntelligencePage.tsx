@@ -86,7 +86,7 @@ export default function IntelligencePage() {
   return <PageContainer>
     <Stack spacing={2.5}>
       <Box>
-        <Stack direction="row" spacing={1} alignItems="center"><AutoAwesome sx={{ color: '#7C3AED' }} /><Typography variant="h5" sx={{ fontWeight: 800 }}>MeticleCare Intelligence</Typography></Stack>
+        <Stack direction="row" spacing={1} alignItems="center"><AutoAwesome sx={{ color: '#8B7CF6' }} /><Typography variant="h5" sx={{ fontWeight: 800 }}>MeticleCare Intelligence</Typography></Stack>
         <Typography color="text.secondary" sx={{ mt: .75, maxWidth: 760 }}>Use authorised operational records to see what may need attention. AI suggestions are evidence-linked and never replace professional judgement.</Typography>
         <Alert severity="info" icon={false} sx={{ mt: 1.5, maxWidth: 900 }}>{METHOD_DISCLOSURE}</Alert>
         {boundary?.clinical_narrative === 'withheld' && (
@@ -99,9 +99,9 @@ export default function IntelligencePage() {
         )}
       </Box>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
-        {capabilities.map(item => <Button key={item.key} variant={item.key === selected ? 'contained' : 'outlined'} onClick={() => { setSelected(item.key); setResult(null) }} sx={{ textTransform: 'none', justifyContent: 'flex-start', bgcolor: item.key === selected ? '#0F4C81' : undefined }}>{item.label}</Button>)}
+        {capabilities.map(item => <Button key={item.key} variant={item.key === selected ? 'contained' : 'outlined'} onClick={() => { setSelected(item.key); setResult(null) }} sx={{ textTransform: 'none', justifyContent: 'flex-start', bgcolor: item.key === selected ? '#2F80ED' : undefined }}>{item.label}</Button>)}
       </Stack>
-      <Paper sx={{ p: { xs: 2, md: 3 }, border: '1px solid', borderColor: 'grey.200' }}>
+      <Paper sx={{ p: { xs: 2, md: 3 }, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>{selectedCapability.label}</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: .5, mb: 2 }}>{selectedCapability.description}</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
@@ -111,22 +111,22 @@ export default function IntelligencePage() {
           <TextField label="From" type="date" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField label="To" type="date" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField label="Question (optional)" size="small" fullWidth value={question} onChange={e => setQuestion(e.target.value)} placeholder="e.g. What needs my attention?" />
-          <Button variant="contained" onClick={run} disabled={loading || !from || !to || from > to} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} sx={{ bgcolor: '#0F4C81', whiteSpace: 'nowrap' }}>{loading ? 'Reviewing…' : 'Run intelligence'}</Button>
+          <Button variant="contained" onClick={run} disabled={loading || !from || !to || from > to} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} sx={{ bgcolor: '#2F80ED', whiteSpace: 'nowrap' }}>{loading ? 'Reviewing…' : 'Run intelligence'}</Button>
         </Stack>
         {['care-summary', 'family-communication-draft'].includes(selected) && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}><TextField label="Person ID" size="small" value={personId} onChange={e => setPersonId(e.target.value)} helperText="Use the person record ID for source scoping." sx={{ maxWidth: 520 }} />{selected === 'family-communication-draft' && <><TextField label="Audience" size="small" value={audience} onChange={e => setAudience(e.target.value)} placeholder="e.g. authorised family contact" /><TextField label="Tone" size="small" value={tone} onChange={e => setTone(e.target.value)} /></>}</Stack>}
       </Paper>
       {error && <Alert severity="error">{error}</Alert>}
-      {!result && !loading && <Paper sx={{ p: 4, textAlign: 'center', bgcolor: '#FAF8FF', border: '1px solid #DDD6FE' }}><AutoAwesome sx={{ color: '#7C3AED', fontSize: 38 }} /><Typography sx={{ fontWeight: 800, mt: 1 }}>Ready when you are</Typography><Typography variant="body2" color="text.secondary">Choose a capability and date range to generate an evidence-linked result.</Typography></Paper>}
+      {!result && !loading && <Paper sx={{ p: 4, textAlign: 'center', bgcolor: '#F4F8FF', border: '1px solid #F4F8FF' }}><AutoAwesome sx={{ color: '#8B7CF6', fontSize: 38 }} /><Typography sx={{ fontWeight: 800, mt: 1 }}>Ready when you are</Typography><Typography variant="body2" color="text.secondary">Choose a capability and date range to generate an evidence-linked result.</Typography></Paper>}
       {result && <Stack spacing={2}>
-        <Paper sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#FAF8FF', border: '1px solid #DDD6FE' }}>
+        <Paper sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#F4F8FF', border: '1px solid #F4F8FF' }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: .5 }}>
-            <AutoAwesome sx={{ color: '#7C3AED', fontSize: 18 }} />
+            <AutoAwesome sx={{ color: '#8B7CF6', fontSize: 18 }} />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>{result.headline}</Typography>
-            <Chip label="AI-generated" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700 }} />
+            <Chip label="AI-generated" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700 }} />
           </Stack>
           <Typography sx={{ mt: 1 }}>{result.summary}</Typography>
         </Paper>
-        {!!result.items?.length && <Paper sx={{ p: { xs: 2, md: 3 } }}><Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}><WarningAmber sx={{ color: '#B45309' }} /><Typography variant="h6" sx={{ fontWeight: 800 }}>Signals and evidence</Typography></Stack><Stack spacing={1.5}>{result.items.map((item, index) => <Box key={`${item.source_type}-${item.source_id}-${index}`} sx={{ p: 2, bgcolor: item.priority === 'high' ? '#FEF2F2' : '#FFFBEB', border: `1px solid ${item.priority === 'high' ? '#FECACA' : '#FDE68A'}`, borderRadius: 1.5 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between"><Typography sx={{ fontWeight: 800 }}>{item.title}</Typography><Chip label={item.priority} size="small" /></Stack><Typography variant="body2" sx={{ mt: .5 }}>{item.detail}</Typography><Stack direction="row" spacing={.5} alignItems="center" sx={{ mt: 1 }}><OpenInNew sx={{ fontSize: 14 }} />{item.source_url ? <Button size="small" onClick={() => navigate(item.source_url!)} startIcon={<OpenInNew sx={{ fontSize: 14 }} />} sx={{ mt: 1, textTransform: 'none', p: 0, minWidth: 0 }}>View source</Button> : <Typography variant="caption" color="text.secondary">Source: {item.source_type} · {item.source_id}</Typography>}</Stack></Box>)}</Stack></Paper>}
+        {!!result.items?.length && <Paper sx={{ p: { xs: 2, md: 3 } }}><Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}><WarningAmber sx={{ color: '#9A6700' }} /><Typography variant="h6" sx={{ fontWeight: 800 }}>Signals and evidence</Typography></Stack><Stack spacing={1.5}>{result.items.map((item, index) => <Box key={`${item.source_type}-${item.source_id}-${index}`} sx={{ p: 2, bgcolor: item.priority === 'high' ? '#FEF0F0' : '#FFF7E6', border: `1px solid ${item.priority === 'high' ? '#FEF0F0' : '#FFF7E6'}`, borderRadius: 1.5 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between"><Typography sx={{ fontWeight: 800 }}>{item.title}</Typography><Chip label={item.priority} size="small" /></Stack><Typography variant="body2" sx={{ mt: .5 }}>{item.detail}</Typography><Stack direction="row" spacing={.5} alignItems="center" sx={{ mt: 1 }}><OpenInNew sx={{ fontSize: 14 }} />{item.source_url ? <Button size="small" onClick={() => navigate(item.source_url!)} startIcon={<OpenInNew sx={{ fontSize: 14 }} />} sx={{ mt: 1, textTransform: 'none', p: 0, minWidth: 0 }}>View source</Button> : <Typography variant="caption" color="text.secondary">Source: {item.source_type} · {item.source_id}</Typography>}</Stack></Box>)}</Stack></Paper>}
         {!!result.suggested_follow_up?.length && <Paper sx={{ p: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Suggested follow-up</Typography>{result.suggested_follow_up.map((item, index) => <Typography key={index} variant="body2" sx={{ mb: .5 }}>• {item}</Typography>)}</Paper>}
         <Divider /><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between"><Typography variant="caption" color="text.secondary">AI output is assistive. Verify source records before acting; it does not make clinical or regulatory decisions.</Typography>{counts && <Typography variant="caption" color="text.secondary">Sources: {Object.entries(counts).map(([key, value]) => `${key} ${value}`).join(' · ')}</Typography>}</Stack>
       </Stack>}

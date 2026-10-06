@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -38,7 +39,7 @@ function ScoreRing({ value, size = 80, strokeWidth = 6, color }: { value: number
   return (
     <Box sx={{ position: 'relative', width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E5E7EB" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E6EAF0" strokeWidth={strokeWidth} />
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
@@ -51,9 +52,9 @@ function ScoreRing({ value, size = 80, strokeWidth = 6, color }: { value: number
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return '#16A34A'
+  if (score >= 80) return '#10B981'
   if (score >= 60) return '#F59E0B'
-  return '#DC2626'
+  return '#EF4444'
 }
 
 function getScoreLabel(score: number) {
@@ -203,20 +204,18 @@ export default function HomecareCompliancePage() {
   return (
     <PageContainer>
       {/* Header */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Homecare Compliance</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            CQC-aligned compliance dashboard for domiciliary care operations
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isFetching}
-            sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>Refresh</Button>
-          <Button variant="contained" size="small" onClick={() => navigate('/compliance/readiness')}
-            sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>CQC Readiness</Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="Homecare Compliance"
+        subtitle="CQC-aligned compliance dashboard for domiciliary care operations"
+        actions={
+          <>
+            <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isFetching}
+              sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>Refresh</Button>
+            <Button variant="contained" size="small" onClick={() => navigate('/compliance/readiness')}
+              sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>CQC Readiness</Button>
+          </>
+        }
+      />
 
       {/* Overall Score */}
       <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'notice.subtle.bg' }}>
@@ -248,25 +247,25 @@ export default function HomecareCompliancePage() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<Assessment />} label="Visit Completion" value={`${d.visitCompletion.rate}%`}
             sub={`${d.visitCompletion.completed}/${d.visitCompletion.total} visits completed`}
-            color={d.visitCompletion.rate >= 95 ? '#16A34A' : d.visitCompletion.rate >= 85 ? '#F59E0B' : '#DC2626'}
+            color={d.visitCompletion.rate >= 95 ? '#10B981' : d.visitCompletion.rate >= 85 ? '#F59E0B' : '#EF4444'}
             onClick={() => navigate('/homecare')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<Assignment />} label="Care Plans" value={d.carePlans.total}
             sub={d.carePlans.overdue > 0 ? `${d.carePlans.overdue} overdue` : `${d.carePlans.dueSoon} due soon`}
-            color={d.carePlans.overdue > 0 ? '#DC2626' : '#16A34A'}
+            color={d.carePlans.overdue > 0 ? '#EF4444' : '#10B981'}
             onClick={() => navigate('/people')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<School />} label="Staff Training" value={`${d.staffTraining.rate}%`}
             sub={`${d.staffTraining.nonCompliant} staff non-compliant`}
-            color={d.staffTraining.rate >= 90 ? '#16A34A' : d.staffTraining.rate >= 75 ? '#F59E0B' : '#DC2626'}
+            color={d.staffTraining.rate >= 90 ? '#10B981' : d.staffTraining.rate >= 75 ? '#F59E0B' : '#EF4444'}
             onClick={() => navigate('/compliance/training')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<Badge />} label="DBS Compliance" value={`${d.dbs.rate}%`}
             sub={`${d.dbs.compliant}/${d.dbs.total} staff compliant`}
-            color={d.dbs.rate >= 100 ? '#16A34A' : '#DC2626'}
+            color={d.dbs.rate >= 100 ? '#10B981' : '#EF4444'}
             onClick={() => navigate('/compliance/identity')} />
         </Grid>
       </Grid>
@@ -275,19 +274,19 @@ export default function HomecareCompliancePage() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<EventBusy />} label="Missed Visits (7d)" value={d.missedVisits7d}
             sub={d.missedVisits7d > 0 ? 'Requires follow-up' : 'No missed visits'}
-            color={d.missedVisits7d > 0 ? '#DC2626' : '#16A34A'}
+            color={d.missedVisits7d > 0 ? '#EF4444' : '#10B981'}
             onClick={() => navigate('/homecare')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<LocalHospital />} label="Incidents (30d)" value={d.incidents.total}
             sub={d.incidents.serious > 0 ? `${d.incidents.serious} serious` : `${d.incidents.open} open`}
-            color={d.incidents.serious > 0 ? '#DC2626' : d.incidents.open > 0 ? '#F59E0B' : '#16A34A'}
+            color={d.incidents.serious > 0 ? '#EF4444' : d.incidents.open > 0 ? '#F59E0B' : '#10B981'}
             onClick={() => navigate('/incidents')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<Shield />} label="Risk Assessments" value={d.riskAssessments.total}
             sub={d.riskAssessments.overdue > 0 ? `${d.riskAssessments.overdue} overdue` : 'All current'}
-            color={d.riskAssessments.overdue > 0 ? '#DC2626' : '#16A34A'}
+            color={d.riskAssessments.overdue > 0 ? '#EF4444' : '#10B981'}
             onClick={() => navigate('/people')} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -295,7 +294,7 @@ export default function HomecareCompliancePage() {
             sub={d.supervision.total > 0
               ? `${d.supervision.done}/${d.supervision.total} staff supervised in 6 months`
               : 'No active staff to supervise yet'}
-            color={d.supervision.rate >= 90 ? '#16A34A' : d.supervision.rate >= 70 ? '#F59E0B' : '#DC2626'}
+            color={d.supervision.rate >= 90 ? '#10B981' : d.supervision.rate >= 70 ? '#F59E0B' : '#EF4444'}
             onClick={() => navigate('/compliance/supervisions')} />
         </Grid>
       </Grid>
@@ -310,7 +309,7 @@ export default function HomecareCompliancePage() {
             </Stack>
             <Stack spacing={1}>
               {actions.slice(0, 8).map((a, i) => {
-                const accent = a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : 'grey.500'
+                const accent = a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : '#667085'
                 return (
                   <Paper
                     key={i}

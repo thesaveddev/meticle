@@ -66,7 +66,7 @@ export default function ShiftDetailDialog({
         <Stack spacing={1.5}>
           <Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-              <LocationIcon sx={{ fontSize: 16, color: '#0F4C81' }} />
+              <LocationIcon sx={{ fontSize: 16, color: '#2F80ED' }} />
               <Typography variant="body2" sx={{ fontWeight: 700 }}>{shift.location_name || '—'}</Typography>
               {shift.shift_type && shift.shift_type !== 'day' && (
                 <Chip label={shift.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'} size="small"
@@ -95,7 +95,7 @@ export default function ShiftDetailDialog({
                     {canEditShift && (
                       <Tooltip title="Unassign staff">
                         <IconButton size="small" sx={{ ml: 'auto', p: 0.4 }} onClick={() => onUnassign(shift.id, a.staff_id)} aria-label={`Unassign ${a.first_name}`}>
-                          <CloseIcon sx={{ fontSize: 13, color: 'text.secondary', '&:hover': { color: '#DC2626' } }} />
+                          <CloseIcon sx={{ fontSize: 13, color: 'text.secondary', '&:hover': { color: '#EF4444' } }} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -128,7 +128,7 @@ export default function ShiftDetailDialog({
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label="Agency shift" size="small" sx={{ height: 17, fontSize: '0.58rem', bgcolor: 'notice.info.bg', color: 'notice.info.fg' }} />
                   <Chip label={shift.agency_covered ? 'Covered' : 'Uncovered'} size="small"
-                    sx={{ height: 17, fontSize: '0.58rem', bgcolor: shift.agency_covered ? '#D1FAE5' : '#FEF3C7', color: shift.agency_covered ? '#065F46' : '#92400E' }} />
+                    sx={{ height: 17, fontSize: '0.58rem', bgcolor: shift.agency_covered ? '#EAFBF5' : '#FFF7E6', color: shift.agency_covered ? '#087A55' : '#9A6700' }} />
                   {canEditShift && (
                     <Button size="small" variant="outlined" sx={{ ml: 'auto', minWidth: 0, py: 0, px: 1, fontSize: '0.68rem', fontWeight: 700, textTransform: 'none' }}
                       onClick={() => onToggleCoverage(shift.id, shift.agency_covered)}>

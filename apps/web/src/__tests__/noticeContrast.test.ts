@@ -5,15 +5,15 @@
  *
  * Notices across 38 files were built as `<Paper sx={{ bgcolor: 'success.light' }}>`
  * and the equivalents, on the assumption that `palette.success.light` is a pale
- * tint. It is not — MUI keeps it a *mid* tone (`#4caf50` in light, `#81c784` in
+ * tint. It is not — MUI keeps it a *mid* tone (`#4caf50` in light, `#10B981` in
  * dark) and its own `<Alert>` is readable only because `Alert.js` derives a
  * surface with `lighten(light, 0.9)` and a foreground with `darken(light, 0.6)`.
  * Every hand-rolled site bypassed that derivation and used the mid tone
- * directly, under a hardcoded dark label: `#065F46` on `success.light` measured
+ * directly, under a hardcoded dark label: `#087A55` on `success.light` measured
  * 2.76:1, and on the dark-mode tone the palette swaps to, 1.58–2.73:1. Failing
  * WCAG AA in both modes.
  *
- * `grey.50`/`grey.100` were the same mistake with grey: `#FAFAFA`/`#F5F5F5` in
+ * `grey.50`/`grey.100` were the same mistake with grey: `#F9FAFB`/`#F7F9FC` in
  * *both* modes, so they became white boxes on a dark page. Three further sites
  * used `success.50`/`warning.50`/`error.50`, which are not MUI tokens at all —
  * the literal string reached CSS as a background value, was discarded, and
@@ -167,8 +167,8 @@ describe('light-only and non-existent tokens stay gone', () => {
     "bgcolor: 'error.light'": 'palette.*.light is a mid tone, not a tint — use notice.error.bg',
     "bgcolor: 'warning.light'": 'palette.*.light is a mid tone, not a tint — use notice.warning.bg',
     "bgcolor: 'info.light'": 'palette.*.light is a mid tone, not a tint — use notice.info.bg',
-    "bgcolor: 'grey.50'": 'near-white in both modes — use notice.subtle.bg',
-    "bgcolor: 'grey.100'": 'near-white in both modes — use notice.muted.bg',
+    "bgcolor: '#F8FAFC'": 'near-white in both modes — use notice.subtle.bg',
+    "bgcolor: '#F7F9FC'": 'near-white in both modes — use notice.muted.bg',
     "'success.50'": 'not an MUI token; the literal reached CSS and was discarded',
     "'warning.50'": 'not an MUI token; the literal reached CSS and was discarded',
     "'error.50'": 'not an MUI token; the literal reached CSS and was discarded',

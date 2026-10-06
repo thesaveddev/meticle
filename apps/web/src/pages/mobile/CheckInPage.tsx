@@ -36,19 +36,19 @@ export default function CheckInPage() {
 
   return (
     <Box sx={{ p: 2.5 }}>
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, color: '#0F4C81' }}>
+      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, color: '#2F80ED' }}>
         <GpsIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> SecureVisit Check-In
       </Typography>
 
       {status === 'idle' && (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
-          <GpsIcon sx={{ fontSize: 64, color: '#0F4C81', mb: 2, opacity: 0.3 }} />
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <GpsIcon sx={{ fontSize: 64, color: '#2F80ED', mb: 2, opacity: 0.3 }} />
           <Typography variant="body1" fontWeight={600} sx={{ mb: 1 }}>Ready to check in</Typography>
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+          <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
             Your GPS location will be recorded to verify you are at the service location.
           </Typography>
           <Button variant="contained" size="large" startIcon={<GpsIcon />} onClick={doCheckIn}
-            sx={{ bgcolor: '#16A34A', textTransform: 'none', borderRadius: 3, px: 4, py: 1.5 }}>
+            sx={{ bgcolor: '#10B981', textTransform: 'none', borderRadius: 3, px: 4, py: 1.5 }}>
             Check In Now
           </Button>
         </Paper>
@@ -56,13 +56,13 @@ export default function CheckInPage() {
 
       {status === 'checking' && (
         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
-          <CircularProgress size={60} sx={{ mb: 2, color: '#0F4C81' }} />
+          <CircularProgress size={60} sx={{ mb: 2, color: '#2F80ED' }} />
           <Typography>Getting your location...</Typography>
         </Paper>
       )}
 
       {status === 'success' && (
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0' }}>
+        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'notice.success.bg', border: '1px solid #EAFBF5' }}>
           <CheckIcon sx={{ fontSize: 64, color: 'notice.success.fg', mb: 1 }} />
           <Typography variant="h6" fontWeight={800} color='notice.success.fg'>Checked In!</Typography>
           {coords && (
@@ -85,18 +85,18 @@ export default function CheckInPage() {
       <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 4, mb: 1.5 }}>Recent Check-Ins</Typography>
       <Stack spacing={1}>
         {(recentCheckins || []).slice(0, 10).map((c: any) => (
-          <Paper key={c.id} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper key={c.id} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" fontWeight={600}>{c.location_name || 'Check-in'}</Typography>
               <Chip label="Verified" size="small" color="success" />
             </Stack>
-            <Typography variant="caption" color="#6B7280">
+            <Typography variant="caption" color="#667085">
               {new Date(c.checked_in_at).toLocaleString('en-GB')}
             </Typography>
           </Paper>
         ))}
         {(!recentCheckins || recentCheckins.length === 0) && (
-          <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 2 }}>No recent check-ins</Typography>
+          <Typography variant="body2" color="#98A2B3" sx={{ textAlign: 'center', py: 2 }}>No recent check-ins</Typography>
         )}
       </Stack>
     </Box>

@@ -62,6 +62,8 @@ beforeEach(() => {
   window.localStorage.removeItem('sidebarCollapsedGroups')
   vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })
+    if (url.includes('/chat/unread')) return Promise.resolve({ data: {} })
+    if (url.includes('/notifications')) return Promise.resolve({ data: [] })
     if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: GRANT_ALL_MODULES } })
     if (url.includes('/auth/me')) {
       return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Test Org' } } })
@@ -90,7 +92,7 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const peopleNav = screen.getAllByRole('button', { name: 'People' })[0]
+    const peopleNav = (await screen.findAllByRole('button', { name: 'People' }))[0]
     fireEvent.click(peopleNav)
 
     await waitFor(() => {
@@ -106,7 +108,7 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dashboard' })[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Dashboard' }))[0])
 
     await waitFor(() => {
       expect(document.activeElement).toBe(container.querySelector('main'))
@@ -120,7 +122,7 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const groupButton = screen.getByRole('button', { name: 'Care' })
+    const groupButton = await screen.findByRole('button', { name: 'Care' })
     fireEvent.click(groupButton)
 
     await waitFor(() => {
@@ -161,7 +163,7 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const groupButton = screen.getByRole('button', { name: /Staffing/i })
+    const groupButton = await screen.findByRole('button', { name: /Staffing/i })
     expect(groupButton).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(groupButton)
 

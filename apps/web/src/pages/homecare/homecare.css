@@ -3,12 +3,12 @@
  */
 
 .homecare-page {
-  --homecare-ink: #111827;
-  --homecare-muted: #6B7280;
+  --homecare-ink: #17202A;
+  --homecare-muted: #667085;
   --homecare-paper: #F8FAFC;
   --homecare-surface: #FFFFFF;
-  --homecare-rule: #E5E7EB;
-  --homecare-navy: #0F4C81;
+  --homecare-rule: #E6EAF0;
+  --homecare-navy: #2F80ED;
   --homecare-green: #10B981;
   /* Full content width like every other app page — no boxed column or side margins. */
   min-width: 0;
@@ -103,7 +103,7 @@
 .homecare-empty h6 { font-weight: 700; }
 .homecare-empty p { margin-top: 8px; }
 .homecare-exception { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--homecare-rule) !important; }
-.homecare-exception__detail { margin-top: 6px !important; color: #B45309; font-size: 0.84rem !important; text-transform: capitalize; }
+.homecare-exception__detail { margin-top: 6px !important; color: #9A6700; font-size: 0.84rem !important; text-transform: capitalize; }
 .homecare-export { margin-top: 20px; border: 1px solid var(--homecare-rule) !important; border-radius: 12px !important; box-shadow: none !important; background: var(--homecare-surface) !important; }
 .homecare-package__numbers,
 .homecare-timesheet__grid { display: flex; flex-wrap: wrap; gap: 24px; color: var(--homecare-muted); font-size: 0.86rem; }

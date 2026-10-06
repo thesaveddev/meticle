@@ -150,8 +150,9 @@ export class IncidentsController {
    * its own CQC reportability, status and root cause.
    */
   private static readonly REPORTER_FIELDS = [
-    'title', 'description', 'incident_date', 'incident_time', 'location',
-    'severity', 'category_id', 'is_near_miss', 'is_confidential',
+    'title', 'description', 'witnesses', 'incident_date', 'incident_time', 'location',
+    'severity', 'category_id', 'is_near_miss', 'is_confidential', 'client_submission_id',
+    'person_ids', 'visit_id',
   ] as const;
 
   static sanitiseForReporter(body: any): any {
@@ -169,6 +170,14 @@ export class IncidentsController {
       ? IncidentsController.sanitiseForReporter(req.body)
       : req.body;
     const incident = await IncidentsRepository.create(orgId, payload, userId);
+    const wasCreated = incident.was_created !== false;
+    delete incident.was_created;
+    // An idempotent retry returns the original incident, so it must not repeat
+    // notifications, audits or domain events for the same staff submission.
+    if (!wasCreated) {
+      res.status(200).json(incident);
+      return;
+    }
     // Awaited so the event is recorded before the request is reported as done:
     // the insert auto-commits on this connection, so without the await a client
     // (and a test) could observe 201 while the event is still in flight.

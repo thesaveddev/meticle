@@ -89,6 +89,10 @@ jest.mock('../services/visitQueue', () => ({
   flushQueue: jest.fn(async () => {}),
   enqueueVisitAction: jest.fn(),
 }))
+jest.mock('../services/incidentQueue', () => ({
+  getIncidentQueue: jest.fn(async () => []),
+  flushIncidentQueue: jest.fn(async () => null),
+}))
 
 const mockReadSession = storage.readSession as jest.MockedFunction<typeof storage.readSession>
 const mockGetCurrentUser = api.getCurrentUser as jest.MockedFunction<typeof api.getCurrentUser>

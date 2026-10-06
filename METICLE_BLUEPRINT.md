@@ -1,20 +1,22 @@
-# CareDesk: AI-First Care Operating System Blueprint
+# MeticleCare: AI-First Care Operating System Blueprint
 
-## Version 2.0 — Updated July 2026
+## Version 2.1 — Competitive review, 6 October 2026
 
 ### Change Summary
 
-This revision transforms the MVP blueprint into a comprehensive AI-first product and architecture specification. All existing capabilities have been verified against the live codebase (41 backend modules, 484 API endpoints, 78 frontend pages, 108 database tables, 154 Zod validation schemas). The blueprint now covers the complete current state, the AI-first transformation vision, event-driven intelligence, agent architecture, Mission Control, cross-module workflows, governance, phased roadmap, and commercial packaging.
+Adds a sourced competitive review of AIM (WeAim), evidence-qualified differentiators, and a prioritized capability response. The July 2026 counts and implementation notes below are a historical inventory, not a current system-of-record; current capability claims must be checked against `docs/PUBLIC_SITE_CAPABILITY_MATRIX.md`, `docs/AI_PRODUCT_ROADMAP.md`, `PRODUCT.md`, the focused blueprints, and the implementation. This document is a product direction, not customer traction or independent validation of vendor claims.
 
 ---
 
 # 1. Product Goal
 
-CareDesk is a multi-tenant supported-living care management platform that must evolve into:
+MeticleCare is a multi-tenant care management platform, with supported living as a core operating model, that is evolving toward:
 
 > **The AI Operating System for Care Providers**
 
-The platform must actively help care organisations:
+This is a product vision, not a statement that every capability below is shipped. Current shipped scope and constraints are distinguished in `docs/AI_PRODUCT_ROADMAP.md` and `docs/PUBLIC_SITE_CAPABILITY_MATRIX.md`.
+
+The platform should help care organisations:
 - Deliver safer care
 - Reduce documentation time
 - Remain inspection-ready
@@ -36,11 +38,11 @@ The AI experience should feel less like a chatbot and more like having:
 - An inspection-readiness adviser
 - A care-record reviewer
 
-These are integrated capabilities within the main CareDesk platform, with clear module boundaries, permissions, subscription controls and audit records.
+These are integrated capabilities within the main MeticleCare platform, with clear module boundaries, permissions, subscription controls and audit records.
 
 ---
 
-# 2. Current Product State (Verified July 2026)
+# 2. Product State Baseline (July 2026 — Historical Snapshot)
 
 ## 2.1 Scale
 
@@ -128,7 +130,7 @@ organizations, locations, departments, users, staff_profiles, qualifications, sk
 ### Migration Tables (setup.ts — 51)
 ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_members, chat_messages, chat_files, satisfaction_surveys, staff_engagement_surveys, tasks, room_checks, mobile_check_ins, trial_reminders, survey_invitations, engagement_templates, email_queue, health_observations, bowel_movements, dental_records, fluid_intake, appointments, policies, service_user_goals, emedication_audit_log, emedication_stock, emedication_deliveries, emedication_delivery_items, care_assessments, evidence_mappings, emedication_daily_counts, emedication_stock_adjustments, agencies, service_user_access_log, agency_workers, agency_rates, cqc_action_items, notification_preferences, family_members, clinical_scores, service_user_documents, su_wellbeing, su_communication_log, su_capacity_assessments, su_care_pathways, su_discharge_checklist, email_verification_codes, goal_milestones, goal_progress_history
 
-## 2.5 Infrastructure
+## 2.5 Infrastructure (July 2026 Historical Inventory)
 
 | Component | Status | Details |
 |---|---|---|
@@ -149,7 +151,7 @@ ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_me
 | Virus scanning | ✅ | Extension blocking + magic-byte validation |
 | OCR | ✅ | tesseract.js lazy-loaded (zero callers — available but unused) |
 
-## 2.6 Testing
+## 2.6 Testing (July 2026 Historical Inventory)
 
 | Type | Status |
 |---|---|
@@ -168,7 +170,7 @@ ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_me
 | Leave Manager | Standalone (not in Rota Planner); calendar day-click popup with status, duration, approve/reject |
 | Leave balance format | Compact inline header row, aggregated "X days + Y hours" |
 | Compliance profiles | Role-based; role changes reflect instantly via `/auth/me` on page focus + periodic poll |
-| Multi-tenancy | Via tenant.ts helpers (no RLS yet) |
+| Multi-tenancy | Historical July snapshot: helper-based; current project status records request-scoped context and PostgreSQL RLS. Verify the live policy set and migrations before describing coverage. |
 | Billing | Stripe auto-provisions on first use; test mode allowed in dev |
 | Manager self-approval | Manager cannot self-approve leave; manager/admin leave routes to different ORG_ADMIN; fallback to any ORG_ADMIN |
 | Rota Planner | Location-based min safe staffing, compliance block on assign, view-only for non-`scheduling:edit` |
@@ -178,11 +180,13 @@ ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_me
 | Error display | Inside modals (not behind); tables paginated; buttons have loading spinners |
 | Guard | `npx tsc --noEmit` in both `apps/web` and `apps/api` |
 | Voice input | Browser-native Web Speech API (en-GB), no server-side transcription |
-| AI content | All AI-generated content marked as AI-generated until reviewed and approved by authorised user |
+| AI content | Documented source-linked intelligence is labelled AI-assisted and human-reviewed; audit older AI routes and saved-record surfaces before claiming product-wide labelling. |
 
 ---
 
 # 4. Current Architecture
+
+> Historical snapshot (July 2026): the module/page/table counts and technology inventory below are not a current implementation manifest. Resolve drift against the repository and current status docs before using these lists for planning.
 
 ## 4.1 Monorepo Structure
 
@@ -221,7 +225,7 @@ modules/<name>/
 └── <name>.service.ts       # Business logic (where needed)
 ```
 
-## 4.3 Tech Stack
+## 4.3 Tech Stack (July 2026 Inventory; Verify Before Reuse)
 
 | Layer | Technology |
 |---|---|
@@ -231,7 +235,7 @@ modules/<name>/
 | Cache | Redis with in-memory fallback |
 | Realtime | Socket.IO v4 with JWT auth + DB validation + rate limiting |
 | Auth | JWT access + refresh tokens, MFA (TOTP/speakeasy), RBAC + per-request permissions |
-| AI | OpenAI SDK + Anthropic SDK, per-org API keys (AES-256-GCM encrypted), provider abstraction |
+| AI | OpenAI/Anthropic provider integrations and per-organisation config; do not claim AI provider credentials are application-encrypted without verifying the active secret-storage path |
 | Validation | Zod (154 schemas) |
 | Email | Nodemailer SMTP, 20+ branded HTML templates, DB-backed queue |
 | Billing | Stripe (subscriptions, invoices, payment methods, webhooks) |
@@ -239,31 +243,33 @@ modules/<name>/
 | OCR | tesseract.js (installed, zero callers) |
 | Infra | Docker Compose, GitHub Actions CI, Prometheus metrics, Swagger auto-docs |
 
-## 4.4 Existing AI Infrastructure
+## 4.4 Existing AI Infrastructure (Baseline Details Are Historical)
+
+The exact flag count and legacy feature inventory in this table come from the July snapshot; the current intelligence surface and its guardrails are described in `docs/AI_PRODUCT_ROADMAP.md`. Verify credential storage/encryption claims against current call sites and configuration rather than relying on the historic AES-256-GCM description.
 
 | Component | Status | Details |
 |---|---|---|
-| AI provider abstraction | ✅ | `OpenAIProvider` + `AnthropicProvider` with factory pattern |
-| Per-org AI config | ✅ | JSONB in `organizations.ai_config` with encrypted API key storage |
+| AI provider abstraction | ✅ | OpenAI/Anthropic adapters and provider selection are documented; verify the current factory and credential-handling path before relying on this historic detail |
+| Per-org AI config | ✅ | JSONB in `organizations.ai_config` with per-organisation settings; production processor/transfer sign-off remains open |
 | Feature flags | ✅ | Per-org `enabledFeatures[]` array with 4 flags currently defined |
-| Prompt templates | ✅ | 8 named prompts with `{{var}}` mustache-style substitution |
-| Structured output parsing | ✅ | JSON.parse with fallback to `{ raw: content }` |
-| AI audit logging | ✅ | `ai_audit_logs` table: feature, tokens, model, provider, duration, success/error |
+| Prompt templates | ✅ | Prompt text is maintained in code; runtime prompt versioning and a customer-configurable prompt registry are not documented as shipped |
+| Structured output parsing | 🟡 | Structured validation is documented for the source-linked intelligence pipeline; audit legacy routes separately before claiming every AI endpoint is schema-validated |
+| AI audit logging | ✅ | `ai_audit_logs` record feature/provider/model, duration, token use and outcome; intelligence entries also retain selected dates and source references |
 | AI usage stats | ✅ | Aggregated usage statistics endpoint |
-| Existing AI features | ✅ | Compliance gap analysis, incident triage, rota analysis/generation, daily note generation |
+| Existing AI features | ✅ | Compliance gap analysis, incident triage, rota analysis/generation, daily note generation and source-linked intelligence; see current capability matrix for boundaries |
 | Unused prompts | ⚠️ | `visit_note_care_plan_gap` and `competency_assessment_assistant` defined but never called |
 
 ---
 
-# 5. Existing AI Capabilities (Implemented)
+# 5. Existing AI Capabilities (Historical Baseline; Current Matrix Is Authoritative)
 
-## 5.1 AI Configuration
-- Per-organisation AI settings stored as JSONB
-- Provider selection (OpenAI or Anthropic)
-- Model selection per provider
-- API key encryption (AES-256-GCM)
-- Feature flag toggles (4 defined: compliance_gap_analysis, incident_severity_triage, rota_optimization, daily_note_generation)
-- Frontend settings page with AI tab
+The following describes workflows recorded in the July inventory. Treat detailed input/output fields, flags and UI behaviour as baseline notes, not a complete current route contract; use the current AI roadmap and implementation for live scope.
+
+## 5.1 AI Configuration (July Snapshot; Verify Secret Handling)
+- Per-organisation AI settings are stored as JSONB in `organizations.ai_config`.
+- Provider/model settings and feature configuration exist; the exact current feature names are not limited to the four July examples below.
+- Do not treat the general AES-256-GCM utility or person-column encryption as proof that provider API keys in `ai_config` are encrypted. Verify the live write/read path and deployed secret controls before making an encryption claim.
+- Settings > AI exists; production provider use remains gated on legal processor/transfer agreements.
 
 ## 5.2 Compliance Gap Analysis
 - Input: domain scores, key issues, regulator context
@@ -271,15 +277,17 @@ modules/<name>/
 - Used in: CQC Readiness page, Settings AI tab
 
 ## 5.3 Incident Triage
-- Input: incident title, description, category, date, location, involved parties
-- Output: severity classification (low/medium/high/critical), confidence, reasoning, actions, CQC notification flag
-- Note: Missing Zod validation schema on this endpoint
+- Input: incident context within the authorised organisation scope
+- Output: advisory severity classification, confidence/reasoning and suggested follow-up; regulator-notification language is nation-aware and does not decide whether a statutory notification must be made
+- AI results are validated on the current structured intelligence path; audit each older endpoint independently rather than assuming uniform schema coverage
+- A manager retains responsibility for triage, safeguarding decisions and any notification
 
 ## 5.4 Rota Analysis & Generation
 - Input: week range, location, staffing requirements, staff roster, existing shifts, leave, contracted hours
-- Output (analysis): coverage warnings, overtime risks, staffing suggestions, optimization tips
-- Output (generation): complete staff rota with shift assignments, coverage summary, warnings
+- Output (analysis): coverage warnings, overtime risks, staffing suggestions and optimisation tips
+- Output (generation): proposed rota assignments, coverage summary and warnings; a human reviews before applying, and hard server-side staffing/rest/conflict constraints remain authoritative
 - Used in: Rota Planner page
+- Domiciliary call recommendations separately rank carers using availability, leave/conflict, workload and a rough straight-line travel estimate; the travel-time endpoint can query OSRM with a fallback estimate. This is not yet a robust multi-stop route/continuity optimisation service
 
 ## 5.5 AI Daily Notes
 - Input: staff voice/text observation + service user context (allergies, care plans, goals, baseline mood)
@@ -291,55 +299,51 @@ modules/<name>/
 
 # 6. Current Gaps
 
-## 6.1 Production Readiness
-- Docker prod missing web service, ports, health checks
-- No migration versioning (flat array)
-- No integration/controller/E2E tests
-- No deployment pipeline (CI builds but doesn't deploy)
-- No monitoring dashboards or alerting
-- No backup/recovery testing
-- Socket.IO not scaled horizontally (no Redis adapter)
+## 6.1 Production Readiness (Reconciled 6 October 2026)
+
+The July inventory below is stale in several material places. The repository's current project status records versioned migrations, production Docker services, CI/CD, Redis-backed realtime, RLS, and 395 tests across 44 modules. Do not present those older gaps as current. The remaining operational evidence gaps to verify are:
+- Monitoring: Prometheus metrics and Uptime Kuma are deployed. The repository cannot verify that uptime monitors and phone alert contacts are configured and have passed a test; Grafana dashboards/Prometheus alert rules are not recorded as implemented (`docs/GO_LIVE_READINESS.md`, T0-4).
+- Backup and recovery: require a successful, documented restore rehearsal and recovery objectives before making resilience promises.
+- Release evidence: validate current end-to-end pilot and external payroll-provider round trips against the live target environment.
 
 ## 6.2 Tenant Isolation
-- Helper-based (not RLS)
-- No row-level security in PostgreSQL
-- Risk of cross-tenant data leakage in complex queries
 
-## 6.3 AI Gaps
-- No event-driven intelligence (all AI is request/response)
-- No continuous monitoring or proactive alerts
-- No cross-module AI workflows
-- No organisational knowledge retrieval (RAG)
-- No prompt versioning or A/B testing
-- No AI cost controls or budgets
-- No AI-generated content labelling on saved records
-- No AI approval queue for multi-step workflows
-- No AI feedback mechanism
-- No structured output validation (just JSON.parse)
-- `visit_note_care_plan_gap` and `competency_assessment_assistant` prompts defined but unused
-- OCR utility exists but has zero callers
-- No Whisper API integration (voice-to-text is browser-native only)
+Implemented using request-scoped tenant context, dual database pools and PostgreSQL row-level security policies. Continue to treat tenant-scoped query and migration tests as release gates, especially when adding tables or background jobs; this is an implementation control, not a certification claim.
 
-## 6.4 Missing Features (Non-AI)
-- E-learning (SCORM/xAPI)
-- Digital signatures
-- DBS API integration (GBG/uCheck)
-- SMS notifications (Twilio)
-- PrintNode printing
-- Document Drive (file management UI)
-- Full reporting suite (live PDF exports from all modules)
-- Family Portal Finances tab
-- Supported-living mobile app (see `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`)
+## 6.3 AI Gaps (Current, Evidence-Limited)
 
-> **Mobile, supported living.** The shipped mobile app is domiciliary-only: its data
-> layer calls `/homecare/*`, which is mounted behind `requireDomiciliaryOnly`, so a
-> supported-living organisation is refused every endpoint it uses. The target
-> capability set for managers and support workers, and the backend work it depends
-> on, are specified in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`. Two findings
-> there are not mobile-only and affect the web app today: support workers cannot
-> report incidents (`POST /incidents` is manager-only) and cannot complete tasks
-> (`PATCH /tasks/:id` is manager-only while the navigation offers Tasks to care
-> workers).
+MeticleCare already has configured AI workflows and a source-linked intelligence surface. The current capability matrix and AI roadmap describe date-bounded outputs with source references, audit records, schema validation, human review, organisation scoping and deterministic signals. Important qualification: the live readiness tracker records that production LLM processing remains blocked on the legal processor/transfer agreement even though the approved-processor gate exists. Legal sign-off is a release prerequisite, not an advantage over AIM until closed. The remaining product gaps are narrower and more consequential than the July list suggested:
+- No general intent/tool/action layer that safely turns natural-language requests into permission-checked, reviewable cross-module drafts; current assistants are bounded workflows, not autonomous operators. The existing event outbox/worker and several alert/triage consumers are implemented, but do not yet amount to a broad, user-configurable agent action/approval queue. Prompt version management also remains on the roadmap; prompts are currently maintained in code.
+- No continuously running, clinically validated deterioration predictor. Change/risk signals are bounded to selected records and periods; there is no learned baseline or validated early-warning model.
+- No AI drafting workflow for care plans and risk assessments comparable to the competitor's public examples; daily-note assistance exists, but generated clinical content must remain reviewable and must not change care or medication instructions.
+- No full organisational knowledge/RAG layer with version-aware policy citations; source-linked operational records are not equivalent to policy retrieval.
+- No persistent prompt evaluation/versioning system or production-quality feedback/evaluation loop documented as complete. Current code has per-organisation enablement, monthly token/cost caps, processor approval gate and structured validation on the source-linked intelligence path; general prompt version management and feedback capture remain proposals, not shipped capabilities. Legacy endpoint validation should be audited independently.
+- The natural-language assistant still needs an explicit query-intent layer; it receives a bounded source set and must not gain arbitrary SQL access.
+- Browser speech is available; a managed server-side transcription fallback is not documented as shipped.
+
+Do not restore the former blanket claims that structured output validation, AI labelling, audit logging, budgets or all event infrastructure are absent: those conflict with current product evidence. See `docs/AI_PRODUCT_ROADMAP.md` and `docs/PUBLIC_SITE_CAPABILITY_MATRIX.md` for qualifications and hardening work.
+
+## 6.4 Missing Features and Capability Boundaries (Non-AI)
+
+- E-learning/LMS integration (SCORM/xAPI) and accredited course catalogue.
+- General electronic-signature workflow for care plans, family consent, contracts and policies. A `digital_signature` field on training records is not a general e-signature product or evidence of a signed care document.
+- External DBS-check provider integration (for example GBG/uCheck); the DBS lifecycle module is not itself a live provider connection.
+- SMS delivery; email, in-app notifications and selected web-push flows exist, but no SMS provider/sender/consent operation is approved.
+- Physical printing integration (for example PrintNode).
+- A versioned document workspace with signature requests, review/approval lifecycle and family-facing sign-off; existing document/evidence uploads do not provide that complete lifecycle.
+- Family Portal finance access and family-facing invoice/payment workflows.
+- Supported-living mobile experience; see the explicitly unbuilt requirements and role-gate findings in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`.
+- Productized staff 1-to-1/supervision records with action and review scheduling.
+- Recruitment applicant pipeline, lead CRM, sales follow-up and marketing campaign automation. Treat these as an adjacent-suite decision, not assumed core care-record scope.
+- Advanced multi-stop travel-time/continuity optimisation comparable to AIM's public description; supported-living drag-and-drop rota scheduling (the domiciliary call-assignment board already supports drag/drop).
+- Managed, repeatable legacy-data migration with a documented scope, reconciliation and customer sign-off.
+- Homecare timesheet approval, approved-only payroll exports and reconciliation exist; remaining gaps are validated external provider round trips and statutory payroll processing (which remains outside the product's current payslip/export boundary). See the competitive benchmark below.
+
+> **Mobile, supported living.** The shipped mobile app is domiciliary-oriented: its data layer calls `/homecare/*`, which is mounted behind `requireDomiciliaryOnly`. The supported-living capability and role-gate gaps—including shift attendance/handover and support-worker incident/task paths—are specified in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`. Verify each route against the current branch before release; do not describe this app as a supported-living field workflow until the blueprint's backend and mobile acceptance criteria pass.
+
+## 6.5 Competitive Readout
+
+Against AIM's public positioning, MeticleCare's strongest defensible advantages are its supported-living operating model, enforced scheduling/permission boundaries, four-regulator architecture and source-linked, audited, human-reviewed intelligence. Its clearest gaps are end-to-end conversational action workflows, sophisticated travel/continuity-aware optimisation (despite existing basic homecare suggestions and travel estimates), supported-living drag/drop scheduling, general electronic-signature/document lifecycle, multi-channel family/staff messaging, managed migration and adjacent recruitment/sales/marketing automation. The full evidence table and response priorities appear later in this roadmap. These are product comparisons, not claims that AIM lacks a feature: absence from a public page is not proof of absence in its product.
 
 ---
 
@@ -349,17 +353,12 @@ modules/<name>/
 
 AI must not remain an isolated module. It should become a horizontal intelligence layer operating across the platform.
 
-**AI Infrastructure Module** (centralised):
-- AI provider configuration
-- Model selection and routing
-- API key management
-- Prompt management (versioned)
-- Usage monitoring and cost controls
-- Audit records
-- Organisation-level AI settings
-- AI consent and governance controls
+**Target AI Infrastructure** (centralised design, not all shipped):
+- Organisation-scoped AI provider/configuration, feature enablement and monthly usage caps exist.
+- Prompts are maintained in code; a runtime version registry, general model-routing console and shared agent/action framework are not documented as shipped.
+- Audit records and provider fallback exist; legal processor/transfer agreements remain a production gate, and a general consent/governance workflow is not established by this blueprint.
 
-**Domain AI Capabilities** (distributed):
+**Domain AI Capabilities** (distributed; shipped scope is bounded):
 - Incident intelligence → incidents module
 - Medication intelligence → emedication module
 - Rota intelligence → scheduling module
@@ -368,6 +367,8 @@ AI must not remain an isolated module. It should become a horizontal intelligenc
 - Documentation generation → available within each relevant workflow
 
 ## 7.2 AI Operating Model (5 Levels)
+
+This is a target-state capability ladder, not a checklist of shipped features. The current implementation is narrower: bounded AI workflows and source-linked intelligence are available behind organisation controls; the shared agent/action framework, autonomous workflows and many drafting examples below are proposals. See §6 and `docs/AI_PRODUCT_ROADMAP.md` for current scope.
 
 ### Level 1: Assistance
 AI helps a user complete a task but does not perform actions independently.
@@ -380,7 +381,7 @@ AI helps a user complete a task but does not perform actions independently.
 - Explain a staffing report
 
 ### Level 2: Generation and Workflow Support
-AI creates structured drafts using existing CareDesk information.
+AI creates structured drafts using existing MeticleCare information.
 - Draft daily notes from voice input ✅ (implemented)
 - Draft incident reports
 - Draft care-plan sections
@@ -396,8 +397,10 @@ AI creates structured drafts using existing CareDesk information.
 
 All generated content must be marked as AI-generated until reviewed and approved.
 
-### Level 3: Continuous Intelligence
-System continuously analyses data and identifies risks, patterns or missing information.
+### Level 3: Event-Driven Signals and Intelligence
+Implemented event consumers can react to selected events (including incident triage, missed/late medication, low stock, unfilled/understaffed shifts and expiry/review events); the `/intelligence` surface also computes selected date-bounded, rules-first signals. This is not comprehensive continuous monitoring, statistical anomaly detection or a validated clinical early-warning service. Extend event coverage and source-backed rules incrementally, with owners and tests per signal.
+
+Potential coverage (not all currently implemented):
 - Overdue care-plan reviews
 - Missing signatures
 - Repeated late medication administrations
@@ -413,8 +416,8 @@ System continuously analyses data and identifies risks, patterns or missing info
 - Policies requiring review
 - Compliance evidence becoming stale
 
-### Level 4: Prediction and Decision Support
-System estimates future risk or operational demand.
+### Level 4: Validated Prediction and Decision Support (Future)
+No learned prediction or validated clinical deterioration model is documented as shipped. Consider future statistical/model estimates of risk or operational demand only after the data-quality, bias, explainability, held-out validation, clinical-safety and monitoring prerequisites in §19.3 are met.
 - Likelihood of staffing shortages
 - Possible increase in agency usage
 - Potential service-user deterioration
@@ -428,8 +431,8 @@ System estimates future risk or operational demand.
 
 Predictive outputs must include: confidence level, supporting factors, data period used, limitations, recommended human review, no unsupported clinical diagnosis.
 
-### Level 5: Controlled Automation
-System may perform approved low-risk actions under clearly defined policies.
+### Level 5: Controlled Automation (Future, gated)
+The current autonomy default is **advisory**. Existing workflows may create reviewed records (for example, an approved daily note), and event consumers can create defined alerts or triage outputs; a generic action/approval queue and organisation-configurable agent automation are not shipped. Any future low-risk automation requires explicit organisation opt-in, role/permission checks, immutable audit evidence, idempotency, limits, monitoring, an undo/compensation path where practical and a clear human owner.
 - Create a draft task
 - Schedule a review reminder
 - Send an internal notification
@@ -440,7 +443,7 @@ System may perform approved low-risk actions under clearly defined policies.
 - Send approved training reminders
 - Escalate an overdue action through configured workflows
 
-**High-risk decisions must never be fully autonomous.** The system must not independently:
+**High-risk decisions must never be fully autonomous.** Regardless of any future low-risk automation opt-in, the system must not independently:
 - Make clinical diagnoses
 - Change medication instructions
 - Administer medication
@@ -457,15 +460,19 @@ System may perform approved low-risk actions under clearly defined policies.
 
 # 8. Event and Intelligence Engine
 
-## 8.1 Why Events Are Needed
+## 8.1 Current State and Remaining Scope
 
-The current application is highly modular but operates in request/response mode only. Intelligent workflows require modules to react to events occurring elsewhere in the platform.
+The PostgreSQL domain-event outbox, consumer registry, retry handling and in-process worker are implemented, with selected production consumers registered for incident triage, medication exceptions, Mission Control alerts and related operational events. The current source of truth is `apps/api/src/modules/events/` and the consumer registry. Coverage is partial: not every event in the proposed catalogue below is published or consumed, and the engine does not itself provide an AI recommendation/approval queue or general cross-module action orchestration.
+
+Further intelligent workflows require additional event coverage, narrowly scoped consumers, idempotency, org context, and monitoring/retry evidence. Do not rebuild the outbox as a new project; extend and test the shipped infrastructure.
 
 Example: A missed medication administration should trigger checks across medication safety, incident management, care plan review, staffing compliance, and inspection readiness — all from a single event.
 
 ## 8.2 Domain Events
 
-### Core Domain Events
+### Target Event Catalogue (Not All Published)
+
+The catalogue is a design inventory. Only selected events currently have production publishers/consumers; event names and trigger descriptions below do not guarantee implementation. Check the live module routes and consumer registry before planning against any event.
 
 | Event Name | Producing Module | Trigger Condition |
 |---|---|---|
@@ -528,17 +535,19 @@ interface DomainEvent {
 
 ## 8.3 Event Infrastructure Strategy
 
-### Recommended Phased Approach
+### Remaining Event-Driven Work
 
-| Phase | Mechanism | Rationale |
-|---|---|---|
-| Phase 1 | PostgreSQL transactional outbox | No new infrastructure; events published within existing DB transactions; reliable delivery |
-| Phase 2 | Background worker polling outbox | Async processing without new deps; simple retry logic |
-| Phase 3 | Redis pub/sub for real-time | Low-latency notifications for UI updates |
-| Phase 4 (if needed) | BullMQ on Redis | Mature job queue with retries, delays, priorities, rate limiting |
-| Future | Kafka/NATS | Only if horizontal scaling of event processing is required |
+| Work | State |
+|---|---|
+| PostgreSQL outbox, worker, consumer registry, per-consumer state/retries and admin endpoints | Implemented; see `apps/api/src/modules/events/` |
+| Production consumers for incident triage, medication exceptions, Mission Control alerts | Implemented for selected event types; extend coverage with tests |
+| Broad event publishing across every domain mutation and complete operational coverage | Not complete; prioritize safety-relevant, owned workflows |
+| General user-configurable AI action and human approval queue | Not implemented; define before attaching write tools |
+| Real-time Redis fan-out / separate queue service | Not currently required; consider only if measured latency/throughput needs justify it |
 
-### Outbox Table Schema
+### Existing Outbox Contract (Reference)
+
+The following schema and strategy describe the original design intent, not necessarily the exact current implementation. For changes, follow the live schema and `apps/api/src/modules/events/` contracts.
 
 ```sql
 CREATE TABLE domain_events (
@@ -569,26 +578,26 @@ CREATE TABLE domain_events (
 );
 ```
 
-### Key Design Decisions
+### Shipped Outbox Semantics (Verify Against Current Code)
 
-1. **Transactional outbox**: Events are written in the same transaction as the business operation. A background worker polls unpublished events and publishes them. This guarantees at-least-once delivery without losing events when the publisher fails after the DB commit.
+- `publishDomainEvent` inserts into `domain_events` through the request-scoped database client; when called inside the originating transaction, the event commits with that transaction.
+- The in-process worker claims pending rows with `FOR UPDATE SKIP LOCKED` and invokes registered consumers under organisation context.
+- Consumer failures are tracked and retried up to the current `MAX_PUBLISH_ATTEMPTS` (3); the earlier five-attempt/exponential-backoff description is not the live contract.
+- `cleanupOutbox` deletes published events older than 90 days and processed consumer rows older than 30 days; it does not archive rows as the earlier design text claimed.
+- Consumers must remain idempotent because retries and multi-instance delivery can repeat work. See `apps/api/src/modules/events/events.outbox.ts` and `events.worker.ts` for implementation truth.
 
-2. **Idempotency**: Every consumer must handle duplicate events. Use `(event_name, subject_entity_id, event_timestamp)` or a deduplication key in the payload.
+### Technology Comparison (Original Design Options)
 
-3. **Retry**: Failed publishes are retried with exponential backoff. After 5 attempts, events are flagged for manual review.
+The comparison below records architectural alternatives, not a schedule. The PostgreSQL outbox/worker is already implemented; add a separate queue or real-time fan-out only in response to measured operational need.
 
-4. **Retention**: Published events are retained for 90 days, then archived. Audit-critical events are retained per organisational policy.
-
-### Technology Comparison
-
-| Technology | Pros | Cons | Recommendation |
+| Technology | Pros | Cons | Current position |
 |---|---|---|---|
-| PostgreSQL outbox | No new infra, transactional, reliable | Polling overhead, not real-time | ✅ Phase 1 |
-| In-process EventEmitter | Simple, fast | Lost on restart, no persistence | ❌ Not reliable |
-| Redis pub/sub | Real-time, fast | No persistence, no retry | ✅ Phase 3 (complementary) |
-| BullMQ | Mature, retries, delays, priorities | New dependency | ✅ Phase 4 |
-| RabbitMQ | Full AMQP, routing | Heavy, operational complexity | ❌ Overkill |
-| Kafka | Massive throughput, replay | Extreme complexity | ❌ Overkill |
+| PostgreSQL outbox + worker | Transactional persistence, retryable delivery, no separate broker | Polling overhead; not a real-time guarantee | ✅ Shipped; extend and measure |
+| In-process EventEmitter | Simple, fast | Lost on restart, no persistence | ❌ Not a substitute for the durable outbox |
+| Redis pub/sub | Low-latency fan-out | No persistence/retry by itself | Not required by current evidence; add only for a measured realtime use case |
+| BullMQ | Mature retries, delays and priorities | New dependency and operational surface | Reassess only if current worker limitations are measured |
+| RabbitMQ | Full AMQP routing | Additional operational complexity | No current requirement established |
+| Kafka | High throughput and replay | Significant complexity | No current requirement established |
 
 ---
 
@@ -619,6 +628,8 @@ Each agent has:
 - Evaluation criteria
 
 ## 9.2 Agent Registry
+
+The roles and responsibilities below are conceptual product boundaries, not a registry of deployed autonomous agents. Shipped AI capabilities are bounded endpoints listed in `docs/AI_PRODUCT_ROADMAP.md`; several examples below remain future workflows.
 
 ### 9.2.1 Compliance Officer Agent
 
@@ -831,7 +842,7 @@ MAR records, scheduled administrations, actual administrations, missed doses, la
 
 ## 10.1 Data Sources
 
-The AI should be able to retrieve information from:
+Target sources for a future organisational knowledge layer (not evidence that a full RAG/indexing service exists today):
 - Policies and procedures
 - Care plans
 - Risk assessments
@@ -863,29 +874,30 @@ The AI should be able to retrieve information from:
 | Re-indexing | Trigger re-indexing when records change |
 | Immediate revocation | Remove access when permissions change |
 
-## 10.3 Retrieval Strategy
+## 10.3 Retrieval Strategy (Future Design)
 
-| Technology | Use Case | Recommendation |
+A full organisational search/index and general-purpose tool-calling layer are not documented as shipped. Current intelligence endpoints use bounded, tenant-scoped record sets; do not infer that the capabilities below are available as a general service.
+
+| Capability | Intended use | Current position |
 |---|---|---|
-| PostgreSQL full-text search | Keyword search across documents | ✅ Phase 1 (already available) |
-| pgvector | Semantic similarity search | ✅ Phase 2 |
-| Hybrid search | Combine keyword + vector | ✅ Phase 2 |
-| Record-level metadata filters | Scope retrieval by location/role/SU | ✅ Phase 1 |
-| Document chunking | Break long documents into searchable segments | ✅ Phase 2 |
-| Structured-data retrieval | Live module queries via tools | ✅ Phase 1 |
-| Tool calling | Agents call module services via defined tools | ✅ Phase 1 |
+| PostgreSQL full-text search | Keyword search across approved documents | No general AI knowledge-search service is documented as shipped |
+| pgvector / hybrid search | Semantic and keyword retrieval | Future option; decide only after retention, deletion, permissions and processor terms are resolved |
+| Record-level metadata filters | Scope by organisation, location, role and person | Tenant/RBAC checks exist for current AI source paths; extend and test per endpoint |
+| Document chunking/version control | Search current approved document sections | Future capability; source freshness and superseded-version handling required |
+| Structured-data retrieval | Read operational records | Bounded source retrieval exists in intelligence endpoints; generic agent tools are not shipped |
+| Tool calling | Invoke narrowly-scoped module actions | Proposed only; writes require permissions, validation, audit and explicit human approval |
 
-**Key principle:** Live structured data should normally be retrieved from authoritative module services via tool calling, not from vector search. Vector search is supplementary for unstructured content (policies, documents, notes).
+**Key principle:** Live structured data should normally come from authoritative module services. Any future document/vector search is supplementary and must respect source permissions, versions, deletion and tenant scope.
 
 ---
 
 # 11. AI Tool and Action Framework
 
-## 11.1 Tool Registry
+## 11.1 Proposed Tool Registry
 
-All agent interactions with CareDesk data go through approved tools. Agents must not have unrestricted database access.
+This registry is a target design, not a shipped general-purpose agent tool framework. Current assistants use bounded, permission-checked source retrieval and do not execute arbitrary SQL; cross-module write tools and the approval system below remain unimplemented. Any future agent interaction with MeticleCare data must use approved, tenant- and role-scoped interfaces rather than unrestricted database access.
 
-### Read Tools
+### Candidate Read Interfaces (Not a Live API Contract)
 
 | Tool | Module | Description |
 |---|---|---|
@@ -904,7 +916,7 @@ All agent interactions with CareDesk data go through approved tools. Agents must
 | `get_overdue_actions` | audit | Get overdue action items |
 | `get_audit_logs` | audit | Get audit trail for records |
 
-### Controlled Write Tools
+### Candidate Write Tools (Not Implemented)
 
 | Tool | Module | Approval Required |
 |---|---|---|
@@ -917,7 +929,7 @@ All agent interactions with CareDesk data go through approved tools. Agents must
 | `request_missing_evidence` | compliance | Yes — manager must approve |
 | `prepare_draft_family_update` | family-portal | Yes — staff must review before sharing |
 
-### Tool Schema Template
+### Proposed Tool Schema Template
 
 ```typescript
 interface ToolDefinition {
@@ -944,9 +956,11 @@ interface ToolDefinition {
 
 # 12. Mission Control
 
-## 12.1 Vision
+## 12.1 Current Surface and Vision
 
-Mission Control is an enhanced manager workspace that answers:
+A Mission Control page/surface and event-backed alerts exist. This section describes desired manager outcomes and candidate widgets, not a guarantee that each metric, insight, workflow or control listed is implemented. Check the current dashboard and mission-control APIs before treating a row below as shipped.
+
+Mission Control is an enhanced manager workspace that aims to answer:
 - What needs attention today?
 - Who may be at risk?
 - Is the organisation safely staffed?
@@ -962,13 +976,15 @@ Mission Control is an enhanced manager workspace that answers:
 
 ## 12.2 Sections
 
-### Daily Briefing
+### Daily Briefing (Illustrative)
 ```
 "Good morning. Three items require urgent review:
 1. Friday night shift is below safe staffing level
 2. 5 care plans are due this week
 3. 2 medication records require attention"
 ```
+
+Example only; not a live result or evidence that Mission Control currently displays each item.
 
 ### Operational Health
 - Safe staffing status per location
@@ -1021,7 +1037,9 @@ Managers must be able to ask:
 
 ---
 
-# 13. Cross-Module Intelligence Workflows
+# 13. Cross-Module Intelligence Workflows (Target Scenarios)
+
+The scenarios below describe intended end-to-end behaviour. Existing events, alerts and AI triage cover selected steps; do not infer that each numbered sequence currently runs automatically. Verify publishers, consumers, permissions and human-review gates before presenting a workflow as live.
 
 ## 13.1 Missed Medication Workflow
 
@@ -1115,6 +1133,8 @@ When inspection mode is activated:
 
 # 14. AI Documentation Platform Capabilities
 
+The subsections distinguish current daily-note assistance from proposed expansions. They do not imply that all listed document types or workflows are available.
+
 ## 14.1 Voice-to-Structured-Record (✅ Partially Implemented)
 
 Current state: Browser-native Web Speech API transcribes voice → staff saves as daily note → AI generates structured analysis with mood, safeguarding flags, care plan updates.
@@ -1178,17 +1198,19 @@ The AI must not silently change a person's risk rating.
 
 # 15. Human Approval and Autonomy Controls
 
-## 15.1 Organisation-Level Autonomy Settings
+## 15.1 Proposed Organisation-Level Autonomy Policy
 
-| Level | AI Can | AI Cannot |
+The product has organisation-level AI configuration, feature enablement, budgets and an approved-processor gate. A selectable Advisory/Draft/Controlled autonomy-level setting and generic action permissions are not documented as shipped; advisory, user-reviewed behaviour remains the safe default. Existing workflows may save records after human review; this policy ladder does not disable those established workflows.
+
+| Target level | Permitted behaviour | Boundary |
 |---|---|---|
-| **Advisory Only** | Analyse, suggest, answer questions | Create records, create tasks, send notifications |
-| **Draft Mode** | Create drafts of notes, plans, reports | Save anything without human approval |
-| **Controlled Automation** | Perform approved low-risk actions (reminders, draft tasks) | High-risk actions without approval |
+| **Advisory Only** | Analyse, suggest, answer questions; existing bounded workflows can proceed through their own human-reviewed save path | No new autonomous cross-module writes or unattended action |
+| **Draft Mode** | Produce a draft in a supported workflow | Human must review/approve before saving or sharing |
+| **Controlled Automation (future)** | Only explicitly approved, low-risk actions under organisation opt-in | No high-risk action without approval; require role/permission checks, audit, idempotency, limits, monitoring and undo/compensation where practical |
 
 ## 15.2 Feature-Level Controls
 
-Administrators can enable/disable:
+Organisation-scoped feature configuration exists for selected AI capabilities. The following is a target control surface, not a list of current toggles; verify each capability against the live Settings > AI form and API:
 - Voice documentation
 - Incident triage
 - Compliance monitoring
@@ -1199,9 +1221,9 @@ Administrators can enable/disable:
 - Automatic task creation
 - Automatic internal reminders
 
-## 15.3 Risk-Level Controls
+## 15.3 Risk-Level Controls (Target Design)
 
-Controls may be configured by:
+Future autonomy rules may be scoped by:
 - Organisation
 - Location
 - Module
@@ -1213,38 +1235,35 @@ Controls may be configured by:
 
 # 16. AI Governance, Safety and Compliance
 
-## 16.1 UK GDPR
+## 16.1 Data Protection and AI Governance (Requirements, Not Legal Advice)
 
-| Requirement | Implementation |
+The following are governance questions and release controls, not a declaration of legal compliance. Lawful basis, special-category condition, controller/processor roles and notices depend on the provider's actual use and require qualified review.
+
+| Area | Required control / current evidence |
 |---|---|
-| Lawful basis | Article 6(1)(f) legitimate interest + Article 9(2)(h) healthcare treatment |
-| Special-category data | Health data requires explicit safeguards; DPA 2018 Schedule 1 conditions |
-| Data minimisation | AI only receives data necessary for the specific task |
-| Data Processing Agreement | Required with OpenAI/Anthropic as data processor |
-| Data residency | API calls routed through our backend; data processing location documented |
-| Subprocessor records | Maintain list of AI providers as subprocessors |
-| Right to correction | Users can correct AI-generated content before approval |
-| Right to challenge | Users can dismiss/reject AI recommendations |
-| Subject-access requests | AI-generated content about a person is included in SARs |
-| Data deletion propagation | When a record is deleted, associated AI data must be cleaned |
+| Lawful basis and special-category condition | Provider-specific assessment and documentation; do not assume one Article 6/9 basis applies to every organisation or workflow. |
+| Data minimisation | Configurable boundary/pseudonymisation controls exist, but the readiness/claim records say the default can send narrative free text. Review the setting and payload for each enabled capability. |
+| Processor agreement and transfers | Production LLM processing remains gated on the provider processor/transfer agreement (`docs/GO_LIVE_READINESS.md`, T0-17b); an approved-processor gate is not itself a signed agreement. |
+| Processing location | Requests route through MeticleCare's backend; external providers may process data outside the UK. Disclose and assess actual processing/transfer terms—do not imply UK-only processing. |
+| Subprocessor records | Maintain and review the processor/subprocessor register and customer-facing disclosures before production use. |
+| Correction and challenge | Keep human review and correction/rejection available for supported workflows; a generic recommendation queue is not shipped. |
+| Subject access and deletion | Treat AI-related records under the provider's applicable information-rights and retention processes. Do not imply automated SAR or deletion-propagation workflows absent evidence. |
+| DPIA and accountability | Feature-level location DPIA exists; organisation-wide DPIA/legal assessment remains open in the go-live tracker. Complete the provider-specific assessment before deployment. |
 
-## 16.2 CQC Compliance
+## 16.2 Safety and Regulatory Considerations (Not a Compliance Determination)
 
-Per CQC's May 2026 AI statement:
-- **AI to support, not replace** — enhance but never replace human decision-making
-- **Human oversight** — outputs continuously monitored and evaluated
-- **Transparency and choice** — service users informed about AI's role
-- **Safety and reliability** — AI must deliver safe, equitable outcomes
-- **Security** — GDPR-compliant storage and processing
-- **Fairness** — bias mitigated, equity maintained
-- **Training** — staff sufficiently trained and confident
-- **Effective governance** — risk assessments, incident reporting, lessons learned
-- **DPIA** — mandatory before deployment
-- **Accountability** — clear mechanisms for addressing AI-related harm
+Use these as product-design principles, not as a statement that a regulator has approved the product or that a single regulator's AI guidance applies to every UK nation/service:
+- **Support, not replace:** retain qualified human decision-making for care, safeguarding, medication and statutory reporting.
+- **Human oversight:** make responsibility, review and escalation explicit for each workflow.
+- **Transparency:** explain where AI is used and what data it processes in language suitable for staff and affected people.
+- **Safety and fairness:** evaluate errors, bias and impact in representative operational settings.
+- **Security and governance:** control access, data flows, retention and incident handling.
+- **Training and accountability:** ensure staff understand limitations and know how to challenge or escalate outputs.
+- **Jurisdictional review:** verify current primary sources and provider obligations for the relevant regulator and nation; this blueprint is not legal advice.
 
 ## 16.3 High-Risk Contexts
 
-The following require heightened review and clear warnings:
+The following require heightened review, qualified owners and clear warnings:
 - Safeguarding
 - Medication
 - Capacity assessments
@@ -1255,20 +1274,19 @@ The following require heightened review and clear warnings:
 - Risk-rating changes
 - Family disclosures
 
-## 16.4 Safety Controls
+## 16.4 Safety Controls and Evidence Status
 
-| Control | Implementation |
+| Control | Current evidence / remaining work |
 |---|---|
-| AI-generated content labelling | Every AI output tagged with `ai_generated: true` |
-| Human-in-the-loop | All write operations require human approval |
-| Prompt-injection protection | Input sanitisation, system prompt isolation |
-| Retrieval poisoning protection | Validate retrieved content integrity |
-| Hallucination controls | Structured output validation, source citations, confidence scores |
-| Sensitive-data redaction | PII stripped from prompts where not needed |
-| Model-risk management | Version pinning, rollback capability |
-| Bias testing | Regular evaluation of output fairness |
-| Incident-response procedures | Defined escalation path for AI failures |
-| Model-provider outage procedures | Fallback provider, graceful degradation |
+| AI-generated content labelling | AI-assisted labels are implemented for documented intelligence workflows; audit older endpoints and saved-record surfaces individually. |
+| Human review | Required before consequential action, saving, publishing, notifying or sharing on the documented intelligence surface; do not generalise to every legacy endpoint without checking. |
+| Prompt-injection protection | Treat as a required security control; verify the concrete protections and tests for each endpoint before claiming coverage. |
+| Retrieval integrity and access | Tenant/RBAC-scoped retrieval is implemented for current AI source sets; a general knowledge retrieval/indexing layer is not shipped. |
+| Output validation and provenance | Structured validation, date ranges and source references exist on the intelligence path; audit legacy endpoints and preserve source links. |
+| Sensitive-data minimisation | Boundary controls exist, but the default may include narrative text; review enabled configuration, provider terms and payloads. |
+| Prompt/model change management | Prompts live in code; no runtime prompt registry/version approval workflow is documented as shipped. Add evaluation/rollback evidence before changing models or prompts broadly. |
+| Bias and quality evaluation | Maintain a governed evaluation plan and representative evidence; no independent fairness validation is claimed here. |
+| AI incident response and provider outage | Provider fallback/configuration exist; verify an operational AI incident process and tested degradation path before asserting readiness. |
 
 ---
 
@@ -1276,61 +1294,49 @@ The following require heightened review and clear warnings:
 
 ## 17.1 Existing Audit (✅ Implemented)
 
-The `ai_audit_logs` table currently stores:
+The `ai_audit_logs` table includes:
 - organisation_id, feature, prompt_key, prompt_tokens, completion_tokens, total_tokens
 - model, provider, duration_ms, success, error_message
 - created_by, request_data, response_summary, created_at
 
-## 17.2 Enhanced Audit (Planned)
+`request_data` may contain prompt/request fields; do not assume it contains only source IDs or non-sensitive metadata. Review route-specific payloads, access, retention and deletion before describing audit storage as data-minimised.
 
-Every AI interaction should additionally record:
-- tenant_id
-- location_id
-- user_role
-- agent_type
-- action_requested
-- prompt_template_version
-- tool_calls (list of tools invoked)
-- records_accessed (list of entity IDs)
-- output_schema_version
-- generated_result (structured)
-- confidence/uncertainty
-- human_changes (diff between AI output and final saved version)
-- approval or rejection (who approved, when)
-- final_saved_result
-- estimated_cost
-- safety_flags
-- correlation_id (links related AI interactions)
+## 17.2 Audit Extensions (Not Uniformly Implemented)
 
-**Privacy note:** Avoid storing unnecessary full prompts containing highly sensitive information when structured references are sufficient.
+For the source-linked intelligence surface, the roadmap documents user, capability, selected period/source IDs, provider/model, token use and duration in its audit trail. Before treating any field as a gap or implementing duplicate storage, compare that documented path with the live `ai_audit_logs` schema and route-specific audit payloads. Candidate extensions for workflows that need durable actions include:
+- location/role and action requested
+- prompt/schema version and tool calls (once a general tool framework exists)
+- records accessed and structured output reference
+- human edits, final saved result, and approval/rejection actor/time
+- confidence/uncertainty, safety flags and correlation ID
+
+**Privacy note:** retain only what is necessary for accountability; avoid storing full prompts or sensitive clinical text when references suffice. Apply documented access, retention and deletion controls.
+
+
 
 ---
 
 # 18. Prompt and Model Management
 
-## 18.1 Prompt Versioning
+## 18.1 Prompt and Model Management
 
-| Feature | Implementation |
+| Capability | Current evidence / remaining work |
 |---|---|
-| Versioned templates | Each prompt has a version number; templates stored in code with git history |
-| Organisation-level config | Per-org model selection and feature flags |
-| Provider fallback | If primary provider fails, fallback to secondary |
-| Model routing | Route different tasks to different models (e.g., quick tasks → gpt-4o-mini, complex analysis → claude-sonnet) |
-| Task-specific model selection | Configurable per feature |
-| Structured-output validation | Zod schemas validate all AI JSON output before use |
-| Retry policy | Exponential backoff, max 3 retries |
-| Timeout policy | 30s default, configurable per task |
-| Cost ceilings | Per-org daily and monthly token budgets |
-| Usage alerts | Notify when approaching budget limits |
-| Feature quotas | Rate limits per feature per org |
-| Rollback | Ability to revert to previous prompt version |
+| Prompt storage and history | Prompt text is maintained in code and benefits from source-control history; runtime prompt versioning/registry and prompt activation workflow are not documented as shipped. |
+| Organisation controls | Per-organisation AI configuration and feature enablement exist; verify exact model-selection controls against the live settings/API before relying on them. |
+| Provider fallback and cost limits | Provider fallback and monthly token/cost caps are documented as implemented; keep the production processor/transfer gate closed until legal sign-off. |
+| Routing by feature | Treat model routing and per-feature tuning as a design option; verify current code/config before describing it as configurable. |
+| Structured output | Validated schemas are used on the source-linked intelligence path; validate remaining legacy endpoints independently. |
+| Retry, timeout and quota policy | Set and test an explicit policy for each endpoint; this blueprint's historic numeric defaults are not a verified global contract. |
+| Evaluation and rollback | Add persistent evaluations and tested prompt/model rollback before broad changes; code history alone is not a runtime evaluation or rollback workflow. |
 
-## 18.2 Model Management
+## 18.2 Model Change Governance (Target Requirements)
 
-- Development, staging and production separation
-- Prompt-change approval workflow
-- Model-upgrade testing
-- Evaluation datasets for quality assurance
+The following are requirements for future changes, not evidence of a complete runtime workflow:
+- Separate and verify development, staging and production provider configurations
+- Review prompt changes before release
+- Test model upgrades against representative evaluation cases
+- Maintain evaluation datasets with privacy, retention and access controls
 
 ---
 
@@ -1338,7 +1344,9 @@ Every AI interaction should additionally record:
 
 ## 19.1 Three Tiers
 
-### Tier 1: Rules (Immediate)
+The tiers below describe an analytical roadmap, not a claim that all signals are implemented. Current intelligence is date-bounded and rules-first for selected sources; the current project matrix does not establish a learned baseline or comprehensive statistical trend service.
+
+### Tier 1: Rules (Selected Signals Implemented)
 Simple business rules — do NOT label as AI:
 - Training expiry within 30 days
 - Care plan overdue
@@ -1347,8 +1355,8 @@ Simple business rules — do NOT label as AI:
 - Compliance document expiring
 - Policy review overdue
 
-### Tier 2: Statistical Trends (Near-term)
-Pattern detection across time series:
+### Tier 2: Statistical Trends (Future / Validate Before Claiming)
+Potential pattern detection across time series (not a statement of current shipped capability):
 - Increase in falls relative to previous period
 - Declining wellbeing scores
 - Rising agency usage
@@ -1379,89 +1387,55 @@ Pattern detection across time series:
 
 # 20. Database Changes
 
-## 20.1 New Tables Required
+## 20.1 Existing and Candidate Tables (Verify Against Migrations Before Build)
 
-### `domain_events` (Event Outbox)
-**Why:** Core infrastructure for event-driven intelligence.
-**Existing overlap:** None.
-**Tenant isolation:** `organisation_id` column + index.
-**Key indexes:** `(published, event_timestamp) WHERE published = FALSE`, `(organisation_id, event_name, event_timestamp)`, `(correlation_id)`.
-**Retention:** 90 days published, indefinitely for audit-critical events.
-**Encryption:** Normal (not special category).
+The event infrastructure, `ai_audit_logs`, `organizations.ai_config`, notifications, tasks and domain records already exist. Other concepts below are optional design candidates, not implementation requests; audit current records and lifecycle needs before adding schema.
 
-### `event_consumers`
-**Why:** Track which modules/agents have processed which events.
-**Existing overlap:** None.
-**Key columns:** `event_id`, `consumer_name`, `status`, `attempts`, `last_error`, `completed_at`.
-**Retention:** 30 days.
+### Existing event tables: `domain_events` and `event_consumers`
+Their actual fields and constraints are implemented by current event migrations. Do not use historic schema sketches as migration templates. For authoritative structure and RLS policies, inspect `apps/api/src/shared/database/setup.ts` and `apps/api/src/modules/events/`.
 
-### `ai_prompt_templates`
-**Why:** Version prompt templates outside of code for runtime configuration.
-**Existing overlap:** Prompts currently in `ai.prompts.ts` (code).
-**Key columns:** `key`, `version`, `system_prompt`, `user_template`, `output_schema`, `is_active`, `created_by`.
-**Retention:** Indefinite (version history).
+The shipped system already has the outbox, consumers, retry handling and worker. Extend it rather than creating duplicates.
 
-### `ai_recommendations`
-**Why:** Store AI-generated recommendations for review/approval workflow.
-**Existing overlap:** None (current AI outputs are returned in response only).
-**Key columns:** `organisation_id`, `agent_type`, `feature`, `entity_type`, `entity_id`, `recommendation`, `evidence`, `priority`, `status` (pending/approved/rejected/expired), `reviewed_by`, `reviewed_at`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** 1 year.
+### Runtime prompt registry (Optional candidate; not shipped)
+**Why:** Support runtime prompt versioning only if code-based version history and release controls prove insufficient.
+**Existing overlap:** Prompts currently live in code and source-control history.
+**Design boundary:** Define approver, evaluation, rollback, tenant isolation and retention before choosing a table; do not make prompts customer-editable by default.
 
-### `ai_approvals`
-**Why:** Track the approval workflow for AI-generated actions.
-**Existing overlap:** None.
-**Key columns:** `recommendation_id`, `approver_id`, `action`, `changes_made`, `approved_at`.
-**Retention:** 2 years.
+### `ai_recommendations` (Proposed — not implemented)
+**Why:** Persist AI-generated recommendations for a durable review/approval workflow.
+**Existing overlap:** Current intelligence outputs are source-linked and audited, but the general pending recommendation/approval queue described here does not exist.
+**Candidate design:** Store an organisation-scoped recommendation reference, source/evidence references, allowed action, expiry/status and review actor/time. Decide schema, retention and audit boundaries only after the action lifecycle and privacy requirements are specified; enforce RLS and revalidate permissions when a reviewer acts.
 
-### `ai_feedback`
-**Why:** Capture user feedback on AI output quality.
-**Existing overlap:** None.
-**Key columns:** `organisation_id`, `feature`, `agent_type`, `prompt_version`, `output_quality`, `feedback_type`, `user_correction`, `original_output`, `final_output`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** 1 year.
+### Approval history and feedback (Optional designs; not shipped)
 
-### `ai_budgets`
-**Why:** Cost controls per organisation.
-**Existing overlap:** None (usage stats exist but no budgets).
-**Key columns:** `organisation_id`, `daily_token_limit`, `monthly_token_limit`, `daily_cost_limit`, `monthly_cost_limit`, `current_daily_usage`, `current_monthly_usage`, `reset_at`.
-**Retention:** Indefinite.
+A recommendation workflow may need durable approval history; feedback may support evaluation. First decide whether approval belongs in the recommendation lifecycle and existing audit log. Store only minimum necessary metadata; avoid a second approval table or retained clinical text without an established purpose and retention policy.
 
-### `knowledge_documents`
-**Why:** Index organisational documents for AI retrieval.
-**Existing overlap:** `documents` table exists but not indexed for AI retrieval.
-**Key columns:** `organisation_id`, `source_module`, `source_entity_id`, `title`, `content`, `content_embedding` (pgvector), `metadata`, `version`, `is_current`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** Matches source document retention.
+### `knowledge_documents` and `knowledge_chunks` (Candidate; not shipped)
+**Why:** Index approved organisational documents for future AI retrieval.
+**Existing overlap:** Person/compliance documents exist, but a version-aware AI search/index service is not documented as shipped.
+**Candidate fields:** source organisation/module/entity, title/version/current state, content reference or approved text, chunk position and retrieval metadata; avoid duplicating sensitive source content unnecessarily.
+**Tenant isolation and retention:** Must follow source permissions, deletion and retention; choose schema only after those requirements are approved.
 
-### `knowledge_chunks`
-**Why:** Break long documents into searchable segments.
-**Existing overlap:** None.
-**Key columns:** `document_id`, `chunk_index`, `content`, `embedding` (pgvector), `metadata`.
-**Retention:** Matches parent document.
+### `ai_organisation_policies` (Candidate; audit current config first)
+**Why:** Add governance state only if the current per-organisation config and existing governance records cannot satisfy a documented requirement.
+**Existing overlap:** `organizations.ai_config` already stores provider/features, limits and configuration; do not create a parallel source of truth.
+**Candidate fields:** only approved governance metadata that cannot be represented safely in existing settings; do not store legal consent, DPIA or agreement status as a substitute for formal records.
+**Tenant isolation and retention:** Define with the owning governance workflow before schema design.
 
-### `aiorganisation_policies`
-**Why:** Organisation-level AI governance configuration.
-**Existing overlap:** `organizations.ai_config` exists but limited to provider/model/features.
-**Key columns:** `organisation_id`, `autonomy_level`, `enabled_agents`, `data_retention_days`, `consent_recorded`, `dpia_completed`, `dpia_date`, `data_processing_agreement`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** Indefinite.
+### `inspection_snapshots` (Candidate; audit current evidence-pack functions first)
+**Why:** Preserve an inspection evidence state at a point in time if existing evidence-pack exports do not meet the requirement.
+**Existing overlap:** Readiness and evidence-pack functions exist; do not claim there is no snapshot-like output without checking their implementation.
+Candidate structure and retention must be selected only after auditing current exports, applicable evidence retention, legal requirements and RLS.
 
-### `inspection_snapshots`
-**Why:** Freeze evidence state at a point in time for inspection preparation.
-**Existing overlap:** None (CQC readiness is real-time only).
-**Key columns:** `organisation_id`, `location_id`, `regulator`, `framework`, `snapshot_data` (JSONB), `created_by`, `created_at`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** 3 years.
-
-### `operational_briefings`
-**Why:** Store generated daily briefings for history and comparison.
-**Existing overlap:** None.
-**Key columns:** `organisation_id`, `location_id`, `briefing_date`, `content` (JSONB), `generated_by`, `acknowledged_by`.
-**Tenant isolation:** `organisation_id`.
-**Retention:** 1 year.
+### `operational_briefings` (Candidate; do not duplicate existing briefing records)
+**Why:** Persist briefing history only if required by product and retention needs.
+**Existing overlap:** Manager briefing endpoints/surfaces exist; verify current persistence and audit before proposing another table.
+**Candidate fields:** organisation/location, date, source references, generated-by and review acknowledgement—only if persistence is a validated product need.
+**Tenant isolation and retention:** Follow existing RLS and the approved retention schedule.
 
 ## 20.2 Tables That Already Exist (Do Not Duplicate)
+
+`domain_events`, `event_consumers`, `ai_audit_logs`, `organizations.ai_config`, `notifications`, `tasks`, `audit_logs` and current domain-record tables are existing components. Verify the live migrations before making schema changes.
 
 | Proposed | Existing Equivalent |
 |---|---|
@@ -1477,7 +1451,9 @@ Pattern detection across time series:
 
 # 21. Backend/API Changes
 
-## 21.1 Event Infrastructure
+## 21.1 Existing Event Infrastructure (Shipped)
+
+The route list below is implemented in `apps/api/src/modules/events/events.routes.ts`; routes are authenticated and organisation-scoped. Keep its live interface authoritative.
 
 | Endpoint | Method | Module | Description |
 |---|---|---|---|
@@ -1486,80 +1462,66 @@ Pattern detection across time series:
 | `POST /events/retry/:id` | POST | events | Internal: retry failed event publish |
 | `GET /events/correlation/:id` | GET | events | Internal: get all events in a correlation chain |
 
-## 21.2 AI Infrastructure
+## 21.2 Proposed AI Governance and Review Endpoint Extensions
 
-| Endpoint | Method | Module | Permission | Description |
+Organisation-scoped AI settings, feature controls, data-minimisation settings, prompt disclosure and monthly budgets already exist through `/ai/config`, `/ai/data-minimisation` and `GET /ai/prompts`; audit/usage APIs also exist. The durable recommendation review flow is new. A runtime prompt-version API and generic feedback API are optional designs; no separate `/ai/governance` endpoint is proposed because it would duplicate existing settings surfaces.
+
+| Candidate endpoint | Method | Module | Permission | Description |
 |---|---|---|---|---|
-| `GET /ai/prompts` | GET | ai | ORG_ADMIN | List prompt templates with versions |
-| `POST /ai/prompts` | POST | ai | ORG_ADMIN | Create new prompt version |
-| `PUT /ai/prompts/:id/activate` | PUT | ai | ORG_ADMIN | Activate a prompt version |
-| `POST /ai/feedback` | POST | ai | All | Submit feedback on AI output |
-| `GET /ai/recommendations` | GET | ai | ORG_ADMIN, MANAGER | List pending recommendations |
-| `POST /ai/recommendations/:id/approve` | POST | ai | ORG_ADMIN, MANAGER | Approve recommendation |
-| `POST /ai/recommendations/:id/reject` | POST | ai | ORG_ADMIN, MANAGER | Reject recommendation |
-| `GET /ai/budgets` | GET | ai | ORG_ADMIN | Get current budget status |
-| `PUT /ai/budgets` | PUT | ai | ORG_ADMIN | Update budget limits |
-| `GET /ai/governance` | GET | ai | ORG_ADMIN | Get AI governance settings |
-| `PUT /ai/governance` | PUT | ai | ORG_ADMIN | Update governance settings |
+| `GET /ai/recommendations` | GET | ai | ORG_ADMIN, MANAGER | List authorised, pending recommendations |
+| `POST /ai/recommendations/:id/approve` | POST | ai | ORG_ADMIN, MANAGER | Approve an allowed action with revalidation and audit |
+| `POST /ai/recommendations/:id/reject` | POST | ai | ORG_ADMIN, MANAGER | Reject/dismiss with reason and audit |
+| `POST /ai/prompts/versions` | POST | ai | ORG_ADMIN | Optional runtime prompt-version workflow; existing `GET /ai/prompts` only discloses current templates |
+| `POST /ai/feedback` | POST | ai | Role-scoped | Optional feedback capture after purpose, access and retention are defined |
 
-## 21.3 Knowledge Layer
+## 21.3 Candidate Knowledge Layer (Not Shipped)
 
-| Endpoint | Method | Module | Permission | Description |
+Candidate endpoints below are sketches only; do not add them until policy/document search requirements, retention, deletion, provider processing and existing search APIs have been reviewed.
+
+| Candidate endpoint | Method | Module | Permission | Description |
 |---|---|---|---|---|
-| `POST /knowledge/search` | POST | knowledge | All (role-scoped) | Search organisational knowledge |
-| `POST /knowledge/index` | POST | knowledge | ORG_ADMIN | Trigger re-indexing of documents |
-| `GET /knowledge/status` | GET | knowledge | ORG_ADMIN | Index health and statistics |
+| `POST /knowledge/search` | POST | knowledge | Role-scoped | Search approved organisational knowledge with exact citations |
+| `POST /knowledge/index` | POST | knowledge | ORG_ADMIN | Trigger permission-aware indexing of approved documents |
+| `GET /knowledge/status` | GET | knowledge | ORG_ADMIN | Index health and statistics, with no sensitive content exposure |
 
-## 21.4 Mission Control
+## 21.4 Mission Control API (Existing Interface)
 
-| Endpoint | Method | Module | Permission | Description |
-|---|---|---|---|---|
-| `GET /mission-control/briefing` | GET | dashboard | ORG_ADMIN, MANAGER | Daily briefing |
-| `GET /mission-control/operational` | GET | dashboard | ORG_ADMIN, MANAGER | Operational health summary |
-| `GET /mission-control/quality` | GET | dashboard | ORG_ADMIN, MANAGER | Quality and compliance summary |
-| `GET /mission-control/attention` | GET | dashboard | ORG_ADMIN, MANAGER | Service-user attention items |
-| `GET /mission-control/actions` | GET | dashboard | ORG_ADMIN, MANAGER | Recommended actions |
+Mission Control surfaces and event-backed alerts are shipped. Do not add these speculative route names; use the current `/mission-control/summary`, `/alerts` and related implemented API contracts, and extend them only for an identified gap.
 
-## 21.5 New AI Domain Endpoints
+## 21.5 Candidate AI Endpoint Extensions (Check Existing `/ai/*` Routes First)
 
-| Endpoint | Method | Module | Permission | Description |
-|---|---|---|---|---|
-| `POST /ai/summarise/service-user/:id` | POST | ai | All (role-scoped) | Generate resident summary |
-| `POST /ai/draft/care-plan` | POST | ai | ORG_ADMIN, MANAGER | Draft care plan section |
-| `POST /ai/draft/risk-assessment` | POST | ai | ORG_ADMIN, MANAGER | Draft risk assessment |
-| `POST /ai/draft/handover` | POST | ai | ORG_ADMIN, MANAGER, CARE_WORKER | Draft handover summary |
-| `POST /ai/draft/incident-report` | POST | ai | ORG_ADMIN, MANAGER | Draft incident report |
-| `POST /ai/draft/family-update/:suId` | POST | ai | ORG_ADMIN, MANAGER | Draft family update |
-| `POST /ai/analyse/medication-patterns` | POST | ai | ORG_ADMIN, MANAGER | Medication pattern analysis |
-| `POST /ai/analyse/staffing-predict` | POST | ai | ORG_ADMIN | Staffing demand prediction |
-| `POST /ai/compliance/continuous-check` | POST | ai | ORG_ADMIN, MANAGER | Run continuous compliance check |
+The intelligence API already includes care summaries, manager/end-of-day briefings, change/risk/compliance signals, operational assistance, rota alternatives, competency coaching and manager-reviewed family communication drafts. Do not add duplicate endpoints for those capabilities. Potential new APIs should be limited to validated roadmap work:
+
+| Candidate capability | Status | Boundary |
+|---|---|---|
+| Care-plan/risk-assessment drafting | Not documented as shipped | Draft-only, source-linked, preserve prior version and require qualified human approval |
+| Handover/incident structured-draft expansion | Existing incident triage and note workflows are not equivalent to a complete drafting lifecycle | Add only if user research identifies a need; preserve original and role-scope source evidence |
+| Persistent recommendations and approvals | Not shipped | Permission-checked, durable, auditable and idempotent; no silent writes |
+| Version-aware policy Q&A | Not shipped | Approved current sources only, tenant/RBAC scoped with exact citations and retention controls |
+| Clinical or staffing prediction | Research/future | Separate validation, safety and monitoring programme; never market as a current endpoint |
 
 ---
 
 # 22. Frontend/UX Changes
 
-## 22.1 AI Daily Notes Page (✅ Implemented)
+## 22.1 AI Daily-Note Assistance (Existing; Verify UI Details)
 
-Current: Voice input, service user selector, AI analysis (daily note, mood, safeguarding, care plan updates, interventions), approve workflow.
+AI-assisted daily-note generation and review are documented as existing. Browser-native speech input is available; do not assume every listed field-level extraction or saved-record provenance feature is present across all note workflows.
 
-Enhancement needed:
-- Whisper API server-side transcription (reliable across browsers)
-- Field-level provenance (highlight which words generated each field)
-- Batch mode (multiple SUs in sequence)
-- History view (recent AI-generated notes)
+Potential enhancements:
+- Evaluate a governed server-side transcription fallback (not shipped)
+- Show field-level provenance from the staff's original words
+- Add batch/history views only if validated by user research and retention requirements
 
-## 22.2 Mission Control (Planned)
+## 22.2 Mission Control (Existing Surface; Enhancements Proposed)
 
-New page or enhanced dashboard section:
-- Daily briefing card
-- Operational health widgets (staffing, overtime, agency)
-- Quality/compliance summary with trend
-- Service-user attention list
-- Recommended actions queue with approve/edit/dismiss
-- Explainability drill-down (click any alert to see source records)
-- Real-time updates via Socket.IO
+The manager-facing Mission Control surface and event-backed alerts already exist. Candidate improvements, subject to verifying existing widgets and APIs:
+- Expand operational and compliance source coverage
+- Add route-aware source drill-down for signals that currently expose IDs only
+- Build a durable AI recommended-actions queue with approve/edit/dismiss (not shipped)
+- Add real-time updates only where measured latency/user needs justify them
 
-## 22.3 AI Recommendation Queue (Plared)
+## 22.3 AI Recommendation Queue (Not Shipped)
 
 New page or sidebar widget:
 - List of pending AI recommendations
@@ -1568,19 +1530,13 @@ New page or sidebar widget:
 - Approve / Edit / Dismiss / Assign controls
 - Filter by agent type, priority, date
 
-## 22.4 AI Governance Settings (Planned)
+## 22.4 AI Governance Settings (Existing Configuration; Extensions Proposed)
 
-Extension to existing Settings > AI tab:
-- Autonomy level selector (Advisory / Draft / Controlled)
-- Per-feature enable/disable toggles
-- Budget configuration
-- DPIA status tracking
-- Consent recording
-- Data retention settings
+The Settings > AI area and organisation-scoped AI configuration/feature controls exist. These proposed additions are not all documented as shipped: a selectable autonomy level, DPIA status workflow, consent recording and configurable AI-retention policy. Reconcile each against the live settings API before building or marketing it.
 
-## 22.5 Knowledge Search (Planned)
+## 22.5 Organisational Knowledge Search (Not Shipped)
 
-New component (available in sidebar or as a global search enhancement):
+Future component (available in sidebar or as a global search enhancement):
 - Natural-language search across policies, procedures, documents
 - Results with source citations
 - Permission-scoped (only shows what the user can access)
@@ -1594,7 +1550,7 @@ New component (available in sidebar or as a global search enhancement):
 - Role changes reflect quickly
 - Non-editing roles remain view-only
 - Existing leave and scheduling constraints intact
-- `tsc --noEmit` passes in both apps
+- Keep `npx tsc --noEmit` passing in both `apps/web` and `apps/api` as a release guard (not a check run for this document-only update)
 
 ---
 
@@ -1610,32 +1566,34 @@ New component (available in sidebar or as a global search enhancement):
 | Urgent Review | Time-sensitive | "Shift below safe staffing in 2 hours" |
 | Critical Escalation | Immediate attention | "Potential safeguarding concern identified" |
 
-## 23.2 Alert Controls
+## 23.2 Alert Controls (Target Requirements; Not All Shipped)
 
-| Feature | Implementation |
+Selected event-backed alerts, notifications and acknowledgement/assignment flows exist. The table is a target-state checklist; it does not assert that each control is implemented. Map and test each row against the current `alerts` and `notifications` modules before planning work.
+
+| Feature | Target behaviour |
 |---|---|
-| Deduplication | Same alert not repeated within cooldown window |
-| Alert grouping | Related alerts grouped (e.g., "3 medication issues today") |
-| Cooldown periods | Configurable per alert type (e.g., 4 hours for medication alerts) |
-| Escalation | Unacknowledged alerts escalate after configurable period |
-| Snoozing | Staff can snooze alerts for configurable duration |
-| Assignment | Alerts can be assigned to specific staff |
-| Acknowledgement | Staff must acknowledge action-required alerts |
-| Resolution | Alerts can be resolved with resolution notes |
-| Dismissal reasons | Dismissed alerts require a reason (false positive, already addressed, etc.) |
-| False-positive feedback | System learns from dismissed alerts |
-| Location-level routing | Alerts routed to staff responsible for the relevant location |
-| Role-based routing | Safeguarding → safeguarding lead, medication → medication lead |
-| Digest mode | Daily/weekly summary instead of real-time alerts |
-| Urgent mode | Real-time push for critical alerts |
+| Deduplication | Idempotent, event-key-based dedupe where a signal is retried |
+| Alert grouping | Group related items only where the existing UI and data model support it |
+| Cooldown periods | Configure by alert type where operationally needed; no universal four-hour rule assumed |
+| Escalation | Define an owner, timing and tested delivery channel per safety-relevant alert |
+| Snoozing | Optional, with due-time and accountability visible |
+| Assignment | Keep assignment permission-checked and auditable |
+| Acknowledgement | Provide acknowledgement for actionable alerts where required |
+| Resolution | Record resolution evidence and actor for supported alert types |
+| Dismissal reasons | Capture a reason where dismissal is supported and safety-relevant |
+| Feedback/evaluation | Capture feedback only with a retention/privacy plan; no automatic model learning is implied |
+| Location-level routing | Apply only where the user's authorised location scope is known |
+| Role-based routing | Route according to configured responsibility, not hardcoded regulator or job assumptions |
+| Digest mode | Offer only if validated against urgency and delivery needs |
+| Urgent mode | Use a tested channel and escalation owner for critical items |
 
 ---
 
 # 24. Feedback and Continuous Improvement
 
-## 24.1 User Feedback Mechanism
+## 24.1 Proposed User Feedback Mechanism (Not Shipped as a General Loop)
 
-Every AI output should offer:
+A future feedback control could offer:
 - 👍 Helpful
 - ❌ Incorrect
 - 📝 Missing context
@@ -1645,22 +1603,16 @@ Every AI output should offer:
 - 🏷️ Wrong category
 - ✏️ Poor wording
 
-## 24.2 Feedback Data Captured
+## 24.2 Feedback Data (Future; Not a General Capture Workflow)
 
-- Original AI output
-- User correction (if provided)
-- Final approved result
-- Feedback category
-- Agent and prompt version
-- Relevant record references
-- Timestamp
+If a feedback workflow is built, capture only the minimum approved information needed for evaluation, such as feedback category, capability, timestamp and a source reference. Do not default to retaining full original output, user corrections or clinical content; define purpose, access, retention and deletion first.
 
-## 24.3 Usage
+## 24.3 Governed Use
 
-- Evaluation datasets for prompt improvement
-- Quality dashboards
-- Model comparison (when multiple models available)
-- Bias detection
+- Build evaluation cases from reviewed, permissioned evidence
+- Track quality and safety trends without reusing sensitive customer data to train external models
+- Compare models only under an approved test protocol
+- Assess bias and errors with representative data; do not imply dismissal feedback automatically changes model behaviour
 
 **Privacy:** Do not automatically use sensitive customer data to train external models without explicit contractual and organisational approval.
 
@@ -1668,9 +1620,11 @@ Every AI output should offer:
 
 # 25. Commercial Packaging
 
-## 25.1 Subscription Tiers
+## 25.1 Proposed Packaging (Not a Published Offer)
 
-### CareDesk Core
+The following tier boundaries are commercial hypotheses, not approved pricing or a statement that every listed capability is available as a purchasable SKU. Separate currently enabled features from roadmap items and validate price/seat definitions before customer-facing use.
+
+### MeticleCare Core
 - Core care management (service users, care plans, daily records)
 - Staff management
 - Incidents
@@ -1680,41 +1634,34 @@ Every AI output should offer:
 - Notifications
 - Mobile (GPS check-in, voice notes)
 
-### CareDesk Intelligence
-- Documentation assistance (AI daily notes, incident drafting, care-plan drafting)
-- Resident summaries
-- AI search
-- AI rota analysis
-- Outcome tracking
+### MeticleCare Intelligence (Proposed Bundle)
+- Existing AI daily-note assistance and configured, bounded intelligence capabilities
+- Source-linked care summaries, manager briefings, risk/change/compliance signals
+- Advisory AI rota analysis and alternatives
+- Additional drafting and policy search only when delivered and governed; not all are shipped today
 
-### CareDesk Compliance Officer
-- Continuous compliance monitoring
-- Inspection readiness (5-domain gauge + AI gap analysis)
-- Evidence gap analysis
-- Policy intelligence
-- Automated action plans
-- Regulatory framework mapping (CQC/CIW/CIS/RQIA)
-- DSPT assessment
+### MeticleCare Compliance (Proposed Bundle)
+- Existing readiness, evidence mapping and bounded compliance signals
+- Evidence-gap analysis with jurisdiction-specific caveats
+- Policy intelligence and automated action plans only if separately built and approved
+- Frameworks named in product architecture include CQC, CIW, Care Inspectorate Scotland and RQIA; individual framework content has unresolved source qualifications in `docs/CLAIM_REGISTER.md`, so verify it before sale
+- Existing DSPT assessment workflow; completion/submission is not implied
 
-### CareDesk Operations Intelligence
-- Staffing-gap detection
-- Overtime analysis
-- Agency-cost optimisation
-- Operational briefings
-- Resource recommendations
-- Mission Control
+### MeticleCare Operations Intelligence (Proposed Bundle)
+- Existing selected staffing and operational signals, manager briefings and Mission Control
+- Proposed deeper overtime/travel/continuity analysis and suitable-worker recommendations
+- Agency forecasting and autonomous resource optimisation are not current capabilities
 
-## 25.2 Implementation
+## 25.2 Commercial and Entitlement Decisions
 
-| Feature | Mechanism |
+| Feature | Current position / proposed work |
 |---|---|
-| Feature flags | Per-org `enabledFeatures[]` in `ai_config` (✅ partially implemented) |
-| Subscription entitlements | Map features to Stripe subscription plans |
-| Usage limits | Per-org token budgets with daily/monthly caps |
-| Per-organisation AI budget | Configurable limits with alerts |
-| Add-on options | Additional AI features as bolt-ons to base subscription |
-| Trial controls | Time-limited access to Intelligence features |
-| Provider-cost protection | Hard budget caps to prevent runaway API costs |
+| Feature flags | Per-organisation AI feature enablement exists; verify current field/API rather than assuming `enabledFeatures[]` shape |
+| Subscription entitlements | Existing Stripe subscription; map proposed AI bundles to entitlements only after commercial approval |
+| Usage limits | Per-organisation monthly token/cost caps are documented as implemented; do not propose duplicate budget tables without a measured need |
+| Add-on options | Commercial hypothesis; validate price, active-seat definition and included capabilities before sale |
+| Trial controls | Not asserted as shipped; define only after billing and support requirements are agreed |
+| Provider-cost protection | Existing monthly caps; test enforcement and keep the processor/transfer gate for production providers |
 
 ---
 
@@ -1722,21 +1669,18 @@ Every AI output should offer:
 
 ## 26.0 Phase 2 — Multi-Service Care Platform (Commercial and Operational Expansion)
 
-MeticleCare is evolving from a supported-living-only platform into a multi-service care management system. At sign-up, organisations select their care type(s) — supported living, domiciliary care, care home, or live-in care — and the platform adapts its modules, navigation, onboarding, and pricing accordingly. Each location within an organisation can have its own service type, allowing mixed-service providers to manage everything from one platform.
+MeticleCare is evolving from a supported-living-focused platform into a multi-service care management system. Organisation-level service-type configuration and service-aware navigation/onboarding exist; treat the July-listed types, per-location granularity and pricing behaviour as historical claims to verify against current schemas and UI before quoting them as universal product coverage.
 
-### Organisation type-aware provisioning (implemented)
+### Organisation type-aware provisioning (implemented foundations; exact scope verify)
 
-| Component | Implementation |
+| Component | Current evidence / caveat |
 |---|---|
-| Database | `organizations.service_types TEXT[]` and `primary_service_type TEXT` columns; GIN index for efficient type queries |
-| Sign-up | Multi-select wizard: Domiciliary Care, Supported Living, Care Home, Live-in Care |
-| Onboarding | 3-step wizard: (1) type selection → (2) org details → (3) type-specific setup (package for domiciliary, room for residential, staffing ratios for supported living) |
-| Navigation | Sidebar adapts: domiciliary orgs see homecare, residential see eMedication, supported living see rota planner |
-| Dashboard | Type-specific widgets: domiciliary shows today's visits + exceptions + completion progress |
-| Pricing | Per carer + per client/staff/bed, configurable by care type |
-| Validation | Zod schemas include `service_types` and `primary_service_type`; `OrgRepository.updateOrg` whitelist includes both fields |
-
-### Release 2A — Homecare foundation (implemented in this increment)
+| Service model | Organisation-level service-type configuration exists; verify current schema and service options before quoting historical field details |
+| Sign-up/onboarding | Service-aware setup exists; step count and each service-specific pathway require current UI verification |
+| Navigation | Service-aware navigation is implemented; verify every module gate for mixed-service organisations |
+| Dashboard | Domiciliary visit/exception widgets exist; other per-service widgets need current route verification |
+| Pricing | Service-specific pricing is a commercial proposal; verify the approved offer before asserting configuration exists |
+| Location granularity | July blueprint described per-location variation; do not treat as supported without current schema/UI evidence |
 
 ### Release 2A — Homecare foundation (implemented in this increment)
 
@@ -1750,24 +1694,24 @@ MeticleCare is evolving from a supported-living-only platform into a multi-servi
 | Payroll preparation | Work, travel, paid travel, mileage, configured rates and gross input per completed visit | Statutory PAYE, NI, pension, holiday pay and deductions remain with payroll integration/review |
 | Approval | Manager review of submitted timesheet inputs | No self-approval; approved records retain who/when evidence |
 
-### Release 2B — Scheduling and mobile depth
+### Release 2B — Scheduling and mobile depth (Reconciled)
 
-- **Implemented in this tranche:** recurring visit generation from call patterns for a bounded date range, idempotent generation, default-carer availability checks, overlap protection and manager-visible scheduling errors.
-- **Implemented in this tranche:** manager exception queue for missed/cancelled/late calls, required resolution notes and retained resolver/time audit fields.
-- **Implemented in this tranche:** approved-timesheet CSV export with explicit date range and approved-only filtering; this is a payroll input, not a payslip or statutory payroll calculation.
-- Carer mobile PWA with a day route, next-call reminders, offline queue and explicit sync status.
-- Travel-aware reminders based on configured buffer and route estimates; show the calculation and allow a carer to report disruption.
-- Missed/late call workflow with client/family communication and incident linkage.
-- Mileage claims with evidence, configurable HMRC-rate tables by tax year and manager approval.
-- Visit notes linked to person care plans and medication workflows, without inferring medication administration from free text.
+- **Implemented:** recurring visit generation from call patterns for a bounded date range, idempotent generation, default-carer availability checks, overlap protection and manager-visible scheduling errors.
+- **Implemented:** manager exception queue for missed/cancelled/late calls, required resolution notes and retained resolver/time audit fields.
+- **Implemented:** approved-timesheet CSV export with explicit date range and approved-only filtering; this is a payroll input, not a payslip or statutory payroll calculation.
+- **Implemented:** domiciliary carer mobile/PWA day route, assigned-visit execution, offline queue and explicit sync status. This is not the supported-living shift/rounds workflow specified in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`.
+- **Implemented:** travel-aware reminders based on configured buffer and route estimates, plus carer disruption reporting; this is not advanced multi-stop route optimisation.
+- **Implemented:** missed/late call workflow with client/family follow-up and incident linkage.
+- **Implemented:** mileage claims with evidence, configurable tax-year rate tables and manager approval.
+- **Implemented:** visit notes linked to person care records; informal note text does not itself evidence medication administration.
 
-### Release 2C — Workforce and finance integration
+### Release 2C — Workforce and finance integration (Reconciled)
 
-- Payroll-provider export/import and reconciliation (CSV first; API integrations only after provider-specific testing).
-- Monthly carer totals: paid care minutes, paid travel minutes, mileage, approved gross inputs, exceptions and outstanding approvals.
-- Client billing: package utilisation, delivered visits, cancellations, funder/private rates and invoice-ready output.
-- Manager oversight: live active-visit map, only for on-duty staff and only where notice, lawful basis, retention and access controls are configured.
-- Notifications by push/email/SMS with preference, quiet-hours and escalation policy.
+- **Implemented:** approved-only payroll CSV adapters and reconciliation ledger; validate live provider round trips before claiming integrations. Statutory payroll remains external.
+- **Implemented:** manager timesheet approval, paid/travel/mileage totals and exceptions; use the current homecare payroll modules as implementation truth.
+- **Implemented:** client billing package utilisation and audited draft/approve/void invoice-ready lifecycle; it does not itself charge Stripe.
+- **Implemented with governance gates:** active-visit map and server-side location controls; worker-facing UX is gated on an EAS build, and an organisation-wide DPIA/legal assessment remains open.
+- **Implemented:** email and selected web-push reminders/notifications. SMS remains deferred until provider, sender, consent, quiet-hours and cost decisions are approved.
 
 ### UK operating and compliance decisions before go-live
 
@@ -1794,28 +1738,75 @@ MeticleCare is evolving from a supported-living-only platform into a multi-servi
 
 ### Commercial assumption to validate
 
-A private domiciliary-care quote has been recorded separately for internal commercial planning. It must not appear in the product UI, public website, demo data, customer-facing documents or billing configuration until the offer is approved. Before publication or billing: implement the VAT-inclusive/exclusive configuration above, and confirm minimum commitment, active-seat definition, whether the quote supplements the existing plan, and whether mobile/GPS/payroll exports become add-ons.
+A private domiciliary-care quote has been recorded separately for internal commercial planning. It must not appear in the product UI, public website, demo data, customer-facing documents or billing configuration until the offer is approved. Before publication or billing: confirm minimum commitment, active-seat definition, whether the quote supplements the existing plan, and whether mobile/GPS/payroll exports become add-ons.
 
 ### Definition of done for the vertical slice
 
 A pilot is not ready until a provider can create a package, define calls, assign a carer, execute a visit on a phone, record actual travel/mileage, review a late/missed call, approve a timesheet, export payroll inputs, retrieve the audit trail and demonstrate tenant/role boundaries in tests.
 
 
+## Competitive Benchmark and Product Response — AIM (WeAim)
+
+**Evidence checked:** public pages fetched 6 October 2026: [AIM homepage](https://www.weaim.io/), [features](https://www.weaim.io/features), and [pricing](https://www.weaim.io/pricing). AIM's feature, outcome and performance statements below are what the vendor publicly says—not independently verified delivery, safety, customer results or model performance. For example, the site advertises 70% admin/staffing savings, 90% work automation and Sentinel alerts “up to 48 hours” early; the pages reviewed do not publish the evaluation method or validation evidence behind those figures. Do not repeat those numbers as established facts. Repository-side comparisons were checked against `PRODUCT.md`, `docs/PUBLIC_SITE_CAPABILITY_MATRIX.md`, `docs/AI_PRODUCT_ROADMAP.md`, `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`, `docs/GO_LIVE_READINESS.md`, `docs/CLAIM_REGISTER.md`, `apps/api/src/modules/homecare/homecare.repository.ts`, `apps/api/src/modules/homecare/homecare.controller.ts`, `apps/web/src/pages/homecare/CallAssignmentBoard.tsx`, and the AI/event implementation under `apps/api/src/modules/ai/` and `apps/api/src/modules/events/`.
+
+| Area | AIM / WeAim public position | MeticleCare: verified product position | Competitive read and missing capability |
+|---|---|---|---|
+| AI workflow | AIM Assist is presented as text/voice-commanded workflow automation across onboarding, care plans, medication setup, rostering, reporting, finance and compliance. | Twelve bounded intelligence capabilities are documented: source-linked care summaries, manager briefings, change/risk/compliance signals, natural-language assistance, rota alternatives, competency coaching and reviewed family drafts. They are tenant-scoped, audited, schema-validated and require human review before consequential action (`docs/AI_PRODUCT_ROADMAP.md`). | AIM presents the more unified action-taking assistant. MeticleCare's advantage is explainability and governed, review-before-action outputs. Build a permission-checked intent → draft → approval → execution layer; do not grant an LLM direct database or unsupervised clinical write access. |
+| Care planning and clinical signals | AIM advertises generated care plans/risk assessments, note rewriting and “Sentinel” early infection/UTI/injury/deterioration detection. | Care plans, risk assessments, daily notes, eMAR, observations and incidents exist. AI note assistance and bounded record-based signals exist; the public capability matrix explicitly says no learned baseline, diagnosis or validated clinical predictor. AI care-plan/risk drafting is not documented as shipped. | Add staff-reviewed care-plan and risk-assessment drafting with citations and source comparison. Treat predictive deterioration as a separate clinical-safety programme: named clinical owner, lawful data governance, representative validation, false-positive/negative analysis and post-deployment monitoring are prerequisites. No “48-hour”, diagnosis or admission-avoidance claim without evidence. |
+| Rota and field operations | AIM advertises prompt-generated rotas, availability/travel-time matching, continuity, drag-and-drop fine-tuning, conflict detection and missed-visit coverage. | MeticleCare has supported-living minimum staffing, rest/conflict and compliance gates; AI rota analysis/generation is advisory. The domiciliary Call Assignment Board already supports drag/drop; homecare also has recurring call generation, availability/overlap checks, offline visit execution, exceptions, basic carer suggestions and OSRM/fallback travel estimates. | AIM publicly presents a more unified travel/continuity proposition. Our homecare recommendations are a foundation, not route optimisation; the supported-living rota still lacks drag/drop. Improve multi-stop travel/continuity explanations and supported-living rota interaction, while keeping server-side staffing/rest/compliance constraints authoritative and human-confirming assignments/publication. |
+| Medication | AIM advertises digital MAR, PRN/reminder handling and AI interaction warnings. | MeticleCare has eMAR charts, administration audit, PRN controls, stock/deliveries, daily counts and competency records. The implementation blocks some invalid medication states; it is not evidence of a comprehensive drug-interaction checking service. | Preserve the operational MAR depth. If interaction checking is pursued, use an appropriately licensed, maintained clinical knowledge source and a clinically governed alert policy—not free-form LLM inference. |
+| Finance and payroll | AIM presents automated invoices, payroll/payslips, expenses, mileage and profit analytics. Pricing displayed AI Care Manager at £15/staff/month + VAT and AIM Business Suite at £20/staff/month + VAT, each with a minimum 12-month commitment. Annual payment advertises the first 3 months free. Migration packages displayed £950 + VAT (Standard) and £1,950 + VAT (Full); migration timing/scope depends on source exports. The page did not establish a minimum seat count. | MeticleCare supports homecare timesheet approval, approved-only exports for Sage, Xero, QuickBooks, BrightPay, Staffology and generic CSV, plus per-row reconciliation. Domiciliary client billing has an auditable draft/approve/void path. Payslips are explicitly estimates from approved timesheet data and do not calculate statutory deductions; external provider round trips still need pilot validation. | Our defensible distinction is reviewable, reconciled payroll input rather than an unqualified “automatic payroll” promise. Close provider round-trip testing and exception reconciliation; then consider accounting sync, invoice/payslip automation and margin analytics. No price leadership claim: MeticleCare has no verified public like-for-like price in this evidence set. |
+| Documents and signatures | AIM advertises cloud document storage, automatic versioning, expiry tracking, digital signatures and family sign-off. | MeticleCare has person/compliance documents, evidence packs and audit records; the training-record signature field is narrow and is not a general electronic-signature workflow. | Build a document lifecycle (versions, signatory identity/intent, timestamps, immutable evidence, revocation/expiry, audit export) and connect it to care-plan/family consent only after legal and provider requirements are defined. Do not describe uploads or a text field as e-signatures. |
+| Family and notifications | AIM advertises a family portal, family alerts, real-time multi-channel delivery and escalation workflows. | MeticleCare's Family Portal exposes permitted care notes, plans, goals and observations; manager-reviewed family communication drafts exist. Email, in-app notifications and selected web push are available. SMS is deferred; family finance access and automatic family communication are absent. | Add consent- and preference-aware escalation across channels, delivery receipts and family-approved scopes; keep sensitive updates human-approved. SMS requires an approved provider, sender identity, opt-in/consent, quiet-hours and cost controls. |
+| Workforce and growth suite | AIM positions HR/recruitment agents, onboarding, applicant screening, sales/lead management, marketing campaigns and support as part of its broader suite. | MeticleCare has staff profiles, invitations, compliance/DBS workflows, training, competency and workforce operations; a recruitment CRM, sales pipeline and marketing automation are not evidenced. | This is a genuine breadth gap if buyers want one vendor for growth operations, but not automatically core care-management scope. Validate demand; prefer integrations/partners before building sales and ad automation into a sensitive care-record platform. |
+| Migration and adoption | AIM advertises fully managed migration from other UK care systems in under 14 days, with public migration packages/prices on its pricing page. | MeticleCare has CSV staff and people imports; no equivalent verified, productized legacy-data migration service/SLA appears in the current evidence. | Extend import coverage to care plans, documents, medication, schedules and history with reconciliation and sign-off before making a time-bound migration promise. AIM's deadline is a vendor claim, not a benchmark we have independently tested. |
+| UK regulatory scope | AIM describes UK-wide compliance and its feature examples are prominently CQC-oriented. Its public pages reviewed did not detail four-nation framework mappings. | MeticleCare documents CQC, CIW, Care Inspectorate Scotland and RQIA framework support, with regulator-aware evidence/readiness paths and explicit claim controls. | This is a differentiator in documented scope and explicitness, not proof AIM lacks equivalent support, nor regulator endorsement/certification. Keep each jurisdiction's framework evidence sourced and avoid “compliant” guarantees. |
+
+### What MeticleCare is currently doing better (defensible, qualified)
+
+1. **Supported-living operating fit.** The product is designed around shifts, residents, eMAR rounds, room checks, staffing levels, competencies and multi-location oversight, with service-type-aware configuration. This is a product-fit argument, not a verified claim that AIM lacks a supported-living workflow; AIM advertises use across agencies, care homes and nursing services, but the pages reviewed do not permit a direct workflow comparison.
+2. **Safety and permission boundaries.** Rest windows, minimum staffing, assignment compliance blocks, role gates, audited approvals and multi-tenant isolation are part of product behaviour. A specific differentiator is evidenced controls and boundaries, rather than a claim that AIM omits safeguards; the supported-living mobile role-path gaps still need to be closed.
+3. **Inspectable AI governance.** MeticleCare's documented intelligence outputs have date windows and source IDs, are logged and schema-validated, and remain advisory pending human review. The natural-language assistant is bounded rather than arbitrary-SQL. This is a concrete transparency strength in MeticleCare; it is not a proven superiority over AIM, whose reviewed pages do not expose enough implementation detail for a governance comparison. Production use still depends on closing the legal processor/transfer gate.
+4. **Four-nation specificity.** MeticleCare's framework architecture explicitly names the four UK regulators. AIM says UK-wide and provides CQC-centred examples; the pages reviewed do not detail four-nation mappings. This is an evidence-backed specificity advantage in public documentation, not proof of missing AIM capability or regulator endorsement. Individual framework content remains subject to the source qualifications in `docs/CLAIM_REGISTER.md`.
+5. **Location privacy controls for homecare.** MeticleCare has worker-level agree/decline controls, collection limited to assigned visits, and documented retention/kill-switch handling (`docs/GO_LIVE_READINESS.md`, `docs/DPIA_Live_Active_Visit_Map.md`, `docs/LOCATION_RECORDING_GUIDE.md`). The server-side controls are implemented, but updated worker-facing mobile notice/permission UX is still gated on an EAS build and the organisation-wide DPIA/legal assessment is outstanding. This is a documented privacy design position, not proof of legal compliance.
+6. **Auditable payroll handoff.** Approved-only payroll exports and reconciliation make the boundary between care-time evidence and payroll processing explicit. AIM's public material promotes more automation; provider-level round trips and statutory calculations are not a like-for-like comparison until independently tested.
+
+### Prioritized response (build the customer outcome, not a feature-count clone)
+
+| Priority | Blueprint addition | Acceptance boundary |
+|---|---|---|
+| **P0 — safety** | Complete the supported-living field workflow in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`: scoped resident access, shift attendance/handover, and support-worker incident/task/room-check paths. | Resolve the documented role-gate/safeguarding blockers; test offline idempotency, role scopes and audit evidence before calling the mobile experience supported-living ready. |
+| **P1 — core parity** | Safe AI workflow drafts for care plans/risk assessments plus a shared intent → permission check → evidence-backed draft → human approval → audited action path. | No arbitrary SQL, no silent publication, show source/uncertainty, preserve the original, prohibit autonomous clinical/medication/regulatory decisions. |
+| **P1 — operations** | Upgrade existing domiciliary carer suggestions/travel estimates into explainable multi-stop travel/continuity recommendations, and add drag/drop interaction to the supported-living rota (not the already-draggable homecare call board). | Explain match factors and estimate confidence; enforce availability, qualifications, configured safe staffing, rest and conflicts on the server; user confirms every assignment/publication. |
+| **P1 — records** | Versioned document and electronic-signature lifecycle for care plans, family consent and policy acknowledgement. | Verify signer identity/intent, timestamps and immutable audit evidence; retain existing review/consent safeguards; select a provider only after requirements are agreed. |
+| **P1 — finance** | Complete live round-trip validation for payroll export partners; add exception handling and accounting reconciliation before any automation claims. | Approved timesheets only; reconcile returned totals; statutory tax/NI/pension/payroll calculations remain with a qualified provider unless separately validated and approved. |
+| **P1 — adoption** | Repeatable migration/import and customer onboarding service. | Document source coverage, field mapping, rejects, reconciliation and customer acceptance; do not promise a fixed migration duration until measured across representative systems. |
+| **P1 — communications** | Consent-, preference- and quiet-hours-aware multi-channel escalation; evaluate SMS and family-alert workflows. | Provider/sender approval, opt-in, delivery audit, role-scoped content and human approval for sensitive family updates. |
+| **P2 — adjacent suite** | Decide whether recruitment CRM, applicant automation, lead/sales pipeline and marketing automation belong in MeticleCare or should be partner integrations. | Validate buyer demand and data-protection boundaries first; keep advertising/lead data segregated from care records. |
+| **Research gate — clinical AI** | Evaluate longitudinal change detection only as a governed, clinically reviewed programme, not a marketing parity checkbox. | Prospective/retrospective validation, representative data, clinical safety case, false-positive/negative monitoring, human escalation and independent review before any outcome or lead-time claim. |
+
+### Competitive evidence and claim rules
+
+- WeAim public pages are a vendor's current product description and commercial offer, not proof every capability is generally available, integrated or independently evaluated. Re-check before a board, investor or sales pack is issued.
+- The public prices and migration fees are a dated observed offer, not MeticleCare's price recommendation: AI Care Manager £15/staff/month + VAT; Business Suite £20/staff/month + VAT; minimum 12-month commitment; annual billing promotion advertises three months free; Standard migration £950 + VAT and Full migration £1,950 + VAT. The pages reviewed did not establish minimum seat count, and migration scope depends on source exports. Do not claim cheaper/better value until scope, minimum term, VAT, implementation, migration and seat definitions match.
+- Do not quote WeAim's “70%”, “90%”, “48 hours”, “38% retention”, cost-savings or customer-result figures as verified outcomes without an independently inspectable methodology.
+- Do not claim MeticleCare is “more compliant”, “safer”, “more accurate” or “better AI” without a defined test, comparison cohort and evidence. Prefer the implementation facts and boundaries in the matrix above.
+
 ## Phase 0: Production Hardening (Before AI Expansion)
 
 | Item | Priority | Effort | Status |
 |---|---|---|---|
-| Docker prod correction (web service, ports, health checks) | Critical | M | 🔵 Planned |
-| Migration versioning (replace flat array) | Critical | M | 🔵 Planned |
-| Tenant-isolation review (RLS or comprehensive helper audit) | Critical | L | 🔵 Planned |
-| Integration tests (controller + repository) | High | L | 🔵 Planned |
-| E2E tests (critical workflows) | High | XL | 🔵 Planned |
-| Deployment pipeline (Docker push + deploy) | High | M | 🔵 Planned |
-| Monitoring dashboards (Grafana + Prometheus) | High | M | 🔵 Planned |
-| Alerting ( PagerDuty/Opsgenie integration) | Medium | S | 🔵 Planned |
-| Backup and recovery testing | Critical | S | 🔵 Planned |
-| Security review (OWASP, penetration testing) | Critical | L | 🔵 Planned |
-| AI data-flow review (GDPR compliance) | High | M | 🔵 Planned |
+| Docker production services and health checks | Critical | M | ✅ Implemented (current infrastructure inventory) |
+| Versioned, checksummed migrations | Critical | M | ✅ Implemented (current infrastructure inventory) |
+| Tenant isolation (request context, dual pool, PostgreSQL RLS) | Critical | L | ✅ Implemented; keep tenant/migration tests as release gates |
+| API unit/integration tests | High | L | ✅ 395 tests across 44 modules reported in current project inventory |
+| End-to-end pilot / UAT of critical workflows | High | XL | 🟡 Pilot/UAT remains unexecuted; 381-case QA/UAT pack is recorded as not run in `docs/GO_LIVE_READINESS.md` |
+| CI/CD pipeline with image build and deploy/rollback | High | M | ✅ Implemented (current infrastructure inventory) |
+| Monitoring visibility (Prometheus, uptime checks, dashboards) | High | M | 🟡 Prometheus metrics and Uptime Kuma are deployed; monitor/contact test is unverified and Grafana dashboards/Prometheus alert rules are not recorded as implemented (`docs/GO_LIVE_READINESS.md`, T0-4) |
+| Alert delivery and on-call test | Medium | S | 🟡 Confirm uptime monitors and phone contact, then fire a test alert; application alerting remains to be operationally verified (`docs/GO_LIVE_READINESS.md`, T0-4) |
+| Backup and recovery testing | Critical | S | 🔵 Require a documented restore rehearsal and agreed recovery objectives before making resilience promises |
+| Independent security review / penetration test | Critical | L | 🔵 Evidence not recorded in the current readiness documents; confirm scope and obtain review |
+| AI data-flow governance | High | M | 🟡 Pseudonymisation, minimisation controls and production processor gate exist; legal processor/transfer agreements remain open (`docs/GO_LIVE_READINESS.md`, T0-17b) |
 
 ## Phase 2: Domiciliary Care Delivery
 
@@ -1823,7 +1814,7 @@ A pilot is not ready until a provider can create a package, define calls, assign
 |---|---|---|---|
 | Homecare package, visit, travel and timesheet foundation | Critical | M | ✅ Implemented |
 | Manager/carer role boundaries and tenant-scoped API | Critical | M | ✅ Implemented |
-| Mobile day route and assigned visit check-in/out | Critical | L | ✅ Implemented — manager board and carer route with online/offline check-in/out |
+| Domiciliary mobile day route and assigned-visit check-in/out | Critical | L | ✅ Implemented — online/offline check-in/out; this does not mean supported-living mobile is ready |
 | Recurring call generation and rota conflict detection | High | L | ✅ Implemented — idempotent generation, availability and overlap checks |
 | Manager late/missed/cancelled exception queue | High | M | ✅ Implemented — resolution note and resolver audit fields |
 | Travel-aware reminders and disruption handling | High | M | ✅ Implemented — email + web-push travel-buffer reminders with retry ledgers, carer disruption reporting, manager disruption queue |
@@ -1834,90 +1825,88 @@ A pilot is not ready until a provider can create a package, define calls, assign
 | Missed-visit client/family communication and incident linkage | High | M | ✅ Implemented — visit follow-up ledger with channel, outcome and optional incident link, resolver audit |
 | VAT-configurable pricing | Medium | S | ✅ Implemented — domiciliary `vat_rate`/`vat_inclusive` in `billing_config` (072) with exclusive/inclusive helpers, per-line net/VAT/gross snapshot, and per-run vat_amount/gross + funding breakdown (074) |
 | Client billing and package utilisation | Medium | L | ✅ Implemented — invoice-ready utilisation (delivered min × client rate) with funding type, cancellation/no-charge policy, review/billable decisions, draft → approved (immutable) → void (audited reversal) lifecycle, funding breakdown, RLS + manager-only approval, and audit logging; does not charge Stripe |
-| Active-visit oversight with GPS governance controls | High | M | 🔵 Planned — point-in-time coordinates implemented; live map requires DPIA and lawful-basis review |
-| SMS reminder channel | Medium | S | 🔵 Planned — deferred until provider, sender identity and consent policy are approved |
-| E2E pilot across manager/carer roles and 320–768px mobile widths | Critical | L | 🔵 Planned — CQC-registered pilot provider confirmed |
+| Active-visit oversight with GPS governance controls | High | M | 🟡 Server-side point-in-time controls, worker decisions, retention and audit exist; EAS worker-facing UX is not released and organisation-wide DPIA remains open. Not continuous/off-duty tracking (`docs/LOCATION_RECORDING_GUIDE.md`, `docs/GO_LIVE_READINESS.md`) |
+| SMS reminder channel | Medium | S | 🔵 Deferred until provider, sender identity, consent policy and cost model are approved |
+| End-to-end pilot/UAT across manager/carer roles and 320–768px mobile widths | Critical | L | 🟡 Provider is identified, but the 381-case QA/UAT pack is not executed; live payroll-provider round trips also remain to validate (`docs/GO_LIVE_READINESS.md`, T0-14) |
 
-## Phase 3: Documentation Intelligence
+## AI Enablement Roadmap (Reconciled 6 October 2026)
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Event outbox table + background worker | Critical | L | Phase 0 |
-| Domain event publishing across all mutation points | Critical | L | Event outbox |
-| Prompt versioning system | High | M | None |
-| Structured-output validation (Zod for all AI outputs) | High | S | None |
-| Tool registry + defined tool interfaces | High | L | Event outbox |
-| AI recommendation store + approval queue | High | M | None |
-| Enhanced AI audit records | High | M | None |
-| AI usage budgets + cost controls | High | S | None |
-| Provider routing + fallback | Medium | S | None |
-| Organisation AI governance controls | High | M | None |
-| Basic knowledge retrieval (PostgreSQL FTS) | Medium | M | None |
-| AI-generated-content labelling | High | S | None |
-| Fix unused prompts (visit_note_care_plan_gap, competency_assessment_assistant) | Low | S | None |
+This roadmap separates shipped foundations from unfinished product work. The existing event infrastructure, selected consumers, per-organisation monthly budgets/provider fallback, output labels and source-linked intelligence are implemented; do not schedule them as greenfield work. Prompt versioning, general tool/action orchestration, durable recommendations/approval queue, broad policy knowledge retrieval and extra drafting workflows remain proposed.
 
-## Phase 4: Documentation Intelligence
+| Horizon | Work | Status / boundary |
+|---|---|---|
+| **Foundation — shipped** | Domain-event outbox/worker and selected event consumers | Extend consumer coverage; do not recreate infrastructure |
+| **Foundation — shipped** | Per-org AI configuration, approved-processor gate, provider fallback, monthly token/cost limits, audit logs, output labels and validated source-linked intelligence | Production provider use remains subject to legal processor/transfer agreements; audit legacy endpoints individually |
+| **P1 — governed action layer** | Durable AI recommendations, permissions-aware action registry and manager approval queue | New capability; all write actions need explicit authorization, source evidence, audit, idempotency, expiry and rejection/undo semantics |
+| **P1 — workflow parity** | Care-plan/risk-assessment drafting and improved voice-to-structured records | Draft-only, preserve source text, citations/provenance, human review; no medication/care-plan change without qualified approval |
+| **P1 — intelligence quality** | Route-aware source links, intent layer for bounded natural language, more deterministic review/identity evidence | Never allow arbitrary SQL; source retrieval remains permission and tenant scoped |
+| **P2 — organisational knowledge** | Version-aware search/Q&A over approved policies and documents | Build only after retention, deletion, permissions, source freshness and processor terms are resolved |
+| **Research gate** | Clinical prediction / deterioration lead-time claims | Separate clinical safety and validation programme; not ordinary feature parity |
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Whisper API server-side transcription | High | M | None |
-| Voice-to-structured daily notes (enhanced) | High | L | Whisper API, tool registry |
-| Incident report drafting | High | M | Tool registry |
-| Care-plan section drafting | High | M | Tool registry |
-| Risk-assessment drafting | High | M | Tool registry |
-| Handover summaries | Medium | S | Tool registry |
-| Timeline summaries | Medium | S | Tool registry |
-| Family-summary drafts | Medium | M | Tool registry |
-| Policy Q&A with citations | Medium | L | Knowledge retrieval |
-| Body-map description drafting | Low | S | Tool registry |
+## AI Documentation Workflows (Planned)
 
-## Phase 3: Compliance Officer
+These are add-on workflow expansions: incident triage, daily-note assistance and manager-reviewed family drafts already exist, but are not equivalent to every draft lifecycle proposed below.
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Continuous compliance checks (background) | High | L | Event engine |
-| Evidence freshness monitoring | High | M | Event engine |
-| Readiness score explanation | High | M | None |
-| Missing-evidence detection | High | M | None |
-| Corrective-action drafts | High | M | Tool registry |
-| Inspection preparation workflow | High | L | All compliance modules |
-| Framework-aware evidence mapping | Medium | L | None |
-| Mission Control compliance briefing | High | M | Mission Control |
+| Capability | Priority | Acceptance boundary |
+|---|---|---|
+| Server-side speech transcription fallback | Medium | Explicit consent/data handling, provider governance, transcript review and offline fallback |
+| Care-plan / risk-assessment drafts | High | Source citations, provenance, version comparison and qualified human approval |
+| Incident/handover summaries | Medium | Advisory/draft only; preserve original and role-scoped evidence |
+| Policy Q&A with citations | Medium | Approved current versions only; cite exact document sections; never assert legal compliance |
+| Broader family communication drafting | Medium | Manager reviewed, consent-aware, permission-filtered and never sent automatically |
 
-## Phase 4: Operations Intelligence
+Do not list already shipped family drafts, manager briefings, care summaries, rota alternatives, competency coaching, source-linked signals, AI labels, audit and budget controls as unimplemented. See `docs/AI_PRODUCT_ROADMAP.md` for the current intelligence matrix and specific hardening tickets.
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Staffing-gap detection (background) | High | L | Event engine |
-| Suitable-staff recommendations | High | L | Tool registry |
-| Overtime and rest analysis | High | M | Event engine |
-| Agency-demand forecast | Medium | M | Historical data |
-| Shift-pressure briefing | Medium | M | Mission Control |
-| Operational daily briefing | Medium | M | Mission Control |
+## Compliance Intelligence Roadmap (Incremental Work)
 
-## Phase 5: Resident and Medication Intelligence
+The platform already has CQC readiness, compliance gap analysis, evidence mapping, selected deterministic compliance signals, and source-linked manager intelligence. The following are extensions, not greenfield replacements:
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Resident trend summaries | High | L | Tool registry |
-| Documentation-gap detection | High | M | Event engine |
-| Wellbeing trend analysis | Medium | M | Historical data |
-| Falls trend analysis | Medium | M | Historical data |
-| Hydration trend analysis | Medium | M | Historical data |
-| Medication-pattern alerts | High | L | Event engine |
-| PRN trend analysis | Medium | M | Historical data |
-| Stock and competency intelligence | Medium | S | None |
+| Remaining work | Priority | Boundary / dependency |
+|---|---|---|
+| Extend deterministic checks to reviews and identity documents | High | Current checks cover training, risk assessments, competency assessments and incident actions; cite the exact record and avoid a blanket readiness claim. |
+| Add route-aware source links and evidence freshness/ownership follow-up | High | Source IDs are already returned; link only to records the reviewer is authorised to see. |
+| Broaden event-driven compliance coverage | Medium | Reuse the outbox and selected consumers; define an owner, threshold, deduplication and test for each new signal. |
+| Improve framework-specific explanation and inspection preparation | Medium | Build on existing regulator-aware readiness/evidence paths; cite verified sources and preserve jurisdictional caveats. |
+| Connect compliance signals to existing manager briefings and Mission Control | Medium | Incremental integration; do not describe briefings or Mission Control as unbuilt. |
 
-## Phase 6: Controlled Automation
+## Operations Intelligence Roadmap (Incremental Work)
 
-| Item | Priority | Effort | Dependencies |
-|---|---|---|---|
-| Automatic draft tasks | Medium | M | Approval queue |
-| Internal reminder scheduling | Medium | S | Event engine |
-| Escalation workflows | Medium | L | Event engine |
-| Evidence requests | Low | M | Approval queue |
-| Review scheduling | Low | S | Event engine |
-| Configurable autonomy levels | High | L | Governance controls |
+AI manager/end-of-day briefings, domiciliary operations signals, advisory rota alternatives, operational activity review, basic carer ranking and travel estimates already exist. The work below deepens those capabilities; it does not introduce the first briefing or worker suggestions.
+
+| Remaining work | Priority | Boundary / dependency |
+|---|---|---|
+| Explain and extend suitable-worker recommendations | High | Build on current availability/conflict/workload ranking; add qualifications, continuity and multi-stop travel factors with visible uncertainty and manager confirmation. |
+| Broaden event coverage for unfilled/understaffed shifts and exceptions | High | Selected alerts/consumers exist; add only owned, deduplicated signals and retain server-side staffing, rest and compliance constraints. |
+| Extend overtime/rest and shift-pressure analysis | Medium | Distinguish scheduled from actual hours; test across service models and keep legal/workforce policy configurable. |
+| Add measured operational anomaly detection | Medium | Current operational review is date/status-filtered, not statistical outlier detection; define a validated baseline and thresholds before using “anomaly” as a predictive claim. |
+| Consider agency-demand forecasting | Research | A future forecast needs sufficient representative history and back-testing; current agency analytics are not a forecast. |
+
+## Resident and Medication Intelligence Roadmap (Incremental Work)
+
+Person care summaries, change/risk signals, eMAR controls and competency coaching are present. Expansion must stay record-bounded and advisory; none of these items is a diagnosis, interaction checker or treatment recommendation.
+
+| Remaining work | Priority | Boundary / dependency |
+|---|---|---|
+| Expand sourced resident change summaries | High | Extend selected time windows and source coverage; no learned baseline or deterioration prediction is currently documented. |
+| Add note/documentation completeness signals | High | Identify missing evidence against configured workflow requirements; do not infer clinical facts or regulatory compliance. |
+| Add reviewed wellbeing, falls and hydration trend views | Medium | Use available observations with dates and source links; validate data completeness and present trends as signals only. |
+| Extend medication exception and PRN trend reporting | High | Reuse eMAR administration/stock evidence; no free-form AI interaction warning or medicine-change recommendation. |
+| Link stock, administration and competency evidence | Medium | Existing stock and competency records remain authoritative; AI may summarise but cannot grant competence or authorise a dose. |
+
+## Controlled Automation Roadmap (Not Shipped)
+
+Event consumers already create selected alerts and triage outputs, and standard product workflows include reminders/notifications. What is not shipped is a generic, durable AI recommendation-to-action queue or organisation-configurable agent that writes across modules.
+
+| Remaining work | Priority | Boundary / dependency |
+|---|---|---|
+| Durable recommendation and manager-approval queue | High | New capability; require explicit permissions, source evidence, expiry, audit, idempotency, rejection and undo/compensation semantics. |
+| Human-approved draft tasks or follow-up actions | Medium | Reuse existing task workflows only after approval; never silently assign or close care/safeguarding work. |
+| Configurable escalation policies for selected operational events | Medium | Keep event-specific ownership, quiet-hours, deduplication and delivery evidence; do not rebuild the notification system. |
+| Evidence requests and review reminders from validated signals | Low | Draft for a named authorised reviewer; no automatic external/family communication. |
+| Organisation-level autonomy controls | High | Advisory remains default; opt-in is per capability and role, with limits, monitoring and a practical undo path. |
+
+> **Scope note:** “not shipped” here refers to general AI-controlled cross-module actions. It does not mean domain events, notifications, ordinary reminders, existing task workflows or selected automated exception consumers are absent.
+
 
 ## Phase 7: Validated Prediction (Future)
 
@@ -1940,13 +1929,13 @@ Only after data quality, evaluation and governance requirements are met:
 
 # 27. Testing Strategy
 
-## 27.1 Current State
+## 27.1 Current State (October 2026)
 
-- 2 unit test files (jwt.service.test.ts, mfa.controller.test.ts)
-- No integration tests
-- No controller tests
-- No E2E tests
-- CI runs: lint + typecheck + build + test (Vitest)
+- Current project inventory reports 395 backend tests across 44 modules, plus a separately run web suite; the July file/module counts elsewhere in this document are historical.
+- API integration tests cover many modules and workflows; coverage is uneven, and external provider round-trips remain to validate.
+- The 381-case manual QA/UAT pack is recorded as not executed (`docs/GO_LIVE_READINESS.md`, T0-14).
+- End-to-end pilot validation across manager/carer roles and real care operations remains a release gate; passing CI is not equivalent to completed provider UAT.
+- CI runs lint, typecheck, tests and builds; verify the active pipeline before relying on this statement.
 
 ## 27.2 Required Testing
 
@@ -1986,6 +1975,8 @@ Only after data quality, evaluation and governance requirements are met:
 ---
 
 # 28. Success Metrics
+
+The figures below are proposed pilot targets from the historical blueprint, not measured MeticleCare outcomes or approved customer-facing claims. Establish baselines, definitions, sample sizes, time windows and data owners before using them to assess performance or publish results.
 
 ## 28.1 Documentation
 
@@ -2045,50 +2036,56 @@ Only after data quality, evaluation and governance requirements are met:
 
 # 29. Risks and Mitigations
 
+The impact/likelihood labels below are a qualitative planning snapshot, not quantified risk assessments. Re-rate them with operational and clinical owners using current evidence.
+
 | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|
-| AI generates inaccurate care documentation | High | Medium | Human-in-the-loop required; structured output validation; source citations |
-| AI misses safeguarding concern | Critical | Low | AI is advisory only for safeguarding; mandatory human review; explicit disclaimers |
-| API cost overrun | Medium | Medium | Hard budget caps; per-org limits; usage alerts; provider routing to cheaper models |
-| Model provider outage | Medium | Medium | Provider fallback; graceful degradation; cached responses |
-| Prompt injection attack | High | Low | Input sanitisation; system prompt isolation; output validation |
-| Cross-tenant data leakage | Critical | Low | Tenant isolation enforced at every tool; RLS in future; regular audits |
-| Staff over-reliance on AI | Medium | Medium | Training; "AI-generated" labels; approval required; regular audits |
-| GDPR non-compliance | Critical | Low | DPIA before deployment; DPA with providers; data minimisation; audit logs |
-| Regulatory change (CQC AI guidance) | Medium | Medium | Modular framework design; regulator-agnostic architecture |
+| AI generates inaccurate care documentation | High | Unknown / open | Keep human review for documented workflows; use structured validation and source citations where implemented; audit legacy routes and test realistic failure cases |
+| AI misses safeguarding concern | Critical | Unknown / open | AI is not a safeguarding determination; train staff to follow provider policy and never rely on AI as a complete screening control |
+| API cost overrun | Medium | Medium | Enforce existing per-org token/cost caps; verify alerting and feature/model-routing controls before relying on them |
+| Model provider outage | Medium | Medium | Use configured provider fallback; test user-visible graceful degradation; do not rely on cached responses unless implemented for the specific workflow |
+| Prompt injection attack | High | Unknown / open | Treat as an unresolved test surface; validate inputs, isolate instructions, validate outputs and red-team each endpoint before claiming coverage |
+| Cross-tenant data leakage | Critical | Low | Request-scoped tenant context and PostgreSQL RLS are implemented; enforce tenant-scoped tool access, RLS/migration tests and regular audits |
+| Staff over-reliance on AI | Medium | Unknown / open | Train users; label documented AI-assisted outputs; retain human review for consequential use; verify legacy workflow safeguards and audit actual adoption |
+| Data-protection or international-transfer failure | Critical | Unknown / open | Close processor/transfer agreements, complete provider governance/DPIA and verify minimisation, retention and user disclosures before production use |
+| Regulatory change or guidance update | Medium | Medium | Verify jurisdiction- and service-specific primary sources; update mappings with reviewed evidence |
 | User resistance to AI | Medium | Medium | Start with advisory mode; demonstrate value; gather feedback; iterate |
-| Event system overload | Medium | Low | Rate limiting per org; batch processing; monitoring |
+| Event system overload | Medium | Unknown / open | Measure queue age, retry/failure rates and consumer latency; define alert thresholds and load tests before asserting capacity or rate-limit coverage |
 
 ---
 
-# 30. Decisions Still Required
+# 30. Decisions Still Required (Reconciled 6 October 2026)
+
+The previous table mixed already-built foundations with unresolved decisions. The choices below are current product/technical questions; AI processor terms remain a launch gate, not a feature preference.
+
+
 
 ## Product Decisions
 
 | # | Decision | Options | Recommendation |
 |---|---|---|---|
-| 1 | Mission Control: new page or enhanced dashboard? | New page / Enhance existing DashboardPage | New page (separate concerns) |
-| 2 | Voice transcription: browser-only or Whisper API? | Browser Web Speech API / OpenAI Whisper / Both | Both (browser primary, Whisper fallback) |
-| 3 | Knowledge retrieval: when to add pgvector? | Phase 1 / Phase 2 / Skip | Phase 2 (after event engine proven) |
-| 4 | AI autonomy default for new orgs? | Advisory / Draft / Controlled | Draft (balance of safety and utility) |
+| 1 | How should the existing Mission Control surface evolve? | Extend current surface / Replace / Split by role | Extend the shipped surface; avoid duplicating dashboards before validating user needs |
+| 2 | Add managed server-side speech transcription? | Browser only / Provider fallback / Defer | Browser remains primary; evaluate fallback only after processor/transfer approval and pilot evidence |
+| 3 | When to add policy/document knowledge retrieval? | Next release / Later / Partner | Defer until retention, deletion, permissions, source freshness and processor terms are resolved |
+| 4 | AI autonomy default for new orgs? | Advisory / Draft / Controlled | Advisory initially; require explicit authorised user confirmation for consequential actions. Expand draft capability only after each workflow passes role, tenant, safety and audit tests; low-risk controlled automation needs organisation opt-in and undo/monitoring controls. |
 | 5 | Family summaries: auto-generate or on-demand? | Auto / On-demand / Both | On-demand with staff review |
 | 6 | Daily briefing: push notification or pull only? | Push / Pull / Both | Pull (Mission Control page) with push for critical items |
 | 7 | Pricing: AI features per-user or per-org? | Per-user / Per-org / Per-feature | Per-org with usage caps |
 | 8 | E-learning priority relative to AI? | Before AI / After AI / Parallel | Parallel (different teams) |
 | 9 | Should AI be available to CARE_WORKER role? | Yes (limited) / No / Configurable | Configurable per org |
-| 10 | How to handle AI provider data processing agreements? | OpenAI only / Anthropic only / Both | Both (org chooses provider) |
+| 10 | Which provider processing arrangements are approved for production? | OpenAI / Anthropic / Both / Neither until signed | No provider is production-approved until applicable processor and transfer terms are signed and governance review is complete; allow organisations to select only from approved options |
 
 ## Technical Decisions
 
 | # | Decision | Options | Recommendation |
 |---|---|---|---|
-| 1 | Event delivery guarantee? | At-least-once / At-most-once / Exactly-once | At-least-once (idempotent consumers) |
-| 2 | Background worker: in-process or separate? | In-process / Separate container | In-process initially (separate if needed for scaling) |
+| 1 | Event delivery contract for new consumers? | At-least-once / At-most-once / Exactly-once | Existing outbox uses retryable delivery; preserve idempotent consumer semantics and verify the exact live contract before extending |
+| 2 | When should the event worker move out of process? | Keep in-process / Separate container | Keep the shipped worker until measured throughput, isolation or reliability needs justify a split |
 | 3 | AI output storage: full result or references? | Full JSONB / References only | Full JSONB for audit, references for large outputs |
 | 4 | Knowledge indexing: real-time or batch? | Real-time / Batch (hourly/daily) | Batch (hourly) initially |
 | 5 | Should agents share conversation context? | Yes / No / Limited | No (stateless per request) |
 | 6 | AI response caching? | Yes / No | Yes (for identical inputs within TTL) |
-| 7 | Structured output: function calling or JSON mode? | Function calling / JSON mode / Both | Both (provider-dependent) |
+| 7 | Structured output for new capabilities? | Schema-constrained response / JSON mode / Both | Use the existing validated response pattern where possible; provider-specific function/JSON modes are implementation details, not a product decision |
 
 ---
 
@@ -2098,10 +2095,10 @@ Only after data quality, evaluation and governance requirements are met:
 2. PostgreSQL remains the primary database. No migration to a different RDBMS.
 3. Redis remains the caching layer. No migration to Memcached or similar.
 4. OpenAI and Anthropic remain the primary AI providers. No immediate need for local/on-premise models.
-5. The existing Zod validation pattern will be extended to all AI structured outputs.
+5. Existing intelligence outputs use structured validation; extend schema validation to every remaining legacy AI endpoint and newly introduced action payload.
 6. The existing audit log pattern will be extended to all AI interactions.
-7. The existing notification system will be used for AI alerts (no separate alerting system).
-8. Browser-native Web Speech API remains the primary voice input method, with Whisper API as server-side fallback.
+7. Reuse the shipped notification and alert modules for AI-linked alerts; do not add a parallel alerting system without measured operational need.
+8. Browser-native Web Speech API remains the current voice-input path; a governed server-side transcription fallback is a future option, not an approved dependency.
 9. The existing Stripe billing integration will be extended for AI feature entitlements.
 10. The existing Docker infrastructure will be extended (not replaced) for new components.
 11. The existing CI pipeline will be extended to include new test types.
@@ -2111,20 +2108,20 @@ Only after data quality, evaluation and governance requirements are met:
 
 ---
 
-# 32. Immediate Next Actions
+# 32. Immediate Next Actions (Reconciled 6 October 2026)
 
 | # | Action | Owner | Priority |
 |---|---|---|---|
-| 1 | Review and approve this blueprint | Product Owner | Critical |
-| 2 | Prioritise Phase 0 items (production hardening) | Engineering Lead | Critical |
-| 3 | Design event outbox schema and worker | Backend Engineer | High |
-| 4 | Implement structured-output validation for existing AI endpoints | Backend Engineer | High |
-| 5 | Add AI-generated-content labels to daily notes | Frontend Engineer | High |
-| 6 | Fix missing Zod validation on incident triage endpoint | Backend Engineer | Medium |
-| 7 | Wire unused prompts (visit_note_care_plan_gap, competency_assessment_assistant) | Backend Engineer | Low |
-| 8 | Add Whisper API integration for server-side transcription | Backend Engineer | Medium |
-| 9 | Design Mission Control page layout | Product + Frontend | Medium |
-| 10 | Create DPIA for AI features | Compliance | High |
+| 1 | Reconcile the remaining historical status tables against current code before using the blueprint as an engineering checklist | Product + Engineering | Critical |
+| 2 | Execute the existing 381-case QA/UAT pack and close supported-living field-workflow blockers | Product + Engineering | Critical |
+| 3 | Verify uptime monitors and phone alert delivery with a test; perform the pending restore rehearsal and record measured recovery objectives | Operations | Critical |
+| 4 | Close AI processor agreement/transfer work and obtain formal governance review before enabling production provider traffic | Compliance + Product | Critical |
+| 5 | Implement a cross-module AI recommendation and human-approval queue, reusing current domain events/outbox | Backend Engineer | High |
+| 6 | Add route-aware source links and broaden deterministic compliance coverage to reviews and identity evidence | AI + Frontend | High |
+| 7 | Validate all payroll export partners with representative pilot round trips and reconciliation | Product + Engineering | High |
+| 8 | Prioritise supported-living mobile role/access blockers before mobile polish | Mobile + Backend | High |
+| 9 | Decide demand and build-vs-partner for e-signature/document workflow and SMS | Product Owner | Medium |
+| 10 | Evaluate clinical prediction only through a separately governed validation programme | Product + Clinical Safety | Future gate |
 
 ---
 
@@ -2148,4 +2145,4 @@ Only after data quality, evaluation and governance requirements are met:
 
 ---
 
-*This blueprint is the authoritative reference document for future engineering work on CareDesk. It should be updated as implementation progresses and decisions are made.*
+*This blueprint is a product direction document for MeticleCare. Its status tables are historical unless explicitly date-stamped; implementation truth is maintained in the source code and current capability/roadmap documents. Update it as delivery and evidence change.*

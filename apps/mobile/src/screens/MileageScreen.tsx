@@ -42,13 +42,13 @@ export function MileageScreen({ session }: Props) {
     if (status === 'completed') return c.successSurface
     if (status === 'checked_in') return c.primarySurface
     if (status === 'scheduled' || status === 'en_route') return c.warningSurface
-    return c.dangerSurface || '#FEE2E2'
+    return c.dangerSurface || '#FEF0F0'
   }
   const statusText = (status: string) => {
     if (status === 'completed') return c.successDeep
     if (status === 'checked_in') return c.primary
     if (status === 'scheduled' || status === 'en_route') return c.warning
-    return c.danger || '#991B1B'
+    return c.danger || '#B42318'
   }
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -151,7 +151,7 @@ export function MileageScreen({ session }: Props) {
           )}
         </Pressable>
         {payslipError && (
-          <Text style={[styles.downloadError, { color: c.danger || '#991B1B' }]}>{payslipError}</Text>
+          <Text style={[styles.downloadError, { color: c.danger || '#B42318' }]}>{payslipError}</Text>
         )}
 
         {/* Tab bar */}

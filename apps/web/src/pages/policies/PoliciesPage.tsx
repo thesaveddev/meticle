@@ -137,7 +137,7 @@ export default function PoliciesPage() {
         {[
           { label: 'All policies', value: stats.total, icon: <ArticleIcon />, color: NAVY },
           { label: 'Published', value: stats.published, icon: <PublishedIcon />, color: EMERALD },
-          { label: 'Drafts', value: stats.drafts, icon: <EditIcon />, color: '#B54708' },
+          { label: 'Drafts', value: stats.drafts, icon: <EditIcon />, color: '#9A6700' },
           { label: 'Review due', value: stats.due, icon: <WarningIcon />, color: stats.due ? '#B42318' : '#667085' },
         ].map((stat) => (
           <Grid item xs={6} md={3} key={stat.label}>

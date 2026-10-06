@@ -20,6 +20,7 @@ const REQUIRED_REQUESTS: [string, string][] = [
   ['GET', '/api/homecare/my-visits?from=2026-09-26&to=2026-10-10'],
   ['GET', '/api/homecare/ride-share-requests'],
   ['GET', '/api/notifications/unread-count'],
+  ['GET', '/api/incidents/categories'],
   ['GET', '/api/chat/unread'],
   // Today, and the open-call card when the organisation is domiciliary.
   ['GET', '/api/shifts/open'],

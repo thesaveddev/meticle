@@ -258,10 +258,10 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
 
         {/* Messages */}
         {error ? (
-          <View style={[s.banner, { backgroundColor: c.dangerSurface, borderColor: (c.danger || '#DC2626') + '20' }]}>
-            <Ionicons name="alert-circle" size={16} color={c.danger || '#DC2626'} />
-            <Text style={[s.bannerText, { color: c.danger || '#DC2626', flex: 1 }]}>{error}</Text>
-            <Pressable onPress={() => setError('')} hitSlop={8}><Ionicons name="close" size={16} color={c.danger || '#DC2626'} /></Pressable>
+          <View style={[s.banner, { backgroundColor: c.dangerSurface, borderColor: (c.danger || '#EF4444') + '20' }]}>
+            <Ionicons name="alert-circle" size={16} color={c.danger || '#EF4444'} />
+            <Text style={[s.bannerText, { color: c.danger || '#EF4444', flex: 1 }]}>{error}</Text>
+            <Pressable onPress={() => setError('')} hitSlop={8}><Ionicons name="close" size={16} color={c.danger || '#EF4444'} /></Pressable>
           </View>
         ) : null}
         {success ? (
@@ -510,9 +510,9 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
             </View>
           )}
           {isValidTime(start) && isValidTime(end) && start >= end && (
-            <View style={[s.durationHint, { backgroundColor: (c.dangerSurface || '#FEE2E2') }]}>
-              <Ionicons name="alert-circle" size={14} color={c.danger || '#DC2626'} />
-              <Text style={[s.durationText, { color: c.danger || '#DC2626' }]}>Start time must be before end time</Text>
+            <View style={[s.durationHint, { backgroundColor: (c.dangerSurface || '#FEF0F0') }]}>
+              <Ionicons name="alert-circle" size={14} color={c.danger || '#EF4444'} />
+              <Text style={[s.durationText, { color: c.danger || '#EF4444' }]}>Start time must be before end time</Text>
             </View>
           )}
 
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   selectedDateText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', flex: 1 },
   dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
   unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
-  dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D1D5DB' },
+  dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D8DEE7' },
   batchCard: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
   batchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   batchTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '800' },

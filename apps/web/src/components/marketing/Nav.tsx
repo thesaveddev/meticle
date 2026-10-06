@@ -9,6 +9,7 @@ import { M } from '../../styles/marketing-tokens'
 type NavChild = { name: string; path: string; desc?: string }
 type NavGroup = { name: string; path: string; children?: NavChild[] }
 
+/* N1b · five top-level links, two grouped menus; compliance remains under Platform. */
 const navGroups: NavGroup[] = [
   {
     name: 'Platform', path: '/platform',
@@ -21,6 +22,11 @@ const navGroups: NavGroup[] = [
       { name: 'Reporting', path: '/features/reporting', desc: 'Dashboards and evidence' },
       { name: 'Family Portal', path: '/features/family-portal', desc: 'Authorised family access' },
       { name: 'AI Intelligence', path: '/features/ai', desc: 'Summaries, detection and copilot' },
+      { name: 'Compliance overview', path: '/compliance' },
+      { name: 'CQC — England', path: '/compliance/cqc' },
+      { name: 'Care Inspectorate — Scotland', path: '/compliance/care-inspectorate' },
+      { name: 'CIW — Wales', path: '/compliance/ciw' },
+      { name: 'RQIA — Northern Ireland', path: '/compliance/rqia' },
     ],
   },
   {
@@ -29,16 +35,6 @@ const navGroups: NavGroup[] = [
       { name: 'Domiciliary Care', path: '/solutions/domiciliary-care', desc: 'Home care scheduling and delivery' },
       { name: 'Supported Living', path: '/solutions/supported-living', desc: 'Person-centred support' },
       { name: 'Mobile App', path: '/download', desc: 'iOS and Android' },
-    ],
-  },
-  {
-    name: 'Compliance', path: '/compliance',
-    children: [
-      { name: 'Overview', path: '/compliance' },
-      { name: 'CQC — England', path: '/compliance/cqc' },
-      { name: 'Care Inspectorate — Scotland', path: '/compliance/care-inspectorate' },
-      { name: 'CIW — Wales', path: '/compliance/ciw' },
-      { name: 'RQIA — Northern Ireland', path: '/compliance/rqia' },
     ],
   },
   { name: 'Resources', path: '/blog' },
@@ -88,8 +84,11 @@ export default function Nav() {
           <Toolbar sx={{ justifyContent: 'space-between', px: '0 !important', minHeight: { xs: 56, md: 68 } }}>
             {/* Logo */}
             <Box
+              component="button"
+              type="button"
               onClick={() => go('/')}
-              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.75, userSelect: 'none' }}
+              aria-label="MeticleCare home"
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.75, userSelect: 'none', border: 0, bgcolor: 'transparent', p: 0, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 4, borderRadius: M.r.sm } }}
             >
               <Box
                 component="img"
@@ -105,10 +104,9 @@ export default function Nav() {
                 letterSpacing: '-0.04em',
                 display: { xs: 'none', sm: 'block' },
               }}>
-                Meticle<span style={{ color: M.teal }}>Care</span>
+                Meticle<span style={{ color: M.tealDeep }}>Care</span>
               </Typography>
             </Box>
-
             {/* Desktop nav */}
             <Stack direction="row" spacing={0} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
               {navGroups.map((group) => (
@@ -116,21 +114,22 @@ export default function Nav() {
                   key={group.name}
                   sx={{
                     position: 'relative',
-                    '&:hover > .dropdown': { opacity: 1, visibility: 'visible', transform: 'translateY(0)' },
+                    '&:hover > .dropdown, &:focus-within > .dropdown': { opacity: 1, visibility: 'visible', transform: 'translateX(-50%) translateY(0)' },
                   }}
                 >
                   <Typography
+                    component="button"
+                    type="button"
                     onClick={() => go(group.path)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') go(group.path) }}
-                    tabIndex={0}
                     sx={{
+                      border: 0, bgcolor: 'transparent', fontFamily: 'inherit', textTransform: 'none', minWidth: 0,
                       ...M.label,
                       py: 2, px: 1.5, cursor: 'pointer',
-                      color: isActive(group.path) ? M.teal : M.slate,
+                      color: isActive(group.path) ? M.navy : M.slate,
                       display: 'flex', alignItems: 'center', gap: 0.5,
                       transition: `color ${M.transition.fast}`,
                       '&:hover': { color: M.navy },
-                      '&:focus-visible': { outline: `2px solid ${M.teal}`, outlineOffset: 4, borderRadius: M.r.sm },
+                      '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 4, borderRadius: M.r.sm },
                     }}
                   >
                     {group.name}
@@ -144,6 +143,7 @@ export default function Nav() {
                         position: 'absolute', top: '100%', left: '50%',
                         transform: 'translateX(-50%) translateY(-4px)',
                         width: group.children.length > 4 ? 'min(520px, calc(100vw - 48px))' : 'min(280px, calc(100vw - 48px))',
+                        maxHeight: 'calc(100vh - 88px)', overflowY: 'auto',
                         bgcolor: M.card, borderRadius: M.r.lg, boxShadow: M.shadow.xl,
                         border: `1px solid rgba(0,0,0,0.06)`, p: 1.5, zIndex: 200,
                         opacity: 0, visibility: 'hidden',
@@ -151,19 +151,23 @@ export default function Nav() {
                       }}
                     >
                       {group.children.length > 4 ? (
-                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 0.5 }}>
                           {group.children.map((child) => (
                             <Box
                               key={child.path}
+                              component="button"
+                              type="button"
                               onClick={() => go(child.path)}
                               sx={{
+                                border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', color: 'inherit',
                                 p: 1.5, borderRadius: M.r.sm, cursor: 'pointer',
                                 transition: `background ${M.transition.fast}`,
+                                '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
                                 '&:hover': { bgcolor: M.faint },
                               }}
                             >
-                              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: M.navy }}>{child.name}</Typography>
-                              {child.desc && <Typography sx={{ fontSize: '0.75rem', color: M.muted, mt: 0.25 }}>{child.desc}</Typography>}
+                              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: M.navy, overflowWrap: 'anywhere' }}>{child.name}</Typography>
+                              {child.desc && <Typography sx={{ fontSize: '0.75rem', color: M.slate, mt: 0.25 }}>{child.desc}</Typography>}
                             </Box>
                           ))}
                         </Box>
@@ -171,10 +175,14 @@ export default function Nav() {
                         group.children.map((child) => (
                           <Box
                             key={child.path}
+                            component="button"
+                            type="button"
                             onClick={() => go(child.path)}
                             sx={{
+                              border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', color: 'inherit',
                               p: 1.5, borderRadius: M.r.sm, cursor: 'pointer',
                               transition: `background ${M.transition.fast}`,
+                              '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
                               '&:hover': { bgcolor: M.faint },
                             }}
                           >
@@ -187,7 +195,6 @@ export default function Nav() {
                 </Box>
               ))}
             </Stack>
-
             {/* Desktop CTAs */}
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
               <Button onClick={() => go('/login')} sx={{ fontWeight: 600, color: M.slate, textTransform: 'none', fontSize: '0.85rem', '&:hover': { color: M.navy } }}>Login</Button>
@@ -196,18 +203,17 @@ export default function Nav() {
                 endIcon={<ArrowForward />}
                 onClick={() => go('/contact')}
                 sx={{
-                  bgcolor: M.teal, color: M.ink, fontWeight: 700,
-                  px: 2.5, py: 1, borderRadius: M.r.md, textTransform: 'none',
+                  bgcolor: M.navy, color: '#FFFFFF', fontWeight: 700,
+                  px: 2.5, py: 1, borderRadius: M.r.md, textTransform: 'none', whiteSpace: 'nowrap',
                   fontSize: '0.85rem', boxShadow: 'none',
-                  '&:hover': { bgcolor: M.tealDark, boxShadow: 'none' },
+                  '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' },
                 }}
               >Book a demo</Button>
             </Stack>
-
             {/* Mobile menu button */}
             <IconButton
               onClick={() => setMobileOpen(true)}
-              sx={{ display: { lg: 'none' }, color: M.navy }}
+              sx={{ display: { lg: 'none' }, color: M.navy, minWidth: 44, minHeight: 44 }}
               aria-label="Open menu"
             >
               <MenuIcon />
@@ -225,7 +231,7 @@ export default function Nav() {
       >
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: M.navy, letterSpacing: '-0.03em' }}>
-            Meticle<span style={{ color: M.teal }}>Care</span>
+            Meticle<span style={{ color: M.tealDeep }}>Care</span>
           </Typography>
           <IconButton onClick={() => setMobileOpen(false)} aria-label="Close menu" size="small">
             <Close sx={{ fontSize: 20 }} />
@@ -238,11 +244,16 @@ export default function Nav() {
               {group.children ? (
                 <>
                   <Box
+                    component="button"
+                    type="button"
+                    aria-expanded={Boolean(mobileExpanded[group.name])}
                     onClick={() => setMobileExpanded((p) => ({ ...p, [group.name]: !p[group.name] }))}
                     sx={{
+                      border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', color: 'inherit',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       p: 1.5, borderRadius: M.r.sm, cursor: 'pointer',
                       '&:hover': { bgcolor: M.faint },
+                      '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
                     }}
                   >
                     <Typography sx={{ fontWeight: 600, color: M.navy, fontSize: '0.95rem' }}>{group.name}</Typography>
@@ -257,8 +268,15 @@ export default function Nav() {
                       {group.children.map((child) => (
                         <Box
                           key={child.path}
+                          component="button"
+                          type="button"
                           onClick={() => go(child.path)}
-                          sx={{ p: 1.25, borderRadius: M.r.sm, cursor: 'pointer', '&:hover': { bgcolor: M.faint } }}
+                          sx={{
+                            border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', color: 'inherit',
+                            p: 1.25, borderRadius: M.r.sm, cursor: 'pointer',
+                            '&:hover': { bgcolor: M.faint },
+                            '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
+                          }}
                         >
                           <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{child.name}</Typography>
                         </Box>
@@ -268,8 +286,10 @@ export default function Nav() {
                 </>
               ) : (
                 <Box
+                  component="button"
+                  type="button"
                   onClick={() => go(group.path)}
-                  sx={{ p: 1.5, borderRadius: M.r.sm, cursor: 'pointer', '&:hover': { bgcolor: M.faint } }}
+                  sx={{ p: 1.5, borderRadius: M.r.sm, cursor: 'pointer', border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', color: 'inherit', whiteSpace: 'nowrap', '&:hover': { bgcolor: M.faint }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}
                 >
                   <Typography sx={{ fontWeight: 600, color: M.navy, fontSize: '0.95rem' }}>{group.name}</Typography>
                 </Box>
@@ -282,7 +302,7 @@ export default function Nav() {
               fullWidth variant="contained"
               endIcon={<ArrowForward />}
               onClick={() => go('/contact')}
-              sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem' }}
+              sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem', '&:hover': { bgcolor: M.navyMid } }}
             >Book a demo</Button>
             <Button
               fullWidth variant="outlined"

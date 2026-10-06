@@ -1,10 +1,12 @@
 import { ReactNode } from 'react'
+import Skeleton from '@mui/material/Skeleton'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 import {
   Box, Typography, Paper, Stack, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, CircularProgress, Alert, Chip,
 } from '@mui/material'
 
-export const NAVY = '#0F4C81'
+export const NAVY = METICLE_COLORS.primary
 
 interface PageHeaderProps {
   title: string
@@ -15,14 +17,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, backAction }: PageHeaderProps) {
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3, gap: 2 }}>
-      <Box sx={{ minWidth: 0 }}>
-        {backAction}
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</Typography>
-        {subtitle && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{subtitle}</Typography>}
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-end' }} spacing={2} sx={{ mb: 4, gap: 2 }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        {backAction && <Box sx={{ mb: 1 }}>{backAction}</Box>}
+        <Typography variant="h4" sx={{ fontWeight: 600 }}>{title}</Typography>
+        {subtitle && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 680 }}>{subtitle}</Typography>}
       </Box>
       {actions && (
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', flexShrink: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', flexShrink: 0, rowGap: 1 }}>
           {actions}
         </Stack>
       )}
@@ -40,15 +42,15 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, icon, subtitle, action, accent = NAVY }: SectionHeaderProps) {
   return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, minHeight: 40 }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 2, minHeight: 36 }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
         {icon && <Box sx={{ display: 'flex', color: accent, flexShrink: 0 }}>{icon}</Box>}
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.3 }}>{title}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.35 }}>{title}</Typography>
           {subtitle && <Typography variant="caption" color="text.secondary">{subtitle}</Typography>}
         </Box>
       </Stack>
-      {action && <Box sx={{ flexShrink: 0, ml: 2 }}>{action}</Box>}
+      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
     </Stack>
   )
 }
@@ -68,7 +70,7 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', loading = false, danger = false, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onClose={loading ? undefined : onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>{title}</DialogTitle>
+      <DialogTitle sx={{ color: danger ? 'error.main' : 'text.primary' }}>{title}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary">{message}</Typography>
       </DialogContent>
@@ -80,7 +82,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
           variant="contained"
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
-          sx={{ bgcolor: danger ? undefined : NAVY, '&:hover': danger ? undefined : { bgcolor: '#0A3A5C' } }}
+          sx={{ bgcolor: danger ? undefined : 'primary.main' }}
         >
           {loading ? 'Working...' : confirmLabel}
         </Button>
@@ -91,10 +93,17 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
 
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   return (
-    <Paper sx={{ p: 6, textAlign: 'center' }}>
-      <CircularProgress size={28} sx={{ color: NAVY }} />
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{label}</Typography>
-    </Paper>
+    <Box role="status" aria-label={label} sx={{ width: '100%', py: 2 }}>
+      <Stack spacing={1.5}>
+        {[0, 1, 2].map((row) => (
+          <Stack key={row} direction="row" spacing={2} alignItems="center" sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Skeleton variant="circular" width={36} height={36} />
+            <Box sx={{ flex: 1 }}><Skeleton width="32%" /><Skeleton width="54%" /></Box>
+            <Skeleton width={72} height={28} />
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
   )
 }
 
@@ -114,13 +123,13 @@ export function ErrorState({ message = 'Something went wrong', onRetry }: ErrorS
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
 const TONE_COLORS: Record<BadgeTone, { bg: string; fg: string }> = {
-  success: { bg: '#DCFCE7', fg: '#15803D' },
-  warning: { bg: '#FEF3C7', fg: '#B45309' },
-  error: { bg: '#FEE2E2', fg: '#B91C1C' },
-  info: { bg: '#DBEAFE', fg: '#1D4ED8' },
-  neutral: { bg: '#F3F4F6', fg: '#4B5563' },
-  primary: { bg: '#E7EEF4', fg: '#0F4C81' },
-  purple: { bg: '#F3E8FF', fg: '#7C3AED' },
+  success: { bg: '#EAFBF5', fg: '#087A55' },
+  warning: { bg: '#FFF7E6', fg: '#9A6700' },
+  error: { bg: '#FEF0F0', fg: '#B42318' },
+  info: { bg: '#EAF3FF', fg: '#175CD3' },
+  neutral: { bg: '#F2F4F7', fg: '#475467' },
+  primary: { bg: '#EAF3FF', fg: '#175CD3' },
+  purple: { bg: '#EAF3FF', fg: '#175CD3' },
 }
 
 interface StatusBadgeProps {
@@ -154,10 +163,10 @@ export function RecordCard({ title, meta, actions, footer, onClick, children }: 
     <Paper
       onClick={onClick}
       sx={{
-        p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB',
+        p: 2.5, borderRadius: 'var(--radius-lg)', border: '1px solid', borderColor: 'divider',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'box-shadow 0.15s, border-color 0.15s',
-        '&:hover': onClick ? { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } : {},
+        transition: 'box-shadow 160ms ease, border-color 160ms ease',
+        '&:hover': onClick ? { boxShadow: 'var(--shadow-sm)', borderColor: 'primary.light' } : {},
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
@@ -176,7 +185,7 @@ export function RecordCard({ title, meta, actions, footer, onClick, children }: 
 export function EmptyRow({ message = 'No records yet', action }: { message?: string; action?: ReactNode }) {
   return (
     <Box sx={{ py: 6, px: 4, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Typography sx={{ color: 'text.secondary', fontWeight: 600 }}>{message}</Typography>
+      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{message}</Typography>
       {action && <Box sx={{ mt: 2 }}>{action}</Box>}
     </Box>
   )

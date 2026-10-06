@@ -14,14 +14,14 @@ import {
 } from '../../components/marketing/icons'
 
 // Brand tokens — shared with LandingPage / PricingPage / FeaturesPage / About.
-const INK = '#1B2430'
+const INK = '#17202A'
 const INK_DARK = '#141C24'
-const NAVY = '#0F4C81'
+const NAVY = '#2F80ED'
 const EMERALD = '#10B981'
-const EMERALD_DEEP = '#047857'
-const BONE = '#F7F4EE'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const EMERALD_DEEP = '#087A55'
+const BONE = '#F7F9FC'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 
 type StepPanel = { label: string; val: string }
 

@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import { Save as SaveIcon, PhotoCamera as PhotoIcon } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 import api from '../../services/api'
 
 export default function MyProfilePage() {
@@ -86,15 +87,14 @@ export default function MyProfilePage() {
 
   return (
     <PageContainer>
-      <Typography variant="h4" fontWeight={700} mb={1}>My Profile</Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>Manage your personal details and profile photo.</Typography>
+      <PageHeader title="My Profile" subtitle="Manage your personal details and profile photo." />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {message && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>{message}</Alert>}
 
       {/* Photo section */}
       <Paper sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#2D3A8C', fontSize: 36, fontWeight: 700 }}>
+        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#2F80ED', fontSize: 36, fontWeight: 700 }}>
           {initials}
         </Avatar>
         <Box>
@@ -136,7 +136,7 @@ export default function MyProfilePage() {
       </Paper>
 
       <Box display="flex" justifyContent="flex-end">
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving} sx={{ bgcolor: '#2D3A8C', '&:hover': { bgcolor: '#1E2A6B' } }}>
+        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save profile'}
         </Button>
       </Box>

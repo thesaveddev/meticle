@@ -17,7 +17,7 @@ interface TrendDay {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <Box sx={{ bgcolor: '#fff', border: '1px solid #E5E7EB', borderRadius: 1.5, p: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid #E6EAF0', borderRadius: 1.5, p: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
       <Typography variant="caption" fontWeight={700} sx={{ mb: 0.5, display: 'block' }}>{label}</Typography>
       {payload.map((entry: any, i: number) => (
         <Stack key={i} direction="row" spacing={1} alignItems="center">
@@ -62,26 +62,26 @@ export default function NutritionTrendChart() {
       </Typography>
 
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-        <Chip label={`${totalMeals} meals`} size="small" sx={{ bgcolor: '#EFF6FF', color: '#2563EB', fontWeight: 600 }} />
-        <Chip label={`${totalRefused} refused`} size="small" sx={{ bgcolor: totalRefused > 0 ? '#FEF2F2' : '#F0FDF4', color: totalRefused > 0 ? '#DC2626' : '#16A34A', fontWeight: 600 }} />
-        <Chip label={`${avgConsumed}% avg consumed`} size="small" sx={{ bgcolor: avgConsumed >= 75 ? '#F0FDF4' : avgConsumed >= 50 ? '#FFFBEB' : '#FEF2F2', color: avgConsumed >= 75 ? '#16A34A' : avgConsumed >= 50 ? '#D97706' : '#DC2626', fontWeight: 600 }} />
-        <Chip label={`${(totalFluid / 1000).toFixed(1)}L total fluid`} size="small" sx={{ bgcolor: '#F0F9FF', color: '#0369A1', fontWeight: 600 }} />
-        <Chip label={`~${avgFluidPerDay}ml/day avg`} size="small" sx={{ bgcolor: '#F0F9FF', color: '#0369A1', fontWeight: 600 }} />
+        <Chip label={`${totalMeals} meals`} size="small" sx={{ bgcolor: '#F4F8FF', color: '#2F80ED', fontWeight: 600 }} />
+        <Chip label={`${totalRefused} refused`} size="small" sx={{ bgcolor: totalRefused > 0 ? '#FEF0F0' : '#EAFBF5', color: totalRefused > 0 ? '#EF4444' : '#10B981', fontWeight: 600 }} />
+        <Chip label={`${avgConsumed}% avg consumed`} size="small" sx={{ bgcolor: avgConsumed >= 75 ? '#EAFBF5' : avgConsumed >= 50 ? '#FFF7E6' : '#FEF0F0', color: avgConsumed >= 75 ? '#10B981' : avgConsumed >= 50 ? '#F59E0B' : '#EF4444', fontWeight: 600 }} />
+        <Chip label={`${(totalFluid / 1000).toFixed(1)}L total fluid`} size="small" sx={{ bgcolor: '#F4F8FF', color: '#175CD3', fontWeight: 600 }} />
+        <Chip label={`~${avgFluidPerDay}ml/day avg`} size="small" sx={{ bgcolor: '#F4F8FF', color: '#175CD3', fontWeight: 600 }} />
       </Stack>
 
       <Box sx={{ height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-            <YAxis yAxisId="left" tick={{ fontSize: 12 }} stroke="#9CA3AF" label={{ value: 'Meals / Refused', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#9CA3AF' }} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} stroke="#9CA3AF" label={{ value: 'Fluid (ml)', angle: 90, position: 'insideRight', fontSize: 11, fill: '#9CA3AF' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E6EAF0" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#98A2B3" />
+            <YAxis yAxisId="left" tick={{ fontSize: 12 }} stroke="#98A2B3" label={{ value: 'Meals / Refused', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#98A2B3' }} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} stroke="#98A2B3" label={{ value: 'Fluid (ml)', angle: 90, position: 'insideRight', fontSize: 11, fill: '#98A2B3' }} />
             <RechartsTooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-            <Bar yAxisId="left" dataKey="Meals" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
+            <Bar yAxisId="left" dataKey="Meals" fill="#2F80ED" radius={[4, 4, 0, 0]} barSize={20} />
             <Bar yAxisId="left" dataKey="Refused" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
             <Line yAxisId="left" type="monotone" dataKey="Avg Consumed %" stroke="#10B981" strokeWidth={2.5} dot={{ r: 4, fill: '#10B981' }} name="Avg Consumed %" />
-            <Line yAxisId="right" type="monotone" dataKey="Fluid" stroke="#0EA5E9" strokeWidth={2.5} dot={{ r: 4, fill: '#0EA5E9' }} />
+            <Line yAxisId="right" type="monotone" dataKey="Fluid" stroke="#55BFD3" strokeWidth={2.5} dot={{ r: 4, fill: '#55BFD3' }} />
             <ReferenceLine yAxisId="right" y={chartData[0]?.['Fluid Target'] || 2000} stroke="#94A3B8" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 10, fill: '#94A3B8' }} />
           </ComposedChart>
         </ResponsiveContainer>

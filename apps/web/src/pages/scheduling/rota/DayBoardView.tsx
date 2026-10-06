@@ -37,12 +37,12 @@ export default function DayBoardView(props: RotaViewProps) {
         return (
           <Paper key={i} variant="outlined" sx={{
             flex: '1 1 0', minWidth: 165, maxWidth: 240, p: 1, display: 'flex', flexDirection: 'column',
-            bgcolor: today ? '#E7EEF4' : '#FFFFFF', borderColor: today ? '#BFDBFE' : undefined,
+            bgcolor: today ? '#E6EAF0' : '#FFFFFF', borderColor: today ? '#EAF3FF' : undefined,
           }}>
             {/* Column header */}
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.1, color: today ? '#0F4C81' : '#1B2430' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.1, color: today ? '#2F80ED' : '#17202A' }}>
                   {DAYS[i]}
                 </Typography>
                 <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
@@ -62,7 +62,7 @@ export default function DayBoardView(props: RotaViewProps) {
                 )}
                 {canEdit && !isReadOnly && !past && (
                   <IconButton size="small" onClick={() => props.onOpenShiftDialog(d)}
-                    sx={{ bgcolor: '#0F4C81', color: '#fff', width: 22, height: 22, '&:hover': { bgcolor: '#0A3A61' } }}
+                    sx={{ bgcolor: '#2F80ED', color: '#FFFFFF', width: 22, height: 22, '&:hover': { bgcolor: '#2674D9' } }}
                     aria-label={`Add shift for ${DAYS[i]}`}>
                     <AddIcon sx={{ fontSize: 13 }} />
                   </IconButton>
@@ -79,9 +79,9 @@ export default function DayBoardView(props: RotaViewProps) {
                       size="small"
                       sx={{
                         height: 16, fontSize: '0.52rem', fontWeight: 700, cursor: 'help',
-                        bgcolor: x.ok ? '#ECFDF5' : '#FEF3C7',
-                        color: x.ok ? '#065F46' : '#92400E',
-                        '& .MuiChip-icon': { color: x.ok ? '#10B981' : '#D97706' },
+                        bgcolor: x.ok ? '#EAFBF5' : '#FFF7E6',
+                        color: x.ok ? '#087A55' : '#9A6700',
+                        '& .MuiChip-icon': { color: x.ok ? '#10B981' : '#F59E0B' },
                       }} />
                   </Tooltip>
                 ))}

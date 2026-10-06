@@ -38,7 +38,7 @@ export default function StartDMDialog({ open, onClose, orgMembers, currentUserId
                   </Box>
                   {onlineUsers.has(option.id) && (
                     <Chip label="Online" size="small"
-                      sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(16,185,129,0.1)', color: '#047857', fontWeight: 700 }} />
+                      sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(16,185,129,0.1)', color: '#087A55', fontWeight: 700 }} />
                   )}
                 </Stack>
               </li>

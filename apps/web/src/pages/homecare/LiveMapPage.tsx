@@ -46,9 +46,9 @@ interface LiveMapData {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  en_route: { label: 'En route', color: '#7C3AED', bg: '#EDE9FE' },
-  checked_in: { label: 'At client', color: '#047857', bg: '#E9F7F0' },
-  scheduled: { label: 'Upcoming', color: 'text.secondary', bg: '#F3F4F6' },
+  en_route: { label: 'En route', color: '#8B7CF6', bg: '#F4F8FF' },
+  checked_in: { label: 'At client', color: '#087A55', bg: '#EAFBF5' },
+  scheduled: { label: 'Upcoming', color: 'text.secondary', bg: '#F7F9FC' },
 }
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -185,9 +185,9 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
         iconAnchor: [12, 12],
       })
 
-      const activeIcon = markerIcon('#047857')
-      const enRouteIcon = markerIcon('#7C3AED')
-      const scheduledIcon = markerIcon('#6B7280')
+      const activeIcon = markerIcon('#087A55')
+      const enRouteIcon = markerIcon('#8B7CF6')
+      const scheduledIcon = markerIcon('#667085')
 
       visits.forEach(v => {
         if (v.latitude == null || v.longitude == null) return
@@ -197,10 +197,10 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
         marker.bindPopup(`
           <div style="font-family:system-ui;min-width:180px">
             <strong style="font-size:14px">${v.person_name}</strong><br/>
-            <span style="color:#6B7280;font-size:12px">${v.label}</span><br/>
-            ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#D97706">No carer assigned</span><br/>'}
-            <span style="font-size:12px;color:#6B7280">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span>
-            ${caption ? `<br/><span style="font-size:11px;color:#9CA3AF">${caption}</span>` : ''}
+            <span style="color:#667085;font-size:12px">${v.label}</span><br/>
+            ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#F59E0B">No carer assigned</span><br/>'}
+            <span style="font-size:12px;color:#667085">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span>
+            ${caption ? `<br/><span style="font-size:11px;color:#98A2B3">${caption}</span>` : ''}
           </div>
         `)
         markersRef.current.push(marker)
@@ -218,7 +218,7 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
     })
   }, [visits, mapReady])
 
-  return <div ref={mapRef} style={{ width: '100%', height: 480, borderRadius: 8, border: '1px solid', borderColor: 'grey.200' }} />
+  return <div ref={mapRef} style={{ width: '100%', height: 480, borderRadius: 8, border: '1px solid', borderColor: '#E6EAF0' }} />
 }
 
 export default function LiveMapPage() {
@@ -350,29 +350,29 @@ export default function LiveMapPage() {
 
       {/* Summary bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81' }}>{areaStats.total}</Typography>
+        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#2F80ED' }}>{areaStats.total}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total calls today</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#047857' }}>{activeVisits.length}</Typography>
+        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#087A55' }}>{activeVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Active now</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
+        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
           <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>{scheduledVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Upcoming</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{areaStats.completed}</Typography>
+        <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#10B981' }}>{areaStats.completed}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Completed</Typography>
         </Paper>
       </Stack>
 
       {/* Map */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, overflow: 'hidden' }}>
         {allVisits.length === 0 ? (
           <Box sx={{ p: 6, textAlign: 'center' }}>
-            <LocationIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
+            <LocationIcon sx={{ fontSize: 48, color: '#D8DEE7', mb: 1 }} />
             <Typography sx={{ color: 'text.secondary' }}>{areaId === '' ? 'No active or scheduled calls today' : 'No active or scheduled calls in this area today'}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>Carer locations appear here once they check in to a call</Typography>
           </Box>
@@ -383,7 +383,7 @@ export default function LiveMapPage() {
 
       {/* Active visits list */}
       {activeVisits.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, mb: 3 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Active carers</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
             Each pin is a position captured when a carer checked in or checked out, not a live fix — the time shown is when it was taken.
@@ -395,7 +395,7 @@ export default function LiveMapPage() {
               const isFresh = age !== null && age <= POSITION_FRESH_MINUTES
               const caption = positionCaption(v)
               return (
-                <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
+                <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F7F9FC' }}>
                   <Box>
                     <Stack direction="row" alignItems="center" gap={1}>
                       <Chip label={cfg.label} size="small" sx={{ bgcolor: cfg.bg, color: cfg.color, fontWeight: 600, height: 20, fontSize: '0.65rem' }} />
@@ -447,11 +447,11 @@ export default function LiveMapPage() {
 
       {/* Upcoming visits */}
       {scheduledVisits.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Upcoming calls</Typography>
           <Stack spacing={1}>
             {scheduledVisits.slice(upcomingPageSafe * 10, upcomingPageSafe * 10 + 10).map(v => (
-              <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
+              <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F7F9FC' }}>
                 <Box>
                   <Stack direction="row" alignItems="center" gap={1}>
                     <Chip label={time(v.scheduled_start)} size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.secondary', fontWeight: 600, height: 20, fontSize: '0.65rem' }} />

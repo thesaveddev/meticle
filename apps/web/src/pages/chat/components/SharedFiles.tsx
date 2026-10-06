@@ -128,7 +128,7 @@ export default function SharedFiles({ files, loading, onUpload, onDelete, onOpen
                         <DownloadIcon sx={{ fontSize: 16, color: NAVY }} />
                       </IconButton>
                       <IconButton size="small" onClick={() => onDelete(f.id)} sx={{ width: 28, height: 28 }}>
-                        <DeleteIcon sx={{ fontSize: 16, color: '#DC2626' }} />
+                        <DeleteIcon sx={{ fontSize: 16, color: '#EF4444' }} />
                       </IconButton>
                     </TableCell>
                   </TableRow>

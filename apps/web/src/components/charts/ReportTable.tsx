@@ -16,15 +16,15 @@ interface Props {
 }
 
 const BADGE_COLORS: Record<string, string> = {
-  approved: '#16A34A', completed: '#16A34A', valid: '#16A34A', active: '#16A34A', resolved: '#16A34A', filled: '#16A34A', administered: '#16A34A',
-  expired: '#DC2626', overdue: '#DC2626', missed: '#DC2626', rejected: '#DC2626', critical: '#DC2626', high: '#F59E0B',
-  pending: '#D97706', investigating: '#6366F1', in_progress: '#0EA5E9', open: '#D97706',
-  expiring_30: '#DC2626', expiring_90: '#F59E0B',
-  ORG_ADMIN: '#0F4C81', MANAGER: '#6366F1', CARE_WORKER: '#16A34A', COMPLIANCE_OFFICER: '#D97706',
+  approved: '#087A55', completed: '#087A55', valid: '#087A55', active: '#087A55', resolved: '#087A55', filled: '#087A55', administered: '#087A55',
+  expired: '#B42318', overdue: '#B42318', missed: '#B42318', rejected: '#B42318', critical: '#B42318', high: '#9A6700',
+  pending: '#9A6700', investigating: '#175CD3', in_progress: '#0C9E89', open: '#9A6700',
+  expiring_30: '#B42318', expiring_90: '#9A6700',
+  ORG_ADMIN: '#175CD3', MANAGER: '#0C9E89', CARE_WORKER: '#087A55', COMPLIANCE_OFFICER: '#9A6700',
 }
 
 const SEVERITY_BADGE: Record<string, string> = {
-  critical: '#DC2626', high: '#F59E0B', medium: '#EAB308', low: '#3B82F6',
+  critical: '#B42318', high: '#9A6700', medium: '#9A6700', low: '#175CD3',
 }
 
 function CellValue({ value, type }: { value: any; type?: string }) {
@@ -32,16 +32,16 @@ function CellValue({ value, type }: { value: any; type?: string }) {
 
   if (type === 'badge') {
     const strVal = String(value)
-    const color = SEVERITY_BADGE[strVal] || BADGE_COLORS[strVal] || '#6B7280'
+    const color = SEVERITY_BADGE[strVal] || BADGE_COLORS[strVal] || '#667085'
     return <Chip label={strVal.replace(/_/g, ' ')} size="small" sx={{ fontWeight: 600, bgcolor: `${color}15`, color, fontSize: '0.7rem', height: 22 }} />
   }
 
   if (type === 'percent') {
     const num = Number(value)
-    const barColor = num >= 80 ? '#16A34A' : num >= 50 ? '#D97706' : '#DC2626'
+    const barColor = num >= 80 ? '#10B981' : num >= 50 ? '#F59E0B' : '#EF4444'
     return (
       <Stack direction="row" alignItems="center" spacing={1}>
-        <LinearProgress variant="determinate" value={num} sx={{ width: 50, height: 5, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: barColor } }} />
+        <LinearProgress variant="determinate" value={num} sx={{ width: 50, height: 5, borderRadius: 3, bgcolor: '#F5F7FA', '& .MuiLinearProgress-bar': { bgcolor: barColor } }} />
         <Typography variant="body2" fontWeight={700} color={barColor}>{num}%</Typography>
       </Stack>
     )

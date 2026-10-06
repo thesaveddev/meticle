@@ -109,7 +109,7 @@ export default function ChatComposer({
       {/* Error */}
       {sendError && (
         <Box sx={{ px: 2.5, pt: 1 }}>
-          <Typography variant="caption" sx={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>{sendError}</Typography>
+          <Typography variant="caption" sx={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>{sendError}</Typography>
         </Box>
       )}
 

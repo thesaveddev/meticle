@@ -136,10 +136,10 @@ export default function PlatformAdminPage() {
   useEffect(() => { if (tab === 7) loadLeads() }, [tab, loadLeads])
 
   const statCards = stats ? [
-    { label: 'Organizations', value: stats.totalOrganizations, icon: <BusinessIcon />, color: '#0F4C81' },
-    { label: 'Total Users', value: stats.totalUsers, icon: <PeopleIcon />, color: '#7C3AED' },
-    { label: 'MRR', value: `£${Number(stats.mrr).toLocaleString()}`, icon: <TrendingUpIcon />, color: '#059669' },
-    { label: 'Signups (30d)', value: stats.recentSignups, icon: <PersonAddIcon />, color: '#D97706' },
+    { label: 'Organizations', value: stats.totalOrganizations, icon: <BusinessIcon />, color: '#2F80ED' },
+    { label: 'Total Users', value: stats.totalUsers, icon: <PeopleIcon />, color: '#8B7CF6' },
+    { label: 'MRR', value: `£${Number(stats.mrr).toLocaleString()}`, icon: <TrendingUpIcon />, color: '#087A55' },
+    { label: 'Signups (30d)', value: stats.recentSignups, icon: <PersonAddIcon />, color: '#F59E0B' },
   ] : []
 
   const tabLabels = ['Overview', 'Organizations', 'Users', 'Finance', 'Audit Log', 'System Health', 'Trial follow-up', 'Sales pipeline']
@@ -148,7 +148,7 @@ export default function PlatformAdminPage() {
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <AdminIcon sx={{ fontSize: 32, color: '#0F4C81' }} />
+          <AdminIcon sx={{ fontSize: 32, color: '#2F80ED' }} />
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Platform Admin</Typography>
         </Stack>
         <Tooltip title="Refresh">
@@ -170,7 +170,7 @@ export default function PlatformAdminPage() {
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
-                        <Typography variant="body2" color="#6B7280">{card.label}</Typography>
+                        <Typography variant="body2" color="#667085">{card.label}</Typography>
                         <Typography variant="h5" sx={{ fontWeight: 800 }}>{card.value}</Typography>
                       </Box>
                       <Box sx={{ color: card.color }}>{card.icon}</Box>
@@ -181,7 +181,7 @@ export default function PlatformAdminPage() {
               {stats.subscriptions && (
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                    <Typography variant="body2" color="#6B7280" sx={{ mb: 1 }}>Subscriptions</Typography>
+                    <Typography variant="body2" color="#667085" sx={{ mb: 1 }}>Subscriptions</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                       <Chip size="small" label={`Active: ${stats.subscriptions.active}`} color="success" variant="outlined" />
                       <Chip size="small" label={`Trial: ${stats.subscriptions.trial}`} color="warning" variant="outlined" />
@@ -252,7 +252,7 @@ export default function PlatformAdminPage() {
                 <TableBody>
                   {orgs.map((org) => (
                     <TableRow key={org.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/platform-admin/organizations/${org.id}`)}>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{org.name}</Typography><Typography variant="caption" color="#9CA3AF">{org.id.slice(0, 8)}...</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{org.name}</Typography><Typography variant="caption" color="#98A2B3">{org.id.slice(0, 8)}...</Typography></TableCell>
                       <TableCell><Chip size="small" label={planLabels[org.plan] || org.plan || '—'} variant="outlined" /></TableCell>
                       <TableCell><Chip size="small" label={org.subscription_status} color={statusColors[org.subscription_status] || 'default'} /></TableCell>
                       <TableCell>{org.user_count}</TableCell><TableCell>{org.active_user_count}</TableCell>
@@ -318,26 +318,26 @@ export default function PlatformAdminPage() {
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                    <Typography variant="body2" color="#6B7280">MRR</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#059669' }}>£{Number(finance.mrr).toLocaleString()}</Typography>
+                    <Typography variant="body2" color="#667085">MRR</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#087A55' }}>£{Number(finance.mrr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                    <Typography variant="body2" color="#6B7280">ARR</Typography>
+                    <Typography variant="body2" color="#667085">ARR</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>£{Number(finance.arr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                    <Typography variant="body2" color="#6B7280">Revenue (30d)</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#D97706' }}>£{Number(finance.revenue30d).toLocaleString()}</Typography>
+                    <Typography variant="body2" color="#667085">Revenue (30d)</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#F59E0B' }}>£{Number(finance.revenue30d).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                    <Typography variant="body2" color="#6B7280">Churn Rate (30d)</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#DC2626' }}>{finance.churnRate}%</Typography>
+                    <Typography variant="body2" color="#667085">Churn Rate (30d)</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#EF4444' }}>{finance.churnRate}%</Typography>
                   </Paper>
                 </Grid>
               </Grid>
@@ -383,10 +383,10 @@ export default function PlatformAdminPage() {
               )}
 
               {/* Failed payments */}
-              <Paper sx={{ p: 3, borderRadius: 2.5, mb: 3, border: finance.failedPayments?.length > 0 ? '1px solid #FECACA' : 'none', bgcolor: finance.failedPayments?.length > 0 ? '#FEF2F2' : 'transparent' }}>
+              <Paper sx={{ p: 3, borderRadius: 2.5, mb: 3, border: finance.failedPayments?.length > 0 ? '1px solid #FEF0F0' : 'none', bgcolor: finance.failedPayments?.length > 0 ? '#FEF0F0' : 'transparent' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                  <WarningIcon sx={{ color: '#DC2626' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#991B1B' }}>Failed Payments</Typography>
+                  <WarningIcon sx={{ color: '#EF4444' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#B42318' }}>Failed Payments</Typography>
                 </Stack>
                 {finance.failedPayments?.length > 0 ? (
                   <TableContainer>
@@ -405,13 +405,13 @@ export default function PlatformAdminPage() {
                       </TableBody>
                     </Table>
                   </TableContainer>
-                ) : <Typography color="#6B7280" sx={{ py: 2 }}>No failed payments 🎉</Typography>}
+                ) : <Typography color="#667085" sx={{ py: 2 }}>No failed payments 🎉</Typography>}
               </Paper>
 
               {/* Open invoices */}
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                  <PaymentsIcon sx={{ color: '#0F4C81' }} />
+                  <PaymentsIcon sx={{ color: '#2F80ED' }} />
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>Open Invoices</Typography>
                 </Stack>
                 <Typography variant="h5" sx={{ fontWeight: 800 }}>
@@ -442,18 +442,18 @@ export default function PlatformAdminPage() {
                 <TableBody>
                   {auditLog.map((log) => (
                     <TableRow key={log.id} hover>
-                      <TableCell><Typography variant="caption" color="#6B7280">{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</Typography></TableCell>
+                      <TableCell><Typography variant="caption" color="#667085">{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</Typography></TableCell>
                       <TableCell><Typography variant="body2" fontWeight={600}>{log.user_email || 'System'}</Typography></TableCell>
                       <TableCell>{log.org_name || '—'}</TableCell>
                       <TableCell><Chip size="small" label={log.action} variant="outlined" /></TableCell>
                       <TableCell><Typography variant="caption">{log.entity_type || '—'}</Typography></TableCell>
-                      <TableCell><Typography variant="caption" color="#9CA3AF">{log.ip_address || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="caption" color="#98A2B3">{log.ip_address || '—'}</Typography></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          ) : <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No audit entries</Typography>}
+          ) : <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No audit entries</Typography>}
         </Paper>
       )}
 
@@ -462,7 +462,7 @@ export default function PlatformAdminPage() {
         <Stack spacing={3}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Trial follow-up</Typography>
-            <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
               Organisations whose trial ended without a recorded paid invoice. This list is for account-related follow-up, not bulk marketing.
             </Typography>
             <Stack spacing={2}>
@@ -478,8 +478,8 @@ export default function PlatformAdminPage() {
                 <TableBody>
                   {trialFollowups.map((lead: any) => (
                     <TableRow key={lead.id} hover>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{lead.name}</Typography><Typography variant="caption" color="#6B7280">{planLabels[lead.plan] || lead.plan || '—'}</Typography></TableCell>
-                      <TableCell><Typography variant="body2">{lead.contact_name}</Typography><Typography variant="caption" color="#6B7280">{lead.contact_email}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{lead.name}</Typography><Typography variant="caption" color="#667085">{planLabels[lead.plan] || lead.plan || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{lead.contact_name}</Typography><Typography variant="caption" color="#667085">{lead.contact_email}</Typography></TableCell>
                       <TableCell>{lead.trial_ends_at ? new Date(lead.trial_ends_at).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell><Chip size="small" label={lead.subscription_status} color={statusColors[lead.subscription_status] || 'default'} /></TableCell>
                       <TableCell>{lead.last_login_at ? new Date(lead.last_login_at).toLocaleDateString('en-GB') : '—'}</TableCell>
@@ -501,7 +501,7 @@ export default function PlatformAdminPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>Sales pipeline</Typography>
-                <Typography variant="body2" color="#6B7280">Review demo enquiries and move them through the commercial lifecycle.</Typography>
+                <Typography variant="body2" color="#667085">Review demo enquiries and move them through the commercial lifecycle.</Typography>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <TextField size="small" placeholder="Search enquiries..." value={leadSearch} onChange={e => setLeadSearch(e.target.value)} />
@@ -526,7 +526,7 @@ export default function PlatformAdminPage() {
                 <TableBody>
                   {leads.map((lead: any) => (
                     <TableRow key={lead.id} hover>
-                      <TableCell sx={{ minWidth: 210 }}><Typography variant="body2" fontWeight={700}>{lead.name}</Typography><Typography variant="caption" color="#6B7280">{lead.company} · {lead.email}</Typography><Typography variant="caption" display="block" color="#9CA3AF">{lead.role || 'Role not provided'}</Typography></TableCell>
+                      <TableCell sx={{ minWidth: 210 }}><Typography variant="body2" fontWeight={700}>{lead.name}</Typography><Typography variant="caption" color="#667085">{lead.company} · {lead.email}</Typography><Typography variant="caption" display="block" color="#98A2B3">{lead.role || 'Role not provided'}</Typography></TableCell>
                       <TableCell>{lead.care_type || '—'}</TableCell>
                       <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lead.message}</Typography></TableCell>
                       <TableCell><Chip size="small" label={lead.marketing_consent ? 'Updates opted in' : 'Demo only'} color={lead.marketing_consent ? 'success' : 'default'} variant="outlined" /></TableCell>
@@ -551,13 +551,13 @@ export default function PlatformAdminPage() {
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                  <HealthIcon sx={{ color: '#059669' }} />
+                  <HealthIcon sx={{ color: '#087A55' }} />
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>Database</Typography>
                 </Stack>
                 <Stack spacing={1.5}>
-                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#6B7280">Version</Typography><Typography variant="body2" fontWeight={600}>{health.database?.version?.split(' ').slice(0, 2).join(' ') || '—'}</Typography></Stack>
-                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#6B7280">Size</Typography><Typography variant="body2" fontWeight={600}>{health.database?.size || '—'}</Typography></Stack>
-                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#6B7280">Uptime</Typography><Typography variant="body2" fontWeight={600}>{String(health.database?.uptime || '—').split('.')[0]}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#667085">Version</Typography><Typography variant="body2" fontWeight={600}>{health.database?.version?.split(' ').slice(0, 2).join(' ') || '—'}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#667085">Size</Typography><Typography variant="body2" fontWeight={600}>{health.database?.size || '—'}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#667085">Uptime</Typography><Typography variant="body2" fontWeight={600}>{String(health.database?.uptime || '—').split('.')[0]}</Typography></Stack>
                 </Stack>
               </Paper>
             </Grid>
@@ -573,8 +573,8 @@ export default function PlatformAdminPage() {
                   ))}
                 </Stack>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="body2" color="#6B7280" sx={{ mb: 1 }}>Stripe Webhooks (24h)</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800 }}>{health.webhookEvents?.last_24h || 0} <Typography component="span" variant="body2" color="#9CA3AF">/ {health.webhookEvents?.total || 0} total</Typography></Typography>
+                <Typography variant="body2" color="#667085" sx={{ mb: 1 }}>Stripe Webhooks (24h)</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800 }}>{health.webhookEvents?.last_24h || 0} <Typography component="span" variant="body2" color="#98A2B3">/ {health.webhookEvents?.total || 0} total</Typography></Typography>
               </Paper>
             </Grid>
             <Grid item xs={12}>
@@ -584,7 +584,7 @@ export default function PlatformAdminPage() {
                   {health.tableCounts?.map((t: any) => (
                     <Grid item xs={6} sm={4} md={3} key={t.tbl}>
                       <Box sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1.5 }}>
-                        <Typography variant="caption" color="#6B7280">{t.tbl}</Typography>
+                        <Typography variant="caption" color="#667085">{t.tbl}</Typography>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>{Number(t.cnt).toLocaleString()}</Typography>
                       </Box>
                     </Grid>

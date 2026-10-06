@@ -1,79 +1,51 @@
-/* Hallmark · macrostructure: Editorial · theme: Custom (care-ops editorial)
- * paper-band: mid (52%) · display-style: grotesk-sans · accent-hue: cool (cyan 185°)
+/* Hallmark · genre: modern-minimal · macrostructure: Split Studio · tone: clear, calm care operations · theme: MeticleCare white-first
+ * H2 ratio=7/5, proof=care-day sequence, divider=negative-space · nav=N1b compact five-link cluster · footer=Ft2 inline close
+ * theme_axes: light paper / grotesk sans / chromatic green · Inter retained per brand commitment
  */
 
 /**
- * MeticleCare Marketing Design System — brand rebuild.
- *
- * Palette derived from the LOGO assets only, by `scripts/brand-colors.mjs`,
- * which decodes the actual PNGs and clusters their pixels. Weighted across
- * Horizontal, Stacked and Monochrome logos:
- *
- *   #3DB8FD  17.1%   sky          #0164C8  10.2%   brand blue
- *   #014FB5  10.1%   deep blue    #0187BA   9.6%   teal-cyan
- *   #028ABA   8.0%   teal         #03C6B1   7.7%   mint
- *
- * The Play Store icons are deliberately NOT the source. They are a brighter,
- * more electric blue (#0170FD / #0052EE) that does not match the logo, and
- * Google's own Play badge is third-party brand and excluded outright. The logo
- * is deeper and more teal; the brand is built on that.
- *
- * The previous navy #0B1426 + emerald #00C9A7 pairing came from none of these
- * assets at all.
- *
- * Two recommended additions, both derived from logo hues rather than invented:
- *  - `tealDeep` #046E86. The logo's mint/teal fails AA as small text on white
- *    (#03C6B1 is ~1.9:1). This darkened sibling keeps the hue and passes.
- *  - `navy` #014FB5 rather than #0164C8, so white on dark bands lands near
- *    8.5:1 instead of ~6.6:1 — same hue, more headroom for body copy.
- *
- * Key names are deliberately unchanged. Every marketing page reads M.navy,
- * M.teal, M.slate and so on, so re-pointing them here re-skins the whole
- * marketing surface at once instead of touching a dozen page files.
+ * Shared MeticleCare marketing tokens. Keep brand identity in deep navy,
+ * emerald accents, warm bone surfaces, and charcoal ink. M.teal is reserved
+ * for small marks; use M.tealDeep for text on light surfaces.
  */
 
 export const M = {
   /* ── Palette ─────────────────────────────────────── */
-  ink:        '#0C1B2E',
-  slate:      '#51637A',
-  muted:      '#8497AC',
-  subtle:     '#C3D2E2',
-  faint:      '#EEF4FB',
+  ink:        '#17202A',
+  slate:      '#475467',
+  muted:      '#475467',
+  subtle:     '#98A2B3',
+  faint:      '#E6EAF0',
 
-  paper:      '#F7FAFE',
-  warm:       '#F4F9FC',
+  paper:      '#F7F9FC',
+  warm:       '#F7F9FC',
   card:       '#FFFFFF',
 
-  /* Accent — mint + teal, from the logo */
-  teal:       '#03C6B1',
-  tealDark:   '#02A995',
-  tealSoft:   '#E4FAF6',
-  tealDeep:   '#046E86',
-  tealMuted:  '#B3EEE6',
-  cyan:       '#0187BA',
-  sky:        '#3DB8FD',
+  /* Emerald accents; deep emerald is used for text on light surfaces. */
+  teal:       '#10BFA5',
+  tealDark:   '#0FAF97',
+  tealSoft:   '#E8FAF6',
+  tealDeep:   '#087A55',
+  tealMuted:  '#5CC8B7',
+  cyan:       '#55BFD3',
+  sky:        '#6B8AFD',
 
   /* Status */
-  amber:      '#D97706',
-  amberLight: '#FEF3C7',
-  coral:      '#DC2626',
-  coralLight: '#FEF2F2',
-  green:      '#0E9F6E',
-  greenLight: '#DCFCE7',
+  amber:      '#F59E0B',
+  amberLight: '#FFF7E6',
+  coral:      '#EF4444',
+  coralLight: '#FEF0F0',
+  green:      '#087A55',
+  greenLight: '#EAFBF5',
 
-  /* Brand blue — from the logo.
-     `navy` is #0164C8, the modal colour in the logo assets (10.2%), not the
-     deeper #014FB5. The deeper blue read as heavy against the mint accent and
-     was doing the CTA label only 3.49:1 — an AA failure at 0.9rem/700. The
-     brighter brand blue gives white-on-fill 5.74:1, and button *text* on mint
-     is ink instead of any blue (8.02:1). */
-  navy:       '#0164C8',
-  navyMid:    '#014FB5',
-  navyLight:  '#149DFC',
+  /* Deep navy identity, per PRODUCT.md brand commitment. */
+  navy:       '#2F80ED',
+  navyMid:    '#1F68C7',
+  navyLight:  '#2674D9',
 
-  /* Dark sections */
-  dark:       '#0C1B2E',
-  darkMid:    '#112539',
+  /* Retained for existing non-marketing consumers. */
+  dark:       '#17202A',
+  darkMid:    '#111923',
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -121,11 +93,11 @@ export const M = {
 
   /* ── Shadows ─────────────────────────────────────── */
   shadow: {
-    xs:   '0 1px 2px rgba(0,0,0,0.04)',
-    sm:   '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-    md:   '0 4px 16px rgba(1,71,184,0.08)',
-    lg:   '0 12px 32px rgba(1,71,184,0.10)',
-    xl:   '0 24px 56px rgba(1,71,184,0.14)',
+    xs:   '0 1px 2px rgba(27,36,48,0.04)',
+    sm:   '0 1px 3px rgba(27,36,48,0.06), 0 1px 2px rgba(27,36,48,0.04)',
+    md:   '0 4px 16px rgba(27,36,48,0.08)',
+    lg:   '0 12px 32px rgba(27,36,48,0.10)',
+    xl:   '0 24px 56px rgba(27,36,48,0.14)',
   },
 
   /* ── Transitions ─────────────────────────────────── */

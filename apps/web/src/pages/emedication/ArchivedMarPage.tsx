@@ -142,7 +142,7 @@ export default function ArchivedMarPage() {
         <Paper sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={24} /></Paper>
       ) : !selectedPerson ? (
         <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <MedIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
+          <MedIcon sx={{ fontSize: 48, color: '#D8DEE7', mb: 2 }} />
           <Typography color="text.secondary">Select a person to view archived charts</Typography>
         </Paper>
       ) : filteredRecords.length === 0 ? (
@@ -180,7 +180,7 @@ export default function ArchivedMarPage() {
                 </Stack>
 
                 <Collapse in={isExpanded}>
-                  <Box sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+                  <Box sx={{ p: 2, borderTop: '1px solid #E6EAF0' }}>
                     {expandedChartId === record.id && !chartData ? (
                       <CircularProgress size={20} sx={{ display: 'block', mx: 'auto' }} />
                     ) : chartData ? (
@@ -192,16 +192,16 @@ export default function ArchivedMarPage() {
                           <Table size="small" stickyHeader>
                             <TableHead>
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E5E7EB' }}>
+                                <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E6EAF0' }}>
                                   Medication
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E5E7EB' }}>
+                                <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E6EAF0' }}>
                                   Time
                                 </TableCell>
                                 {chartData.days.map((day, i) => (
                                   <TableCell key={day} align="center" sx={{
                                     fontWeight: 700, fontSize: '0.7rem', p: 0.5, minWidth: 36,
-                                    bgcolor: 'notice.subtle.bg', borderLeft: i > 0 ? '1px solid #F3F4F6' : 'none'
+                                    bgcolor: 'notice.subtle.bg', borderLeft: i > 0 ? '1px solid #F7F9FC' : 'none'
                                   }}>
                                     {new Date(day + 'T12:00:00').getDate()}
                                     <br />
@@ -218,10 +218,10 @@ export default function ArchivedMarPage() {
                                   <TableCell sx={{
                                     fontWeight: 600, fontSize: '0.75rem',
                                     position: 'sticky', left: 0, bgcolor: 'white', zIndex: 1,
-                                    borderRight: '2px solid #E5E7EB', whiteSpace: 'nowrap'
+                                    borderRight: '2px solid #E6EAF0', whiteSpace: 'nowrap'
                                   }}>
                                     <Stack direction="row" spacing={0.5} alignItems="center">
-                                      <MedIcon sx={{ fontSize: 14, color: '#0F4C81' }} />
+                                      <MedIcon sx={{ fontSize: 14, color: '#2F80ED' }} />
                                       <span>{item.name}</span>
                                       <Typography variant="caption" color="text.secondary">{item.dosage}{item.unit}</Typography>
                                       <Chip label={item.route} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
@@ -229,7 +229,7 @@ export default function ArchivedMarPage() {
                                   </TableCell>
                                   <TableCell sx={{
                                     fontWeight: 500, fontSize: '0.75rem', bgcolor: 'notice.subtle.bg',
-                                    whiteSpace: 'nowrap', borderRight: '1px solid #E5E7EB',
+                                    whiteSpace: 'nowrap', borderRight: '1px solid #E6EAF0',
                                     position: 'sticky', left: 200, zIndex: 1
                                   }}>
                                     {time}
@@ -246,21 +246,21 @@ export default function ArchivedMarPage() {
                                     return (
                                       <TableCell key={day} align="center" sx={{
                                         p: 0, minWidth: 36,
-                                        bgcolor: isCellToday ? '#EFF6FF' : i % 2 === 0 ? 'white' : '#F9FAFB',
-                                        borderLeft: i > 0 ? '1px solid #F3F4F6' : 'none'
+                                        bgcolor: isCellToday ? '#F4F8FF' : i % 2 === 0 ? 'white' : '#F9FAFB',
+                                        borderLeft: i > 0 ? '1px solid #F7F9FC' : 'none'
                                       }}>
                                         {existingAdmin ? (
                                           <Tooltip title={`${config?.label}${existingAdmin.notes ? ': ' + existingAdmin.notes : ''}`}>
                                             <Box sx={{
-                                              color: config?.color === 'success' ? '#16A34A' : config?.color === 'error' ? '#DC2626' : '#9CA3AF',
+                                              color: config?.color === 'success' ? '#10B981' : config?.color === 'error' ? '#EF4444' : '#98A2B3',
                                               display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28
                                             }}>
-                                              {config?.icon || <ScheduleIcon sx={{ fontSize: 14, color: '#D1D5DB' }} />}
+                                              {config?.icon || <ScheduleIcon sx={{ fontSize: 14, color: '#D8DEE7' }} />}
                                             </Box>
                                           </Tooltip>
                                         ) : (
                                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28 }}>
-                                            <ScheduleIcon sx={{ fontSize: 14, color: '#D1D5DB' }} />
+                                            <ScheduleIcon sx={{ fontSize: 14, color: '#D8DEE7' }} />
                                           </Box>
                                         )}
                                       </TableCell>

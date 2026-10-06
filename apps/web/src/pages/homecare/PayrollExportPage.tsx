@@ -344,7 +344,7 @@ export default function PayrollExportPage() {
 
 function PayEntryDialog({ row, onClose }: { row: any; onClose: () => void }) {
   const line = (label: string, value: React.ReactNode) => (
-    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.6, borderBottom: '1px solid #F3F4F6' }}>
+    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.6, borderBottom: '1px solid #F7F9FC' }}>
       <Typography variant="body2" color="text.secondary">{label}</Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>{value}</Typography>
     </Stack>

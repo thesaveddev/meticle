@@ -130,7 +130,7 @@ export default function SolutionsPage() {
                 {data.desc}
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: data.accent, color: data.accent === M.teal ? M.navy : '#fff', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: data.accent, opacity: 0.9 } }}>Book a demo</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: data.accent, color: data.accent === M.teal ? M.navy : '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: data.accent, opacity: 0.9 } }}>Book a demo</Button>
                 <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>See the platform</Button>
               </Stack>
             </Grid>
@@ -281,10 +281,10 @@ export default function SolutionsPage() {
             <Grid item xs={12} md={7}>
               <Grid container spacing={2}>
                 {[
-                  { code: 'CQC', nation: 'England', color: '#2563EB', path: '/compliance/cqc' },
-                  { code: 'Care Inspectorate', nation: 'Scotland', color: '#DC2626', path: '/compliance/care-inspectorate' },
-                  { code: 'CIW', nation: 'Wales', color: '#059669', path: '/compliance/ciw' },
-                  { code: 'RQIA', nation: 'Northern Ireland', color: '#7C3AED', path: '/compliance/rqia' },
+                  { code: 'CQC', nation: 'England', color: '#2F80ED', path: '/compliance/cqc' },
+                  { code: 'Care Inspectorate', nation: 'Scotland', color: '#EF4444', path: '/compliance/care-inspectorate' },
+                  { code: 'CIW', nation: 'Wales', color: '#087A55', path: '/compliance/ciw' },
+                  { code: 'RQIA', nation: 'Northern Ireland', color: '#8B7CF6', path: '/compliance/rqia' },
                 ].map((r) => (
                   <Grid item xs={12} sm={6} key={r.code}>
                     <Box component="a" href={r.path} sx={{

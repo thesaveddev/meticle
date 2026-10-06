@@ -10,7 +10,7 @@
  * equivalents), on the assumption that `.light` is a pale tint.
  *
  * It is not. `palette.success.light` is a *mid* tone (`#4caf50` in light mode,
- * `#81c784` in dark). MUI's own `<Alert>` works precisely because it does not
+ * `#10B981` in dark). MUI's own `<Alert>` works precisely because it does not
  * use the tone directly — `Alert.js` derives a surface with
  * `lighten(light, 0.9)` and a foreground with `darken(light, 0.6)` in light
  * mode, and the inverse in dark mode. That derivation is why an Alert is
@@ -24,7 +24,7 @@
  * same derivation, resolved once and named.
  *
  * `subtle` and `muted` replace `grey.50`/`grey.100`, which MUI also leaves
- * light-only: `#FAFAFA`/`#F5F5F5` are near-white in both modes, so they render
+ * light-only: `#F9FAFB`/`#F7F9FC` are near-white in both modes, so they render
  * as white boxes on a dark page.
  */
 
@@ -56,14 +56,13 @@ declare module '@mui/material/styles' {
 }
 
 const LIGHT: NoticeTokens = {
-  // Light mode: pale surface, deep foreground. Each pair is far above 4.5:1;
-  // `contrast.test.ts` asserts it rather than trusting these comments.
-  success: { bg: '#E8F5E9', fg: '#14532D' },
-  error: { bg: '#FFEBEE', fg: '#7F1D1D' },
-  warning: { bg: '#FFF7ED', fg: '#7C2D12' },
-  info: { bg: '#E0F2FE', fg: '#075985' },
+  // Light mode: master-palette surfaces with readable text (4.5:1+).
+  success: { bg: '#EAFBF5', fg: '#087A55' },
+  error: { bg: '#FEF0F0', fg: '#B42318' },
+  warning: { bg: '#FFF7E6', fg: '#9A6700' },
+  info: { bg: '#EAF3FF', fg: '#175CD3' },
   subtle: { bg: '#F8FAFC' },
-  muted: { bg: '#EEF2F6' },
+  muted: { bg: '#F2F4F7' },
 }
 
 const DARK: NoticeTokens = {
@@ -72,7 +71,7 @@ const DARK: NoticeTokens = {
   // light foreground for the label and any icon on it.
   success: { bg: 'rgba(34,197,94,0.16)', fg: '#86EFAC' },
   error: { bg: 'rgba(239,68,68,0.16)', fg: '#FCA5A5' },
-  warning: { bg: 'rgba(245,158,11,0.16)', fg: '#FCD34D' },
+  warning: { bg: 'rgba(245,158,11,0.16)', fg: '#F59E0B' },
   info: { bg: 'rgba(14,165,233,0.16)', fg: '#7DD3FC' },
   // Both insets need to clear their own surface against `background.paper`,
   // or a "subtle" row is just the page again. The first dark `muted` value

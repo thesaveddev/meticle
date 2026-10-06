@@ -57,12 +57,12 @@ export default function ResetPasswordPage() {
         <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
           <Container maxWidth="xs" sx={{ mx: 'auto' }}>
             <Box sx={{ mb: 6 }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
                 Meticle Care
               </Typography>
             </Box>
             {/* Alert, not a hand-built coloured box — `error.light` with a
-                hardcoded #991B1B label is unreadable in the app's dark mode,
+                hardcoded #B42318 label is unreadable in the app's dark mode,
                 which ThemeContext persists to localStorage. */}
             <Alert severity="error" sx={{ p: 3, borderRadius: 2 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Invalid reset link</Typography>
@@ -93,10 +93,10 @@ export default function ResetPasswordPage() {
       <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>Meticle Care</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>Meticle Care</Typography>
             <Box sx={{
               width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', bgcolor: '#EAF2F8', color: '#0F4C81', mb: 3,
+              borderRadius: '50%', bgcolor: '#EAF2F8', color: '#2F80ED', mb: 3,
             }}>
               <LockIcon sx={{ fontSize: 22 }} />
             </Box>
@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
                       startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
                       endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">{showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
                     }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#2F80ED' } } }} />
                 </Box>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Confirm password</Typography>
@@ -142,16 +142,16 @@ export default function ResetPasswordPage() {
                       startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
                       endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">{showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
                     }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#2F80ED' } } }} />
                 </Box>
                 <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-                  sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#0D3F6E' } }}>
+                  sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#2674D9' } }}>
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'Save new password'}
                 </Button>
                 <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Remember your password?{' '}
-                    <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+                    <Link onClick={() => navigate('/login')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
                   </Typography>
                 </Box>
               </Stack>
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
       </Box>
       <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <Typography variant="body2" sx={{ color: '#0F4C81', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 2 }}>
+          <Typography variant="body2" sx={{ color: '#2F80ED', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 2 }}>
             Account security
           </Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>A private moment for your account</Typography>

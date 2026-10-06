@@ -209,8 +209,8 @@ export default function SettingsPage() {
         if (orgDetRes.status === 'fulfilled') {
           setOrgDetails(orgDetRes.value.data)
           setBrandingColors({
-            primary_color: orgDetRes.value.data.primary_color || '#0F4C81',
-            secondary_color: orgDetRes.value.data.secondary_color || '#6B7280',
+            primary_color: orgDetRes.value.data.primary_color || '#2F80ED',
+            secondary_color: orgDetRes.value.data.secondary_color || '#667085',
             accent_color: orgDetRes.value.data.accent_color || '#F8FAFC',
           })
           setBrandingLogo(orgDetRes.value.data.logo_url || '')
@@ -484,7 +484,7 @@ export default function SettingsPage() {
 
   // Branding state
   const [brandingColors, setBrandingColors] = useState({
-    primary_color: '#0F4C81',
+    primary_color: '#2F80ED',
     secondary_color: 'text.secondary',
     accent_color: '#F8FAFC',
   })
@@ -552,7 +552,7 @@ export default function SettingsPage() {
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Profile Picture</Typography>
         <Stack direction="row" alignItems="center" spacing={3}>
-          <Avatar src={profile?.profile_picture_url || user?.profile_picture_url || ''} sx={{ width: 100, height: 100, bgcolor: '#0F4C81', fontSize: '2.5rem' }}>
+          <Avatar src={profile?.profile_picture_url || user?.profile_picture_url || ''} sx={{ width: 100, height: 100, bgcolor: '#2F80ED', fontSize: '2.5rem' }}>
             {(profile?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()}
           </Avatar>
           <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handlePictureUpload} />
@@ -593,7 +593,7 @@ export default function SettingsPage() {
           </Grid>
         </Grid>
         <Button variant="contained" onClick={handleSaveProfile} disabled={updateMutation.isPending}
-          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
         </Button>
       </Paper>
@@ -622,15 +622,15 @@ export default function SettingsPage() {
       */}
       <LocationDecisionControl />
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#DC2626' }}>Danger Zone</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#EF4444' }}>Danger Zone</Typography>
+        <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
         <Button variant="outlined" color="error" onClick={() => setDeactDialogOpen(true)}>Deactivate Account</Button>
         {deactError && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setDeactError('')}>{deactError}</Alert>}
       </Paper>
       <Dialog open={deactDialogOpen} onClose={() => setDeactDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ color: '#DC2626' }}>Deactivate Account?</DialogTitle>
+        <DialogTitle sx={{ color: '#EF4444' }}>Deactivate Account?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280">This will immediately deactivate your account and log you out. You will need an administrator to reactivate it. Are you sure?</Typography>
+          <Typography variant="body2" color="#667085">This will immediately deactivate your account and log you out. You will need an administrator to reactivate it. Are you sure?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeactDialogOpen(false)}>Cancel</Button>
@@ -646,7 +646,7 @@ export default function SettingsPage() {
     <Stack spacing={4}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Multi-Factor Authentication</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
           {mfaEnabled
             ? 'MFA is currently enabled on your account. Each time you sign in, you will be prompted for an authentication code.'
             : 'Add an extra layer of security to your account by enabling multi-factor authentication (MFA).'}
@@ -656,14 +656,14 @@ export default function SettingsPage() {
             <Button variant="outlined" color="error" onClick={() => setMfaDisableDialog(true)}>Disable MFA</Button>
           </Stack>
         ) : (
-          <Button variant="contained" onClick={setupMfa} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Enable MFA</Button>
+          <Button variant="contained" onClick={setupMfa} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Enable MFA</Button>
         )}
       </Paper>
       <Dialog open={mfaSetupDialog} onClose={() => setMfaSetupDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Set Up MFA</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 2 }}>
-            <Typography variant="body2" color="#6B7280">
+            <Typography variant="body2" color="#667085">
               Scan this QR code with your authenticator app (e.g. Google Authenticator, Authy, or Microsoft Authenticator).
             </Typography>
             {mfaQrCode && (
@@ -681,7 +681,7 @@ export default function SettingsPage() {
               placeholder="Enter the 6-digit code from your app" />
             {mfaError && <Alert severity="error" onClose={() => setMfaError('')}>{mfaError}</Alert>}
             <Button variant="contained" disabled={mfaVerifying || !mfaVerifyToken} onClick={verifyMfaSetup}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
               {mfaVerifying ? 'Verifying...' : 'Verify & Enable'}
             </Button>
           </Stack>
@@ -691,10 +691,10 @@ export default function SettingsPage() {
         </DialogActions>
       </Dialog>
       <Dialog open={mfaDisableDialog} onClose={() => { setMfaDisableDialog(false); setMfaDisableToken('') }} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ color: '#DC2626', fontWeight: 700 }}>Disable MFA</DialogTitle>
+        <DialogTitle sx={{ color: '#EF4444', fontWeight: 700 }}>Disable MFA</DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
-            <Typography variant="body2" color="#6B7280">Enter your authenticator code or a backup code to confirm.</Typography>
+            <Typography variant="body2" color="#667085">Enter your authenticator code or a backup code to confirm.</Typography>
             <TextField label="Code" fullWidth size="small" value={mfaDisableToken}
               onChange={e => { setMfaDisableToken(e.target.value); setMfaDisableError('') }}
               placeholder="6-digit code or backup code" />
@@ -728,7 +728,7 @@ export default function SettingsPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button variant="contained" onClick={() => { setMfaBackupDialog(false); showSnackbar("Settings saved.", "success") }}
-            sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>I've Saved Them</Button>
+            sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>I've Saved Them</Button>
         </DialogActions>
       </Dialog>
     </Stack>
@@ -765,7 +765,7 @@ export default function SettingsPage() {
           <TextFieldsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Text Size & Zoom
         </Typography>
         <Stack spacing={2} sx={{ maxWidth: 480 }}>
-          <Typography variant="body2" color="#6B7280">
+          <Typography variant="body2" color="#667085">
             Adjust the scale of the interface to make text and controls easier to read. Your preference is saved and applied on every device you use to sign in.
           </Typography>
           <Box>
@@ -783,7 +783,7 @@ export default function SettingsPage() {
                 </Button>
               ))}
             </Stack>
-            <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', mt: 1 }}>
+            <Typography variant="caption" color="#98A2B3" sx={{ display: 'block', mt: 1 }}>
               {zoomScale < 1 ? 'Compact' : zoomScale === 1 ? 'Default' : zoomScale >= 1.5 ? 'Largest' : 'Enlarged'}
             </Typography>
           </Box>
@@ -1040,7 +1040,7 @@ export default function SettingsPage() {
                   onChange={e => setOrgDetails((p: any) => ({ ...p, auto_approve_documents: e.target.checked }))} />}
                 label="Auto-approve uploaded documents"
               />
-              <Typography variant="caption" display="block" color="#6B7280" sx={{ ml: 4 }}>
+              <Typography variant="caption" display="block" color="#667085" sx={{ ml: 4 }}>
                 When enabled, documents uploaded by staff are automatically approved without manual review. Use with caution.
               </Typography>
             </Grid>
@@ -1059,7 +1059,7 @@ export default function SettingsPage() {
                 helperText="Applied to all calls unless overridden per call pattern" />
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={saveOrgDetails} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <Button variant="contained" onClick={saveOrgDetails} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
             <SaveIcon sx={{ mr: 1 }} /> Save Organization Details
           </Button>
         </Paper>
@@ -1104,7 +1104,7 @@ export default function SettingsPage() {
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Logo</Typography>
             <Stack direction="row" spacing={2} alignItems="center">
               {brandingLogo && (
-                <Box component="img" src={brandingLogo} sx={{ width: 60, height: 60, objectFit: 'contain', border: '1px solid', borderColor: 'grey.200', borderRadius: 1 }} />
+                <Box component="img" src={brandingLogo} sx={{ width: 60, height: 60, objectFit: 'contain', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 1 }} />
               )}
               <input type="file" accept="image/*" hidden ref={logoInputRef} onChange={handleLogoUpload} />
               <Button variant="outlined" size="small" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
@@ -1123,7 +1123,7 @@ export default function SettingsPage() {
                     <Box sx={{ position: 'relative', width: 44, height: 44 }}>
                       <input type="color" value={brandingColors[field]}
                         onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
-                        style={{ width: 44, height: 44, border: '1px solid', borderColor: 'grey.200', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+                        style={{ width: 44, height: 44, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
                     </Box>
                     <TextField size="small" value={brandingColors[field]}
                       onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
@@ -1134,9 +1134,9 @@ export default function SettingsPage() {
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={0.5}>
-                    {['#0F4C81', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2', '#6B7280', '#F8FAFC', '#111827', '#FFFFFF'].map(c => (
+                    {['#2F80ED', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#0C9E89', '#667085', '#F8FAFC', '#17202A', '#FFFFFF'].map(c => (
                       <Box key={c} onClick={() => setBrandingColors((p: any) => ({ ...p, [field]: c }))}
-                        sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: c, border: brandingColors[field] === c ? '2px solid #0F4C81' : '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { transform: 'scale(1.2)' }, transition: 'transform 0.1s' }} />
+                        sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: c, border: brandingColors[field] === c ? '2px solid #2F80ED' : '1px solid #E6EAF0', cursor: 'pointer', '&:hover': { transform: 'scale(1.2)' }, transition: 'transform 0.1s' }} />
                     ))}
                   </Stack>
                 </Box>
@@ -1144,7 +1144,7 @@ export default function SettingsPage() {
             </Stack>
           </Grid>
         </Grid>
-        <Button variant="contained" onClick={saveBranding} disabled={brandingSaving} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={saveBranding} disabled={brandingSaving} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> {brandingSaving ? 'Saving...' : 'Save Branding'}
         </Button>
       </Paper>}
@@ -1159,11 +1159,11 @@ export default function SettingsPage() {
               onChange={e => setOrgSettings((p: any) => ({ ...p, force_mfa: e.target.checked }))} />}
             label="Force all staff to set up MFA"
           />
-          <Typography variant="caption" color="#6B7280">
+          <Typography variant="caption" color="#667085">
             When enabled, staff who have not set up multi-factor authentication will be required to set it up before they can log in. Existing MFA users are unaffected.
           </Typography>
         </Stack>
-        <Button variant="contained" onClick={() => saveOrgSettings({ force_mfa: orgSettings.force_mfa })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ force_mfa: orgSettings.force_mfa })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Security Settings
         </Button>
       </Paper>}
@@ -1186,13 +1186,13 @@ export default function SettingsPage() {
                 onChange={e => setOrgSettings((p: any) => ({ ...p, overtime_requires_approval: e.target.checked }))} />}
               label="Overtime claims require manager approval"
             />
-            <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0 }}>
+            <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0 }}>
               When enabled, staff overtime claims need a manager to approve before the shift is assigned.
               When disabled, claims are auto-assigned immediately.
             </Typography>
           </Grid>
         </Grid>
-        <Button variant="contained" onClick={() => saveOrgSettings({ minimum_compliance_percent: orgSettings.minimum_compliance_percent, overtime_requires_approval: orgSettings.overtime_requires_approval })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ minimum_compliance_percent: orgSettings.minimum_compliance_percent, overtime_requires_approval: orgSettings.overtime_requires_approval })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Staffing Rules
         </Button>
       </Paper>
@@ -1206,7 +1206,7 @@ export default function SettingsPage() {
             onChange={e => setOrgSettings((p: any) => ({ ...p, compliance_digest_enabled: e.target.checked }))} />}
           label="Daily compliance digest emails to location managers"
         />
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, location managers receive a daily email listing staff with incomplete compliance requirements and what they need to do.
         </Typography>
         <FormControlLabel
@@ -1215,7 +1215,7 @@ export default function SettingsPage() {
           label="Predictive compliance alerts"
           sx={{ mt: 1 }}
         />
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
            When enabled, the system analyses compliance trends over 60 days and alerts administrators if scores are declining toward your alert threshold.
         </Typography>
         <FormControlLabel
@@ -1233,10 +1233,10 @@ export default function SettingsPage() {
             </Select>
           </FormControl>
         )}
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, evidence packs will be automatically generated and emailed to all org administrators on the selected schedule.
         </Typography>
-        <Button variant="contained" onClick={() => saveOrgSettings({ compliance_digest_enabled: orgSettings.compliance_digest_enabled, predictive_alerts_enabled: orgSettings.predictive_alerts_enabled, auto_evidence_pack_enabled: orgSettings.auto_evidence_pack_enabled, auto_evidence_pack_frequency: orgSettings.auto_evidence_pack_frequency })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ compliance_digest_enabled: orgSettings.compliance_digest_enabled, predictive_alerts_enabled: orgSettings.predictive_alerts_enabled, auto_evidence_pack_enabled: orgSettings.auto_evidence_pack_enabled, auto_evidence_pack_frequency: orgSettings.auto_evidence_pack_frequency })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Compliance Notification Settings
         </Button>
       </Paper>
@@ -1256,11 +1256,11 @@ export default function SettingsPage() {
             onChange={e => setOrgSettings((p: any) => ({ ...p, daily_shift_audit_time: e.target.value }))}
             InputLabelProps={{ shrink: true }} />
         </Stack>
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, location managers receive a daily shift audit email at the configured time
           summarizing shift coverage, staffing levels, and medication administration for the day.
         </Typography>
-        <Button variant="contained" onClick={() => saveOrgSettings({ daily_shift_audit_enabled: orgSettings.daily_shift_audit_enabled, daily_shift_audit_time: orgSettings.daily_shift_audit_time })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ daily_shift_audit_enabled: orgSettings.daily_shift_audit_enabled, daily_shift_audit_time: orgSettings.daily_shift_audit_time })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Shift Audit Settings
         </Button>
       </Paper>
@@ -1275,7 +1275,7 @@ export default function SettingsPage() {
           label="Email location managers when stock reaches reorder level"
           sx={{ mt: 1 }}
         />
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, the location manager is emailed the moment a medication's stock drops to or below its reorder level
           after an administration. Low-stock items are also included in the daily shift audit email.
         </Typography>
@@ -1285,7 +1285,7 @@ export default function SettingsPage() {
           label="Email on-duty staff when medications are overdue"
           sx={{ mt: 2 }}
         />
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, staff currently on duty at the person's location are emailed if a scheduled administration
           remains unrecorded after the delay below. If no staff are on duty, the location manager is alerted instead.
         </Typography>
@@ -1295,7 +1295,7 @@ export default function SettingsPage() {
             onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_delay_minutes: Math.max(1, Math.min(1440, Number(e.target.value))) }))}
             InputProps={{ inputProps: { min: 1, max: 1440 } }} />
         </Stack>
-        <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
         </Button>
       </Paper>
@@ -1304,7 +1304,7 @@ export default function SettingsPage() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <PhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Emergency Contacts
         </Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
           Up to two numbers carers can dial from the SOS button in the mobile app, shown after 999 and 111 — for
           example the office and an on-call supervisor. Leave a number blank to remove it.
         </Typography>
@@ -1344,7 +1344,7 @@ export default function SettingsPage() {
             emergency_contact_2_label: orgSettings.emergency_contact_2_label || '',
             emergency_contact_2_phone: orgSettings.emergency_contact_2_phone || '',
           })}
-          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}
+          sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}
         >
           <SaveIcon sx={{ mr: 1 }} /> Save Emergency Contacts
         </Button>
@@ -1354,7 +1354,7 @@ export default function SettingsPage() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Call Alert Frequency
         </Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
           Choose the repeat interval independently for calls that are overdue and calls that still have no carer assigned.
         </Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -1385,7 +1385,7 @@ export default function SettingsPage() {
             <MenuItem value="240">Every 4 hours</MenuItem>
           </TextField>
         </Stack>
-        <Button variant="contained" onClick={() => saveOrgSettings({ overdue_alert_frequency_minutes: orgSettings.overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes: orgSettings.unassigned_alert_frequency_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ overdue_alert_frequency_minutes: orgSettings.overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes: orgSettings.unassigned_alert_frequency_minutes })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Call Alert Frequencies
         </Button>
       </Paper>
@@ -1406,11 +1406,11 @@ export default function SettingsPage() {
           <MenuItem value="am_pm">Twice a day â€” AM &amp; PM</MenuItem>
           <MenuItem value="after_each">After each administration</MenuItem>
         </TextField>
-        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 1 }}>
+        <Typography variant="caption" color="#667085" sx={{ display: 'block', ml: 0, mt: 1 }}>
           Sets the default count type when logging daily medication counts on the eMAR page.
           Choose the frequency your home uses to reconcile physical stock against expected quantities.
         </Typography>
-        <Button variant="contained" onClick={() => saveOrgSettings({ emedication_count_convention: orgSettings.emedication_count_convention })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ emedication_count_convention: orgSettings.emedication_count_convention })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Count Convention
         </Button>
       </Paper>
@@ -1429,7 +1429,7 @@ export default function SettingsPage() {
                 {actionLoading === 'seed-records' ? 'Seeding...' : 'Seed Records from Config'}
               </Button>}
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 }); setCompDialog(true) }}
-                sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Requirement</Button>
+                sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Requirement</Button>
             </Stack>
           </Stack>
           <TableContainer>
@@ -1449,7 +1449,7 @@ export default function SettingsPage() {
                 ) : complianceConfigs.slice(compConfigPage * rowsPerPage, compConfigPage * rowsPerPage + rowsPerPage).map(c => (
                   <TableRow key={c.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{c.name}
-                      {c.description && <Typography variant="caption" display="block" color="#6B7280">{c.description}</Typography>}
+                      {c.description && <Typography variant="caption" display="block" color="#667085">{c.description}</Typography>}
                     </TableCell>
                     <TableCell><Chip label={c.category} size="small" /></TableCell>
                     <TableCell>{c.is_mandatory ? <CheckIcon color="success" fontSize="small" /> : <CloseIcon color="disabled" fontSize="small" />}</TableCell>
@@ -1495,7 +1495,7 @@ export default function SettingsPage() {
                 <TableBody>
                   {complianceProfiles.slice(compProfilePage * rowsPerPage, compProfilePage * rowsPerPage + rowsPerPage).map(p => (
                     <TableRow key={p.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{p.name}{p.description ? <Typography variant="caption" display="block" color="#6B7280">{p.description}</Typography> : null}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{p.name}{p.description ? <Typography variant="caption" display="block" color="#667085">{p.description}</Typography> : null}</TableCell>
                       <TableCell><Chip label={p.role_name} size="small" /></TableCell>
                       <TableCell>{p.requirements?.length || 0} requirements</TableCell>
                       <TableCell>
@@ -1537,7 +1537,7 @@ export default function SettingsPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setCompDialog(false)}>Cancel</Button>
-          <Button variant="contained" disabled={actionLoading === 'compliance-config'} onClick={saveComplianceConfig} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-config' ? 'Saving...' : 'Save'}</Button>
+          <Button variant="contained" disabled={actionLoading === 'compliance-config'} onClick={saveComplianceConfig} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>{actionLoading === 'compliance-config' ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -1583,7 +1583,7 @@ export default function SettingsPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setCompProfileDialog(false)}>Cancel</Button>
-          <Button variant="contained" disabled={actionLoading === 'compliance-profile'} onClick={saveComplianceProfile} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-profile' ? 'Saving...' : 'Save'}</Button>
+          <Button variant="contained" disabled={actionLoading === 'compliance-profile'} onClick={saveComplianceProfile} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>{actionLoading === 'compliance-profile' ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -1671,7 +1671,7 @@ export default function SettingsPage() {
         <Typography variant="h6" sx={{ fontWeight: 700 }}><SmartToyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />AI Integration</Typography>
         <Button variant="contained" onClick={saveAIConfig} disabled={aiSaving}
           startIcon={aiSaving ? undefined : <SaveIcon />}
-          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           {aiSaving ? 'Saving...' : 'Save AI Settings'}
         </Button>
       </Stack>
@@ -1745,18 +1745,18 @@ export default function SettingsPage() {
                 helperText="Set to 0 for unlimited. AI features stop when budget is reached."
               />
               {aiUsageStats && aiConfig?.monthlyBudgetCents > 0 && (
-                <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+                <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E6EAF0' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">Budget used this month</Typography>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
                       £{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)} / £{(aiConfig.monthlyBudgetCents / 100).toFixed(2)}
                     </Typography>
                   </Box>
-                  <Box sx={{ height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ height: 6, bgcolor: '#E6EAF0', borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{
                       height: '100%',
                       width: `${Math.min(100, ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) * 100)}%`,
-                      bgcolor: ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) > 0.8 ? '#DC2626' : '#16A34A',
+                      bgcolor: ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) > 0.8 ? '#EF4444' : '#10B981',
                       borderRadius: 3,
                       transition: 'width 0.3s',
                     }} />
@@ -1818,7 +1818,7 @@ export default function SettingsPage() {
               {aiAnalyzing ? 'Analyzing...' : 'Run Analysis'}
             </Button>
             {aiAnalysisResult && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E6EAF0' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Assessment</Typography>
                 <Typography variant="body2" sx={{ mb: 1.5 }}>{aiAnalysisResult.overall_assessment}</Typography>
                 {aiAnalysisResult.estimated_timeline && (
@@ -1828,7 +1828,7 @@ export default function SettingsPage() {
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>Critical Gaps:</Typography>
                     {aiAnalysisResult.critical_gaps.slice(0, 3).map((g: any, i: number) => (
-                      <Typography key={i} variant="caption" display="block" sx={{ color: g.priority === 'critical' ? '#DC2626' : '#D97706', mt: 0.5 }}>
+                      <Typography key={i} variant="caption" display="block" sx={{ color: g.priority === 'critical' ? '#EF4444' : '#F59E0B', mt: 0.5 }}>
                         â€¢ {g.area}: {g.recommended_action}
                       </Typography>
                     ))}
@@ -1851,11 +1851,11 @@ export default function SettingsPage() {
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Successful</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#16A34A' }}>{aiUsageStats.successful_requests || 0}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#10B981' }}>{aiUsageStats.successful_requests || 0}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Failed</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#DC2626' }}>{aiUsageStats.failed_requests || 0}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#EF4444' }}>{aiUsageStats.failed_requests || 0}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Total Tokens</Typography>
@@ -1866,9 +1866,9 @@ export default function SettingsPage() {
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{aiUsageStats.features_used || 0}</Typography>
                 </Box>
                 {aiUsageStats.estimated_cost_cents !== undefined && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #E2E8F0', mt: 0.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #E6EAF0', mt: 0.5 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>Est. Cost</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F4C81' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#2F80ED' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
                   </Box>
                 )}
               </Stack>
@@ -1907,7 +1907,7 @@ export default function SettingsPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}><DelegateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Manager Delegations</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditDel({ id: '', primary_manager_id: '', delegate_manager_id: '', ends_at: '' }); setDelDialog(true) }}
-          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Delegation</Button>
+          sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Delegation</Button>
       </Stack>
       <Paper>
         <TableContainer>
@@ -1974,7 +1974,7 @@ export default function SettingsPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setDelDialog(false)}>Cancel</Button>
-          <Button variant="contained" disabled={actionLoading === 'delegation'} onClick={saveDelegation} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'delegation' ? 'Saving...' : 'Save'}</Button>
+          <Button variant="contained" disabled={actionLoading === 'delegation'} onClick={saveDelegation} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>{actionLoading === 'delegation' ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
       <Dialog open={delAuditDialog} onClose={() => setDelAuditDialog(false)} maxWidth="md" fullWidth>
@@ -2052,7 +2052,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
   const [types, setTypes] = useState<any[]>([])
   const [leaveOrg, setLeaveOrg] = useState<any>({})
   const [typeDialog, setTypeDialog] = useState(false)
-  const [editingType, setEditingType] = useState<any>({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true })
+  const [editingType, setEditingType] = useState<any>({ name: '', color: '#2F80ED', duration_type: 'days', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true })
   const [typePage, setTypePage] = useState(0)
   const [tlLoading, setTlLoading] = useState('')
   const [ltError, setLtError] = useState('')
@@ -2119,7 +2119,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
       } else {
         await api.post('/leave/types', payload)
       }
-      setTypeDialog(false); setSaveError(''); setEditingType({ name: '', color: '#0F4C81', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); loadTypes()
+      setTypeDialog(false); setSaveError(''); setEditingType({ name: '', color: '#2F80ED', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); loadTypes()
       showSnackbar('Leave type saved.', 'success')
     } catch (e: any) { setSaveError(e.response?.data?.message || 'Error saving leave type') }
     finally { setTlLoading('') }
@@ -2170,7 +2170,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
           </Grid>
         </Grid>
         <Button variant="contained" onClick={saveLeaveOrg} disabled={tlLoading === 'org'}
-          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> {tlLoading === 'org' ? 'Saving...' : 'Save Leave Settings'}
         </Button>
       </Paper>
@@ -2178,7 +2178,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
       {/* Leave Entitlements Summary */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
           Staff leave entitlements are calculated proportionally based on their contracted weekly hours.
           For example, a staff member working 20h/week will receive half the leave of a 40h/week full-time employee.
           Configure the baseline values above, then run the calculation.
@@ -2186,21 +2186,21 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         <Box sx={{ display: 'flex', gap: 'var(--card-gap)', flexWrap: 'wrap', mb: 3 }}>
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
             <CardContent>
-              <Typography variant="caption" color="#6B7280">Base Leave Hours</Typography>
+              <Typography variant="caption" color="#667085">Base Leave Hours</Typography>
               <Typography variant="h5" sx={{ fontWeight: 800 }}>{leaveOrg.base_leave_hours ?? 240}h</Typography>
-              <Typography variant="caption" color="#9CA3AF">For {leaveOrg.base_contracted_hours ?? 40}h/week</Typography>
+              <Typography variant="caption" color="#98A2B3">For {leaveOrg.base_contracted_hours ?? 40}h/week</Typography>
             </CardContent>
           </Card>
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
             <CardContent>
-              <Typography variant="caption" color="#6B7280">Staff Count</Typography>
+              <Typography variant="caption" color="#667085">Staff Count</Typography>
               <Typography variant="h5" sx={{ fontWeight: 800 }}>{staffCount}</Typography>
-              <Typography variant="caption" color="#9CA3AF">Active staff to calculate</Typography>
+              <Typography variant="caption" color="#98A2B3">Active staff to calculate</Typography>
             </CardContent>
           </Card>
         </Box>
         <Button variant="contained" startIcon={<CalculateIcon />} onClick={calculateEntitlements} disabled={tlLoading === 'entitlements'}
-          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           {tlLoading === 'entitlements' ? 'Calculating...' : 'Calculate & Update All Entitlements'}
         </Button>
       </Paper>
@@ -2210,13 +2210,13 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Types</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
-            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); setSaveError(''); setTypeDialog(true) }}
-            sx={{ bgcolor: '#0F4C81' }}>Add Leave Type</Button>
+            onClick={() => { setEditingType({ name: '', color: '#2F80ED', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); setSaveError(''); setTypeDialog(true) }}
+            sx={{ bgcolor: '#2F80ED' }}>Add Leave Type</Button>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <Typography variant="body2" color="#6B7280">Type allowances total</Typography>
+          <Typography variant="body2" color="#667085">Type allowances total</Typography>
           <Typography variant="body2" fontWeight={700} color={savedMismatch ? 'error.main' : 'success.main'}>{fmt(savedTotal)}h</Typography>
-          <Typography variant="body2" color="#6B7280">of {fmt(base)}h allowed</Typography>
+          <Typography variant="body2" color="#667085">of {fmt(base)}h allowed</Typography>
           {savedMismatch && <Typography variant="body2" color="error.main" fontWeight={600}>
             ({fmt(base - savedTotal) >= 0 ? `${fmt(base - savedTotal)}h remaining` : `${fmt(savedTotal - base)}h over`})
           </Typography>}
@@ -2242,7 +2242,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
                   {types.slice(typePage * 10, typePage * 10 + 10).map(t => (
                     <TableRow key={t.id}>
                       <TableCell><Typography fontWeight={600}>{t.name}</Typography></TableCell>
-                      <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#fff', fontWeight: 700 }} /></TableCell>
+                      <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#FFFFFF', fontWeight: 700 }} /></TableCell>
                       <TableCell>{fmt(toHours(t))}h</TableCell>
                       <TableCell><Chip label={t.is_paid ? 'Paid' : 'Unpaid'} size="small" color={t.is_paid ? 'success' : 'default'} variant="outlined" /></TableCell>
                       <TableCell><Chip label={t.requires_approval ? 'Approval' : 'Auto'} size="small" color={t.requires_approval ? 'warning' : 'info'} variant="outlined" /></TableCell>
@@ -2289,9 +2289,9 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
               </Alert>
             )}
             <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1 }}>
-              <Typography variant="body2" color="#4B5563">
+              <Typography variant="body2" color="#475467">
                 Type allowances total <Typography component="span" fontWeight={700} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
-                <Typography component="span" color="#6B7280"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>
+                <Typography component="span" color="#667085"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>
               </Typography>
               {mismatch && (
                 <Alert severity="error" sx={{ mt: 1 }}>
@@ -2304,7 +2304,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         <DialogActions>
           <Button onClick={() => { setTypeDialog(false); setSaveError('') }}>Cancel</Button>
           <Button variant="contained" onClick={saveType} disabled={tlLoading === 'save' || mismatch}
-            sx={{ bgcolor: '#0F4C81' }}>{tlLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
+            sx={{ bgcolor: '#2F80ED' }}>{tlLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -2312,7 +2312,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
       <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete leave type?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#4B5563">
+          <Typography variant="body2" color="#475467">
             Are you sure you want to delete <Typography component="span" fontWeight={700}>{confirmDelete?.name}</Typography>? This will permanently remove the type and its staff balances.
           </Typography>
         </DialogContent>
@@ -2369,7 +2369,7 @@ function IncidentCategoriesSettings() {
           <Typography variant="h6" fontWeight={700}>Incident Categories</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
             onClick={() => { setEditingCat({ name: '', severity: 'medium', is_cqc_reportable: false }); setCatDialog(true) }}
-            sx={{ bgcolor: '#0F4C81' }}>Add Category</Button>
+            sx={{ bgcolor: '#2F80ED' }}>Add Category</Button>
         </Stack>
         <TableContainer>
           <Table size="small">
@@ -2424,7 +2424,7 @@ function IncidentCategoriesSettings() {
         <DialogActions>
           <Button onClick={() => setCatDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={saveCat} disabled={catLoading === 'save'}
-            sx={{ bgcolor: '#0F4C81' }}>{catLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
+            sx={{ bgcolor: '#2F80ED' }}>{catLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -2458,7 +2458,7 @@ function PushNotificationsSection() {
 
   return <Paper sx={{ p: 4 }}>
     <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}><NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Browser visit reminders</Typography>
-    <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+    <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
       Get a browser alert before an assigned domiciliary visit enters its travel window. Location permission is not required for notifications, and tracking is not continuous.
     </Typography>
     {state === 'subscribed' && <Alert severity="success" sx={{ mb: 2 }}>Browser reminders are enabled on this device.</Alert>}
@@ -2523,14 +2523,14 @@ function NotificationPreferencesSection() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />My Notification Preferences
       </Typography>
-      <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mb: 2 }}>
+      <Typography variant="caption" color="#667085" sx={{ display: 'block', mb: 2 }}>
         Choose which notifications you want to receive. Disabled types will not generate push or in-app alerts.
       </Typography>
       {prefError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPrefError('')}>{prefError}</Alert>}
       <Grid container spacing={1}>
         {prefs.length === 0 && !prefError ? (
           <Grid item xs={12}>
-            <Typography variant="body2" color="#6B7280">Loading your notification preferences...</Typography>
+            <Typography variant="body2" color="#667085">Loading your notification preferences...</Typography>
           </Grid>
         ) : (
           prefs.map(p => (
@@ -2544,13 +2544,13 @@ function NotificationPreferencesSection() {
           ))
         )}
       </Grid>
-      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E5E7EB' }}>
+      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E6EAF0' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Domiciliary care summary emails</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
           Receive one summary for your own calls or organisation each day instead of an email for every call. Each summary can be switched on or off independently. Times use your selected timezone; UK users should use Europe/London.
         </Typography>
         {canReceiveWeekly && (
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
             The weekly summary covers your whole organisation — completion, lateness and missed calls — and arrives on Monday morning for the week just gone. It is off until you turn it on.
           </Typography>
         )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, radii, spacing, typography, useAppColors } from '../theme'
@@ -6,33 +6,21 @@ import { useDynamicStyles } from '../utils/patchStaticStyles'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight, hapticWarning } from '../services/haptics'
-import { IconWarning, IconPill, IconWound, IconSkinTear, IconIncident, IconAlert, IconBody, IconSettings } from '../components/Icons'
-
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
-
-const INCIDENT_CATEGORIES = [
-  { key: 'fall', label: 'Fall', IconComponent: IconWarning, color: '#D97706' },
-  { key: 'medication_error', label: 'Medication error', IconComponent: IconPill, color: '#DC2626' },
-  { key: 'pressure_sore', label: 'Pressure sore', IconComponent: IconWound, color: '#DC2626' },
-  { key: 'skin_tear', label: 'Skin tear', IconComponent: IconSkinTear, color: '#BE123C' },
-  { key: 'choking', label: 'Choking', IconComponent: IconAlert, color: '#DC2626' },
-  { key: 'behavioral', label: 'Behavioral', IconComponent: IconIncident, color: '#7C3AED' },
-  { key: 'safeguarding', label: 'Safeguarding', IconComponent: IconIncident, color: '#1E3A5F' },
-  { key: 'equipment_failure', label: 'Equipment', IconComponent: IconSettings, color: '#6B7280' },
-  { key: 'accident', label: 'Accident', IconComponent: IconAlert, color: '#EA580C' },
-  { key: 'other', label: 'Other', IconComponent: IconBody, color: '#6B7280' },
-] as const
+import { IconIncident } from '../components/Icons'
+import { getIncidentCategories, type IncidentCategory } from '../services/api'
+import { submitIncidentReport } from '../services/incidentQueue'
+import type { IncidentSeverity } from '../types'
 
 const SEVERITY_LEVELS = [
-  { key: 'low', label: 'Low', color: '#16A34A', desc: 'No harm or very minor' },
-  { key: 'medium', label: 'Medium', color: '#D97706', desc: 'Required first aid' },
-  { key: 'high', label: 'High', color: '#DC2626', desc: 'Hospital or emergency' },
-  { key: 'critical', label: 'Critical', color: '#7F1D1D', desc: 'Life-threatening' },
+  { key: 'low', label: 'Low', color: '#10B981', desc: 'No harm or very minor' },
+  { key: 'medium', label: 'Medium', color: '#F59E0B', desc: 'Required first aid' },
+  { key: 'high', label: 'High', color: '#EF4444', desc: 'Hospital or emergency' },
+  { key: 'critical', label: 'Critical', color: '#B42318', desc: 'Life-threatening' },
 ] as const
 
 /** Pre-filled form state. Only the store-screenshot capture tour supplies this. */
 export interface IncidentDraft {
-  category?: string
+  categoryId?: string
   severity?: string
   title?: string
   description?: string
@@ -54,7 +42,10 @@ interface Props {
 export function ReportIncidentScreen({ session, visitId, personId, personName, onBack, onSubmitted, initialDraft }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
-  const [category, setCategory] = useState(initialDraft?.category || '')
+  const [category, setCategory] = useState('')
+  const [incidentCategories, setIncidentCategories] = useState<IncidentCategory[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoryLoadError, setCategoryLoadError] = useState(false)
   const [severity, setSeverity] = useState(initialDraft?.severity || 'medium')
   const [title, setTitle] = useState(initialDraft?.title || '')
   const [description, setDescription] = useState(initialDraft?.description || '')
@@ -63,6 +54,31 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
   const [isNearMiss, setIsNearMiss] = useState(initialDraft?.isNearMiss || false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [savedOffline, setSavedOffline] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    getIncidentCategories(session.accessToken)
+      .then(categories => {
+        if (!mounted) return
+        const activeCategories = categories.filter(item => item.is_active)
+        setIncidentCategories(activeCategories)
+        setCategory(current => {
+          if (activeCategories.some(item => item.id === current)) return current
+          const draftCategory = activeCategories.find(item => item.id === initialDraft?.categoryId)
+          return draftCategory?.id || ''
+        })
+      })
+      .catch(() => {
+        if (!mounted) return
+        setCategory('')
+        setCategoryLoadError(true)
+      })
+      .finally(() => {
+        if (mounted) setCategoriesLoading(false)
+      })
+    return () => { mounted = false }
+  }, [session.accessToken, initialDraft?.categoryId])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -72,28 +88,21 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
     hapticWarning()
     setSaving(true)
     try {
-      const body: any = {
+      const payload = {
         title: title.trim(),
         description: description.trim() || undefined,
+        witnesses: witnesses.trim() || undefined,
         category_id: category || undefined,
-        severity,
+        severity: severity as IncidentSeverity,
         location: location.trim() || undefined,
         is_near_miss: isNearMiss,
+        ...(personId ? { person_ids: [personId] } : {}),
+        ...(visitId ? { visit_id: visitId } : {}),
         incident_date: new Date().toISOString().split('T')[0],
         incident_time: new Date().toTimeString().slice(0, 5),
       }
-      if (personId) body.person_ids = [personId]
-      if (visitId) body.visit_id = visitId
-
-      const res = await fetch(`${API_BASE}/incidents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || 'Could not submit')
-      }
+      const result = await submitIncidentReport(session.accessToken, session.user.id, session.user.organizationId || session.organization?.id || null, payload)
+      setSavedOffline(result.queued)
       setSuccess(true)
       setTimeout(() => { onSubmitted?.(); onBack() }, 1500)
     } catch (e: any) {
@@ -108,8 +117,8 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
       <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
         <View style={s.successView}>
           <Text style={s.successIcon}>✓</Text>
-          <Text style={s.successTitle}>Incident reported</Text>
-          <Text style={s.successDesc}>Your report has been submitted to the office.</Text>
+          <Text style={s.successTitle}>{savedOffline ? 'Report saved on this device' : 'Incident reported'}</Text>
+          <Text style={s.successDesc}>{savedOffline ? 'It will be sent securely when your connection returns. Keep this device signed in.' : 'Your report has been submitted to the office.'}</Text>
         </View>
       </SafeAreaView>
     )
@@ -138,11 +147,14 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
 
         {/* Category */}
         <Text style={s.fieldLabel}>Category</Text>
+        {categoriesLoading && <Text style={s.categoryMessage}>Categories may be unavailable offline; report without a category if needed.</Text>}
+        {categoryLoadError && <Text accessibilityRole="alert" style={s.categoryMessage}>Categories could not be loaded. You can still submit without one.</Text>}
+        {!categoriesLoading && !categoryLoadError && incidentCategories.length === 0 && <Text style={s.categoryMessage}>No incident categories are configured. You can still submit without one.</Text>}
         <View style={s.chipGrid}>
-          {INCIDENT_CATEGORIES.map(cat => (
-            <Pressable key={cat.key} onPress={() => { hapticLight(); setCategory(cat.key) }} style={[s.chip, category === cat.key && s.chipActive]}>
-              <cat.IconComponent size={14} color={cat.color} />
-              <Text style={[s.chipText, category === cat.key && s.chipTextActive]}>{cat.label}</Text>
+          {incidentCategories.map(cat => (
+            <Pressable key={cat.id} onPress={() => { hapticLight(); setCategory(cat.id) }} style={[s.chip, category === cat.id && s.chipActive]}>
+              <IconIncident size={14} color={category === cat.id ? c.inverse : c.primary} />
+              <Text style={[s.chipText, category === cat.id && s.chipTextActive]}>{cat.name}</Text>
             </Pressable>
           ))}
         </View>
@@ -177,8 +189,8 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
 
         {/* Witnesses */}
         <View style={s.fieldGroup}>
-          <Text style={s.fieldLabel}>Witnesses</Text>
-          <TextInput value={witnesses} onChangeText={setWitnesses} placeholder="Names of any witnesses" placeholderTextColor={colors.subtle} style={s.input} />
+          <Text style={s.fieldLabel}>Witnesses (up to 2,000 characters)</Text>
+          <TextInput value={witnesses} onChangeText={setWitnesses} placeholder="Names of any witnesses" placeholderTextColor={colors.subtle} style={s.input} maxLength={2000} />
         </View>
 
         <PrimaryButton label="Submit incident report" onPress={handleSave} loading={saving} disabled={saving} tone="danger" />
@@ -198,15 +210,16 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.muted, marginBottom: spacing.base },
 
   /* Near miss */
-  nearMissRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.warningSurface, borderRadius: radii.md, borderWidth: 1, borderColor: '#FDE68A', padding: spacing.base, marginBottom: spacing.base },
+  nearMissRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.warningSurface, borderRadius: radii.md, borderWidth: 1, borderColor: '#FFF7E6', padding: spacing.base, marginBottom: spacing.base },
   checkbox: { width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.warning, borderColor: colors.warning },
   checkmark: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: colors.inverse },
-  checkboxLabel: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: '#92400E' },
-  checkboxDesc: { ...typography.small, color: '#A16207', marginTop: 1 },
+  checkboxLabel: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: '#9A6700' },
+  checkboxDesc: { ...typography.small, color: '#9A6700', marginTop: 1 },
 
   /* Category chips */
   fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight, marginTop: spacing.base, marginBottom: spacing.sm },
+  categoryMessage: { ...typography.small, color: colors.muted, marginBottom: spacing.sm },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },

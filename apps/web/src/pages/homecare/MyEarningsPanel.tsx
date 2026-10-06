@@ -170,12 +170,12 @@ export default function MyEarningsPanel() {
           <input
             type="date" value={period.from} aria-label="From"
             onChange={e => setPeriod(p => ({ ...p, from: e.target.value }))}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E6EAF0', fontSize: 13 }}
           />
           <input
             type="date" value={period.to} aria-label="To"
             onChange={e => setPeriod(p => ({ ...p, to: e.target.value }))}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E6EAF0', fontSize: 13 }}
           />
           <AppButton
             variant="secondary"
@@ -218,35 +218,35 @@ export default function MyEarningsPanel() {
           {/* Summary stat cards */}
           <Stack direction="row" gap={1.5} flexWrap="wrap">
             <StatCard
-              icon={<MoneyIcon sx={{ fontSize: 20, color: '#0F4C81' }} />}
+              icon={<MoneyIcon sx={{ fontSize: 20, color: '#2F80ED' }} />}
               label="Gross pay"
               value={fmtPence(s.total_gross_pay_pence)}
-              color="#0F4C81"
+              color="#2F80ED"
             />
             <StatCard
-              icon={<ReceiptIcon sx={{ fontSize: 20, color: '#10b981' }} />}
+              icon={<ReceiptIcon sx={{ fontSize: 20, color: '#10B981' }} />}
               label="Calls"
               value={String(s.visit_count || 0)}
-              color="#10b981"
+              color="#10B981"
               sub="paid"
             />
             <StatCard
-              icon={<ClockIcon sx={{ fontSize: 20, color: '#8b5cf6' }} />}
+              icon={<ClockIcon sx={{ fontSize: 20, color: '#8B7CF6' }} />}
               label="Worked"
               value={fmtMins(s.total_work_minutes)}
-              color="#8b5cf6"
+              color="#8B7CF6"
             />
             <StatCard
-              icon={<CarIcon sx={{ fontSize: 20, color: '#3b82f6' }} />}
+              icon={<CarIcon sx={{ fontSize: 20, color: '#2F80ED' }} />}
               label="Mileage"
               value={`${Number(s.total_mileage_miles || 0).toFixed(1)} mi`}
-              color="#3b82f6"
+              color="#2F80ED"
             />
           </Stack>
 
           {!hasData && (
             <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
-              <ReceiptIcon sx={{ fontSize: 40, color: '#D1D5DB', mb: 1 }} />
+              <ReceiptIcon sx={{ fontSize: 40, color: '#D8DEE7', mb: 1 }} />
               <Typography sx={{ color: 'text.secondary' }}>
                 No completed calls in this period. Pay appears here as soon as you clock in and out of a call.
               </Typography>
@@ -266,24 +266,24 @@ export default function MyEarningsPanel() {
                   label="Work hours"
                   detail={`${fmtMins(s.total_work_minutes)} at ${fmtPence(s.hourly_rate_pence)}/hr`}
                   amount={fmtPence(workPay)}
-                  color="#0F4C81"
-                  icon={<ClockIcon sx={{ fontSize: 16, color: '#0F4C81' }} />}
+                  color="#2F80ED"
+                  icon={<ClockIcon sx={{ fontSize: 16, color: '#2F80ED' }} />}
                 />
                 {Number(s.total_paid_travel_minutes || 0) > 0 && (
                   <BreakdownCard
                     label="Travel (paid)"
                     detail={`${fmtMins(s.total_paid_travel_minutes)} at ${fmtPence(s.hourly_rate_pence)}/hr`}
                     amount={fmtPence(travelPay)}
-                    color="#D97706"
-                    icon={<CarIcon sx={{ fontSize: 16, color: '#D97706' }} />}
+                    color="#F59E0B"
+                    icon={<CarIcon sx={{ fontSize: 16, color: '#F59E0B' }} />}
                   />
                 )}
                 <BreakdownCard
                   label="Mileage"
                   detail={`${Number(s.total_mileage_miles || 0).toFixed(1)} mi at ${fmtPence(s.mileage_rate_pence)}/mi`}
                   amount={fmtPence(mileagePay)}
-                  color="#10b981"
-                  icon={<CarIcon sx={{ fontSize: 16, color: '#10b981' }} />}
+                  color="#10B981"
+                  icon={<CarIcon sx={{ fontSize: 16, color: '#10B981' }} />}
                 />
               </Stack>
             </>
@@ -324,7 +324,7 @@ export default function MyEarningsPanel() {
               <Stack direction="row" gap={2} flexWrap="wrap" mb={(data.ytd.months || []).length ? 2 : 0}>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Gross pay</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F4C81' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#2F80ED' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Calls</Typography>
@@ -377,12 +377,12 @@ export default function MyEarningsPanel() {
                         p: 2, display: 'flex', alignItems: 'center', gap: 2,
                         border: '1px solid', borderColor: 'divider', borderRadius: 2,
                         transition: 'border-color 0.15s',
-                        '&:hover': { borderColor: '#0F4C8130' },
+                        '&:hover': { borderColor: '#2F80ED30' },
                       }}
                     >
                       <Box sx={{
                         width: 8, height: 8, borderRadius: '50%',
-                        bgcolor: v.tasks_completed === v.tasks_total && v.tasks_total > 0 ? '#10B981' : '#E5E7EB',
+                        bgcolor: v.tasks_completed === v.tasks_total && v.tasks_total > 0 ? '#10B981' : '#E6EAF0',
                         flexShrink: 0,
                       }} />
                       <Box flex={1} sx={{ minWidth: 0 }}>
@@ -395,7 +395,7 @@ export default function MyEarningsPanel() {
                         </Typography>
                         {v.tasks_total > 0 && (
                           <Typography variant="caption" sx={{
-                            color: v.tasks_completed === v.tasks_total ? '#047857' : '#92400E',
+                            color: v.tasks_completed === v.tasks_total ? '#087A55' : '#9A6700',
                             fontWeight: 500, fontSize: '0.65rem',
                           }}>
                             {v.tasks_completed}/{v.tasks_total} tasks
@@ -404,13 +404,13 @@ export default function MyEarningsPanel() {
                       </Box>
                       <Stack direction="row" gap={0.75} sx={{ flexShrink: 0 }}>
                         {v.work_minutes != null && (
-                          <Chip size="small" label={fmtMins(v.work_minutes)} sx={{ height: 22, fontSize: '0.7rem', bgcolor: '#F3F4F6' }} />
+                          <Chip size="small" label={fmtMins(v.work_minutes)} sx={{ height: 22, fontSize: '0.7rem', bgcolor: 'notice.muted.bg' }} />
                         )}
                         {Number(v.mileage_miles) > 0 && (
-                          <Chip size="small" label={`${Number(v.mileage_miles).toFixed(1)} mi`} sx={{ height: 22, fontSize: '0.7rem', bgcolor: '#ECFDF5', color: '#047857' }} />
+                          <Chip size="small" label={`${Number(v.mileage_miles).toFixed(1)} mi`} sx={{ height: 22, fontSize: '0.7rem', bgcolor: '#EAFBF5', color: '#087A55' }} />
                         )}
                       </Stack>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F4C81', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#2F80ED', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
                     </Paper>
                   ))}
                 </Stack>

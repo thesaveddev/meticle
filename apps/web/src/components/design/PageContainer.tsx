@@ -4,7 +4,7 @@ import { Box, BoxProps } from '@mui/material'
  * Standard page container for all authenticated pages.
  *
  * Provides consistent max-width, centering, and spacing.
- * The Layout's <main> already applies horizontal padding (px: 4 = 32px).
+ * The Layout's <main> already applies responsive horizontal page padding.
  * PageContainer adds max-width constraint and centering where needed.
  *
  * Width variants:
@@ -34,6 +34,7 @@ export default function PageContainer({ width = 'wide', sx, children, ...props }
         maxWidth: WIDTH_MAP[width],
         mx: width !== 'wide' ? 'auto' : undefined,
         width: '100%',
+        minWidth: 0,
         ...sx,
       }}
       {...props}

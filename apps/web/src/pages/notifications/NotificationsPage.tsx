@@ -19,13 +19,13 @@ interface Notification {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  missed_call: '#DC2626',
-  call_assigned: '#3B82F6',
+  missed_call: '#EF4444',
+  call_assigned: '#2F80ED',
   disruption_reported: '#F59E0B',
-  swap_request: '#8B5CF6',
+  swap_request: '#8B7CF6',
   swap_response: '#10B981',
   compliance_expiry: '#EF4444',
-  shift_start: '#14B8A6',
+  shift_start: '#10BFA5',
 }
 
 function timeAgo(dateStr: string) {
@@ -98,7 +98,7 @@ export default function NotificationsPage() {
       ) : (
         <Stack spacing={0.5}>
           {notifications.map(n => {
-            const color = TYPE_COLORS[n.type] || '#6B7280'
+            const color = TYPE_COLORS[n.type] || '#667085'
             return (
               <Paper
                 key={n.id}

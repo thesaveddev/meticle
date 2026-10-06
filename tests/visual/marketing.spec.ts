@@ -116,21 +116,25 @@ async function renderedColours(page: import('@playwright/test').Page, minChroma 
 }
 
 /**
- * The documented brand navy must reach a real surface.
+ * The documented brand primary must reach a real surface.
  *
- * DESIGN.md declares navy #0F4C81 the identity colour, and /login genuinely
- * renders it — so this asserts it there, where the claim is true today.
+ * The application-wide colour overhaul made the master palette (see
+ * context/ThemeContext.tsx METICLE_COLORS and scripts/design/palette.mjs) the
+ * identity: primary blue #2F80ED replaced the retired navy #0F4C81 family.
+ * /login genuinely renders it — so this asserts it there, where the claim is
+ * true today.
  */
-test('brand navy reaches the rendered login surface', async ({ page }) => {
+test('brand primary reaches the rendered login surface', async ({ page }) => {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
   await settle(page)
-  expect(await renderedColours(page)).toContain('rgb(15, 76, 129)') // #0F4C81
+  expect(await renderedColours(page)).toContain('rgb(47, 128, 237)') // #2F80ED
 })
 
 /**
- * The marketing home page must paint with the brand palette taken from the logo
- * assets (see scripts/design/palette.mjs and node scripts/brand-colors.mjs):
- * a blue -> teal -> mint family, not the old navy + emerald.
+ * The marketing home page must paint with the master brand palette — the
+ * centralised tokens in context/ThemeContext.tsx (METICLE_COLORS), index.css
+ * (--mc-*) and mobile/src/theme.tsx that the colour overhaul migrated the whole
+ * surface onto.
  *
  * This asserts presence, not absence. A previous version tried to assert "no
  * other hue may appear" and was wrong: status colours (amber/red/green) are
@@ -138,16 +142,16 @@ test('brand navy reaches the rendered login surface', async ({ page }) => {
  * *new* colours is scripts/design/lint.mjs's job, and it does it at the source,
  * where it is exact.
  */
-test('marketing home page paints with the logo-derived brand palette', async ({ page }) => {
+test('marketing home page paints with the master brand palette', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await settle(page)
 
   const colours = await renderedColours(page, 8)
-  // Mint #03C6B1 — the CTA fills and the numbered care-day markers.
-  expect(colours, 'logo mint should reach the rendered page').toContain('rgb(3, 198, 177)')
-  // Accent deep #046E86 — the section eyebrow. This is the AA-safe darkened
-  // sibling of the logo mint; the raw #03C6B1 is far too light for small text.
-  expect(colours, 'text-safe accent should reach the rendered page').toContain('rgb(4, 110, 134)')
-  // Ink #0C1B2E — the headline on the now-white hero.
-  expect(colours, 'brand ink should reach the rendered page').toContain('rgb(12, 27, 46)')
+  // Primary #2F80ED — the CTA fills and links.
+  expect(colours, 'brand primary should reach the rendered page').toContain('rgb(47, 128, 237)')
+  // Success deep #087A55 — the AA-safe darkened sibling of emerald #10B981,
+  // used for small text where the raw emerald is too light.
+  expect(colours, 'text-safe emerald should reach the rendered page').toContain('rgb(8, 122, 85)')
+  // Ink #17202A — the headline on the now-white hero.
+  expect(colours, 'brand ink should reach the rendered page').toContain('rgb(23, 32, 42)')
 })

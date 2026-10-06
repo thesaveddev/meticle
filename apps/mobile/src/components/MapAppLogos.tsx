@@ -17,19 +17,19 @@ export function GoogleMapsLogo({ size = 40 }: { size?: number }) {
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: isDark ? '#1A3A2A' : '#E8F5E9',
+        backgroundColor: isDark ? '#1A3A2A' : '#EAFBF5',
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
         {/* Grid lines */}
-        <View style={{ position: 'absolute', top: '35%', left: 0, right: 0, height: 1, backgroundColor: '#A5D6A7' }} />
-        <View style={{ position: 'absolute', top: '65%', left: 0, right: 0, height: 1, backgroundColor: '#A5D6A7' }} />
-        <View style={{ position: 'absolute', left: '35%', top: 0, bottom: 0, width: 1, backgroundColor: '#A5D6A7' }} />
-        <View style={{ position: 'absolute', left: '65%', top: 0, bottom: 0, width: 1, backgroundColor: '#A5D6A7' }} />
+        <View style={{ position: 'absolute', top: '35%', left: 0, right: 0, height: 1, backgroundColor: '#EAFBF5' }} />
+        <View style={{ position: 'absolute', top: '65%', left: 0, right: 0, height: 1, backgroundColor: '#EAFBF5' }} />
+        <View style={{ position: 'absolute', left: '35%', top: 0, bottom: 0, width: 1, backgroundColor: '#EAFBF5' }} />
+        <View style={{ position: 'absolute', left: '65%', top: 0, bottom: 0, width: 1, backgroundColor: '#EAFBF5' }} />
         {/* Pin */}
         <View style={{
           width: pinW, height: pinH,
-          backgroundColor: '#EA4335',
+          backgroundColor: '#EF4444',
           borderRadius: pinW / 2,
           borderBottomLeftRadius: pinW * 0.1,
           borderBottomRightRadius: pinW * 0.1,
@@ -59,14 +59,14 @@ export function AppleMapsLogo({ size = 40 }: { size?: number }) {
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: isDark ? '#1A2A3A' : '#E3F2FD',
+        backgroundColor: isDark ? '#1A2A3A' : '#EAF3FF',
         alignItems: 'center', justifyContent: 'center',
       }}>
         {/* Road grid */}
         <View style={{ position: 'absolute', top: '40%', left: 0, right: 0, height: 2, backgroundColor: '#FFFFFF' }} />
-        <View style={{ position: 'absolute', top: '60%', left: 0, right: 0, height: 1.5, backgroundColor: '#BBDEFB' }} />
+        <View style={{ position: 'absolute', top: '60%', left: 0, right: 0, height: 1.5, backgroundColor: '#EAF3FF' }} />
         <View style={{ position: 'absolute', left: '40%', top: 0, bottom: 0, width: 2, backgroundColor: '#FFFFFF' }} />
-        <View style={{ position: 'absolute', left: '60%', top: 0, bottom: 0, width: 1.5, backgroundColor: '#BBDEFB' }} />
+        <View style={{ position: 'absolute', left: '60%', top: 0, bottom: 0, width: 1.5, backgroundColor: '#EAF3FF' }} />
         {/* Pin — red circle with point */}
         <View style={{
           width: pinW,
@@ -75,7 +75,7 @@ export function AppleMapsLogo({ size = 40 }: { size?: number }) {
           <View style={{
             width: pinW, height: pinW,
             borderRadius: pinW / 2,
-            backgroundColor: '#EA4335',
+            backgroundColor: '#EF4444',
           }} />
           <View style={{
             width: 0, height: 0,
@@ -84,7 +84,7 @@ export function AppleMapsLogo({ size = 40 }: { size?: number }) {
             borderTopWidth: pinW * 0.6,
             borderLeftColor: 'transparent',
             borderRightColor: 'transparent',
-            borderTopColor: '#EA4335',
+            borderTopColor: '#EF4444',
             marginTop: -1,
           }} />
         </View>
@@ -106,7 +106,7 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: isDark ? '#1A3A4A' : '#33CCFF',
+        backgroundColor: isDark ? '#1A3A4A' : '#55BFD3',
         alignItems: 'center', justifyContent: 'center',
       }}>
         {/* Speech bubble */}
@@ -119,8 +119,8 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
         }}>
           {/* Eyes */}
           <View style={{ flexDirection: 'row', gap: bubbleW * 0.12, marginBottom: 1 }}>
-            <View style={{ width: bubbleW * 0.14, height: bubbleW * 0.18, borderRadius: bubbleW * 0.07, backgroundColor: '#333' }} />
-            <View style={{ width: bubbleW * 0.14, height: bubbleW * 0.18, borderRadius: bubbleW * 0.07, backgroundColor: '#333' }} />
+            <View style={{ width: bubbleW * 0.14, height: bubbleW * 0.18, borderRadius: bubbleW * 0.07, backgroundColor: '#17202A' }} />
+            <View style={{ width: bubbleW * 0.14, height: bubbleW * 0.18, borderRadius: bubbleW * 0.07, backgroundColor: '#17202A' }} />
           </View>
           {/* Smile */}
           <View style={{
@@ -131,7 +131,7 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
             borderTopLeftRadius: bubbleW * 0.18,
             borderTopRightRadius: bubbleW * 0.18,
             backgroundColor: 'transparent',
-            borderBottomColor: '#333',
+            borderBottomColor: '#17202A',
             borderBottomWidth: 2,
             borderLeftWidth: 2,
             borderRightWidth: 2,

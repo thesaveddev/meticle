@@ -3,13 +3,13 @@ import { Box, AppBar, Toolbar, Typography, Container, Stack, Button, IconButton,
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu as MenuIcon, ExpandLess, ExpandMore as ExpandMoreIcon } from '@mui/icons-material'
 
-const INK = '#1B2430'
-const NAVY = '#0F4C81'
-const NAVY_DEEP = '#0A3A63'
+const INK = '#17202A'
+const NAVY = '#2F80ED'
+const NAVY_DEEP = '#1F68C7'
 const EMERALD = '#10B981'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
-const BONE = '#F7F4EE'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
+const BONE = '#F7F9FC'
 
 const featureGroups = [
   {

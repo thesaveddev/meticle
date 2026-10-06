@@ -5,7 +5,7 @@ import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
 const C = {
-  navy: '#0F4C81', navyDeep: '#0A3A63', emerald: '#10B981', emeraldDeep: '#047857', ink: '#1B2430', dark: '#141C24', bone: '#F7F4EE', mist: '#5B6672', line: '#E7E1D6', white: '#FFFFFF', softBlue: '#EEF5FA', softGreen: '#ECFDF5',
+  navy: '#2F80ED', navyDeep: '#1F68C7', emerald: '#10B981', emeraldDeep: '#087A55', ink: '#17202A', dark: '#141C24', bone: '#F7F9FC', mist: '#475467', line: '#E6EAF0', white: '#FFFFFF', softBlue: '#F4F8FF', softGreen: '#EAFBF5',
 }
 
 const appStoreUrl = import.meta.env.VITE_APP_STORE_URL || ''
@@ -59,7 +59,7 @@ function CTA({ label = 'Book a demo', to = '/contact', light = false }: { label?
 }
 
 function ProductFrame({ image = '/meticle_dashboard_hero.jpg', alt = 'MeticleCare product interface' }: { image?: string; alt?: string }) {
-  return <Box sx={{ border: `1px solid #D9E1E6`, borderRadius: 3, overflow: 'hidden', bgcolor: C.white, boxShadow: '0 32px 64px -30px rgba(20,32,45,.4)' }}><Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${C.line}`, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#FCFAF6' }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: C.emerald }} /><Typography sx={{ fontSize: '.78rem', fontWeight: 800, color: C.ink }}>MeticleCare · product view</Typography></Box><Box component="img" src={image} alt={alt} loading="lazy" sx={{ display: 'block', width: '100%', height: 'auto' }} /></Box>
+  return <Box sx={{ border: `1px solid #D9E1E6`, borderRadius: 3, overflow: 'hidden', bgcolor: C.white, boxShadow: '0 32px 64px -30px rgba(20,32,45,.4)' }}><Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${C.line}`, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#F9FAFB' }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: C.emerald }} /><Typography sx={{ fontSize: '.78rem', fontWeight: 800, color: C.ink }}>MeticleCare · product view</Typography></Box><Box component="img" src={image} alt={alt} loading="lazy" sx={{ display: 'block', width: '100%', height: 'auto' }} /></Box>
 }
 
 function Meta({ title, description, path, data }: { title: string; description: string; path: string; data?: Record<string, unknown> }) { return <PageMeta title={`${title} | MeticleCare`} description={description} canonicalPath={path} structuredData={data} /> }

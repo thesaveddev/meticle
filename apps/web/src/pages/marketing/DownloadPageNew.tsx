@@ -54,8 +54,8 @@ function PhoneFrame({ children, label }: { children: React.ReactNode; label?: st
 
 function ScheduleScreen() {
   const calls = [
-    { time: '09:00', client: 'Margaret W.', task: 'Personal care', status: 'completed', color: '#22C55E' },
-    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'in-progress', color: '#3B82F6' },
+    { time: '09:00', client: 'Margaret W.', task: 'Personal care', status: 'completed', color: '#10B981' },
+    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'in-progress', color: '#2F80ED' },
     { time: '13:00', client: 'Patricia L.', task: 'Medication', status: 'upcoming', color: '#94A3B8' },
     { time: '15:00', client: 'Robert H.', task: 'Companionship', status: 'upcoming', color: '#94A3B8' },
   ]
@@ -177,7 +177,7 @@ export default function DownloadPageNew() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 {appStoreUrl ? (
-                  <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#fff', fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
+                  <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#FFFFFF', fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
                 ) : (
                   <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>App Store link pending</Button>
                 )}
@@ -295,8 +295,8 @@ export default function DownloadPageNew() {
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-            {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
-            {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
+            {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
+            {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
           </Stack>
         </Container>
       </Box>

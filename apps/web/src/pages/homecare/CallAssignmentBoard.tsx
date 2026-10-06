@@ -54,11 +54,11 @@ interface VisitTask {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  completed: { label: 'Done', color: '#047857', bg: '#E9F7F0' },
-  checked_in: { label: 'At client', color: '#0F4C81', bg: '#E0F2FE' },
-  en_route: { label: 'En route', color: '#7C3AED', bg: '#EDE9FE' },
-  scheduled: { label: 'Scheduled', color: '#6B7280', bg: '#F3F4F6' },
-  missed: { label: 'Missed', color: '#DC2626', bg: '#FDECEC' },
+  completed: { label: 'Done', color: '#087A55', bg: '#EAFBF5' },
+  checked_in: { label: 'At client', color: '#2F80ED', bg: '#EAF3FF' },
+  en_route: { label: 'En route', color: '#8B7CF6', bg: '#F4F8FF' },
+  scheduled: { label: 'Scheduled', color: '#667085', bg: '#F7F9FC' },
+  missed: { label: 'Missed', color: '#EF4444', bg: '#FEF0F0' },
 }
 
 /* ─── Conflict checker ─────────────────────────────────────── */
@@ -343,19 +343,19 @@ export default function CallAssignmentBoard() {
         </Box>
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Board view">
-            <IconButton size="small" onClick={() => setViewMode('board')} sx={{ bgcolor: viewMode === 'board' ? '#0F4C81' : 'transparent', color: viewMode === 'board' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'board' ? '#0D3D6B' : 'notice.muted.bg' } }}>
+            <IconButton size="small" onClick={() => setViewMode('board')} sx={{ bgcolor: viewMode === 'board' ? '#2F80ED' : 'transparent', color: viewMode === 'board' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'board' ? '#1F68C7' : 'notice.muted.bg' } }}>
               <BoardIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Timeline view">
-            <IconButton size="small" onClick={() => setViewMode('timeline')} sx={{ bgcolor: viewMode === 'timeline' ? '#0F4C81' : 'transparent', color: viewMode === 'timeline' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'timeline' ? '#0D3D6B' : 'notice.muted.bg' } }}>
+            <IconButton size="small" onClick={() => setViewMode('timeline')} sx={{ bgcolor: viewMode === 'timeline' ? '#2F80ED' : 'transparent', color: viewMode === 'timeline' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'timeline' ? '#1F68C7' : 'notice.muted.bg' } }}>
               <TimelineIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
-          <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#0F4C81', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
+          <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#2F80ED', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>→</Button>
           {unassigned.length > 0 && (
             <Button
@@ -364,7 +364,7 @@ export default function CallAssignmentBoard() {
               startIcon={autoAssigning ? <CircularProgress size={13} color="inherit" /> : <AutoAwesome sx={{ fontSize: 14 }} />}
               onClick={() => { setAutoAssignError(''); setAutoAssignDialog(true) }}
               disabled={autoAssigning}
-              sx={{ minHeight: 30, px: 1.25, py: 0.5, textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' }, fontSize: '0.72rem' }}
+              sx={{ minHeight: 30, px: 1.25, py: 0.5, textTransform: 'none', bgcolor: '#2F80ED', '&:hover': { bgcolor: '#2674D9' }, fontSize: '0.72rem' }}
             >
               {autoAssigning ? 'Assigning…' : 'Auto-assign'}
             </Button>
@@ -393,10 +393,10 @@ export default function CallAssignmentBoard() {
 
       {/* Auto-assign result */}
       {autoAssignResult && (
-        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: autoAssignResult.assigned_count > 0 ? '#D1FAE5' : '#FEE2E2', borderRadius: 2, bgcolor: autoAssignResult.assigned_count > 0 ? '#F0FDF4' : '#FEF2F2' }}>
+        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: autoAssignResult.assigned_count > 0 ? '#EAFBF5' : '#FEF0F0', borderRadius: 2, bgcolor: autoAssignResult.assigned_count > 0 ? '#EAFBF5' : '#FEF0F0' }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <AutoAwesome sx={{ fontSize: 18, color: autoAssignResult.assigned_count > 0 ? '#059669' : '#DC2626' }} />
+              <AutoAwesome sx={{ fontSize: 18, color: autoAssignResult.assigned_count > 0 ? '#087A55' : '#EF4444' }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Auto-assign complete</Typography>
             </Stack>
             <Button size="small" onClick={() => setAutoAssignResult(null)} sx={{ textTransform: 'none' }}>Dismiss</Button>
@@ -409,10 +409,10 @@ export default function CallAssignmentBoard() {
             <Stack spacing={0.5}>
               {autoAssignResult.assignments.map((a: any) => (
                 <Stack key={a.visit_id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
-                  <CheckIcon sx={{ fontSize: 14, color: '#059669' }} />
+                  <CheckIcon sx={{ fontSize: 14, color: '#087A55' }} />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>{a.person_name}</Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>→ {a.carer_name}</Typography>
-                  <Chip label={`score ${a.score}`} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: a.score >= 70 ? '#D1FAE5' : '#FEF9C3', fontWeight: 600 }} />
+                  <Chip label={`score ${a.score}`} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: a.score >= 70 ? '#EAFBF5' : '#FFF7E6', fontWeight: 600 }} />
                 </Stack>
               ))}
             </Stack>
@@ -422,10 +422,10 @@ export default function CallAssignmentBoard() {
 
       {/* AI Suggestion panel */}
       {showSuggestions && (
-        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: '#E0E7FF', borderRadius: 2, bgcolor: '#F8FAFF' }}>
+        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: '#F4F8FF', borderRadius: 2, bgcolor: '#F4F8FF' }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <AutoAwesome sx={{ fontSize: 18, color: '#6366F1' }} />
+              <AutoAwesome sx={{ fontSize: 18, color: '#10BFA5' }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#4338CA' }}>AI suggested carers</Typography>
             </Stack>
             <Button size="small" onClick={() => setShowSuggestions(null)} sx={{ textTransform: 'none' }}>Close</Button>
@@ -433,14 +433,14 @@ export default function CallAssignmentBoard() {
           {suggestionsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
           ) : suggestionsError ? (
-            <Typography variant="body2" sx={{ color: '#B91C1C', py: 1 }}>Could not load suggestions. Close this panel and try again.</Typography>
+            <Typography variant="body2" sx={{ color: '#B42318', py: 1 }}>Could not load suggestions. Close this panel and try again.</Typography>
           ) : suggestions.length === 0 ? (
             <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>No carers available to suggest for this call.</Typography>
           ) : (
             <Stack spacing={0.75}>
               {suggestions.slice(0, 5).map((s: any) => (
                 <Stack key={s.staff_id} direction="row" alignItems="center" spacing={1.5}
-                  sx={{ p: 1, borderRadius: 1.5, bgcolor: s.has_conflict || s.on_leave ? '#FEF2F2' : s.available ? '#F0FDF4' : '#FFFBEB', cursor: s.has_conflict || s.on_leave ? 'not-allowed' : 'pointer', '&:hover': s.has_conflict || s.on_leave ? {} : { bgcolor: '#EFF6FF' }, transition: 'background 0.15s' }}
+                  sx={{ p: 1, borderRadius: 1.5, bgcolor: s.has_conflict || s.on_leave ? '#FEF0F0' : s.available ? '#EAFBF5' : '#FFF7E6', cursor: s.has_conflict || s.on_leave ? 'not-allowed' : 'pointer', '&:hover': s.has_conflict || s.on_leave ? {} : { bgcolor: '#F4F8FF' }, transition: 'background 0.15s' }}
                   onClick={() => {
                     if (s.has_conflict || s.on_leave) return
                     const visit = unassigned.find((v: any) => v.id === showSuggestions)
@@ -448,18 +448,18 @@ export default function CallAssignmentBoard() {
                     setShowSuggestions(null)
                   }}
                 >
-                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: s.score >= 70 ? '#DCFCE7' : s.score >= 40 ? '#FEF9C3' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem', color: s.score >= 70 ? '#166534' : s.score >= 70 ? '#166534' : '#92400E', flexShrink: 0 }}>{s.score}</Box>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: s.score >= 70 ? '#EAFBF5' : s.score >= 40 ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem', color: s.score >= 70 ? '#087A55' : s.score >= 70 ? '#087A55' : '#9A6700', flexShrink: 0 }}>{s.score}</Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.first_name} {s.last_name}</Typography>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                       {s.reasons.map((r: string, i: number) => (
-                        <Chip key={i} label={r} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: 'white', border: '1px solid #E5E7EB', fontWeight: 500 }} />
+                        <Chip key={i} label={r} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: 'white', border: '1px solid #E6EAF0', fontWeight: 500 }} />
                       ))}
                     </Stack>
                   </Box>
-                  {s.has_conflict && <Chip label="Conflict" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
-                  {s.on_leave && !s.has_conflict && <Chip label="On leave" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
-                  {!s.has_conflict && !s.on_leave && s.available && <Chip label="Assign" size="small" sx={{ bgcolor: '#0F4C81', color: 'white', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {s.has_conflict && <Chip label="Conflict" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {s.on_leave && !s.has_conflict && <Chip label="On leave" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {!s.has_conflict && !s.on_leave && s.available && <Chip label="Assign" size="small" sx={{ bgcolor: '#2F80ED', color: 'white', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
                 </Stack>
               ))}
             </Stack>
@@ -494,7 +494,7 @@ export default function CallAssignmentBoard() {
           <Paper
             elevation={0}
             sx={{
-              flex: '0 0 380px', p: 2.5, border: '2px solid', borderColor: draggedVisitId ? '#0F4C81' : 'divider',
+              flex: '0 0 380px', p: 2.5, border: '2px solid', borderColor: draggedVisitId ? '#2F80ED' : 'divider',
               borderRadius: 2, transition: 'border-color 0.2s', overflow: 'auto', maxHeight: 'calc(100vh - 160px)',
             }}
             ref={dropRef}
@@ -504,13 +504,13 @@ export default function CallAssignmentBoard() {
             onDrop={handleDropUnassigned}
           >
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#D97706' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F59E0B' }}>
                 Unassigned calls · drop here to unassign
               </Typography>
               <Chip
                 label={unassigned.length}
                 size="small"
-                sx={{ bgcolor: unassigned.length > 0 ? '#FFF5D9' : '#F3F4F6', color: unassigned.length > 0 ? '#D97706' : '#9CA3AF', fontWeight: 700 }}
+                sx={{ bgcolor: unassigned.length > 0 ? '#FFF7E6' : '#F7F9FC', color: unassigned.length > 0 ? '#F59E0B' : '#98A2B3', fontWeight: 700 }}
               />
             </Stack>
 
@@ -588,13 +588,13 @@ export default function CallAssignmentBoard() {
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             This will distribute unassigned calls to the most suitable carers based on their availability, proximity to clients, and current workload. Calls are assigned in chronological order.
           </Typography>
-          <Alert severity="info" sx={{ bgcolor: '#F8FAFF' }}>
+          <Alert severity="info" sx={{ bgcolor: '#F4F8FF' }}>
             Carers on leave or with overlapping calls will be skipped. You can always unassign calls after auto-assign.
           </Alert>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAutoAssignDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button size="small" variant="contained" onClick={handleBulkAutoAssign} disabled={autoAssigning} startIcon={autoAssigning ? <CircularProgress size={15} color="inherit" /> : <AutoAwesome sx={{ fontSize: 16 }} />} sx={{ minHeight: 34, textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' } }}>
+          <Button size="small" variant="contained" onClick={handleBulkAutoAssign} disabled={autoAssigning} startIcon={autoAssigning ? <CircularProgress size={15} color="inherit" /> : <AutoAwesome sx={{ fontSize: 16 }} />} sx={{ minHeight: 34, textTransform: 'none', bgcolor: '#2F80ED', '&:hover': { bgcolor: '#2674D9' } }}>
             {autoAssigning ? 'Assigning…' : `Assign ${unassigned.length} calls`}
           </Button>
         </DialogActions>
@@ -629,17 +629,17 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
   const ROW_HEIGHT = 70
 
   return (
-    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, overflow: 'hidden' }}>
       <Box sx={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 160px)' }}>
         <Box sx={{ display: 'flex', minWidth: LABEL_WIDTH + TOTAL_HOURS * 60 + 20 }}>
           {/* Time header */}
-          <Box sx={{ width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E5E7EB', position: 'sticky', left: 0, zIndex: 2, bgcolor: 'white' }} />
+          <Box sx={{ width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E6EAF0', position: 'sticky', left: 0, zIndex: 2, bgcolor: 'white' }} />
           <Box sx={{ flex: 1, position: 'relative' }}>
-            <Stack direction="row" sx={{ borderBottom: '1px solid #E5E7EB', bgcolor: '#FAFAFA' }}>
+            <Stack direction="row" sx={{ borderBottom: '1px solid #E6EAF0', bgcolor: '#F9FAFB' }}>
               {Array.from({ length: TOTAL_HOURS }, (_, i) => {
                 const h = START_HOUR + i
                 return (
-                  <Box key={h} sx={{ width: 60, flexShrink: 0, textAlign: 'center', py: 1, borderRight: '1px solid #F3F4F6' }}>
+                  <Box key={h} sx={{ width: 60, flexShrink: 0, textAlign: 'center', py: 1, borderRight: '1px solid #F7F9FC' }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.65rem' }}>
                       {String(h).padStart(2, '0')}:00
                     </Typography>
@@ -669,11 +669,11 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
           >
             {/* Carer name */}
             <Box sx={{
-              width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E5E7EB',
-              position: 'sticky', left: 0, zIndex: 1, bgcolor: row.isUnassigned ? '#FFF7ED' : 'white',
+              width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E6EAF0',
+              position: 'sticky', left: 0, zIndex: 1, bgcolor: row.isUnassigned ? '#FFF7E6' : 'white',
               px: 1.5, py: 1, display: 'flex', alignItems: 'center',
               cursor: selectedForAssign && row.isUnassigned ? 'default' : selectedForAssign ? 'pointer' : 'default',
-              '&:hover': selectedForAssign && !row.isUnassigned ? { bgcolor: '#EFF6FF' } : {},
+              '&:hover': selectedForAssign && !row.isUnassigned ? { bgcolor: '#F4F8FF' } : {},
               transition: 'background 0.15s',
             }}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setTimelineDropRow(row.id) }}
@@ -690,11 +690,11 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                 if (selectedForAssign && !row.isUnassigned) onAssignVisit(selectedForAssign, row.id)
               }}
             >
-              <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: row.isUnassigned ? '#FED7AA' : '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0 }}>
+              <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: row.isUnassigned ? '#FFF7E6' : '#EAF3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0 }}>
                 {row.isUnassigned ? (
-                  <WarningAmber sx={{ fontSize: 14, color: '#D97706' }} />
+                  <WarningAmber sx={{ fontSize: 14, color: '#F59E0B' }} />
                 ) : (
-                  <PersonIcon sx={{ fontSize: 14, color: '#0F4C81' }} />
+                  <PersonIcon sx={{ fontSize: 14, color: '#2F80ED' }} />
                 )}
               </Box>
               <Box sx={{ minWidth: 0 }}>
@@ -707,12 +707,12 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
             <Box sx={{ flex: 1, position: 'relative', minHeight: ROW_HEIGHT }}>
               {/* Hour grid lines */}
               {Array.from({ length: TOTAL_HOURS }, (_, i) => (
-                <Box key={i} sx={{ position: 'absolute', left: i * 60, top: 0, bottom: 0, width: 1, bgcolor: '#F3F4F6' }} />
+                <Box key={i} sx={{ position: 'absolute', left: i * 60, top: 0, bottom: 0, width: 1, bgcolor: 'notice.muted.bg' }} />
               ))}
 
               {/* Current time line */}
               {showNowLine && (
-                <Box sx={{ position: 'absolute', left: (currentHour - START_HOUR) * 60, top: 0, bottom: 0, width: 2, bgcolor: '#DC2626', zIndex: 3, '&::before': { content: '""', position: 'absolute', top: -4, left: -3, width: 8, height: 8, borderRadius: '50%', bgcolor: '#DC2626' } }} />
+                <Box sx={{ position: 'absolute', left: (currentHour - START_HOUR) * 60, top: 0, bottom: 0, width: 2, bgcolor: '#EF4444', zIndex: 3, '&::before': { content: '""', position: 'absolute', top: -4, left: -3, width: 8, height: 8, borderRadius: '50%', bgcolor: '#EF4444' } }} />
               )}
 
               {/* Visit bars */}
@@ -740,8 +740,8 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                         height: ROW_HEIGHT - 20,
                         width: durationWidth,
                         minWidth: durationWidth,
-                        bgcolor: isSelected ? '#DBEAFE' : cfg.bg,
-                        border: `1.5px solid ${isSelected ? '#0F4C81' : cfg.color}40`,
+                        bgcolor: isSelected ? '#EAF3FF' : cfg.bg,
+                        border: `1.5px solid ${isSelected ? '#2F80ED' : cfg.color}40`,
                         borderLeft: `3px solid ${cfg.color}`,
                         borderRadius: 1,
                         px: 0.75,
@@ -797,18 +797,18 @@ function DraggableVisitCard({
       onClick={() => onClick(visit.id)}
       sx={{
         p: 1.5, border: '1.5px solid',
-        borderColor: isSelected ? '#0F4C81' : isDragging ? '#93C5FD' : 'grey.200',
+        borderColor: isSelected ? '#2F80ED' : isDragging ? '#2F80ED' : '#E6EAF0',
         borderRadius: 1.5,
         cursor: 'grab',
         opacity: isDragging ? 0.5 : 1,
-        bgcolor: isSelected ? '#EFF6FF' : 'white',
+        bgcolor: isSelected ? '#F4F8FF' : 'white',
         transition: 'all 0.15s',
-        '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
+        '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
         '&:active': { cursor: 'grabbing' },
       }}
     >
       <Stack direction="row" alignItems="flex-start" spacing={1}>
-        <DragIcon sx={{ fontSize: 16, color: '#9CA3AF', mt: 0.25, flexShrink: 0 }} />
+        <DragIcon sx={{ fontSize: 16, color: '#98A2B3', mt: 0.25, flexShrink: 0 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.85rem' }} noWrap>
@@ -817,28 +817,28 @@ function DraggableVisitCard({
             <Chip
               label={`${time(visit.scheduled_start)}–${time(visit.scheduled_end)}`}
               size="small"
-              sx={{ height: 18, fontSize: '0.65rem', fontWeight: 600, bgcolor: '#F3F4F6', flexShrink: 0 }}
+              sx={{ height: 18, fontSize: '0.65rem', fontWeight: 600, bgcolor: 'notice.muted.bg', flexShrink: 0 }}
             />
           </Stack>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
             {visit.label}
           </Typography>
           {visit.person_address && (
-            <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }} noWrap>
+            <Typography variant="caption" sx={{ color: '#98A2B3', display: 'block' }} noWrap>
               📍 {visit.person_address}
             </Typography>
           )}
           {tasks.length > 0 && (
             <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
-              <TaskIcon sx={{ fontSize: 11, color: doneCount === tasks.length ? '#10B981' : '#D97706' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: doneCount === tasks.length ? '#047857' : '#92400E' }}>
+              <TaskIcon sx={{ fontSize: 11, color: doneCount === tasks.length ? '#10B981' : '#F59E0B' }} />
+              <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: doneCount === tasks.length ? '#087A55' : '#9A6700' }}>
                 {doneCount}/{tasks.length} tasks
               </Typography>
             </Stack>
           )}
           <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
             <Tooltip title="AI suggest best carer">
-              <Button size="small" variant="outlined" startIcon={<Lightbulb sx={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onSuggest(visit.id) }} sx={{ textTransform: 'none', fontSize: '0.65rem', py: 0, borderColor: '#E0E7FF', color: '#6366F1', '&:hover': { borderColor: '#6366F1', bgcolor: '#F5F3FF' } }}>
+              <Button size="small" variant="outlined" startIcon={<Lightbulb sx={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onSuggest(visit.id) }} sx={{ textTransform: 'none', fontSize: '0.65rem', py: 0, borderColor: '#D8DEE7', color: '#2F80ED', '&:hover': { borderColor: '#2F80ED', bgcolor: '#F4F8FF' } }}>
                 Suggest
               </Button>
             </Tooltip>
@@ -848,23 +848,23 @@ function DraggableVisitCard({
 
       {/* Expanded task list */}
       {expanded && (
-        <Box sx={{ ml: 3, mt: 1, pl: 1, borderLeft: '2px solid #E5E7EB' }}>
+        <Box sx={{ ml: 3, mt: 1, pl: 1, borderLeft: '2px solid #E6EAF0' }}>
           {tasks.map((task: VisitTask) => (
             <Stack key={task.id} direction="row" alignItems="center" gap={0.5} sx={{ py: 0.25 }}>
               <Box
                 onClick={(e) => { e.stopPropagation(); onToggleTask(task.id, !task.done) }}
                 sx={{
                   width: 14, height: 14, borderRadius: 1, border: '1.5px solid', cursor: 'pointer',
-                  borderColor: task.done ? '#10B981' : '#D1D5DB', bgcolor: task.done ? '#10B981' : 'transparent',
+                  borderColor: task.done ? '#10B981' : '#D8DEE7', bgcolor: task.done ? '#10B981' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
                 {task.done && <CheckIcon sx={{ fontSize: 10, color: 'white' }} />}
               </Box>
-              <Typography variant="caption" sx={{ flex: 1, textDecoration: task.done ? 'line-through' : 'none', color: task.done ? '#9CA3AF' : '#374151' }}>
+              <Typography variant="caption" sx={{ flex: 1, textDecoration: task.done ? 'line-through' : 'none', color: task.done ? '#98A2B3' : '#344054' }}>
                 {task.label}
               </Typography>
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id) }} sx={{ p: 0, '&:hover': { color: '#DC2626' } }}>
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id) }} sx={{ p: 0, '&:hover': { color: '#EF4444' } }}>
                 <DeleteIcon sx={{ fontSize: 12 }} />
               </IconButton>
             </Stack>
@@ -880,7 +880,7 @@ function DraggableVisitCard({
             <IconButton size="small" disabled={!newTaskLabel.trim() || isAddingTask}
               onClick={(e) => { e.stopPropagation(); if (newTaskLabel.trim()) onAddTask(newTaskLabel.trim()) }}
               sx={{ p: 0.5 }}>
-              <AddIcon sx={{ fontSize: 16, color: '#0F4C81' }} />
+              <AddIcon sx={{ fontSize: 16, color: '#2F80ED' }} />
             </IconButton>
           </Stack>
         </Box>
@@ -947,19 +947,19 @@ function CarerDropZone({
         p: 2, border: '2px solid',
         // `grey.200` and `grey.100` were both near-white hairlines that only
         // read as a border in light mode; `divider` is the mode-aware token.
-        borderColor: isDropTarget ? '#0F4C81' : 'divider',
+        borderColor: isDropTarget ? '#2F80ED' : 'divider',
         borderRadius: 2,
         transition: 'all 0.2s',
-        bgcolor: isDropTarget ? '#EFF6FF' : visits.length === 0 ? '#FAFAFA' : 'white',
+        bgcolor: isDropTarget ? '#F4F8FF' : visits.length === 0 ? '#F9FAFB' : 'white',
         cursor: isClickable ? 'pointer' : 'default',
         boxShadow: isDropTarget ? '0 0 0 3px rgba(15,76,129,0.1)' : 'none',
-        '&:hover': isClickable ? { borderColor: '#0F4C81', boxShadow: '0 0 0 2px rgba(15,76,129,0.08)' } : {},
+        '&:hover': isClickable ? { borderColor: '#2F80ED', boxShadow: '0 0 0 2px rgba(15,76,129,0.08)' } : {},
       }}
     >
       {/* Carer header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <PersonIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
+          <PersonIcon sx={{ fontSize: 18, color: '#2F80ED' }} />
           <Typography variant="body2" sx={{ fontWeight: 700 }}>{name}</Typography>
         </Stack>
         <Stack direction="row" spacing={0.5} alignItems="center">
@@ -967,19 +967,19 @@ function CarerDropZone({
             <Chip
               label={`${visits.length} call${visits.length !== 1 ? 's' : ''} · ${hours}h${mins > 0 ? `${mins}m` : ''}`}
               size="small"
-              sx={{ bgcolor: '#E0F2FE', color: '#0F4C81', fontWeight: 600, height: 20, fontSize: '0.65rem' }}
+              sx={{ bgcolor: '#EAF3FF', color: '#2F80ED', fontWeight: 600, height: 20, fontSize: '0.65rem' }}
             />
           )}
           {visits.length === 0 && (
-            <Chip label="No calls" size="small" sx={{ bgcolor: '#F3F4F6', color: '#9CA3AF', fontWeight: 500, height: 20, fontSize: '0.65rem' }} />
+            <Chip label="No calls" size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#98A2B3', fontWeight: 500, height: 20, fontSize: '0.65rem' }} />
           )}
         </Stack>
       </Stack>
 
       {/* Drop hint */}
       {isDropTarget && (
-        <Box sx={{ py: 2, textAlign: 'center', border: '2px dashed #0F4C81', borderRadius: 1.5, bgcolor: '#EFF6FF', mb: 1 }}>
-          <Typography variant="body2" sx={{ color: '#0F4C81', fontWeight: 600 }}>Drop here to assign</Typography>
+        <Box sx={{ py: 2, textAlign: 'center', border: '2px dashed #2F80ED', borderRadius: 1.5, bgcolor: '#F4F8FF', mb: 1 }}>
+          <Typography variant="body2" sx={{ color: '#2F80ED', fontWeight: 600 }}>Drop here to assign</Typography>
         </Box>
       )}
 
@@ -999,14 +999,14 @@ function CarerDropZone({
                     <Stack direction="row" alignItems="center" spacing={0.5}>
                       {travel ? (
                         <>
-                          <Typography variant="caption" sx={{ color: travel.duration_minutes > gap ? '#DC2626' : '#9CA3AF', fontSize: '0.6rem', fontWeight: 600 }}>
+                          <Typography variant="caption" sx={{ color: travel.duration_minutes > gap ? '#EF4444' : '#98A2B3', fontSize: '0.6rem', fontWeight: 600 }}>
                             {travel.duration_minutes > gap
                               ? `⚠ ${travel.duration_minutes}min travel (only ${Math.round(gap)}min gap)`
                               : `${travel.distance_km}km · ~${travel.duration_minutes}min travel`}
                           </Typography>
                         </>
                       ) : (
-                        <Typography variant="caption" sx={{ color: gap < 15 ? '#DC2626' : '#9CA3AF', fontSize: '0.6rem', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: gap < 15 ? '#EF4444' : '#98A2B3', fontSize: '0.6rem', fontWeight: 600 }}>
                           {gap < 15 ? `⚠ ${Math.round(gap)}min gap` : `${Math.round(gap)}min gap`}
                         </Typography>
                       )}
@@ -1024,10 +1024,10 @@ function CarerDropZone({
                   }}
                   onClick={() => onExpand(v.id === expandedVisit ? null : v.id)}
                 >
-                  <TimeIcon sx={{ fontSize: 13, color: '#0F4C81', flexShrink: 0 }} />
+                  <TimeIcon sx={{ fontSize: 13, color: '#2F80ED', flexShrink: 0 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" alignItems="center" gap={0.5}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#2F80ED' }}>
                         {time(v.scheduled_start)}
                       </Typography>
                       <Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>
@@ -1044,7 +1044,7 @@ function CarerDropZone({
                       <IconButton
                         size="small"
                         onClick={(e) => { e.stopPropagation(); onUnassign(v.id) }}
-                        sx={{ p: 0, '&:hover': { color: '#DC2626' } }}
+                        sx={{ p: 0, '&:hover': { color: '#EF4444' } }}
                       >
                         <UndoIcon sx={{ fontSize: 14 }} />
                       </IconButton>
@@ -1067,7 +1067,7 @@ function CarerDropZone({
           })}
         </Stack>
       ) : !isDropTarget ? (
-        <Typography variant="caption" sx={{ color: '#9CA3AF', textAlign: 'center', display: 'block', py: 2 }}>
+        <Typography variant="caption" sx={{ color: '#98A2B3', textAlign: 'center', display: 'block', py: 2 }}>
           Drag a call here or click to assign
         </Typography>
       ) : null}
@@ -1080,23 +1080,23 @@ function CarerVisitTasks({ visit, newTaskLabel, onNewTaskLabelChange, onAddTask,
   const { data: tasks = [] } = useVisitTasks(visit.id, true)
 
   return (
-    <Box sx={{ ml: 3.5, mt: 0.5, pl: 1, borderLeft: '2px solid #E5E7EB', mb: 1 }}>
+    <Box sx={{ ml: 3.5, mt: 0.5, pl: 1, borderLeft: '2px solid #E6EAF0', mb: 1 }}>
       {tasks.map((task: VisitTask) => (
         <Stack key={task.id} direction="row" alignItems="center" gap={0.5} sx={{ py: 0.25 }}>
           <Box
             onClick={() => onToggleTask(task.id, !task.done)}
             sx={{
               width: 14, height: 14, borderRadius: 1, border: '1.5px solid', cursor: 'pointer',
-              borderColor: task.done ? '#10B981' : '#D1D5DB', bgcolor: task.done ? '#10B981' : 'transparent',
+              borderColor: task.done ? '#10B981' : '#D8DEE7', bgcolor: task.done ? '#10B981' : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >
             {task.done && <CheckIcon sx={{ fontSize: 10, color: 'white' }} />}
           </Box>
-          <Typography variant="caption" sx={{ flex: 1, textDecoration: task.done ? 'line-through' : 'none', color: task.done ? '#9CA3AF' : '#374151' }}>
+          <Typography variant="caption" sx={{ flex: 1, textDecoration: task.done ? 'line-through' : 'none', color: task.done ? '#98A2B3' : '#344054' }}>
             {task.label}
           </Typography>
-          <IconButton size="small" onClick={() => onDeleteTask(task.id)} sx={{ p: 0, '&:hover': { color: '#DC2626' } }}>
+          <IconButton size="small" onClick={() => onDeleteTask(task.id)} sx={{ p: 0, '&:hover': { color: '#EF4444' } }}>
             <DeleteIcon sx={{ fontSize: 12 }} />
           </IconButton>
         </Stack>
@@ -1111,7 +1111,7 @@ function CarerVisitTasks({ visit, newTaskLabel, onNewTaskLabelChange, onAddTask,
         <IconButton size="small" disabled={!newTaskLabel.trim() || isAddingTask}
           onClick={() => { if (newTaskLabel.trim()) onAddTask(newTaskLabel.trim()) }}
           sx={{ p: 0.5 }}>
-          <AddIcon sx={{ fontSize: 16, color: '#0F4C81' }} />
+          <AddIcon sx={{ fontSize: 16, color: '#2F80ED' }} />
         </IconButton>
       </Stack>
     </Box>

@@ -1,4 +1,5 @@
-import { query } from '../../shared/database';
+import { query, transaction } from '../../shared/database';
+import { AppError } from '../../shared/middleware/error.middleware';
 
 export class IncidentsRepository {
   static async findCategories(orgId: string) {
@@ -69,10 +70,17 @@ export class IncidentsRepository {
 
   static async findById(id: string, orgId?: string, includeConfidential = true) {
     const result = await query(
-      `SELECT i.*, to_char(i.incident_time, 'HH24:MI') AS incident_time, ic.name AS category_name, sp.first_name AS reported_by_first, sp.last_name AS reported_by_last
+      `SELECT i.*, to_char(i.incident_time, 'HH24:MI') AS incident_time,
+              ic.name AS category_name, sp.first_name AS reported_by_first, sp.last_name AS reported_by_last,
+              hv.id AS linked_visit_id, hv.label AS linked_visit_label, hv.visit_type AS linked_visit_type,
+              hv.status AS linked_visit_status, hv.scheduled_start AS linked_visit_scheduled_start,
+              hv.scheduled_end AS linked_visit_scheduled_end,
+              vp.first_name || ' ' || vp.last_name AS linked_visit_person_name
        FROM incidents i
        LEFT JOIN incident_categories ic ON i.category_id = ic.id
        LEFT JOIN staff_profiles sp ON i.reported_by = sp.user_id
+       LEFT JOIN homecare_visits hv ON hv.id = i.visit_id AND hv.organization_id = i.organization_id
+       LEFT JOIN people vp ON vp.id = hv.person_id AND vp.organization_id = i.organization_id
        WHERE i.id = $1${orgId ? ' AND i.organization_id = $2' : ''}${includeConfidential ? '' : ' AND i.is_confidential = FALSE'}`,
       orgId ? [id, orgId] : [id]
     );
@@ -80,12 +88,67 @@ export class IncidentsRepository {
   }
 
   static async create(orgId: string, data: any, reportedBy: string) {
-    const result = await query(
-      `INSERT INTO incidents (organization_id, category_id, title, description, incident_date, incident_time, location, severity, status, is_cqc_reportable, is_near_miss, is_confidential, root_cause, outcomes, investigation_notes, lessons_learned, cqc_reference, reported_to_cqc_at, reported_by)
-       VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, COALESCE($9, 'reported'), $10, COALESCE($11, FALSE), COALESCE($12, FALSE), $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
-      [orgId, data.category_id, data.title, data.description, data.incident_date, data.incident_time, data.location, data.severity || 'medium', data.status, data.is_cqc_reportable || false, data.is_near_miss || false, data.is_confidential || false, data.root_cause, data.outcomes, data.investigation_notes, data.lessons_learned, data.cqc_reference, data.reported_to_cqc_at, reportedBy]
-    );
-    return result.rows[0];
+    return transaction(async client => {
+      const parameters = [orgId, data.category_id, data.title, data.description, data.incident_date, data.incident_time, data.location, data.severity || 'medium', data.status, data.is_cqc_reportable || false, data.is_near_miss || false, data.is_confidential || false, data.root_cause, data.outcomes, data.investigation_notes, data.lessons_learned, data.cqc_reference, data.reported_to_cqc_at, reportedBy, data.client_submission_id || null, data.witnesses || null];
+      const inserted = await client.query(
+        `INSERT INTO incidents (organization_id, category_id, title, description, incident_date, incident_time, location, severity, status, is_cqc_reportable, is_near_miss, is_confidential, root_cause, outcomes, investigation_notes, lessons_learned, cqc_reference, reported_to_cqc_at, reported_by, client_submission_id, witnesses)
+         VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, COALESCE($9, 'reported'), $10, COALESCE($11, FALSE), COALESCE($12, FALSE), $13, $14, $15, $16, $17, $18, $19, $20, $21)
+         ON CONFLICT (organization_id, reported_by, client_submission_id) WHERE client_submission_id IS NOT NULL
+         DO NOTHING
+         RETURNING *, TRUE AS was_created`,
+        parameters
+      );
+      let incident = inserted.rows[0];
+      if (!incident && data.client_submission_id) {
+        const existing = await client.query(
+          `SELECT *, FALSE AS was_created FROM incidents
+           WHERE organization_id = $1 AND reported_by = $2 AND client_submission_id = $3
+           FOR UPDATE`,
+          [orgId, reportedBy, data.client_submission_id]
+        );
+        incident = existing.rows[0];
+      }
+      if (!incident) throw new AppError(409, 'Could not resolve this incident submission; retry the same report');
+
+
+      // Associations are created only alongside the first insert and in the
+      // same transaction. A retry returns the original incident unchanged,
+      // including its links, without duplicating involved-person rows.
+      if (incident.was_created) {
+        const personIds = Array.isArray(data.person_ids) ? [...new Set(data.person_ids)] : [];
+        if (personIds.length > 0) {
+          const people = await client.query(
+            'SELECT id FROM people WHERE organization_id = $1 AND id = ANY($2::uuid[])',
+            [orgId, personIds]
+          );
+          if (people.rows.length !== personIds.length) {
+            throw new AppError(400, 'One or more linked people were not found in this organisation');
+          }
+          for (const personId of personIds) {
+            await client.query(
+              `INSERT INTO incident_involved_residents (incident_id, person_id, involvement_type)
+               VALUES ($1, $2, 'affected')`,
+              [incident.id, personId]
+            );
+          }
+        }
+
+        if (data.visit_id) {
+          const visit = await client.query(
+            'SELECT id FROM homecare_visits WHERE id = $1 AND organization_id = $2',
+            [data.visit_id, orgId]
+          );
+          if (!visit.rows[0]) throw new AppError(400, 'Linked visit was not found in this organisation');
+          const linkedVisit = await client.query(
+            'UPDATE incidents SET visit_id = $1 WHERE id = $2 RETURNING visit_id',
+            [data.visit_id, incident.id]
+          );
+          incident.visit_id = linkedVisit.rows[0].visit_id;
+        }
+      }
+
+      return incident;
+    });
   }
 
   static async update(id: string, data: any, orgId?: string) {

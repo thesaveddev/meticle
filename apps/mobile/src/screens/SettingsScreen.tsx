@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
-import type { MobileUser } from '../types'
+import type { MobileUser, OfflineVisitAction, QueuedIncidentReport } from '../types'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount, pendingIncidentReports = [], queue = [] }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
@@ -25,6 +25,8 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
   /** How many of the caller's own claims a manager has not yet decided. */
   pendingClaimsCount?: number
   onDeleteAccount?: () => Promise<void>
+  pendingIncidentReports?: QueuedIncidentReport[]
+  queue?: OfflineVisitAction[]
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const s = useDynamicStyles(styles)
@@ -273,9 +275,33 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
               </View>
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Offline sync</Text>
-                <Text style={[s.menuDesc, { color: c.muted }]}>Actions stored until reconnected</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>
+                  {queue.length + pendingIncidentReports.length > 0
+                    ? `${queue.length + pendingIncidentReports.length} item${queue.length + pendingIncidentReports.length === 1 ? '' : 's'} stored until sync`
+                    : 'No offline items waiting to sync'}
+                </Text>
+                {pendingIncidentReports.filter(item => item.permanent).map(item => (
+                  <Text key={item.id} accessibilityRole="alert" style={[s.menuDesc, { color: c.danger }]}>
+                    {item.title}: {item.error || 'Could not submit. Contact your manager.'}
+                  </Text>
+                ))}
+                {pendingIncidentReports.filter(item => !item.permanent).map(item => (
+                  <Text key={item.id} style={[s.menuDesc, { color: c.warning }]}>
+                    {item.title}: retry scheduled {item.nextAttemptAt ? new Date(item.nextAttemptAt).toLocaleTimeString() : 'after reconnection'}
+                  </Text>
+                ))}
+                {queue.filter(item => item.state === 'failed' && item.permanent).map(item => (
+                  <Text key={item.id} accessibilityRole="alert" style={[s.menuDesc, { color: c.danger }]}>
+                    {item.error || 'A visit action could not be synced. Contact your manager.'}
+                  </Text>
+                ))}
+                {queue.filter(item => item.state === 'failed' && !item.permanent).map(item => (
+                  <Text key={item.id} style={[s.menuDesc, { color: c.warning }]}>
+                    {item.error || 'A visit action will retry at the next sync.'}
+                  </Text>
+                ))}
               </View>
-              <Pressable onPress={() => { hapticLight(); onSync() }} style={[s.syncBtn, { backgroundColor: c.successSurface, borderColor: c.success + '25' }]}>
+              <Pressable accessibilityRole="button" onPress={() => { hapticLight(); onSync() }} style={[s.syncBtn, { backgroundColor: c.successSurface, borderColor: c.success + '25' }]}>
                 <Text style={[s.syncBtnText, { color: c.success }]}>Sync</Text>
               </Pressable>
             </View>

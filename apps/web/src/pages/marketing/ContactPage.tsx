@@ -9,15 +9,15 @@ import api from '../../services/api'
 import PageMeta from '../../components/PageMeta'
 
 // Brand tokens — shared with the rest of the marketing site.
-const INK = '#1B2430'
+const INK = '#17202A'
 const INK_DARK = '#141C24'
-const NAVY = '#0F4C81'
-const NAVY_DEEP = '#0A3A63'
+const NAVY = '#2F80ED'
+const NAVY_DEEP = '#1F68C7'
 const EMERALD = '#10B981'
-const EMERALD_DEEP = '#047857'
-const BONE = '#F7F4EE'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const EMERALD_DEEP = '#087A55'
+const BONE = '#F7F9FC'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 
 const contactMethods = [
   {

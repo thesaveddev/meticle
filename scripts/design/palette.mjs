@@ -15,6 +15,10 @@
  * hex literal in a component is what lint.mjs exists to prevent.
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { hexToOklch, maxChroma, oklchToRgb, rgbToHex } from './oklch.mjs'
 
 /**
@@ -160,7 +164,35 @@ export function buildColorMeta() {
   return out
 }
 
+/**
+ * The master UI palette's home: the central token modules the app ships from
+ * (context/ThemeContext.tsx METICLE_COLORS / METICLE_CHART_PALETTE, index.css
+ * --mc-*, theme/noticeTokens.ts, styles/tokens.ts, styles/marketing-tokens.ts,
+ * mobile/src/theme.tsx). The application-wide colour overhaul made these the
+ * source of truth for app-UI colour; the logo-derived PALETTE above documents
+ * and generates the brand artefacts. lint.mjs allows any hex these modules
+ * declare, so a component that hardcodes a stray colour still fails while a
+ * token value does not. Harvested at runtime so the two cannot drift apart.
+ */
+const TOKEN_MODULES = [
+  'apps/web/src/context/ThemeContext.tsx',
+  'apps/web/src/index.css',
+  'apps/web/src/theme/noticeTokens.ts',
+  'apps/web/src/styles/tokens.ts',
+  'apps/web/src/styles/marketing-tokens.ts',
+  'apps/mobile/src/theme.tsx',
+]
+
 /** Every hex the brand legitimately uses, uppercased. Used by lint.mjs. */
 export function allowedHexes() {
-  return new Set(Object.values(PALETTE).map((p) => p.value.toUpperCase()))
+  const allowed = new Set(Object.values(PALETTE).map((p) => p.value.toUpperCase()))
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+  for (const rel of TOKEN_MODULES) {
+    const src = readFileSync(resolve(root, rel), 'utf8')
+    for (const m of src.matchAll(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/g)) {
+      const body = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
+      allowed.add(`#${body.toUpperCase()}`)
+    }
+  }
+  return allowed
 }

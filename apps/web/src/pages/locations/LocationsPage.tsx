@@ -178,7 +178,7 @@ export default function LocationsPage() {
         <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Areas' : 'Locations'}</Typography>
         {isOrgAdmin && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
-            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>{isDomiciliary ? 'Add area' : 'Add location'}</Button>
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>{isDomiciliary ? 'Add area' : 'Add location'}</Button>
         )}
       </Stack>
 
@@ -190,7 +190,7 @@ export default function LocationsPage() {
         </Alert>
       )}
 
-      {isDomiciliary && <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      {isDomiciliary && <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
           <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Area comparison</Typography><Typography variant="body2" color="text.secondary">Compare demand, cover and indicative margin across Cardiff, Cathays and every other service area.</Typography></Box>
           <Chip size="small" label="Manager view · live aggregates" variant="outlined" />
@@ -363,14 +363,14 @@ export default function LocationsPage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setLocDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={saveLocation} disabled={!editLoc.name || saving}
-            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={upgradeDialog.open} onClose={() => setUpgradeDialog({ open: false, userId: '', name: '' })} maxWidth="xs" fullWidth>
         <DialogTitle>Upgrade to Manager?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280">
+          <Typography variant="body2" color="#667085">
             {upgradeDialog.name} needs to be a MANAGER to be {isDomiciliary ? 'an area manager' : 'a location manager'}. Upgrade their role now?
           </Typography>
         </DialogContent>

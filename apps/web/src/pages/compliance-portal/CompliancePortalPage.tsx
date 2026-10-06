@@ -23,13 +23,13 @@ import PageContainer from '../../components/design/PageContainer'
 
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: '#DC2626', high: '#F97316', medium: '#EAB308', low: '#22C55E',
+  critical: '#EF4444', high: '#F59E0B', medium: '#F59E0B', low: '#10B981',
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  complete: '#16A34A', incomplete: '#EF4444', expired: '#9CA3AF',
-  pending_review: '#F59E0B', active: '#16A34A', draft: '#6B7280',
-  published: '#059669', archived: '#9CA3AF',
+  complete: '#10B981', incomplete: '#EF4444', expired: '#98A2B3',
+  pending_review: '#F59E0B', active: '#10B981', draft: '#667085',
+  published: '#087A55', archived: '#98A2B3',
 }
 
 // ── Portal Login Page ──
@@ -73,10 +73,10 @@ export function PortalLoginPage() {
 
   const getErrorIcon = () => {
     switch (errorType) {
-      case 'expired': return <ClockIcon sx={{ fontSize: 56, color: '#D97706' }} />
-      case 'revoked': return <BlockIcon sx={{ fontSize: 56, color: '#DC2626' }} />
-      case 'session_expired': return <ClockIcon sx={{ fontSize: 56, color: '#D97706' }} />
-      default: return <ShieldIcon sx={{ fontSize: 56, color: '#DC2626' }} />
+      case 'expired': return <ClockIcon sx={{ fontSize: 56, color: '#F59E0B' }} />
+      case 'revoked': return <BlockIcon sx={{ fontSize: 56, color: '#EF4444' }} />
+      case 'session_expired': return <ClockIcon sx={{ fontSize: 56, color: '#F59E0B' }} />
+      default: return <ShieldIcon sx={{ fontSize: 56, color: '#EF4444' }} />
     }
   }
 
@@ -103,25 +103,25 @@ export function PortalLoginPage() {
   if (loading) return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Stack alignItems="center" spacing={2}>
-        <CircularProgress size={32} sx={{ color: '#0F4C81' }} />
-        <Typography variant="body2" color="#6B7280">Verifying access...</Typography>
+        <CircularProgress size={32} sx={{ color: '#2F80ED' }} />
+        <Typography variant="body2" color="#667085">Verifying access...</Typography>
       </Stack>
     </Box>
   )
 
   if (error) return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg', px: 2 }}>
-      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
-        <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7ED' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
+      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
           {getErrorIcon()}
         </Box>
         <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>{getErrorTitle()}</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
+        <Typography variant="body2" color="#667085" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
         <Stack spacing={1.5} alignItems="center">
-          <Button variant="contained" href="/login" sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2, px: 4 }}>
+          <Button variant="contained" href="/login" sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 2, px: 4 }}>
             Go to Login
           </Button>
-          <Typography variant="caption" color="#9CA3AF">
+          <Typography variant="caption" color="#98A2B3">
             Need help? Contact the care home directly.
           </Typography>
         </Stack>
@@ -204,14 +204,14 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
       {/* Token management list */}
       {showTokens && (
         <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: 'notice.subtle.bg' }}>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E6EAF0', bgcolor: 'notice.subtle.bg' }}>
             <Typography variant="subtitle2" fontWeight={800}>Compliance Portal Links</Typography>
-            <Typography variant="caption" color="#6B7280">Manage and revoke access tokens for compliance officers</Typography>
+            <Typography variant="caption" color="#667085">Manage and revoke access tokens for compliance officers</Typography>
           </Box>
           {tokensLoading ? (
             <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
           ) : tokens.length === 0 ? (
-            <Box sx={{ p: 3, textAlign: 'center' }}><Typography color="#9CA3AF">No links generated yet</Typography></Box>
+            <Box sx={{ p: 3, textAlign: 'center' }}><Typography color="#98A2B3">No links generated yet</Typography></Box>
           ) : (
             <TableContainer>
               <Table size="small">
@@ -230,17 +230,17 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                     const isExpired = new Date(t.expires_at) < new Date()
                     const isRevoked = t.revoked
                     const status = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
-                    const statusColor = isRevoked ? '#DC2626' : isExpired ? '#9CA3AF' : '#16A34A'
+                    const statusColor = isRevoked ? '#EF4444' : isExpired ? '#98A2B3' : '#10B981'
                     return (
                       <TableRow key={t.id} sx={{ opacity: isRevoked || isExpired ? 0.6 : 1 }}>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>{t.officer_name}</Typography>
-                          <Typography variant="caption" color="#6B7280">{t.email}</Typography>
+                          <Typography variant="caption" color="#667085">{t.email}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{t.location_name}</Typography></TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography variant="caption" fontFamily="monospace" color="#6B7280">…{t.id.slice(-8)}</Typography>
+                            <Typography variant="caption" fontFamily="monospace" color="#667085">…{t.id.slice(-8)}</Typography>
                             {!isRevoked && !isExpired && t.jwt_token && (
                               <IconButton size="small" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/login?token=${t.jwt_token}`) }}>
                                 <CopyIcon sx={{ fontSize: 14 }} />
@@ -248,7 +248,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                             )}
                           </Stack>
                         </TableCell>
-                        <TableCell><Typography variant="caption" color="#6B7280">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
+                        <TableCell><Typography variant="caption" color="#667085">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
                         <TableCell><Chip label={status} size="small" sx={{ bgcolor: statusColor, color: 'white', fontWeight: 700, fontSize: 11 }} /></TableCell>
                         <TableCell align="right">
                           {!isRevoked && !isExpired && (
@@ -274,7 +274,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
         <DialogContent>
           {result ? (
             <Box sx={{ textAlign: 'center', py: 2 }}>
-              <CheckIcon sx={{ fontSize: 48, color: '#16A34A', mb: 2 }} />
+              <CheckIcon sx={{ fontSize: 48, color: '#10B981', mb: 2 }} />
               <Typography variant="h6" fontWeight={700} gutterBottom>Access Link Created</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Share this link with {result.officerName} for access to {result.locationName}.
@@ -287,7 +287,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                   <IconButton size="small" onClick={copyLink}><CopyIcon sx={{ fontSize: 16 }} /></IconButton>
                 </Stack>
               </Paper>
-              <Button startIcon={<CopyIcon />} variant="contained" onClick={copyLink} sx={{ bgcolor: '#0F4C81' }}>
+              <Button startIcon={<CopyIcon />} variant="contained" onClick={copyLink} sx={{ bgcolor: '#2F80ED' }}>
                 Copy Full Link
               </Button>
             </Box>
@@ -318,7 +318,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => { setOpen(false); setResult(null) }}>{result ? 'Done' : 'Cancel'}</Button>
-          {!result && <Button variant="contained" onClick={handleCreate} disabled={loading || !form.location_id || !form.officer_name || !form.email} sx={{ bgcolor: '#0F4C81' }}>
+          {!result && <Button variant="contained" onClick={handleCreate} disabled={loading || !form.location_id || !form.officer_name || !form.email} sx={{ bgcolor: '#2F80ED' }}>
             {loading ? <CircularProgress size={20} /> : 'Generate Link'}
           </Button>}
         </DialogActions>
@@ -386,7 +386,7 @@ export default function CompliancePortalPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Header */}
-      <Paper elevation={0} sx={{ borderRadius: 0, borderBottom: '1px solid #E5E7EB', bgcolor: '#0F4C81', color: 'white', px: 4, py: 2 }}>
+      <Paper elevation={0} sx={{ borderRadius: 0, borderBottom: '1px solid #E6EAF0', bgcolor: '#2F80ED', color: 'white', px: 4, py: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" spacing={2} alignItems="center">
             <ShieldIcon sx={{ fontSize: 28 }} />
@@ -407,10 +407,10 @@ export default function CompliancePortalPage() {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <CompIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
+                <CompIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">COMPLIANCE</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} sx={{ color: overallScore >= 80 ? '#16A34A' : '#F59E0B' }}>{overallScore}%</Typography>
+              <Typography variant="h3" fontWeight={800} sx={{ color: overallScore >= 80 ? '#10B981' : '#F59E0B' }}>{overallScore}%</Typography>
               <Typography variant="caption" color="text.secondary">{completeRecords} of {totalRecords} records complete</Typography>
             </Paper>
           </Grid>
@@ -420,7 +420,7 @@ export default function CompliancePortalPage() {
                 <WarningIcon sx={{ fontSize: 20, color: '#EF4444' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">OPEN INCIDENTS</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} sx={{ color: openIncidents?.length > 0 ? '#EF4444' : '#16A34A' }}>
+              <Typography variant="h3" fontWeight={800} sx={{ color: openIncidents?.length > 0 ? '#EF4444' : '#10B981' }}>
                 {openIncidents?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">{people?.length || 0} people at location</Typography>
@@ -447,10 +447,10 @@ export default function CompliancePortalPage() {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <FoodIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
+                <FoodIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">NUTRITION TODAY</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} color="#3B82F6">
+              <Typography variant="h3" fontWeight={800} color="#2F80ED">
                 {nutrition?.filter((n: any) => n.meals_today > 0).length || 0}/{nutrition?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">people fed today</Typography>
@@ -460,11 +460,11 @@ export default function CompliancePortalPage() {
 
         {/* Location Details */}
         {location && (
-          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
               <Typography variant="subtitle2" fontWeight={700}>{location.name}</Typography>
               {location.address && <Typography variant="body2" color="text.secondary">{location.address}</Typography>}
-              {location.cqc_rating && <Chip label={`CQC: ${location.cqc_rating}`} size="small" sx={{ bgcolor: location.cqc_rating === 'good' ? '#DCFCE7' : '#FEF3C7', color: location.cqc_rating === 'good' ? '#166534' : '#92400E' }} />}
+              {location.cqc_rating && <Chip label={`CQC: ${location.cqc_rating}`} size="small" sx={{ bgcolor: location.cqc_rating === 'good' ? '#EAFBF5' : '#FFF7E6', color: location.cqc_rating === 'good' ? '#087A55' : '#9A6700' }} />}
               {location.food_hygiene_rating != null && <Chip label={`FHRS: ${location.food_hygiene_rating}`} size="small" variant="outlined" />}
               {location.service_type && <Chip label={location.service_type.replace(/_/g, ' ')} size="small" variant="outlined" />}
             </Stack>
@@ -482,20 +482,20 @@ export default function CompliancePortalPage() {
           { key: 'people', label: 'People', icon: <PeopleIcon />, count: people?.length },
           { key: 'policies', label: 'Policies', icon: <CompIcon />, count: policies?.length },
         ].map(section => (
-          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
+          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', overflow: 'hidden' }}>
             <Box
               onClick={() => toggleSection(section.key)}
               sx={{ p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: 'notice.subtle.bg' } }}
             >
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box sx={{ color: '#0F4C81' }}>{section.icon}</Box>
+                <Box sx={{ color: '#2F80ED' }}>{section.icon}</Box>
                 <Typography fontWeight={700}>{section.label}</Typography>
                 {section.count != null && <Chip label={section.count} size="small" />}
               </Stack>
               {expandedSection === section.key ? <CollapseIcon /> : <ExpandIcon />}
             </Box>
             <Collapse in={expandedSection === section.key}>
-              <Box sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+              <Box sx={{ p: 2, borderTop: '1px solid #E6EAF0' }}>
                 {section.key === 'staff' && <StaffComplianceTable data={staffCompliance} />}
                 {section.key === 'incidents' && <IncidentsList data={openIncidents} />}
                 {section.key === 'training' && <TrainingTable data={expiringTraining} />}
@@ -538,8 +538,8 @@ function StaffComplianceTable({ data }: { data: any[] }) {
               <TableCell sx={{ fontWeight: 600 }}>{s.name}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Box sx={{ width: 60, height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
-                    <Box sx={{ width: `${s.score}%`, height: 6, bgcolor: s.score >= 80 ? '#16A34A' : s.score >= 50 ? '#F59E0B' : '#EF4444', borderRadius: 3 }} />
+                  <Box sx={{ width: 60, height: 6, bgcolor: '#E6EAF0', borderRadius: 3, overflow: 'hidden' }}>
+                    <Box sx={{ width: `${s.score}%`, height: 6, bgcolor: s.score >= 80 ? '#10B981' : s.score >= 50 ? '#F59E0B' : '#EF4444', borderRadius: 3 }} />
                   </Box>
                   <Typography variant="body2" fontWeight={600}>{s.score}%</Typography>
                 </Stack>
@@ -560,7 +560,7 @@ function IncidentsList({ data }: { data: any[] }) {
   return (
     <Stack spacing={1}>
       {data.map((i: any) => (
-        <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#6B7280' }}>
+        <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#667085' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
               <Stack direction="row" spacing={1} alignItems="center">
@@ -681,7 +681,7 @@ function NutritionAuditTable({ data }: { data: any[] }) {
               <TableCell>{p.refused_today > 0 && <Chip label={p.refused_today} size="small" color="error" icon={<CancelIcon />} />}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <WaterIcon sx={{ fontSize: 14, color: '#0284C7' }} />
+                  <WaterIcon sx={{ fontSize: 14, color: '#175CD3' }} />
                   <Typography variant="body2">{p.fluid_today}ml</Typography>
                   {p.fluid_daily_target_ml > 0 && p.fluid_today < p.fluid_daily_target_ml * 0.75 && (
                     <Chip label="Low" size="small" color="warning" sx={{ height: 18 }} />
@@ -762,7 +762,7 @@ function PoliciesTable({ data }: { data: any[] }) {
                   <Chip
                     label={p.status}
                     size="small"
-                    sx={{ bgcolor: (STATUS_COLORS[p.status] || '#6B7280') + '20', color: STATUS_COLORS[p.status] || '#6B7280' }}
+                    sx={{ bgcolor: (STATUS_COLORS[p.status] || '#667085') + '20', color: STATUS_COLORS[p.status] || '#667085' }}
                   />
                 </TableCell>
                 <TableCell>{p.version || '—'}</TableCell>
@@ -789,9 +789,9 @@ function NutritionAlertsList({ data, onView }: { data: any[]; onView: (id: strin
   if (!data?.length) return <Typography color="text.secondary" sx={{ py: 2 }}>No nutrition alerts at this location — all clear.</Typography>
 
   const getAlertIcon = (type: string) => {
-    if (type.includes('refused')) return <CancelIcon sx={{ color: '#DC2626', fontSize: 18 }} />
+    if (type.includes('refused')) return <CancelIcon sx={{ color: '#EF4444', fontSize: 18 }} />
     if (type.includes('appetite')) return <WarningIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
-    return <WaterIcon sx={{ color: '#3B82F6', fontSize: 18 }} />
+    return <WaterIcon sx={{ color: '#2F80ED', fontSize: 18 }} />
   }
 
   const getAlertLabel = (type: string) => {
@@ -802,9 +802,9 @@ function NutritionAlertsList({ data, onView }: { data: any[]; onView: (id: strin
   }
 
   const getAlertColor = (severity: string) => {
-    if (severity === 'critical' || severity === 'high') return '#DC2626'
+    if (severity === 'critical' || severity === 'high') return '#EF4444'
     if (severity === 'medium') return '#F59E0B'
-    return '#22C55E'
+    return '#10B981'
   }
 
   return (
@@ -865,7 +865,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
           <Stack spacing={3}>
             {/* Dietary & Nutrition */}
             {dietaryProfile && (
-              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#059669' }}>
+              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#087A55' }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Dietary Profile</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {dietaryProfile.dietary_type && <Chip label={dietaryProfile.dietary_type} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg' }} />}
@@ -882,7 +882,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
 
             {/* Allergies */}
             {p.allergies?.length > 0 && (
-              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#DC2626', bgcolor: 'notice.error.bg' }}>
+              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#EF4444', bgcolor: 'notice.error.bg' }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'notice.error.fg', mb: 1 }}>Allergies</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   {p.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" />)}
@@ -923,7 +923,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Incidents</Typography>
                 <Stack spacing={1}>
                   {incidents.map((i: any) => (
-                    <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#6B7280' }}>
+                    <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#667085' }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
                         <Chip label={i.severity} size="small" />

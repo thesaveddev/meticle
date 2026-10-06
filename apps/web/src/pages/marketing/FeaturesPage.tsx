@@ -20,13 +20,13 @@ import {
 } from '../../components/marketing/icons'
 
 // Brand tokens — share with LandingPage and PricingPage so restyling cascades.
-const INK = '#1B2430'
-const NAVY = '#0F4C81'
-const NAVY_DEEP = '#0A3A63'
+const INK = '#17202A'
+const NAVY = '#2F80ED'
+const NAVY_DEEP = '#1F68C7'
 const EMERALD = '#10B981'
-const BONE = '#F7F4EE'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const BONE = '#F7F9FC'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 
 // Three groups — same metal palette as LandingPage / PricingPage.
 const GROUP_PALETTE = {

@@ -6,7 +6,7 @@
  * comparing two runs would notice. These tests hold the line by running the same
  * fixtures against several very different hours of the day.
  */
-import { captureQueue, captureVisits, captureRoutes, CAPTURE_IDS, CAPTURE_SESSION } from '../fixtures'
+import { captureQueue, captureVisits, captureRoutes, CAPTURE_IDS, CAPTURE_INCIDENT_DRAFT, CAPTURE_SESSION } from '../fixtures'
 
 /** The same classification TodayScreen.classifyVisits performs, for the test. */
 function kinds(now: Date) {
@@ -151,6 +151,12 @@ describe('capture route fixture', () => {
     const conversation = routes['GET /chat/channels/:channel/messages'] as { messages: { body: string }[] }
     expect(conversation.messages.length).toBeGreaterThanOrEqual(5)
     expect(conversation.messages.some(message => /blood pressure/i.test(message.body))).toBe(true)
+  })
+
+  it('serves active UUID-backed incident categories for the report-form capture', () => {
+    const routes = captureRoutes()
+    const categories = routes['GET /incidents/categories'] as { id: string; name: string; is_active: boolean }[]
+    expect(categories.some(category => category.id === CAPTURE_INCIDENT_DRAFT.categoryId && category.name === 'Fall' && category.is_active)).toBe(true)
   })
 
   it('serves a client record with a medication list, a body map entry and a risk note', () => {

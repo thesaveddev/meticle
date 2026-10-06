@@ -4,11 +4,11 @@ import { ArrowForward as ArrowIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-const INK = '#1B2430'
-const NAVY = '#0F4C81'
+const INK = '#17202A'
+const NAVY = '#2F80ED'
 const EMERALD = '#10B981'
-const MIST = '#5B6672'
-const HAIRLINE = '#E7E1D6'
+const MIST = '#475467'
+const HAIRLINE = '#E6EAF0'
 
 interface Badge {
   name: string
@@ -169,7 +169,7 @@ const badges: Badge[] = [
     // commercial page implies an endorsement or accreditation we do not hold.
     // This is a trademark problem, not a copy problem, so no wording fixes it.
     logo: undefined,
-    color: '#005EB8',
+    color: '#2F80ED',
     region: 'United Kingdom',
     description: 'The National Health Service sets standards for healthcare in England. It is not the regulator of adult social care — that is CQC, CIW, Care Inspectorate or RQIA, listed above — and we hold no NHS accreditation. We have not submitted the NHS Data Security and Protection Toolkit, and we have no integration with NHS Digital or any NHS system.',
     whatItDoes: 'NHS standards apply to NHS providers. Where a care provider also supports people with NHS-funded care, its own obligations come from the commissioner and the local authority, not from us — and those are matters for the provider, not for software.',
@@ -190,7 +190,7 @@ const badges: Badge[] = [
     name: 'UK GDPR & Data Protection Act 2018',
     acronym: 'DPA',
     logo: '/logos/ukgdpr.png',
-    color: '#1B2430',
+    color: '#17202A',
     region: 'United Kingdom',
     description: 'The UK General Data Protection Regulation and Data Protection Act 2018 set the rules for how personal data must be handled. The Data Security and Protection Toolkit (DSPT) is the NHS-specific self-assessment.',
     whatItDoes: 'UK GDPR and DPA 2018 require organisations to protect personal data, report breaches, and maintain appropriate security measures. The DSPT is the annual self-assessment for NHS and social care organisations.',
@@ -289,7 +289,7 @@ export default function ComplianceBadgesPage() {
                       {badge.logo
                         ? <img src={badge.logo} alt={badge.name} style={{ height: '100%', width: 'auto' }} />
                         : <Box sx={{ height: 56, width: 56, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: badge.color }}>
-                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{badge.acronym}</Typography>
+                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#FFFFFF' }}>{badge.acronym}</Typography>
                           </Box>}
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -401,7 +401,7 @@ export default function ComplianceBadgesPage() {
             <Button
               variant="contained"
               size="large"
-              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A63' }, fontWeight: 700, px: 5, borderRadius: 2 }}
+              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, fontWeight: 700, px: 5, borderRadius: 2 }}
               onClick={() => navigate('/contact')}
             >
               Book a demo

@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { Box, Typography, Paper, Button, Chip, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControlLabel, Switch, TextField, MenuItem, TablePagination, CircularProgress } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
+import { PremiumCard } from '../../components/design/PremiumCard'
 import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -9,11 +11,11 @@ import { EmptyState } from '../../components/design/EmptyState'
 type Section = 'training' | 'documents' | 'competency'
 
 const CQC_DOMAINS = [
-  { key: 'safe', label: 'Safe', color: '#16A34A', statements: ['S1','S2','S3','S4','S5','S6','S7','S8'] },
-  { key: 'effective', label: 'Effective', color: '#6366F1', statements: ['E1','E2','E3','E4','E5','E6','E7'] },
-  { key: 'caring', label: 'Caring', color: '#D946EF', statements: ['C1','C2','C3','C4','C5'] },
+  { key: 'safe', label: 'Safe', color: '#10B981', statements: ['S1','S2','S3','S4','S5','S6','S7','S8'] },
+  { key: 'effective', label: 'Effective', color: '#6B8AFD', statements: ['E1','E2','E3','E4','E5','E6','E7'] },
+  { key: 'caring', label: 'Caring', color: '#8B7CF6', statements: ['C1','C2','C3','C4','C5'] },
   { key: 'responsive', label: 'Responsive', color: '#F59E0B', statements: ['R1','R2','R3','R4','R5','R6','R7'] },
-  { key: 'well-led', label: 'Well-led', color: '#0F4C81', statements: ['W1','W2','W3','W4','W5','W6','W7'] },
+  { key: 'well-led', label: 'Well-led', color: '#2F80ED', statements: ['W1','W2','W3','W4','W5','W6','W7'] },
 ]
 
 export default function EvidencePacksPage() {
@@ -132,23 +134,23 @@ export default function EvidencePacksPage() {
     const emotionStyles = collectEmotionStyles()
     return `<!DOCTYPE html><html><head><title>Meticle Care Evidence Pack</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #111; margin: 0; }
+        body { font-family: Arial, sans-serif; padding: 40px; color: #17202A; margin: 0; }
         * { box-sizing: border-box; }
-        h1 { color: #0F4C81; border-bottom: 2px solid #0F4C81; padding-bottom: 8px; }
-        h2 { color: #0F4C81; margin-top: 32px; }
+        h1 { color: #2F80ED; border-bottom: 2px solid #2F80ED; padding-bottom: 8px; }
+        h2 { color: #2F80ED; margin-top: 32px; }
         h3 { margin-top: 24px; }
         table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        th, td { border: 1px solid #D1D5DB; padding: 8px 12px; text-align: left; font-size: 13px; }
-        th { background: #F3F4F6; font-weight: 700; }
+        th, td { border: 1px solid #D8DEE7; padding: 8px 12px; text-align: left; font-size: 13px; }
+        th { background: #F7F9FC; font-weight: 700; }
         .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .success { background: #D1FAE5; color: #065F46; }
-        .warning { background: #FEF3C7; color: #92400E; }
-        .error { background: #FEE2E2; color: #991B1B; }
-        .default { background: #F3F4F6; color: #374151; }
+        .success { background: #EAFBF5; color: #087A55; }
+        .warning { background: #FFF7E6; color: #9A6700; }
+        .error { background: #FEF0F0; color: #B42318; }
+        .default { background: #F7F9FC; color: #344054; }
         .summary { display: flex; gap: 16px; margin: 16px 0; }
-        .summary-card { border: 1px solid #D1D5DB; border-radius: 8px; padding: 16px; flex: 1; }
+        .summary-card { border: 1px solid #D8DEE7; border-radius: 8px; padding: 16px; flex: 1; }
         .summary-card h3 { margin: 0 0 4px 0; }
-        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #D1D5DB; font-size: 12px; color: #6B7280; }
+        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #D8DEE7; font-size: 12px; color: #667085; }
         @media print { .page-break { page-break-after: always; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
       </style>
       <style>${emotionStyles}</style>
@@ -201,16 +203,19 @@ export default function EvidencePacksPage() {
   return (
     <PageContainer>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4">Audit-Ready Evidence Packs</Typography>
-          <Stack direction="row" spacing={1}>
-            <Button variant="contained" startIcon={pdfLoading ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <DownloadIcon />} onClick={handleDownloadPdf} disabled={pdfLoading} sx={{ bgcolor: '#0F4C81' }}>Download PDF</Button>
+      <PageHeader
+        title="Audit-Ready Evidence Packs"
+        subtitle="Build and export audit-ready evidence packs."
+        actions={
+          <>
+            <Button variant="contained" startIcon={pdfLoading ? <CircularProgress size={16} sx={{ color: '#FFFFFF' }} /> : <DownloadIcon />} onClick={handleDownloadPdf} disabled={pdfLoading}>Download PDF</Button>
             <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>Download HTML</Button>
             <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print / PDF</Button>
-          </Stack>
-      </Stack>
+          </>
+        }
+      />
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>Configure Evidence Pack</Typography>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} sm={4}>
@@ -229,11 +234,11 @@ export default function EvidencePacksPage() {
             </Stack>
           </Grid>
         </Grid>
-      </Paper>
+      </PremiumCard>
 
       <Box ref={printRef}>
         <Paper sx={{ p: 4, mb: 3 }}>
-          <Typography variant="h5" sx={{ color: '#0F4C81', mb: 1 }}>Meticle Care Evidence Pack</Typography>
+          <Typography variant="h5" sx={{ color: '#2F80ED', mb: 1 }}>Meticle Care Evidence Pack</Typography>
           <Typography variant="body2" color="text.secondary">
             Generated: {new Date(data?.generated_at || Date.now()).toLocaleString()}
             {data?.summary && ` · ${data.summary.total_staff} staff, ${data.summary.total_people || 0} people`}
@@ -242,7 +247,7 @@ export default function EvidencePacksPage() {
           {data?.summary && (
             <Box className="summary" sx={{ display: 'flex', gap: 'var(--card-gap)', my: 3, flexWrap: 'wrap' }}>
               {Object.entries(data.summary).map(([k, v]) => (
-                <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #D1D5DB', borderRadius: 2, p: 2, textAlign: 'center' }}>
+                <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #E6EAF0', borderRadius: 2, p: 2, textAlign: 'center' }}>
                   <Typography variant="h5" fontWeight={800}>{v as number}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {k === 'total_staff' ? 'Staff' : k === 'total_people' ? 'People' : k === 'active_people' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : k === 'people_with_dietary_profiles' ? 'Dietary Profiles' : k === 'people_with_nutrition_concerns' ? 'Nutrition Concerns' : ''}
@@ -255,8 +260,8 @@ export default function EvidencePacksPage() {
 
         {/* KLOE Summary — Evidence mapped to CQC domains */}
         {buildDomainEvidence().length > 0 && (
-          <Paper sx={{ p: 3, mb: 3, border: '2px solid #0F4C81' }}>
-            <Typography variant="h6" sx={{ color: '#0F4C81', mb: 2 }}>Key Lines of Enquiry (KLOE) — Evidence Mapping</Typography>
+          <Paper sx={{ p: 3, mb: 3, border: '2px solid #2F80ED' }}>
+            <Typography variant="h6" sx={{ color: '#2F80ED', mb: 2 }}>Key Lines of Enquiry (KLOE) — Evidence Mapping</Typography>
             <Grid container spacing={2}>
               {buildDomainEvidence().map(([key, val]) => (
                 <Grid item xs={12} sm={6} key={key}>
@@ -467,16 +472,16 @@ export default function EvidencePacksPage() {
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Satisfaction Surveys Overview</Typography>
             <Stack direction="row" spacing={3}>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #D1D5DB', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#0F4C81">{data.satisfaction.avg_rating}/5</Typography>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight={800} color="#2F80ED">{data.satisfaction.avg_rating}/5</Typography>
                 <Typography variant="caption">Average Rating</Typography>
               </Box>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #D1D5DB', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#16A34A">{data.satisfaction.total}</Typography>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight={800} color="#10B981">{data.satisfaction.total}</Typography>
                 <Typography variant="caption">Total Responses</Typography>
               </Box>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #D1D5DB', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#D97706">{data.satisfaction.positive}</Typography>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight={800} color="#F59E0B">{data.satisfaction.positive}</Typography>
                 <Typography variant="caption">Positive (4+ Rating)</Typography>
               </Box>
             </Stack>
@@ -542,7 +547,7 @@ export default function EvidencePacksPage() {
               </TableContainer>
             )}
             {data.summary?.people_with_nutrition_concerns > 0 && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.error.bg', borderRadius: 1, border: '1px solid #FECACA' }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.error.bg', borderRadius: 1, border: '1px solid #FEF0F0' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'notice.error.fg', mb: 1 }}>
                   ⚠ {data.summary.people_with_nutrition_concerns} person(s) with nutrition concerns in the last 7 days
                 </Typography>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { CHART_PALETTE, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -16,13 +16,13 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active: { bg: '#DCFCE7', text: '#166534' },
-  discharged: { bg: '#F3F4F6', text: '#6B7280' },
-  deceased: { bg: '#FEE2E2', text: '#991B1B' },
+  active: { bg: '#EAFBF5', text: '#087A55' },
+  discharged: { bg: '#F7F9FC', text: '#667085' },
+  deceased: { bg: '#FEF0F0', text: '#B42318' },
 }
 
 function getAvatarColor(name: string) {
-  const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444']
+  const AVATAR_COLORS = CHART_PALETTE
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]

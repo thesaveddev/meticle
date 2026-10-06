@@ -40,23 +40,23 @@ export const STATUS_OPTIONS = [
 
 export const categoryColors: Record<string, string> = {
   'Risk Management': '#B42318',
-  'Human Resources': '#0F4C81',
-  'Health & Safety': '#B54708',
-  'GDPR & Data Protection': '#6941C6',
+  'Human Resources': '#2F80ED',
+  'Health & Safety': '#9A6700',
+  'GDPR & Data Protection': '#8B7CF6',
   'Infection Control': '#027A8B',
   'Equality & Diversity': '#087443',
   'Mental Health': '#087E8B',
   'Fire Safety': '#C4320A',
-  Medication: '#047857',
+  Medication: '#087A55',
   Safeguarding: '#9F1239',
 }
 
 export const INK = '#17212B'
 export const MUTED = '#607080'
-export const NAVY = '#0F4C81'
-export const EMERALD = '#047857'
-export const BONE = '#F7F4EE'
-export const HAIRLINE = '#E2E8F0'
+export const NAVY = '#2F80ED'
+export const EMERALD = '#087A55'
+export const BONE = '#F7F9FC'
+export const HAIRLINE = '#E6EAF0'
 
 export function statusLabel(status: string) {
   return status === 'active' ? 'Published' : status.charAt(0).toUpperCase() + status.slice(1)
@@ -65,7 +65,7 @@ export function statusLabel(status: string) {
 export function statusColor(status: string) {
   if (status === 'published' || status === 'active') return EMERALD
   if (status === 'archived') return '#667085'
-  return '#B54708'
+  return '#9A6700'
 }
 
 export function formatDate(date?: string) {

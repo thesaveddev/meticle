@@ -67,11 +67,11 @@ interface TrendData {
 
 const severityColor = (s: string, dark = false) => {
   switch (s) {
-    case 'critical': return { bg: dark ? '#3B1820' : '#FEF2F2', border: '#DC2626', text: dark ? '#FCA5A5' : '#991B1B', icon: '#EF4444' }
-    case 'high': return { bg: dark ? '#3A2A13' : '#FFFBEB', border: '#D97706', text: dark ? '#FCD34D' : '#92400E', icon: '#F59E0B' }
-    case 'medium': return { bg: dark ? '#172B45' : '#F0F9FF', border: '#2563EB', text: dark ? '#93C5FD' : '#1E40AF', icon: '#60A5FA' }
-    case 'low': return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#64748B', text: dark ? '#CBD5E1' : '#4B5563', icon: '#94A3B8' }
-    default: return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#64748B', text: dark ? '#CBD5E1' : '#4B5563', icon: '#94A3B8' }
+    case 'critical': return { bg: dark ? '#3B1820' : '#FEF0F0', border: '#EF4444', text: dark ? '#FCA5A5' : '#B42318', icon: '#EF4444' }
+    case 'high': return { bg: dark ? '#3A2A13' : '#FFF7E6', border: '#F59E0B', text: dark ? '#F59E0B' : '#9A6700', icon: '#F59E0B' }
+    case 'medium': return { bg: dark ? '#172B45' : '#EAF3FF', border: '#2F80ED', text: dark ? '#6B8AFD' : '#175CD3', icon: '#2F80ED' }
+    case 'low': return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#667085', text: dark ? '#CBD5E1' : '#475467', icon: '#94A3B8' }
+    default: return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#667085', text: dark ? '#CBD5E1' : '#475467', icon: '#94A3B8' }
   }
 }
 
@@ -251,13 +251,13 @@ export default function MissionControlPage() {
       {tab === 0 && (
         <>
           {/* Severity Bar */}
-          <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: severityCounts.critical > 0 ? (theme.palette.mode === 'dark' ? '#3B1820' : '#FEF2F2') : severityCounts.high > 0 ? (theme.palette.mode === 'dark' ? '#3A2A13' : '#FFFBEB') : 'background.paper', border: `1px solid ${severityCounts.critical > 0 ? '#DC2626' : severityCounts.high > 0 ? '#D97706' : theme.palette.divider}` }}>
+          <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: severityCounts.critical > 0 ? (theme.palette.mode === 'dark' ? '#3B1820' : '#FEF0F0') : severityCounts.high > 0 ? (theme.palette.mode === 'dark' ? '#3A2A13' : '#FFF7E6') : 'background.paper', border: `1px solid ${severityCounts.critical > 0 ? '#EF4444' : severityCounts.high > 0 ? '#F59E0B' : theme.palette.divider}` }}>
             <Grid container spacing={2} alignItems="center">
-              {[{ label: 'Critical', val: severityCounts.critical, color: '#DC2626' }, { label: 'High', val: severityCounts.high, color: '#D97706' }, { label: 'Medium', val: severityCounts.medium, color: '#2563EB' }, { label: 'Low', val: severityCounts.low, color: 'text.secondary' }].map(s => (
+              {[{ label: 'Critical', val: severityCounts.critical, color: '#EF4444' }, { label: 'High', val: severityCounts.high, color: '#F59E0B' }, { label: 'Medium', val: severityCounts.medium, color: '#2F80ED' }, { label: 'Low', val: severityCounts.low, color: 'text.secondary' }].map(s => (
                 <Grid item xs={6} md={3} key={s.label}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: s.val > 0 ? s.color : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.val > 0 ? '#fff' : '#6B7280' }}>{s.val}</Typography>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: s.val > 0 ? s.color : '#E6EAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.val > 0 ? '#FFFFFF' : '#667085' }}>{s.val}</Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</Typography>
                   </Stack>
@@ -268,10 +268,10 @@ export default function MissionControlPage() {
 
           {/* Category Cards */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            {[{ label: 'Medication', icon: <MedsIcon />, count: (summary?.categories.medication || 0) + (summary?.overdue_medications || 0), detail: `${summary?.overdue_medications || 0} overdue`, path: '/emedication', color: '#DC2626' },
-              { label: 'Staffing & Safety', icon: <StaffingIcon />, count: (summary?.categories.staffing_safety || 0) + (summary?.unfilled_shifts || 0) + (summary?.understaffed_shifts || 0) + (summary?.overdue_incident_actions || 0), detail: `${summary?.unfilled_shifts || 0} unfilled, ${summary?.understaffed_shifts || 0} understaffed`, path: '/scheduling', color: '#D97706' },
-              { label: 'Compliance', icon: <ComplianceIcon />, count: (summary?.categories.compliance || 0) + (summary?.expiring_training || 0) + (summary?.expiring_dbs || 0) + (summary?.overdue_policy_reviews || 0), detail: `${summary?.expiring_training || 0} training, ${summary?.expiring_dbs || 0} DBS`, path: '/compliance', color: '#2563EB' },
-              { label: 'Care Reviews', icon: <CareIcon />, count: (summary?.categories.care || 0) + (summary?.overdue_care_plan_reviews || 0) + (summary?.low_fluid_intake || 0), detail: `${summary?.overdue_care_plan_reviews || 0} care plans`, path: '/people', color: '#16A34A' },
+            {[{ label: 'Medication', icon: <MedsIcon />, count: (summary?.categories.medication || 0) + (summary?.overdue_medications || 0), detail: `${summary?.overdue_medications || 0} overdue`, path: '/emedication', color: '#EF4444' },
+              { label: 'Staffing & Safety', icon: <StaffingIcon />, count: (summary?.categories.staffing_safety || 0) + (summary?.unfilled_shifts || 0) + (summary?.understaffed_shifts || 0) + (summary?.overdue_incident_actions || 0), detail: `${summary?.unfilled_shifts || 0} unfilled, ${summary?.understaffed_shifts || 0} understaffed`, path: '/scheduling', color: '#F59E0B' },
+              { label: 'Compliance', icon: <ComplianceIcon />, count: (summary?.categories.compliance || 0) + (summary?.expiring_training || 0) + (summary?.expiring_dbs || 0) + (summary?.overdue_policy_reviews || 0), detail: `${summary?.expiring_training || 0} training, ${summary?.expiring_dbs || 0} DBS`, path: '/compliance', color: '#2F80ED' },
+              { label: 'Care Reviews', icon: <CareIcon />, count: (summary?.categories.care || 0) + (summary?.overdue_care_plan_reviews || 0) + (summary?.low_fluid_intake || 0), detail: `${summary?.overdue_care_plan_reviews || 0} care plans`, path: '/people', color: '#10B981' },
             ].map(cat => (
               <Grid item xs={6} md={3} key={cat.label}>
                 <Card elevation={0} sx={{ cursor: 'pointer', borderRadius: 2, border: '1px solid', borderColor: 'divider', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { boxShadow: '0 4px 12px -4px rgba(0,0,0,0.1)', borderColor: cat.color + '40' } }} onClick={() => navigate(cat.path)}>
@@ -340,8 +340,8 @@ export default function MissionControlPage() {
 
           {alerts.length === 0 ? (
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <LowIcon sx={{ fontSize: 48, color: '#16A34A', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#16A34A' }}>All clear</Typography>
+              <LowIcon sx={{ fontSize: 48, color: '#10B981', mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#10B981' }}>All clear</Typography>
               <Typography variant="body2" color="text.secondary">No alerts require attention right now.</Typography>
             </Paper>
           ) : (
@@ -356,8 +356,8 @@ export default function MissionControlPage() {
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: `${c.border}18`, color: c.text, '& .MuiChip-label': { px: 1 } }} />
-                          {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#DC262610', color: '#DC2626' }} />}
-                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.muted.bg', color: '#475569' }} />}
+                          {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#EF444410', color: '#EF4444' }} />}
+                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.muted.bg', color: '#475467' }} />}
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
@@ -374,7 +374,7 @@ export default function MissionControlPage() {
 
                     {/* Assign Dropdown */}
                     {assignDialog === alert.id && (
-                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }} onClick={e => e.stopPropagation()}>
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E6EAF0' }} onClick={e => e.stopPropagation()}>
                         <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>Assign to staff member:</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           {staff.slice(0, 8).map((s: any) => (
@@ -437,12 +437,12 @@ export default function MissionControlPage() {
             <>
               {/* Week Summary Cards */}
               <Grid container spacing={2} sx={{ mb: 4 }}>
-                {[{ label: 'This Week', data: trends.this_week, color: '#0F4C81' }, { label: 'Last Week', data: trends.last_week, color: 'text.secondary' }].map(w => (
+                {[{ label: 'This Week', data: trends.this_week, color: '#2F80ED' }, { label: 'Last Week', data: trends.last_week, color: 'text.secondary' }].map(w => (
                   <Grid item xs={12} md={6} key={w.label}>
-                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
+                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #E6EAF0', borderRadius: 2 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: w.color, mb: 2 }}>{w.label}</Typography>
                       <Grid container spacing={2}>
-                        {[{ l: 'Total', v: w.data.total, c: w.color }, { l: 'Critical', v: w.data.critical, c: '#DC2626' }, { l: 'High', v: w.data.high, c: '#D97706' }, { l: 'Medium', v: w.data.medium, c: '#2563EB' }].map(s => (
+                        {[{ l: 'Total', v: w.data.total, c: w.color }, { l: 'Critical', v: w.data.critical, c: '#EF4444' }, { l: 'High', v: w.data.high, c: '#F59E0B' }, { l: 'Medium', v: w.data.medium, c: '#2F80ED' }].map(s => (
                           <Grid item xs={6} sm={3} key={s.l}>
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography variant="h5" sx={{ fontWeight: 800, color: s.c }}>{s.v}</Typography>
@@ -457,7 +457,7 @@ export default function MissionControlPage() {
               </Grid>
 
               {/* Delta Row */}
-              <Paper elevation={0} sx={{ p: 3, mb: 4, border: '1px solid #E2E8F0', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ p: 3, mb: 4, border: '1px solid #E6EAF0', borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Change vs Last Week</Typography>
                 <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
                   {[{ l: 'Total', f: 'total' }, { l: 'Critical', f: 'critical' }, { l: 'High', f: 'high' }, { l: 'Medium', f: 'medium' }].map(d => {
@@ -467,7 +467,7 @@ export default function MissionControlPage() {
                     return (
                       <Box key={d.f}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{d.l}</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: isUp ? '#DC2626' : isDown ? '#16A34A' : '#6B7280' }}>{delta}</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: isUp ? '#EF4444' : isDown ? '#10B981' : '#667085' }}>{delta}</Typography>
                       </Box>
                     )
                   })}
@@ -476,7 +476,7 @@ export default function MissionControlPage() {
 
               {/* Daily Breakdown */}
               {trends.daily.length > 0 && (
-                <Paper elevation={0} sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ p: 3, border: '1px solid #E6EAF0', borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Daily Alert Count (14 days)</Typography>
                   <Stack spacing={0.5}>
                     {trends.daily.map(day => {
@@ -487,9 +487,9 @@ export default function MissionControlPage() {
                             {new Date(day.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
                           </Typography>
                           <Box sx={{ flex: 1, height: 20, bgcolor: 'notice.muted.bg', borderRadius: 1, overflow: 'hidden', display: 'flex' }}>
-                            {day.critical > 0 && <Box sx={{ width: `${(day.critical / maxVal) * 100}%`, bgcolor: '#DC2626' }} />}
-                            {day.high > 0 && <Box sx={{ width: `${(day.high / maxVal) * 100}%`, bgcolor: '#D97706' }} />}
-                            {day.medium > 0 && <Box sx={{ width: `${(day.medium / maxVal) * 100}%`, bgcolor: '#2563EB' }} />}
+                            {day.critical > 0 && <Box sx={{ width: `${(day.critical / maxVal) * 100}%`, bgcolor: '#EF4444' }} />}
+                            {day.high > 0 && <Box sx={{ width: `${(day.high / maxVal) * 100}%`, bgcolor: '#F59E0B' }} />}
+                            {day.medium > 0 && <Box sx={{ width: `${(day.medium / maxVal) * 100}%`, bgcolor: '#2F80ED' }} />}
                             {day.low > 0 && <Box sx={{ width: `${(day.low / maxVal) * 100}%`, bgcolor: 'text.secondary' }} />}
                           </Box>
                           <Typography variant="caption" sx={{ width: 30, textAlign: 'right', fontWeight: 700 }}>{day.total}</Typography>
@@ -498,7 +498,7 @@ export default function MissionControlPage() {
                     })}
                   </Stack>
                   <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                    {[{ l: 'Critical', c: '#DC2626' }, { l: 'High', c: '#D97706' }, { l: 'Medium', c: '#2563EB' }, { l: 'Low', c: '#9CA3AF' }].map(l => (
+                    {[{ l: 'Critical', c: '#EF4444' }, { l: 'High', c: '#F59E0B' }, { l: 'Medium', c: '#2F80ED' }, { l: 'Low', c: '#98A2B3' }].map(l => (
                       <Stack key={l.l} direction="row" spacing={0.5} alignItems="center">
                         <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: l.c }} />
                         <Typography variant="caption" color="text.secondary">{l.l}</Typography>

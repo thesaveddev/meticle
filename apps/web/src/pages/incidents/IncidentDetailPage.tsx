@@ -12,10 +12,10 @@ import {
   Delete as DeleteIcon, Edit as EditIcon,
   OpenInNew as OpenInNewIcon, UploadFile as UploadFileIcon,
   SmartToy as AIIcon, Schedule as OverdueIcon, Event as TimelineIcon,
-  Person as PersonIcon, Assignment as ActionIcon,
+  Person as PersonIcon, Assignment as ActionIcon, Schedule as VisitIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { PageHeader, StatusBadge, ConfirmDialog, EmptyRow, NAVY } from '../../components/ui'
 
@@ -28,6 +28,14 @@ const STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = 
 const ACTION_STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
   pending: 'warning', in_progress: 'info', completed: 'success', cancelled: 'neutral',
 }
+function localDateParam(value: string) {
+  const date = new Date(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function openFileInNewTab(url: string) {
   const token = localStorage.getItem('accessToken')
   fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
@@ -144,7 +152,7 @@ export default function IncidentDetailPage() {
     }
   }
 
-  if (isLoading) return <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}><CircularProgress size={28} sx={{ color: NAVY }} /><Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incident...</Typography></Paper>
+  if (isLoading) return <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}><CircularProgress size={28} sx={{ color: NAVY }} /><Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incident...</Typography></Paper>
   if (!incident) return <Alert severity="error">Incident not found</Alert>
 
   const involvedPeople = Array.isArray(incident.involved) ? incident.involved : []
@@ -154,6 +162,21 @@ export default function IncidentDetailPage() {
   const totalActions = incidentActions.length || 0
   const actionProgress = totalActions > 0 ? (completedActions / totalActions) * 100 : 0
   const overdueActions = incidentActions.filter((a: any) => !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date())
+  const linkedVisit = incident.linked_visit_id ? {
+    id: incident.linked_visit_id,
+    label: incident.linked_visit_label,
+    type: incident.linked_visit_type,
+    status: incident.linked_visit_status,
+    startsAt: incident.linked_visit_scheduled_start,
+    endsAt: incident.linked_visit_scheduled_end,
+    personName: incident.linked_visit_person_name,
+  } : null
+  const linkedVisitDate = linkedVisit?.startsAt
+    ? new Date(linkedVisit.startsAt).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+  const linkedVisitTime = linkedVisit?.startsAt && linkedVisit?.endsAt
+    ? `${new Date(linkedVisit.startsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}–${new Date(linkedVisit.endsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+    : null
 
   return (
     <PageContainer>
@@ -186,7 +209,7 @@ export default function IncidentDetailPage() {
       </Stack>
 
       {/* Metadata strip */}
-      <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} divider={<Divider orientation="vertical" flexItem />}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary" fontWeight={600}>Date</Typography>
@@ -220,10 +243,43 @@ export default function IncidentDetailPage() {
         {incident.description && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{incident.description}</Typography>
         )}
+        {incident.witnesses && (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 2 }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={700}>Witnesses</Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{incident.witnesses}</Typography>
+          </Stack>
+        )}
       </Paper>
 
+      {linkedVisit && (
+        <Paper
+          component={RouterLink}
+          to={`/call-scheduling/day?date=${localDateParam(linkedVisit.startsAt)}&visit=${encodeURIComponent(linkedVisit.id)}`}
+          aria-label={`Open linked care visit: ${linkedVisit.label || linkedVisit.type || 'Care visit'}`}
+          sx={{
+            display: 'block', p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0',
+            color: 'inherit', textDecoration: 'none', cursor: 'pointer',
+            transition: 'border-color 150ms ease, box-shadow 150ms ease',
+            '&:hover': { borderColor: NAVY, boxShadow: '0 4px 14px rgba(15, 76, 129, 0.12)' },
+            '&:focus-visible': { outline: `3px solid ${NAVY}`, outlineOffset: 2 },
+          }}
+        >
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            <VisitIcon sx={{ color: NAVY, fontSize: 20 }} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Linked care visit</Typography>
+              <Typography variant="body2" fontWeight={700}>{linkedVisit.label || linkedVisit.type?.replace(/_/g, ' ') || 'Care visit'}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {[linkedVisit.personName, linkedVisitDate, linkedVisitTime].filter(Boolean).join(' · ')}
+              </Typography>
+            </Box>
+            {linkedVisit.status && <StatusBadge label={linkedVisit.status.replace(/_/g, ' ')} tone={linkedVisit.status === 'completed' ? 'success' : linkedVisit.status === 'missed' ? 'error' : 'neutral'} />}
+          </Stack>
+        </Paper>
+      )}
+
       {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 3 }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0', mb: 3 }}>
         <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 700 }} />
         <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 700 }} />
         <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 700 }} />
@@ -235,7 +291,7 @@ export default function IncidentDetailPage() {
       {tab === 0 && (
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+            <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
               <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Investigation Details</Typography>
               <Stack spacing={2}>
                 {[
@@ -274,7 +330,7 @@ export default function IncidentDetailPage() {
           <Grid item xs={12} md={4}>
             <Stack spacing={3}>
               {/* Summary card */}
-              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                 <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Summary</Typography>
                 <Stack spacing={2}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -294,7 +350,7 @@ export default function IncidentDetailPage() {
                   {totalActions > 0 && (
                     <Box>
                       <LinearProgress variant="determinate" value={actionProgress}
-                        sx={{ height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: actionProgress === 100 ? '#16A34A' : NAVY } }} />
+                        sx={{ height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: actionProgress === 100 ? '#10B981' : NAVY } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                         {actionProgress === 100 ? 'All actions completed' : `${Math.round(actionProgress)}% complete`}
                       </Typography>
@@ -305,7 +361,7 @@ export default function IncidentDetailPage() {
 
               {/* Overdue actions alert */}
               {overdueActions.length > 0 && (
-                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEE2E2', bgcolor: 'notice.error.bg' }}>
+                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEF0F0', bgcolor: 'notice.error.bg' }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                     <OverdueIcon sx={{ fontSize: 18, color: 'notice.error.fg' }} />
                     <Typography variant="subtitle2" fontWeight={800} color='notice.error.fg'>Overdue Actions</Typography>
@@ -360,7 +416,7 @@ export default function IncidentDetailPage() {
               canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)} sx={{ textTransform: 'none' }}>Add Person</Button>
             } />
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -414,7 +470,7 @@ export default function IncidentDetailPage() {
               {incidentActions.map((a: any) => {
                 const overdue = !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date()
                 return (
-                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="body2" fontWeight={600}>{a.action}</Typography>
@@ -426,7 +482,7 @@ export default function IncidentDetailPage() {
                           )}
                           {a.due_date && (
                             <Stack direction="row" spacing={0.5} alignItems="center">
-                              <Typography variant="caption" color={overdue ? '#DC2626' : 'text.secondary'}>
+                              <Typography variant="caption" color={overdue ? '#EF4444' : 'text.secondary'}>
                                 Due: {new Date(a.due_date).toLocaleDateString('en-GB')}
                               </Typography>
                               {overdue && <Chip icon={<OverdueIcon sx={{ fontSize: 12 }} />} label="Overdue" size="small"
@@ -435,7 +491,7 @@ export default function IncidentDetailPage() {
                           )}
                           <StatusBadge label={a.status?.replace(/_/g, ' ') || 'pending'} tone={ACTION_STATUS_TONE[a.status] || 'neutral'} />
                           {a.completed_at && (
-                            <Typography variant="caption" color="#16A34A">
+                            <Typography variant="caption" color="#10B981">
                               Completed {new Date(a.completed_at).toLocaleDateString('en-GB')}
                             </Typography>
                           )}
@@ -485,7 +541,7 @@ export default function IncidentDetailPage() {
               </Button>
             } />
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -530,13 +586,13 @@ export default function IncidentDetailPage() {
           ) : (
             <Box sx={{ position: 'relative', pl: 3 }}>
               {/* Vertical line */}
-              <Box sx={{ position: 'absolute', left: 7, top: 0, bottom: 0, width: 2, bgcolor: 'grey.200' }} />
+              <Box sx={{ position: 'absolute', left: 7, top: 0, bottom: 0, width: 2, bgcolor: '#E6EAF0' }} />
               <Stack spacing={0}>
                 {timeline.map((t: any, i: number) => (
                   <Box key={i} sx={{ position: 'relative', pb: 2.5 }}>
                     {/* Dot */}
-                    <Box sx={{ position: 'absolute', left: -25, top: 4, width: 12, height: 12, borderRadius: '50%', bgcolor: i === 0 ? NAVY : '#D1D5DB', border: `2px solid ${i === 0 ? NAVY : '#E5E7EB'}` }} />
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                    <Box sx={{ position: 'absolute', left: -25, top: 4, width: 12, height: 12, borderRadius: '50%', bgcolor: i === 0 ? NAVY : '#D8DEE7', border: `2px solid ${i === 0 ? NAVY : '#E6EAF0'}` }} />
+                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
                           <Typography variant="body2" fontWeight={600}>{t.title}</Typography>

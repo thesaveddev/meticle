@@ -82,16 +82,16 @@ const EMPLOYMENT_TYPE_OPTIONS = [
 
 const ROLE_ICON_COLOR: Record<string, string> = {
   ORG_ADMIN: '#1A2332',
-  MANAGER: '#0369A1',
-  CARE_WORKER: '#047857',
-  COMPLIANCE_OFFICER: '#7C3AED',
+  MANAGER: '#175CD3',
+  CARE_WORKER: '#087A55',
+  COMPLIANCE_OFFICER: '#8B7CF6',
 }
 
 const ROLE_BG_COLOR: Record<string, string> = {
-  ORG_ADMIN: '#E7EEF4',
-  MANAGER: '#DBEAFE',
-  CARE_WORKER: '#E9F7F0',
-  COMPLIANCE_OFFICER: '#F3E8FF',
+  ORG_ADMIN: '#E6EAF0',
+  MANAGER: '#EAF3FF',
+  CARE_WORKER: '#EAFBF5',
+  COMPLIANCE_OFFICER: '#F4F8FF',
 }
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
@@ -506,7 +506,7 @@ export default function StaffDirectoryPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GroupIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
+            <GroupIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{totalStaff}</Typography>
@@ -532,8 +532,8 @@ export default function StaffDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: pendingInvites > 0 ? '#FFF5D9' : '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <MailIcon sx={{ fontSize: 20, color: pendingInvites > 0 ? '#D97706' : '#047857' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: pendingInvites > 0 ? '#FFF7E6' : '#EAFBF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MailIcon sx={{ fontSize: 20, color: pendingInvites > 0 ? '#F59E0B' : '#087A55' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{pendingInvites}</Typography>
@@ -595,9 +595,9 @@ export default function StaffDirectoryPage() {
                         <Stack direction="row" alignItems="center" spacing={1.5}>
                           <Avatar sx={{
                             width: 36, height: 36,
-                            bgcolor: isInvitation ? '#E5E7EB' : ROLE_BG_COLOR[m.role] || '#E7EEF4',
+                            bgcolor: isInvitation ? '#E6EAF0' : ROLE_BG_COLOR[m.role] || '#E6EAF0',
                             fontSize: 14, fontWeight: 800,
-                            color: isInvitation ? '#9CA3AF' : ROLE_ICON_COLOR[m.role] || '#1A2332',
+                            color: isInvitation ? '#98A2B3' : ROLE_ICON_COLOR[m.role] || '#1A2332',
                           }}>
                             {isInvitation ? '—' : `${(m.first_name || '?')[0]}${(m.last_name || '') ? (m.last_name)[0] : ''}`.toUpperCase()}
                           </Avatar>
@@ -631,14 +631,14 @@ export default function StaffDirectoryPage() {
                           <Stack direction="row" alignItems="center" spacing={1}>
                             <Box sx={{
                               width: 40, height: 4, borderRadius: 2,
-                              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
+                              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
                               position: 'relative', overflow: 'hidden',
                             }}>
                               <Box sx={{
                                 position: 'absolute', left: 0, top: 0, bottom: 0,
                                 width: `${m.compliance_rate}%`,
                                 borderRadius: 2,
-                                bgcolor: m.compliance_rate >= 80 ? '#10B981' : m.compliance_rate >= 50 ? '#D97706' : '#DC2626',
+                                bgcolor: m.compliance_rate >= 80 ? '#10B981' : m.compliance_rate >= 50 ? '#F59E0B' : '#EF4444',
                               }} />
                             </Box>
                             <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary }}>
@@ -658,7 +658,7 @@ export default function StaffDirectoryPage() {
                       <TableCell align="right" sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                         {isAdmin && currentUserRole !== UserRole.ORG_ADMIN ? null : (
                           <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, m) }}
-                            sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9' } }}>
+                            sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA' } }}>
                             <MoreVertIcon fontSize="small" />
                           </IconButton>
                         )}
@@ -699,8 +699,8 @@ export default function StaffDirectoryPage() {
               <ListItemIcon><RefreshIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}>Send Reminder</ListItemText>
             </MenuItem>,
-            <MenuItem key="cancel" onClick={handleCancelInvitation} sx={{ borderRadius: '8px', mx: 0.5, mb: 0.5, color: '#DC2626' }}>
-              <ListItemIcon><DeleteIcon fontSize="small" sx={{ color: '#DC2626' }} /></ListItemIcon>
+            <MenuItem key="cancel" onClick={handleCancelInvitation} sx={{ borderRadius: '8px', mx: 0.5, mb: 0.5, color: '#EF4444' }}>
+              <ListItemIcon><DeleteIcon fontSize="small" sx={{ color: '#EF4444' }} /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}>Cancel Invitation</ListItemText>
             </MenuItem>,
           ]
@@ -719,7 +719,7 @@ export default function StaffDirectoryPage() {
             activeMenuUser?.id !== currentUserId && (
               <MenuItem key="toggle" onClick={handleToggleStatus} sx={{ borderRadius: '8px', mx: 0.5, mb: 0.5 }}>
                 <ListItemIcon>
-                  {activeMenuUser?.status === 'active' ? <BlockIcon fontSize="small" sx={{ color: '#DC2626' }} /> : <CheckCircleIcon fontSize="small" sx={{ color: '#047857' }} />}
+                  {activeMenuUser?.status === 'active' ? <BlockIcon fontSize="small" sx={{ color: '#EF4444' }} /> : <CheckCircleIcon fontSize="small" sx={{ color: '#087A55' }} />}
                 </ListItemIcon>
                 <ListItemText primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}>
                   {activeMenuUser?.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -727,8 +727,8 @@ export default function StaffDirectoryPage() {
               </MenuItem>
             ),
             currentUserRole === UserRole.ORG_ADMIN && activeMenuUser?.id !== currentUserId && activeMenuUser?.status !== 'deactivated' && (
-              <MenuItem key="remove" onClick={handleRemoveStaff} sx={{ borderRadius: '8px', mx: 0.5, mb: 0.5, color: '#DC2626' }}>
-                <ListItemIcon><DeleteIcon fontSize="small" sx={{ color: '#DC2626' }} /></ListItemIcon>
+              <MenuItem key="remove" onClick={handleRemoveStaff} sx={{ borderRadius: '8px', mx: 0.5, mb: 0.5, color: '#EF4444' }}>
+                <ListItemIcon><DeleteIcon fontSize="small" sx={{ color: '#EF4444' }} /></ListItemIcon>
                 <ListItemText primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}>Remove from Org</ListItemText>
               </MenuItem>
             ),
@@ -807,7 +807,7 @@ export default function StaffDirectoryPage() {
               size="small"
               href="/templates/staff-invite-template.csv"
               target="_blank"
-              sx={{ textTransform: 'none', color: '#0F4C81', fontWeight: 600, alignSelf: 'flex-start' }}
+              sx={{ textTransform: 'none', color: '#2F80ED', fontWeight: 600, alignSelf: 'flex-start' }}
             >
               Download Template
             </Button>
@@ -816,19 +816,19 @@ export default function StaffDirectoryPage() {
               <Box sx={{ p: 1.5, maxHeight: 200, overflow: 'auto', borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC', border: `1px solid ${theme.palette.divider}` }}>
                 <Stack spacing={0.5}>
                   {inviteEntries.map((entry) => (
-                    <Stack key={entry.email} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5, borderRadius: '8px', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#EFF6FF' } }}>
+                    <Stack key={entry.email} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5, borderRadius: '8px', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F4F8FF' } }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.email}</Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip
                           label={ROLE_BADGE[entry.role] || entry.role}
                           size="small"
-                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'notice.muted.bg', color: '#0F4C81', fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700 }}
                         />
                         {entry.location_id && (() => {
                           const loc = locationList.find((l: any) => l.id === entry.location_id)
-                          return loc ? <Chip label={loc.name} size="small" sx={{ height: 20, fontSize: '0.7rem', color: theme.palette.text.secondary, bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F3F4F6', fontWeight: 600 }} /> : null
+                          return loc ? <Chip label={loc.name} size="small" sx={{ height: 20, fontSize: '0.7rem', color: theme.palette.text.secondary, bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F7F9FC', fontWeight: 600 }} /> : null
                         })()}
-                        <IconButton size="small" onClick={() => handleRemoveEntry(entry.email)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: '#DC2626' } }}>
+                        <IconButton size="small" onClick={() => handleRemoveEntry(entry.email)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: '#EF4444' } }}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>

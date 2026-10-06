@@ -325,7 +325,7 @@ export default function LocationDetailPage() {
       <PageContainer>
 
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
-          <Typography color="#9CA3AF">{isDomiciliary ? 'Area not found.' : 'Location not found.'}</Typography>
+          <Typography color="#98A2B3">{isDomiciliary ? 'Area not found.' : 'Location not found.'}</Typography>
         </Paper>
       </PageContainer>
     )
@@ -353,7 +353,7 @@ export default function LocationDetailPage() {
     <Box>
       <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ p: 3.5, alignItems: { xs: 'flex-start', sm: 'center' } }}>
-          <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#0F4C8110', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#2F80ED10', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BuildingIcon sx={{ fontSize: 36 }} />
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
@@ -369,7 +369,7 @@ export default function LocationDetailPage() {
               {location.manager_first_name ? (
                 <Chip label={`${isDomiciliary ? 'Area manager' : 'Manager'}: ${location.manager_first_name} ${location.manager_last_name}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
               ) : (
-                <Chip label={isDomiciliary ? 'No area manager assigned' : 'No manager assigned'} size="small" variant="outlined" sx={{ height: 22, fontSize: 12, color: '#B45309', borderColor: '#F59E0B' }} />
+                <Chip label={isDomiciliary ? 'No area manager assigned' : 'No manager assigned'} size="small" variant="outlined" sx={{ height: 22, fontSize: 12, color: '#9A6700', borderColor: '#F59E0B' }} />
               )}
               <Chip label={isDomiciliary ? `${carerCount} carers` : `${staffCount} staff`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
             </Stack>
@@ -382,7 +382,7 @@ export default function LocationDetailPage() {
             </Box>
           )}
         </Stack>
-        <Divider sx={{ borderColor: '#F1F5F9' }} />
+        <Divider sx={{ borderColor: '#F5F7FA' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? carerCount : staffCount}</Typography>
@@ -393,7 +393,7 @@ export default function LocationDetailPage() {
             <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Workload hours / 7 days' : 'Certificates'}</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: isDomiciliary ? NAVY : (noManager ? '#D97706' : '#16A34A'), lineHeight: 1.1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: isDomiciliary ? NAVY : (noManager ? '#F59E0B' : '#10B981'), lineHeight: 1.1 }}>
               {isDomiciliary ? (areaSummary ? `£${(areaSummary.estimated_revenue_pence_this_month / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}` : '—') : (noManager ? '—' : 'Assigned')}
             </Typography>
             <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Est. revenue this month' : 'Manager'}</Typography>
@@ -478,7 +478,7 @@ export default function LocationDetailPage() {
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="caption" color="text.secondary">Manager</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: noManager ? '#B45309' : 'inherit' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: noManager ? '#9A6700' : 'inherit' }}>
                 {location.manager_first_name ? `${location.manager_first_name} ${location.manager_last_name}` : 'No manager assigned'}
               </Typography>
             </Grid>
@@ -514,7 +514,7 @@ export default function LocationDetailPage() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">Food Hygiene Rating</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: location.food_hygiene_rating === null || location.food_hygiene_rating === undefined ? 'inherit' : location.food_hygiene_rating >= 3 ? '#16A34A' : location.food_hygiene_rating === 2 ? '#D97706' : '#DC2626' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: location.food_hygiene_rating === null || location.food_hygiene_rating === undefined ? 'inherit' : location.food_hygiene_rating >= 3 ? '#10B981' : location.food_hygiene_rating === 2 ? '#F59E0B' : '#EF4444' }}>
                 {location.food_hygiene_rating === null || location.food_hygiene_rating === undefined ? '—' : `${location.food_hygiene_rating} / 5`}
               </Typography>
             </Grid>
@@ -585,7 +585,7 @@ export default function LocationDetailPage() {
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Food Hygiene Rating</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: food === null || food === undefined ? 'inherit' : food >= 3 ? '#16A34A' : food === 2 ? '#D97706' : '#DC2626' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: food === null || food === undefined ? 'inherit' : food >= 3 ? '#10B981' : food === 2 ? '#F59E0B' : '#EF4444' }}>
                     {food === null || food === undefined ? 'Not recorded' : `${food} / 5`}
                   </Typography>
                 </Grid>
@@ -599,11 +599,11 @@ export default function LocationDetailPage() {
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Expired</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: expired.length > 0 ? '#DC2626' : '#16A34A' }}>{expired.length}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: expired.length > 0 ? '#EF4444' : '#10B981' }}>{expired.length}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Expiring (30 days)</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: expiring.length > 0 ? '#D97706' : 'inherit' }}>{expiring.length}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: expiring.length > 0 ? '#F59E0B' : 'inherit' }}>{expiring.length}</Typography>
                 </Grid>
               </Grid>
             </Paper>
@@ -681,7 +681,7 @@ export default function LocationDetailPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, pb: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Location Certificates</Typography>
             {canEdit && (
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openAddCert} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openAddCert} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
                 Add Certificate
               </Button>
             )}
@@ -691,7 +691,7 @@ export default function LocationDetailPage() {
             <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
           ) : !certificates || certificates.length === 0 ? (
             <Box sx={{ p: 6, textAlign: 'center' }}>
-              <Typography color="#9CA3AF">No certificates for this location</Typography>
+              <Typography color="#98A2B3">No certificates for this location</Typography>
             </Box>
           ) : (
             <TableContainer>
@@ -718,7 +718,7 @@ export default function LocationDetailPage() {
                         <TableCell>{CERT_TYPE_LABEL[cert.certificate_type] || cert.certificate_type}</TableCell>
                         <TableCell>{cert.issuing_body || '—'}</TableCell>
                         <TableCell>{cert.certificate_number || '—'}</TableCell>
-                        <TableCell sx={{ color: expired ? '#DC2626' : expiringSoon ? '#D97706' : 'inherit', fontWeight: expired ? 700 : 400 }}>
+                        <TableCell sx={{ color: expired ? '#EF4444' : expiringSoon ? '#F59E0B' : 'inherit', fontWeight: expired ? 700 : 400 }}>
                           {fmtDate(cert.expiry_date)}
                         </TableCell>
                         <TableCell>
@@ -735,7 +735,7 @@ export default function LocationDetailPage() {
                               <IconButton size="small" title="Open file" onClick={() => openCertFile(cert.file_url, cert.file_name || cert.name)}><OpenInNewIcon fontSize="small" /></IconButton>
                             </Stack>
                           ) : (
-                            <Typography variant="caption" color="#9CA3AF">—</Typography>
+                            <Typography variant="caption" color="#98A2B3">—</Typography>
                           )}
                         </TableCell>
                         {canEdit && (
@@ -808,7 +808,7 @@ export default function LocationDetailPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setCertDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => certMutation.mutate()} disabled={!certForm.name} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>Save</Button>
+          <Button variant="contained" onClick={() => certMutation.mutate()} disabled={!certForm.name} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>Save</Button>
         </DialogActions>
       </Dialog>
 
@@ -891,7 +891,7 @@ export default function LocationDetailPage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setLocDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={saveLocation} disabled={!locForm.name || locSaving}
-            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>{locSaving ? <CircularProgress size={20} /> : 'Save'}</Button>
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>{locSaving ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -923,9 +923,9 @@ export default function LocationDetailPage() {
             <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
           ) : (
             <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 4 }}>
-              <Typography color="#9CA3AF">This file type can't be previewed in the browser.</Typography>
+              <Typography color="#98A2B3">This file type can't be previewed in the browser.</Typography>
               {filePreview && (
-                <Button variant="contained" component="a" href={filePreview.url} download={filePreview.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>
+                <Button variant="contained" component="a" href={filePreview.url} download={filePreview.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
                   Download {filePreview.name}
                 </Button>
               )}

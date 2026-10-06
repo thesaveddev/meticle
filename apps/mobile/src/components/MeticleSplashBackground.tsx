@@ -17,7 +17,7 @@ import Animated, {
  *
  * Layer colours are the ones supplied with the MeticleCare artwork. The
  * reference background in `Store assets/Splash screen Background.png` measures
- * #5DE2D1 in the mint band and #66BEFA in the cyan band; the values below are
+ * #5CC8B7 in the mint band and #6B8AFD in the cyan band; the values below are
  * the specified MeticleCare palette, slightly more saturated so the layers
  * still read once they are only a few dozen points tall.
  *
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   blueWaveFill: {
     flex: 1,
-    backgroundColor: '#3B9FE8',
+    backgroundColor: '#2F80ED',
     borderTopLeftRadius: 180,
     borderTopRightRadius: 260,
   },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   cyanWaveFill: {
     flex: 1,
-    backgroundColor: '#39C5D9',
+    backgroundColor: '#55BFD3',
     borderTopLeftRadius: 220,
     borderTopRightRadius: 180,
   },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   tealWaveFill: {
     flex: 1,
-    backgroundColor: '#4FD9B1',
+    backgroundColor: '#5CC8B7',
     borderTopLeftRadius: 220,
     borderTopRightRadius: 100,
   },

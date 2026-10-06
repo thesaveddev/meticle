@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Grid, Typography, Box, Stack, LinearProgress, Divider, Button, List, ListItem, CircularProgress, Chip, Alert } from '@mui/material'
+import { Grid, Typography, Box, Stack, LinearProgress, Divider, Button, List, ListItem, Chip, Alert } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
 import DomiciliaryDashboard from './DomiciliaryDashboard'
 import {
-  TrendingUp as TrendingUpIcon,
   Group as PeopleIcon,
-  AssignmentLate as AlertIcon,
   CheckCircle as VerifiedIcon,
   Schedule as ScheduleIcon,
   Schedule as ClockIcon,
@@ -31,6 +29,8 @@ import { EmptyState } from '../../components/design/EmptyState'
 import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon2 from '@mui/icons-material/Schedule'
 import PageContainer from '../../components/design/PageContainer'
+import Skeleton from '@mui/material/Skeleton'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 
 interface DashboardStats {
   total_staff: number
@@ -61,6 +61,15 @@ interface ComplianceItem {
   label: string
   val: number
   color: string
+}
+
+interface DashboardAttentionItem {
+  label: string
+  description: string
+  value: string
+  path: string
+  icon: React.ReactNode
+  tone: 'success' | 'warning' | 'error' | 'info'
 }
 
 interface RotaItem {
@@ -107,7 +116,6 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   const [org, setOrg] = useState<any>(null)
-  const [domiciliaryData, setDomiciliaryData] = useState<any>(null)
   const orgId = rawUser.organization_id || rawUser.organizationId
   const serviceTypes: string[] = org?.primary_service_type
     ? [org.primary_service_type]
@@ -141,7 +149,7 @@ export default function DashboardPage() {
         if (isDomiciliaryOrg && !isStaff) {
           setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
           setLoading(false)
-          api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
+          api.get('/dashboard/domiciliary').catch(() => {})
           return
         }
         if (isStaff) {
@@ -175,7 +183,7 @@ export default function DashboardPage() {
         setCompliance([
           { label: 'Mandatory Training', val: 0, color: '#10B981' },
           { label: 'DBS Verifications', val: 0, color: '#10B981' },
-          { label: 'Identity Checks', val: 0, color: '#D97706' },
+          { label: 'Identity Checks', val: 0, color: '#F59E0B' },
         ])
         setTodayRota([])
       } finally {
@@ -187,9 +195,15 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
+      <PageContainer>
+        <Box role="status" aria-label="Loading dashboard" sx={{ minHeight: '60vh', pt: 2 }}>
+          <Skeleton variant="text" width={140} height={24} sx={{ mb: 1 }} />
+          <Skeleton variant="text" width="min(420px, 90%)" height={42} sx={{ mb: 1 }} />
+          <Skeleton variant="text" width={280} height={24} sx={{ mb: 4 }} />
+          <Grid container spacing={2} sx={{ mb: 4 }}>{[0, 1, 2, 3].map((item) => <Grid item xs={12} sm={6} md={3} key={item}><Skeleton variant="rounded" height={136} /></Grid>)}</Grid>
+          <Grid container spacing={2}>{[0, 1].map((item) => <Grid item xs={12} md={6} key={item}><Skeleton variant="rounded" height={260} /></Grid>)}</Grid>
+        </Box>
+      </PageContainer>
     )
   }
 
@@ -209,18 +223,15 @@ export default function DashboardPage() {
     return <DomiciliaryDashboard />
   }
 
-  const statCards = isStaff
+  const statCards: Array<{ label: string; value: string; color: string; icon: React.ReactNode; path?: string }> = isStaff
     ? [
-        { label: 'My Shifts Today', value: String(todayRota.length), color: 'text.primary', icon: <ScheduleIcon /> },
+        { label: 'My Shifts Today', value: String(todayRota.length), color: 'text.primary', icon: <ScheduleIcon />, path: '/my-week' },
       ]
     : [
         { label: 'Total Staff', value: String(stats?.total_staff ?? 0), color: 'text.primary', icon: <PeopleIcon />, path: '/staff' },
-        { label: 'Active People', value: String(stats?.active_people ?? 0), color: 'text.primary', icon: <HomeIcon />, path: '/people' },
-        { label: 'Staff on Duty', value: String(stats?.staff_on_duty ?? 0), color: '#10B981', icon: <BadgeIcon /> },
-        { label: 'Compliance Rate', value: `${stats?.compliance_rate ?? 0}%`, color: '#10B981', icon: <VerifiedIcon />, path: '/compliance' },
-        { label: 'Open Shifts', value: String(stats?.open_shifts ?? 0), color: '#D97706', icon: <AlertIcon />, path: '/shift-marketplace' },
-        { label: 'Alerts', value: String(stats?.open_incidents ?? 0), color: (stats?.open_incidents ?? 0) > 0 ? '#DC2626' : '#10B981', icon: <WarningIcon />, path: '/incidents' },
-        { label: 'Agency Saved', value: `£${stats?.agency_saved ?? 0}`, color: 'text.primary', icon: <TrendingUpIcon /> },
+        { label: 'People Supported', value: String(stats?.active_people ?? 0), color: 'text.primary', icon: <HomeIcon />, path: '/people' },
+        { label: 'Staff on Duty', value: String(stats?.staff_on_duty ?? 0), color: METICLE_COLORS.success, icon: <BadgeIcon /> },
+        { label: 'Compliance Rate', value: `${stats?.compliance_rate ?? 0}%`, color: METICLE_COLORS.primary, icon: <VerifiedIcon />, path: '/compliance' },
       ]
 
   const onboardSteps = [
@@ -238,6 +249,28 @@ export default function DashboardPage() {
     if (orgId) api.patch(`/organizations/${orgId}`, { onboarding_dismissed_at: new Date().toISOString() }).catch(() => {})
   }
 
+  const attentionItems: DashboardAttentionItem[] = [
+    ...(stats && stats.open_shifts > 0 ? [{ label: 'Open shifts', description: 'Shifts still need cover', value: `${stats.open_shifts}`, path: '/shift-marketplace', icon: <ScheduleIcon />, tone: 'warning' as const }] : []),
+    ...(stats && stats.open_incidents > 0 ? [{ label: 'Open incidents', description: 'Incidents are awaiting follow-up', value: `${stats.open_incidents}`, path: '/incidents', icon: <IncidentIcon />, tone: 'error' as const }] : []),
+    ...(widgets ? [
+      { label: 'Expiring staff documents', description: widgets.dbs_expiring_soon > 0 ? 'Staff records need renewal soon' : 'All documents are current', value: `${widgets.dbs_expiring_soon}`, path: '/compliance/identity', icon: <BadgeIcon />, tone: widgets.dbs_expiring_soon > 0 ? 'warning' as const : 'success' as const },
+      { label: 'Training records', description: widgets.training_expiring_soon > 0 ? 'Training is approaching expiry' : 'Training is up to date', value: `${widgets.training_expiring_soon}`, path: '/compliance/training', icon: <SchoolIcon />, tone: widgets.training_expiring_soon > 0 ? 'warning' as const : 'success' as const },
+      { label: 'Competency assessments', description: widgets.competency_due > 0 ? 'Assessments are due for review' : 'Assessments are up to date', value: `${widgets.competency_due}`, path: '/compliance/competency', icon: <CompetencyIcon />, tone: widgets.competency_due > 0 ? 'error' as const : 'success' as const },
+      { label: 'Staff compliance', description: widgets.staff_below_threshold > 0 ? 'Staff below the required threshold' : 'All staff meet the threshold', value: `${widgets.staff_below_threshold}`, path: '/staff', icon: <ComplianceDownIcon />, tone: widgets.staff_below_threshold > 0 ? 'error' as const : 'success' as const },
+      { label: 'Leave requests', description: widgets.pending_leave_requests > 0 ? 'Requests are waiting for review' : 'No requests awaiting review', value: `${widgets.pending_leave_requests}`, path: '/leave', icon: <LeaveIcon />, tone: widgets.pending_leave_requests > 0 ? 'info' as const : 'success' as const },
+      { label: 'Critical incidents', description: widgets.open_severe_incidents > 0 ? 'Incidents need follow-up' : 'No critical incidents to review', value: `${widgets.open_severe_incidents}`, path: '/incidents', icon: <IncidentIcon />, tone: widgets.open_severe_incidents > 0 ? 'error' as const : 'success' as const },
+      ...(!serviceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type)) ? [{ label: 'Medication administration', description: widgets.overdue_medications > 0 ? 'Overdue doses need attention' : 'No overdue doses', value: `${widgets.overdue_medications}`, path: '/emedication', icon: <MedIcon />, tone: widgets.overdue_medications > 0 ? 'error' as const : 'success' as const }] : []),
+      ...(widgets.satisfaction_avg != null ? [{ label: 'Satisfaction', description: `${widgets.satisfaction_total} survey responses`, value: `${widgets.satisfaction_avg}/5`, path: '/compliance/satisfaction', icon: <SatisfactionIcon />, tone: widgets.satisfaction_avg >= 4 ? 'success' as const : widgets.satisfaction_avg >= 3 ? 'warning' as const : 'error' as const }] : []),
+    ] : []),
+  ]
+
+  const attentionTone = {
+    success: { color: METICLE_COLORS.success, bg: METICLE_COLORS.successSoft },
+    warning: { color: '#9A6700', bg: METICLE_COLORS.warningSoft },
+    error: { color: '#B42318', bg: METICLE_COLORS.dangerSoft },
+    info: { color: METICLE_COLORS.primary, bg: METICLE_COLORS.primarySoft },
+  }
+
   return (
     <PageContainer>
       {/* Header */}
@@ -245,20 +278,18 @@ export default function DashboardPage() {
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
-          {greeting}, {firstName}
-        </Typography>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>{greeting}, {firstName}</Typography>
         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-          Here's your overview for today.
+          Here’s what needs your attention today.
         </Typography>
       </Box>
 
       {/* Onboarding Checklist */}
       {isAdmin && org && !hideOnboarding && !onboardComplete && (
-        <PremiumCard noBorder sx={{ p: 4, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+        <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, mb: 4 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-start' }} spacing={1} sx={{ mb: 2 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Welcome — let's get you set up</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>Welcome — let’s get you set up</Typography>
               <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                 A few quick steps to make Meticle Care ready for your team. {onboardDone} of {onboardSteps.length} complete.
               </Typography>
@@ -274,7 +305,7 @@ export default function DashboardPage() {
               height: 6,
               borderRadius: 3,
               mb: 3,
-              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#E5E7EB',
+              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#E6EAF0',
               '& .MuiLinearProgress-bar': { bgcolor: 'text.primary' },
             }}
           />
@@ -283,23 +314,26 @@ export default function DashboardPage() {
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <Box
                   sx={{
-                    p: 2.5,
-                    bgcolor: step.done ? '#F0FDF4' : theme.palette.background.paper,
-                    borderRadius: '14px',
-                    border: `1px solid ${step.done ? '#BBF7D0' : theme.palette.divider}`,
+                    p: 1.5,
+                    height: '100%',
+                    borderRadius: 2,
                     cursor: 'pointer',
-                    transition: 'border-color 0.2s ease',
-                    '&:hover': { borderColor: '#1A2332' },
+                    transition: 'background-color 160ms ease',
+                    '&:hover': { bgcolor: theme.palette.action.hover },
+                    '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
                   }}
                   onClick={() => navigate(step.path)}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(step.path) } }}
                 >
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Box
                       sx={{
                         width: 36,
                         height: 36,
-                        bgcolor: step.done ? '#10B98120' : '#1A233210',
-                        color: step.done ? '#10B981' : '#1A2332',
+                        bgcolor: step.done ? METICLE_COLORS.successSoft : METICLE_COLORS.primarySoft,
+                        color: step.done ? METICLE_COLORS.success : METICLE_COLORS.primary,
                         borderRadius: '10px',
                         display: 'flex',
                         alignItems: 'center',
@@ -311,7 +345,7 @@ export default function DashboardPage() {
                       {step.done ? <VerifiedIcon sx={{ fontSize: 18 }} /> : i + 1}
                     </Box>
                     <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{step.label}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{step.label}</Typography>
                       <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 0.3 }}>
                         {step.desc}
                       </Typography>
@@ -324,157 +358,55 @@ export default function DashboardPage() {
         </PremiumCard>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+      {/* At-a-glance metrics */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
         {statCards.map((stat, i) => (
-          <Grid item xs={12} sm={6} md={3} key={i}>
+          <Grid item xs={isStaff ? 12 : 6} sm={isStaff ? 12 : 6} md={isStaff ? 12 : 3} key={i}>
             <StatCard
               label={stat.label}
               value={stat.value}
               icon={stat.icon}
               color={stat.color}
-              onClick={stat.path ? () => navigate(stat.path) : undefined}
+              onClick={stat.path ? () => navigate(stat.path!) : undefined}
             />
           </Grid>
         ))}
       </Grid>
 
-      {/* Domiciliary Care Summary */}
-      {domiciliaryData && serviceTypes.includes('domiciliary') && (
-        <PremiumCard noBorder sx={{ p: 4, mb: 4 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <SectionHeader
-              title="Today's Domiciliary Care"
-              action={
-                <Button size="small" endIcon={<ArrowIcon fontSize="small" />} onClick={() => navigate('/homecare')} sx={{ color: '#10B981', fontWeight: 700, textTransform: 'none' }}>
-                  View Homecare
-                </Button>
-              }
-            />
-          </Stack>
-          <Grid container spacing={2.5}>
-            {[
-              { label: 'Visits Today', value: domiciliaryData.today_total, color: '#10B981' },
-              { label: 'Completed', value: domiciliaryData.today_completed, color: '#10B981' },
-              { label: 'In Progress', value: domiciliaryData.today_in_progress, color: '#D97706' },
-              { label: 'Exceptions', value: domiciliaryData.today_exceptions, color: domiciliaryData.today_exceptions > 0 ? '#DC2626' : '#10B981' },
-            ].map(card => (
-              <Grid item xs={6} sm={3} key={card.label}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" sx={{ fontWeight: 800, color: card.color }}>{card.value}</Typography>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{card.label}</Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-          {domiciliaryData.today_total > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <LinearProgress
-                variant="determinate"
-                value={(domiciliaryData.today_completed / domiciliaryData.today_total) * 100}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#E5E7EB',
-                  '& .MuiLinearProgress-bar': { bgcolor: '#10B981', borderRadius: 4 },
-                }}
-              />
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 1 }}>
-                {domiciliaryData.today_completed} of {domiciliaryData.today_total} visits completed
-              </Typography>
-            </Box>
+      {/* Priority items: one compact list replaces the scattered compliance widgets */}
+      {!isStaff && (
+        <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, mb: 4 }}>
+          <SectionHeader title="Needs attention" subtitle="Priority items and upcoming reviews" />
+          {attentionItems.filter((item) => item.tone !== 'success').length === 0 ? (
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ py: 1.5, color: 'success.dark' }}>
+              <VerifiedIcon sx={{ fontSize: 20 }} />
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>Everything is up to date. No priority actions right now.</Typography>
+            </Stack>
+          ) : (
+            <Stack divider={<Divider flexItem />}>
+              {attentionItems.filter((item) => item.tone !== 'success').map((item) => {
+                const tone = attentionTone[item.tone]
+                return (
+                  <Box key={item.label} component="button" type="button" onClick={() => navigate(item.path)} sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5, py: 1.5, textAlign: 'left', color: 'inherit', bgcolor: 'transparent', border: 0, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: -2 } }}>
+                    <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: '10px', bgcolor: tone.bg, color: tone.color, flexShrink: 0 }}>{item.icon}</Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.label}</Typography>
+                      <Typography variant="caption" color="text.secondary">{item.description}</Typography>
+                    </Box>
+                    <Chip label={item.value} size="small" sx={{ bgcolor: tone.bg, color: tone.color, minWidth: 38 }} />
+                  </Box>
+                )
+              })}
+            </Stack>
           )}
         </PremiumCard>
       )}
 
-      {/* Widgets Row */}
-      {!isStaff && widgets && (
-        <Grid container spacing={2.5} sx={{ mb: 4 }}>
-          {[
-            { label: 'Staff with Expiring Docs', value: widgets.dbs_expiring_soon, icon: <BadgeIcon />, color: widgets.dbs_expiring_soon > 0 ? '#D97706' : '#10B981', path: '/compliance/identity', emptyMsg: 'All documents valid', warnMsg: `${widgets.dbs_expiring_soon} staff expiring soon` },
-            { label: 'Training Expiring', value: widgets.training_expiring_soon, icon: <SchoolIcon />, color: widgets.training_expiring_soon > 0 ? '#D97706' : '#10B981', path: '/compliance/training', emptyMsg: 'All training current', warnMsg: `${widgets.training_expiring_soon} records expiring` },
-            { label: 'Competency Due', value: widgets.competency_due, icon: <CompetencyIcon />, color: widgets.competency_due > 0 ? '#DC2626' : '#10B981', path: '/compliance/competency', emptyMsg: 'All assessed', warnMsg: `${widgets.competency_due} assessments due` },
-            { label: 'Staff Below Threshold', value: widgets.staff_below_threshold, icon: <ComplianceDownIcon />, color: widgets.staff_below_threshold > 0 ? '#DC2626' : '#10B981', path: '/staff', emptyMsg: 'All staff compliant', warnMsg: `${widgets.staff_below_threshold} staff need attention` },
-            { label: 'Pending Leave', value: widgets.pending_leave_requests, icon: <LeaveIcon />, color: widgets.pending_leave_requests > 0 ? '#1A2332' : '#10B981', path: '/leave', emptyMsg: 'No pending requests', warnMsg: `${widgets.pending_leave_requests} pending approvals` },
-            { label: 'Open Critical Incidents', value: widgets.open_severe_incidents, icon: <IncidentIcon />, color: widgets.open_severe_incidents > 0 ? '#DC2626' : '#10B981', path: '/incidents', emptyMsg: 'No critical incidents', warnMsg: `${widgets.open_severe_incidents} need attention` },
-            ...(!serviceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type)) ? [{ label: 'Overdue Medications', value: widgets.overdue_medications, icon: <MedIcon />, color: widgets.overdue_medications > 0 ? '#DC2626' : '#10B981', path: '/emedication', emptyMsg: 'All administered', warnMsg: `${widgets.overdue_medications} doses overdue` }] : []),
-            widgets.satisfaction_avg != null ? { label: `Satisfaction Rating`, value: widgets.satisfaction_avg, icon: <SatisfactionIcon />, color: (widgets.satisfaction_avg || 0) >= 4 ? '#10B981' : (widgets.satisfaction_avg || 0) >= 3 ? '#D97706' : '#DC2626', path: '/compliance/satisfaction', emptyMsg: 'No surveys yet', warnMsg: `${widgets.satisfaction_total} responses`, format: (v: number) => `${v}/5` } : null,
-          ].filter(Boolean).map((w: any, i) => (
-            <Grid item xs={6} md={3} key={i}>
-              <PremiumCard
-                noBorder
-                sx={{
-                  p: 3,
-                  cursor: 'pointer',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  '&:hover': { borderColor: w.color },
-                }}
-                onClick={(e) => { e.stopPropagation(); navigate(w.path) }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ color: w.color }}>{w.icon}</Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{w.label}</Typography>
-                  </Stack>
-                  <Chip
-                    label={(w.format ? w.format(w.value) : w.value > 0 ? w.value : '0') as any}
-                    size="small"
-                    sx={{
-                      bgcolor: w.value > 0 ? `${w.color}15` : '#10B98120',
-                      color: w.value > 0 ? w.color : '#10B981',
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                    }}
-                  />
-                </Stack>
-                <Box sx={{ flexGrow: 1 }} />
-                <Typography variant="caption" sx={{ color: w.value > 0 ? w.color : theme.palette.text.secondary, display: 'block' }}>
-                  {w.value > 0 ? w.warnMsg : w.emptyMsg}
-                </Typography>
-              </PremiumCard>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Compliance at a Glance */}
-      {!isStaff && widgets?.compliance_breakdown && (
-        <PremiumCard noBorder sx={{ p: 4, mb: 4 }}>
-          <SectionHeader
-            title="Compliance at a Glance"
-            action={
-              <Button size="small" endIcon={<ArrowIcon fontSize="small" />} onClick={() => navigate('/compliance')} sx={{ color: 'text.primary', fontWeight: 700, textTransform: 'none' }}>
-                View Full Report
-              </Button>
-            }
-          />
-          <Grid container spacing={2.5}>
-            {[
-              { label: 'Staff Compliant', value: widgets.compliance_breakdown.compliant_count, color: 'text.primary' },
-              { label: 'Below Threshold', value: widgets.compliance_breakdown.below_threshold, color: widgets.compliance_breakdown.below_threshold > 0 ? '#DC2626' : '#10B981' },
-              { label: 'Competency Due', value: widgets.competency_due, color: widgets.competency_due > 0 ? '#D97706' : '#10B981' },
-              { label: 'Open Severe Incidents', value: widgets.open_severe_incidents, color: widgets.open_severe_incidents > 0 ? '#DC2626' : '#10B981' },
-            ].map(card => (
-              <Grid item xs={6} sm={3} key={card.label}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" sx={{ fontWeight: 800, color: card.color }}>{card.value}</Typography>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{card.label}</Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        </PremiumCard>
-      )}
-
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* Compliance Snapshot */}
         {!isStaff && (
           <Grid item xs={12} md={4}>
-            <PremiumCard noBorder sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <SectionHeader
                 title="Compliance Snapshot"
                 subtitle="Overall readiness for inspection"
@@ -502,8 +434,8 @@ export default function DashboardPage() {
                           sx={{
                             height: 8,
                             borderRadius: 4,
-                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
-                            '& .MuiLinearProgress-bar': { bgcolor: item.val > 0 ? item.color : '#E5E7EB', borderRadius: 4 },
+                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                            '& .MuiLinearProgress-bar': { bgcolor: item.val > 0 ? item.color : '#E6EAF0', borderRadius: 4 },
                           }}
                         />
                       </Box>
@@ -523,15 +455,15 @@ export default function DashboardPage() {
 
         {/* Today's Rota */}
         <Grid item xs={12} md={isStaff ? 12 : 4}>
-          <PremiumCard noBorder sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Today's Rota</Typography>
+          <PremiumCard sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Today's Rota</Typography>
               <Chip
                 label={todayRota.length > 0 ? 'Active Now' : 'No Shifts'}
                 size="small"
                 sx={{
-                  bgcolor: todayRota.length > 0 ? '#1A233220' : theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
-                  color: todayRota.length > 0 ? '#1A2332' : theme.palette.text.secondary,
+                  bgcolor: todayRota.length > 0 ? METICLE_COLORS.primarySoft : theme.palette.action.hover,
+                  color: todayRota.length > 0 ? METICLE_COLORS.primary : theme.palette.text.secondary,
                   fontWeight: 700,
                   borderRadius: '10px',
                 }}
@@ -548,15 +480,15 @@ export default function DashboardPage() {
               <List sx={{ pt: 0 }}>
                 {todayRota.map((shift, i) => {
                   const timeStr = `${new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  const statusColor = shift.status === 'filled' ? '#10B981' : shift.status === 'open' ? '#DC2626' : '#6B7280'
-                  const statusBg = shift.status === 'filled' ? '#E9F7F0' : shift.status === 'open' ? '#FDECEC' : theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9'
+                  const statusColor = shift.status === 'filled' ? METICLE_COLORS.success : shift.status === 'open' ? METICLE_COLORS.danger : theme.palette.text.secondary
+                  const statusBg = shift.status === 'filled' ? METICLE_COLORS.successSoft : shift.status === 'open' ? METICLE_COLORS.dangerSoft : theme.palette.action.hover
 
                   return (
                     <Box key={shift.id}>
-                      <ListItem sx={{ py: 3, px: 4 }}>
+                      <ListItem sx={{ py: 2, px: { xs: 2.5, sm: 3 } }}>
                         <Stack spacing={1.5} sx={{ width: '100%' }}>
                           <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{shift.location_name}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{shift.location_name}</Typography>
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <ClockIcon sx={{ fontSize: 14 }} /> {timeStr}
                             </Typography>
@@ -590,15 +522,15 @@ export default function DashboardPage() {
 
         {/* Today's Appointments */}
         <Grid item xs={12} md={isStaff ? 12 : 4}>
-          <PremiumCard noBorder sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Today's Appointments</Typography>
+          <PremiumCard sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Today's Appointments</Typography>
               <Chip
                 label={todayAppointments.length > 0 ? `${todayAppointments.length} Total` : 'None'}
                 size="small"
                 sx={{
-                  bgcolor: todayAppointments.length > 0 ? '#E9F7F0' : theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
-                  color: todayAppointments.length > 0 ? '#10B981' : theme.palette.text.secondary,
+                  bgcolor: todayAppointments.length > 0 ? METICLE_COLORS.successSoft : theme.palette.action.hover,
+                  color: todayAppointments.length > 0 ? METICLE_COLORS.success : theme.palette.text.secondary,
                   fontWeight: 700,
                   borderRadius: '10px',
                 }}
@@ -616,14 +548,14 @@ export default function DashboardPage() {
               <List sx={{ pt: 0 }}>
                 {todayAppointments.map((apt, i) => {
                   const timeStr = `${new Date(apt.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(apt.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  const statusColor = apt.status === 'completed' ? '#10B981' : apt.status === 'cancelled' ? '#DC2626' : '#1A2332'
-                  const statusBg = apt.status === 'completed' ? '#E9F7F0' : apt.status === 'cancelled' ? '#FDECEC' : '#1A233220'
+                  const statusColor = apt.status === 'completed' ? METICLE_COLORS.success : apt.status === 'cancelled' ? METICLE_COLORS.danger : theme.palette.text.secondary
+                  const statusBg = apt.status === 'completed' ? METICLE_COLORS.successSoft : apt.status === 'cancelled' ? METICLE_COLORS.dangerSoft : theme.palette.action.hover
                   return (
                     <Box key={apt.id}>
-                      <ListItem sx={{ py: 3, px: 4 }}>
+                      <ListItem sx={{ py: 2, px: { xs: 2.5, sm: 3 } }}>
                         <Stack spacing={1.5} sx={{ width: '100%' }}>
                           <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{apt.title}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{apt.title}</Typography>
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <ClockIcon sx={{ fontSize: 14 }} /> {timeStr}
                             </Typography>
@@ -651,7 +583,7 @@ export default function DashboardPage() {
                                 label={apt.location_name}
                                 size="small"
                                 sx={{
-                                  bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F1F5F9',
+                                  bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
                                   color: theme.palette.text.secondary,
                                   fontWeight: 700,
                                   fontSize: '0.7rem',
@@ -674,20 +606,13 @@ export default function DashboardPage() {
 
       {/* Overview Section */}
       {!isStaff && stats && (stats.open_incidents > 0) && (
-        <PremiumCard noBorder sx={{ p: 4, mt: 'var(--section-gap)' }}>
-          <SectionHeader title="Overview" />
-          <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <WarningIcon sx={{ color: stats.open_incidents > 0 ? '#DC2626' : '#10B981', fontSize: 20 }} />
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>Active Alerts</Typography>
-                <Typography variant="caption" sx={{ color: stats.open_incidents > 0 ? '#DC2626' : '#10B981', fontWeight: 700 }}>
-                  {stats.open_incidents > 0 ? `${stats.open_incidents} open incident(s) requiring attention` : 'All Clear'}
-                </Typography>
-              </Box>
-            </Stack>
-          </Stack>
-        </PremiumCard>
+        <Box sx={{ mt: 'var(--section-gap)', display: 'flex', alignItems: 'center', gap: 1.5, color: METICLE_COLORS.danger }}>
+          <WarningIcon sx={{ fontSize: 20 }} />
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {stats.open_incidents} open incident{stats.open_incidents === 1 ? '' : 's'} requiring attention
+          </Typography>
+          <Button size="small" onClick={() => navigate('/incidents')} sx={{ ml: 0.5 }}>Review incidents</Button>
+        </Box>
       )}
     </PageContainer>
   )

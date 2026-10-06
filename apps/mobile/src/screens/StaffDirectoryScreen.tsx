@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { CHART_PALETTE, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -22,10 +22,10 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  ORG_ADMIN: '#6366F1',
-  MANAGER: '#8B5CF6',
-  CARE_WORKER: '#10B981',
-  COMPLIANCE_OFFICER: '#F59E0B',
+  ORG_ADMIN: '#175CD3',
+  MANAGER: '#0C9E89',
+  CARE_WORKER: '#087A55',
+  COMPLIANCE_OFFICER: '#9A6700',
 }
 
 function complianceDot(rate: number) {
@@ -35,7 +35,7 @@ function complianceDot(rate: number) {
 }
 
 function getAvatarColor(name: string) {
-  const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444']
+  const AVATAR_COLORS = CHART_PALETTE
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
@@ -71,7 +71,7 @@ export function StaffDirectoryScreen({ session, onBack, onSelect }: Props) {
   const renderItem = ({ item }: { item: any }) => {
     const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email
     const roleLabel = ROLE_LABELS[item.role] || item.role
-    const roleColor = ROLE_COLORS[item.role] || '#6B7280'
+    const roleColor = ROLE_COLORS[item.role] || '#667085'
     const compliance = item.compliance_rate || 0
     const color = getAvatarColor(name)
     const isActive = item.status === 'active'
@@ -93,8 +93,8 @@ export function StaffDirectoryScreen({ session, onBack, onSelect }: Props) {
               <Text style={[s.roleText, { color: roleColor }]}>{roleLabel}</Text>
             </View>
             {!isActive && (
-              <View style={[s.roleBadge, { backgroundColor: '#FEE2E2' }]}>
-                <Text style={[s.roleText, { color: '#991B1B' }]}>{item.status}</Text>
+              <View style={[s.roleBadge, { backgroundColor: '#FEF0F0' }]}>
+                <Text style={[s.roleText, { color: '#B42318' }]}>{item.status}</Text>
               </View>
             )}
           </View>

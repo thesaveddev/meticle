@@ -130,10 +130,35 @@ export const aiRotaGenerateSchema = z.object({
 });
 
 export const aiDailyNoteGenerateSchema = z.object({
-  personId: z.string().uuid(),
+  // Either the person UUID or the person's exact name in the org. Voice flows
+  // resolve by name first and only fall back to id once the person is uniquely
+  // identified, so Mica does not silently record a note against the wrong person.
+  personId: z.string().uuid().optional(),
+  personName: z.string().min(1).optional(),
   staffInput: z.string().min(1, 'Staff observation is required'),
-  shift: z.enum(['day', 'night']).optional().default('day'),
+  // Accepts the existing enum values plus the natural-language shift names the
+  // brief asks for. The controller normalises these to the schema before the
+  // LLM prompt and before persistence, so the daily_notes table only ever sees
+  // 'day' or 'night'.
+  shift: z.enum(['day', 'night', 'morning', 'afternoon', 'evening', 'night_shift', 'overnight']).optional().default('day'),
   noteDate: z.string().optional(),
+  // Indicates whether the input came from live speech transcription. This is
+  // the field that drives the "Assisted by Mica / Source: Voice" audit shape
+  // the brief wants, without inventing a separate notes table.
+  source: z.enum(['voice', 'text', 'manual']).optional(),
+  // Voice-intent extension: the client may send the spoken intent when it first
+  // opens the voice flow. The controller only supports CREATE_CARE_NOTE today,
+  // but keeping the field here lets the voice orchestrator grow into the broader
+  // Mica action framework without a separate validation path.
+  intent: z.string().optional(),
+  // When the client is clarifying a request it sends this flag so the controller
+  // returns a structured clarification response (choosePerson / chooseShift)
+  // instead of immediately generating a draft.
+  clarify: z.boolean().optional(),
+  // Raw transcription from the client's SpeechRecognition session. Used by the
+  // voice path when it posts directly from the listening flow rather than the
+  // manual transcript box. Mirrors staffInput at the API boundary.
+  transcription: z.string().optional(),
 });
 
 export const aiDailyNoteApproveSchema = z.object({
@@ -175,6 +200,10 @@ export const aiDailyNoteApproveSchema = z.object({
   })).optional(),
   riskLevel: z.enum(['low', 'medium', 'high']).optional(),
   followUpRequired: z.boolean().optional(),
+  // Voice audit context: when a draft is approved from the Mica voice flow this
+  // lets the persistence path record the note as voice-assisted without requiring
+  // the client to re-derive it from the generate response.
+  source: z.enum(['voice', 'text', 'manual']).optional(),
   followUpDetails: z.string().optional(),
   linkedGoalId: z.string().uuid().optional(),
   noteDate: z.string().optional(),
@@ -634,11 +663,15 @@ export const INCIDENT_STATUSES = ['reported', 'investigating', 'resolved', 'clos
 export const createIncidentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
+  witnesses: z.string().trim().max(2000).optional(),
   incident_date: z.string().optional(),
   incident_time: z.string().optional(),
   location: z.string().optional(),
   severity: z.enum(INCIDENT_SEVERITIES).optional(),
   category_id: z.string().uuid().optional(),
+  client_submission_id: z.string().uuid().optional(),
+  person_ids: z.array(z.string().uuid()).max(50).optional(),
+  visit_id: z.string().uuid().optional(),
   status: z.enum(INCIDENT_STATUSES).optional(),
   is_cqc_reportable: z.boolean().optional(),
   is_near_miss: z.boolean().optional(),
@@ -651,7 +684,11 @@ export const createIncidentSchema = z.object({
   reported_to_cqc_at: z.string().optional(),
 });
 
-export const updateIncidentSchema = createIncidentSchema.partial();
+export const updateIncidentSchema = createIncidentSchema.partial().omit({
+  client_submission_id: true,
+  person_ids: true,
+  visit_id: true,
+});
 
 export const createIncidentCategorySchema = z.object({
   name: z.string().min(1),

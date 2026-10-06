@@ -155,8 +155,8 @@ export default function SecurityPage() {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 5, p: 3, bgcolor: '#FEF9C3', borderRadius: M.r.md,  }}>
-            <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
+          <Box sx={{ mt: 5, p: 3, bgcolor: '#FFF7E6', borderRadius: M.r.md,  }}>
+            <Typography sx={{ color: '#9A6700', fontSize: '0.9rem', lineHeight: 1.6 }}>
               We do not claim certifications or regulatory approvals that have not been independently verified. If you have specific security requirements, ask the team about the controls and processing arrangements relevant to your service.
             </Typography>
           </Box>

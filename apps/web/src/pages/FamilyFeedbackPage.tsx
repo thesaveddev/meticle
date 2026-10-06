@@ -27,14 +27,14 @@ interface FeedbackData {
 function RatingRow({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number) => void }) {
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.5 }}>
-      <Typography sx={{ fontWeight: 500, color: '#374151' }}>{label}</Typography>
+      <Typography sx={{ fontWeight: 500, color: '#344054' }}>{label}</Typography>
       <Rating
         value={value || 0}
         onChange={(_, v) => { if (v) onChange(v) }}
         size="large"
         sx={{
-          '& .MuiRating-iconFilled': { color: '#00C9A7' },
-          '& .MuiRating-iconHover': { color: '#00A88C' },
+          '& .MuiRating-iconFilled': { color: '#10BFA5' },
+          '& .MuiRating-iconHover': { color: '#10BFA5' },
         }}
       />
     </Stack>
@@ -70,20 +70,20 @@ export default function FamilyFeedbackPage() {
 
   if (isLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAFBFC' }}>
-        <CircularProgress sx={{ color: '#00C9A7' }} />
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FBFCFE' }}>
+        <CircularProgress sx={{ color: '#10BFA5' }} />
       </Box>
     )
   }
 
   if (error || !data) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAFBFC', p: 3 }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FBFCFE', p: 3 }}>
         <Paper sx={{ p: 5, maxWidth: 480, textAlign: 'center', borderRadius: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#0B1426', mb: 2 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#17202A', mb: 2 }}>
             Link expired or already used
           </Typography>
-          <Typography sx={{ color: '#64748B' }}>
+          <Typography sx={{ color: '#667085' }}>
             This feedback link has expired or has already been submitted. Please contact the care team if you need a new link.
           </Typography>
         </Paper>
@@ -93,13 +93,13 @@ export default function FamilyFeedbackPage() {
 
   if (submitMutation.isSuccess) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAFBFC', p: 3 }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FBFCFE', p: 3 }}>
         <Paper sx={{ p: 6, maxWidth: 480, textAlign: 'center', borderRadius: 3 }}>
-          <CheckCircle sx={{ fontSize: 64, color: '#00C9A7', mb: 2 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#0B1426', mb: 1 }}>
+          <CheckCircle sx={{ fontSize: 64, color: '#10BFA5', mb: 2 }} />
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#17202A', mb: 1 }}>
             Thank you for your feedback
           </Typography>
-          <Typography sx={{ color: '#64748B', lineHeight: 1.6 }}>
+          <Typography sx={{ color: '#667085', lineHeight: 1.6 }}>
             Your feedback has been recorded and will help us maintain high standards of care for {data.person.first_name}.
           </Typography>
         </Paper>
@@ -117,20 +117,20 @@ export default function FamilyFeedbackPage() {
   return (
     <>
       <PageMeta title="Share your feedback" description="Rate your care visit experience" />
-      <Box sx={{ minHeight: '100vh', bgcolor: '#FAFBFC', py: { xs: 3, md: 6 }, px: 2 }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: '#FBFCFE', py: { xs: 3, md: 6 }, px: 2 }}>
         <Paper sx={{ maxWidth: 560, mx: 'auto', borderRadius: 3, overflow: 'hidden' }}>
           {/* Header */}
           <Box sx={{
-            bgcolor: '#0B1426', color: '#fff', p: { xs: 3, md: 4 },
-            background: 'linear-gradient(165deg, #0B1426 0%, #162033 55%, #1E2D45 100%)',
+            bgcolor: '#F4F8FF', color: '#17202A', p: { xs: 3, md: 4 },
+            borderBottom: '1px solid #E6EAF0',
           }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#00C9A7', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1 }}>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#087A55', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1 }}>
               {data.organization.name}
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
               How was the visit?
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
+            <Typography sx={{ color: '#667085', fontSize: '0.9rem' }}>
               Your feedback helps us improve care for {data.person.first_name} {data.person.last_name}.
             </Typography>
           </Box>
@@ -141,18 +141,18 @@ export default function FamilyFeedbackPage() {
               <Chip
                 label={data.visit.label || 'Care visit'}
                 size="small"
-                sx={{ bgcolor: '#E0F7F1', color: '#065F56', fontWeight: 600, fontSize: '0.75rem' }}
+                sx={{ bgcolor: '#E8FAF6', color: '#087A55', fontWeight: 600, fontSize: '0.75rem' }}
               />
               {visitDate && (
                 <Typography sx={{ fontSize: '0.8rem', color: '#94A3B8' }}>{visitDate}</Typography>
               )}
             </Stack>
             {visitTime && (
-              <Typography sx={{ fontSize: '0.8rem', color: '#64748B', mb: 1 }}>{visitTime}</Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: '#667085', mb: 1 }}>{visitTime}</Typography>
             )}
             {data.visit.carer_name && (
-              <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
-                Visited by <strong style={{ color: '#374151' }}>{data.visit.carer_name}</strong>
+              <Typography sx={{ fontSize: '0.8rem', color: '#667085' }}>
+                Visited by <strong style={{ color: '#344054' }}>{data.visit.carer_name}</strong>
               </Typography>
             )}
           </Box>
@@ -172,7 +172,7 @@ export default function FamilyFeedbackPage() {
 
           {/* Would recommend */}
           <Box sx={{ px: { xs: 3, md: 4 }, py: 2 }}>
-            <Typography sx={{ fontWeight: 500, color: '#374151', mb: 1.5 }}>
+            <Typography sx={{ fontWeight: 500, color: '#344054', mb: 1.5 }}>
               Would you recommend our service?
             </Typography>
             <Stack direction="row" spacing={2}>
@@ -183,8 +183,8 @@ export default function FamilyFeedbackPage() {
                 sx={{
                   flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600, borderRadius: 2,
                   ...(wouldRecommend === true
-                    ? { bgcolor: '#00C9A7', color: '#0B1426', '&:hover': { bgcolor: '#00A88C' } }
-                    : { borderColor: '#CBD5E1', color: '#64748B', '&:hover': { borderColor: '#00C9A7', bgcolor: '#E0F7F1' } }),
+                    ? { bgcolor: '#10BFA5', color: '#FFFFFF', '&:hover': { bgcolor: '#0FAF97' } }
+                    : { borderColor: '#CBD5E1', color: '#667085', '&:hover': { borderColor: '#10BFA5', bgcolor: '#E8FAF6' } }),
                 }}
               >
                 Yes
@@ -196,8 +196,8 @@ export default function FamilyFeedbackPage() {
                 sx={{
                   flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600, borderRadius: 2,
                   ...(wouldRecommend === false
-                    ? { bgcolor: '#EF4444', color: '#fff', '&:hover': { bgcolor: '#DC2626' } }
-                    : { borderColor: '#CBD5E1', color: '#64748B', '&:hover': { borderColor: '#EF4444', bgcolor: '#FEF2F2' } }),
+                    ? { bgcolor: '#EF4444', color: '#FFFFFF', '&:hover': { bgcolor: '#EF4444' } }
+                    : { borderColor: '#CBD5E1', color: '#667085', '&:hover': { borderColor: '#EF4444', bgcolor: '#FEF0F0' } }),
                 }}
               >
                 No
@@ -217,7 +217,7 @@ export default function FamilyFeedbackPage() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
-                  '&:hover fieldset': { borderColor: '#00C9A7' },
+                  '&:hover fieldset': { borderColor: '#10BFA5' },
                 },
               }}
             />
@@ -236,9 +236,9 @@ export default function FamilyFeedbackPage() {
               disabled={!overallRating || submitMutation.isPending}
               onClick={() => submitMutation.mutate()}
               sx={{
-                bgcolor: '#00C9A7', color: '#0B1426', fontWeight: 700, py: 1.5,
+                bgcolor: '#10BFA5', color: '#FFFFFF', fontWeight: 700, py: 1.5,
                 borderRadius: 2, textTransform: 'none', fontSize: '1rem',
-                '&:hover': { bgcolor: '#00A88C' },
+                '&:hover': { bgcolor: '#0FAF97' },
                 '&.Mui-disabled': { bgcolor: '#CBD5E1', color: '#94A3B8' },
               }}
             >

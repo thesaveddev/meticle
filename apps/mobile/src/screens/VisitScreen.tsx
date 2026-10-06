@@ -854,9 +854,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   <Text style={[styles.actionPillText, { color: c.warning }]}>Delay</Text>
                 </Pressable>
               {onReportIncident && (
-                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.dangerSurface || '#FEE2E2', borderColor: (c.danger || '#DC2626') + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
-                  <Ionicons name="alert-circle-outline" size={15} color={c.danger || '#DC2626'} />
-                  <Text style={[styles.actionPillText, { color: c.danger || '#DC2626' }]}>Incident</Text>
+                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.dangerSurface || '#FEF0F0', borderColor: (c.danger || '#EF4444') + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                  <Ionicons name="alert-circle-outline" size={15} color={c.danger || '#EF4444'} />
+                  <Text style={[styles.actionPillText, { color: c.danger || '#EF4444' }]}>Incident</Text>
                 </Pressable>
               )}
               {canSwap && (

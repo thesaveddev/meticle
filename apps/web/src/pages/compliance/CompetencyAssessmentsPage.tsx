@@ -4,6 +4,8 @@ import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandMore as E
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import PageContainer from '../../components/design/PageContainer'
+import { PageHeader } from '../../components/ui'
 
 const CATEGORIES = ['Medication', 'Manual Handling', 'Clinical Procedures', 'Safeguarding', 'Emergency Response', 'Communication', 'Dementia Care', 'End of Life', 'Other']
 
@@ -21,9 +23,9 @@ const CQC_STATEMENTS = [
 export default function CompetencyAssessmentsPage() {
   const [tab, setTab] = useState(0)
   return (
-    <Box>
+    <PageContainer>
 
-      <Typography variant="h4" sx={{ mb: 4 }}>Competency Assessments</Typography>
+      <PageHeader title="Competency Assessments" subtitle="Track assessments, templates and records." />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Pending Assessments" />
         <Tab label="Assessment Templates" />
@@ -32,7 +34,7 @@ export default function CompetencyAssessmentsPage() {
       {tab === 0 && <PendingView />}
       {tab === 1 && <TemplatesView />}
       {tab === 2 && <RecordsView />}
-    </Box>
+    </PageContainer>
   )
 }
 
@@ -428,7 +430,7 @@ function TemplatesView() {
                 <MenuItem key={r} value={r}>{r.replace(/_/g, ' ')}</MenuItem>
               ))}
             </TextField>
-            <Typography variant="caption" color="#6B7280">Limit this assessment to specific staff roles (leave empty for all roles)</Typography>
+            <Typography variant="caption" color="#667085">Limit this assessment to specific staff roles (leave empty for all roles)</Typography>
 
             <Divider />
             <Stack direction="row" justifyContent="space-between" alignItems="center">

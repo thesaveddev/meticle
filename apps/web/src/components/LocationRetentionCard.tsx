@@ -286,7 +286,7 @@ export default function LocationRetentionCard() {
       </Box>
 
       <Dialog open={confirm !== null} onClose={() => setConfirm(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ color: '#DC2626' }}>
+        <DialogTitle sx={{ color: '#EF4444' }}>
           {confirm === 'all' ? 'Delete all carer location?' : 'Run the deletion now?'}
         </DialogTitle>
         <DialogContent>

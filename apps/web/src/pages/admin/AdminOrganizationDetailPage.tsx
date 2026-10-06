@@ -153,29 +153,29 @@ export default function AdminOrganizationDetailPage() {
           }}>Override Billing</Button>
         </Stack>
         <Grid container spacing={2}>
-          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Plan</Typography><Typography variant="body2" fontWeight={600}>{org.plan || '—'}</Typography></Grid>
-          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Status</Typography><Typography variant="body2" fontWeight={600}>{org.subscription_status || '—'}</Typography></Grid>
-          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Trial Ends</Typography><Typography variant="body2" fontWeight={600}>{org.trial_ends_at ? new Date(org.trial_ends_at).toLocaleDateString('en-GB') : '—'}</Typography></Grid>
+          <Grid item xs={4}><Typography variant="caption" color="#667085">Plan</Typography><Typography variant="body2" fontWeight={600}>{org.plan || '—'}</Typography></Grid>
+          <Grid item xs={4}><Typography variant="caption" color="#667085">Status</Typography><Typography variant="body2" fontWeight={600}>{org.subscription_status || '—'}</Typography></Grid>
+          <Grid item xs={4}><Typography variant="caption" color="#667085">Trial Ends</Typography><Typography variant="body2" fontWeight={600}>{org.trial_ends_at ? new Date(org.trial_ends_at).toLocaleDateString('en-GB') : '—'}</Typography></Grid>
         </Grid>
       </Paper>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="body2" color="#6B7280">Total Users</Typography>
+            <Typography variant="body2" color="#667085">Total Users</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{org.stats?.totalUsers || 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="body2" color="#6B7280">Active Users</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#059669' }}>{org.stats?.activeUsers || 0}</Typography>
+            <Typography variant="body2" color="#667085">Active Users</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#087A55' }}>{org.stats?.activeUsers || 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="body2" color="#6B7280">Shifts (30d)</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#7C3AED' }}>{org.stats?.recentShifts || 0}</Typography>
+            <Typography variant="body2" color="#667085">Shifts (30d)</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#8B7CF6' }}>{org.stats?.recentShifts || 0}</Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -183,7 +183,7 @@ export default function AdminOrganizationDetailPage() {
       <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Users</Typography>
         {org.users?.length === 0 ? (
-          <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No users</Typography>
+          <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No users</Typography>
         ) : (
           <TableContainer>
             <Table size="small">
@@ -219,7 +219,7 @@ export default function AdminOrganizationDetailPage() {
       <Paper sx={{ p: 4, borderRadius: 2.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Billing History</Typography>
         {org.invoices?.length === 0 ? (
-          <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No invoices</Typography>
+          <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No invoices</Typography>
         ) : (
           <TableContainer>
             <Table size="small">
@@ -253,7 +253,7 @@ export default function AdminOrganizationDetailPage() {
       <Dialog open={!!confirmDialog} onClose={() => setConfirmDialog(null)} maxWidth="xs" fullWidth>
         <DialogTitle>{confirmDialog === 'suspend' ? 'Suspend Organization' : 'Reactivate Organization'}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="#6B7280">
+          <Typography variant="body2" color="#667085">
             {confirmDialog === 'suspend'
               ? `This will revoke all users' access to ${org.name}. They will only be able to access billing and learning. Are you sure?`
               : `This will restore full access for ${org.name}. Are you sure?`}

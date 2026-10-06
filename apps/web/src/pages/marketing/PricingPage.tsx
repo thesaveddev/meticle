@@ -230,14 +230,14 @@ export default function PricingPage() {
                   { feature: 'Dedicated account manager', essential: false, professional: false, enterprise: true },
                   { feature: 'Agreed service and support terms', essential: false, professional: false, enterprise: true },
                 ].map((row) => (
-                  <Box key={row.feature} component="tr" sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                  <Box key={row.feature} component="tr" sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                     <Box component="td" sx={{ py: 1.5, px: 2, borderBottom: `1px solid ${M.faint}`, fontSize: '0.88rem' }}>{row.feature}</Box>
                     {[row.essential, row.professional, row.enterprise].map((val, j) => (
                       <Box key={j} component="td" sx={{ py: 1.5, px: 2, borderBottom: `1px solid ${M.faint}`, textAlign: 'center' }}>
                         {val ? (
-                          <Check sx={{ color: '#22C55E', fontSize: 18 }} />
+                          <Check sx={{ color: '#10B981', fontSize: 18 }} />
                         ) : (
-                          <Typography sx={{ color: '#D1D5DB', fontSize: '0.8rem' }}>—</Typography>
+                          <Typography sx={{ color: '#D8DEE7', fontSize: '0.8rem' }}>—</Typography>
                         )}
                       </Box>
                     ))}

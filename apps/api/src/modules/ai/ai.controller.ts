@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { AIRepository } from './ai.repository';
+import { MicaActionRequest } from './ai.actions';
+import { MicaGateway } from './ai.gateway';
 import { getProvider } from './ai.provider';
 import { renderOrgPrompt } from './ai.render';
 import { resolveAiMinimisation } from './ai.minimisation';
@@ -315,21 +317,13 @@ export class AIController {
         return res.json({ analysis: { raw: result.content, validationWarning: validationError }, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString(), usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
       }
 
-      res.json({ analysis: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      res.json({ analysis:{...parsed,generated_by_ai:true,ai_model:config.model,ai_generated_at:new Date().toISOString()},usage:{promptTokens:result.promptTokens,completionTokens:result.completionTokens,totalTokens:result.totalTokens}});
     } catch (err: any) {
       try {
-        await AIRepository.logAudit({
-          organizationId: orgId,
-          feature: 'compliance_gap_analysis',
-          promptKey: 'compliance_gap_analysis',
-          success: false,
-          errorMessage: err.message,
-          durationMs: Date.now() - start,
-          createdBy: req.user?.userId,
-        });
-      } catch { /* audit logging non-critical */ }
-      logger.error(err, 'Compliance gap analysis failed');
-      res.status(500).json({ error: { message: 'AI analysis failed' } });
+        await AIRepository.logAudit({organizationId:orgId,feature:'compliance_gap_analysis',promptKey:'compliance_gap_analysis',success:false,errorMessage:err.message,durationMs:Date.now()-start,createdBy:req.user?.userId});
+      } catch {}
+      logger.error(err,'Compliance gap analysis failed');
+      res.status(500).json({error:{message:'AI analysis failed'}});
     }
   }
 
@@ -571,6 +565,52 @@ export class AIController {
     res.json({ stats });
   }
 
+  // Shift words the brief asks Mica to understand. The daily_notes table only
+  // stores 'day' or 'night', so this is the single place where natural-language
+  // shift names are normalised. Adding a new shift word here is the only change
+  // required to teach Mica a new shift concept.
+  private static readonly SHIFT_WORDS: Record<string, 'day' | 'night'> = {
+    morning: 'day',
+    day: 'day',
+    afternoon: 'day',
+    evening: 'day',
+    night: 'night',
+    night_shift: 'night',
+    overnight: 'night',
+  };
+
+  /** Resolve a natural-language shift word to the schema enum. Returns the
+   * normalised value or throws a 400 the UI can surface as a clarification
+   * prompt rather than silently defaulting.
+   */
+  private static normaliseShift(raw?: string): 'day' | 'night' {
+    const key = raw && AIController.SHIFT_WORDS[String(raw).trim().toLowerCase()];
+    if (!key) {
+      const err = Object.assign(new Error(`Unrecognised shift "${raw}". Supported: morning, day, afternoon, evening, night.`), { status: 400 });
+      throw err;
+    }
+    return key;
+  }
+
+  /** Lightweight org-scoped person search used by the voice intent resolver when
+   * the user said a name rather than a UUID. Returns enough to disambiguate
+   * (e.g. two Grace Roberts) without returning sensitive fields.
+   */
+  static async findPersonByName(pool: any, orgId: string, name: string) {
+    const rows = await pool.query(
+      `SELECT id, first_name, last_name, room_number, status FROM people
+       WHERE organization_id = $1 AND status = 'active'
+         AND (LOWER(first_name || ' ' || last_name) = LOWER($2)
+              OR LOWER(first_name) = LOWER($3)
+              OR LOWER(last_name) = LOWER($4)
+              OR LOWER(first_name || ' ' || last_name) LIKE LOWER($5))
+       ORDER BY first_name, last_name
+       LIMIT 10`,
+      [orgId, name, name.split(' ')[0] || name, name.split(' ').pop() || name, `%${name}%`],
+    );
+    return rows.rows;
+  }
+
   static async generateDailyNote(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
@@ -583,10 +623,73 @@ export class AIController {
       return res.status(403).json({ error: { message: 'Daily Note Generation is not enabled for your organization.' } });
     }
 
-    const { personId, staffInput, shift, noteDate } = req.body;
+    // Accept the existing shape plus the voice-intent fields added to the schema.
+    // Person may be identified either by UUID or by name; the brief requires Mica
+    // to resolve ambiguous names before recording anything.
+    const body = req.body as {
+      personId?: string;
+      personName?: string;
+      staffInput: string;
+      shift?: string;
+      noteDate?: string;
+      source?: 'voice' | 'text' | 'manual';
+    };
+    const { personId, personName, staffInput, shift, noteDate, source } = body;
 
-    // Fetch person context
+    if (!staffInput || staffInput.trim().length === 0) {
+      return res.status(400).json({ error: { message: 'Staff observation is required' } });
+    }
+
     const pool = (await import('../../shared/database')).default;
+
+    // --- Person resolution ---
+    // If the caller supplied a UUID we still verify the person belongs to the org
+    // (the brief says Mica must not guess). If the caller supplied a name we
+    // resolve it org-scoped and refuse to continue when there is ambiguity.
+    let resolvedPersonId: string;
+    let resolvedPersonName: string;
+
+    if (personId) {
+      const suResult = await pool.query(
+        `SELECT first_name, last_name FROM people WHERE id = $1 AND organization_id = $2`,
+        [personId, orgId],
+      );
+      if (suResult.rows.length === 0) {
+        return res.status(404).json({ error: { message: 'Person not found in this organisation' } });
+      }
+      resolvedPersonId = personId;
+      resolvedPersonName = `${suResult.rows[0].first_name} ${suResult.rows[0].last_name}`;
+    } else if (personName) {
+      const candidates = await AIController.findPersonByName(pool, orgId, personName);
+      if (candidates.length === 0) {
+        return res.status(404).json({ error: { message: `No active person named "${personName}" found in this organisation` } });
+      }
+      if (candidates.length > 1) {
+        return res.status(409).json({
+          error: {
+            message: `Multiple people match "${personName}". Please choose one.`,
+            candidates: candidates.map((c: any) => ({
+              id: c.id,
+              name: `${c.first_name} ${c.last_name}`,
+              room_number: c.room_number || null,
+            })),
+          },
+        });
+      }
+      resolvedPersonId = candidates[0].id;
+      resolvedPersonName = `${candidates[0].first_name} ${candidates[0].last_name}`;
+    } else {
+      return res.status(400).json({ error: { message: 'Person ID or name is required' } });
+    }
+
+    // --- Shift normalisation ---
+    // Accepts the natural-language shift words from the brief and maps them to
+    // the day/night values the rest of the application uses.
+    const normalisedShift = shift ? AIController.normaliseShift(shift) : 'day';
+    const safeNoteDate = noteDate || new Date().toISOString().split('T')[0];
+    const safeSource = source || (body.source === 'voice' ? 'voice' : 'text');
+
+    // Fetch person context from the org-scoped pool already resolved above.
     const suResult = await pool.query(
       `SELECT su.*, 
               json_agg(DISTINCT jsonb_build_object('title', cp.title, 'category', cp.category, 'description', cp.description)) FILTER (WHERE cp.id IS NOT NULL) as care_plans,
@@ -594,9 +697,9 @@ export class AIController {
        FROM people su
        LEFT JOIN care_plans cp ON cp.person_id = su.id AND cp.status = 'active'
        LEFT JOIN person_goals sg ON sg.person_id = su.id AND sg.status != 'completed'
-       WHERE su.id = $1 AND su.organization_id = $2
+       WHERE su.id = $1 AND su.organization_id = $2 AND su.id = $3
        GROUP BY su.id`,
-      [personId, orgId]
+      [resolvedPersonId, orgId, resolvedPersonId]
     );
 
     if (suResult.rows.length === 0) {
@@ -626,7 +729,7 @@ export class AIController {
     ).join('\n') || 'No recent notes';
 
     const { system, user } = await renderOrgPrompt('daily_note_generation', {
-      person_name: `${su.first_name} ${su.last_name}`,
+      person_name: resolvedPersonName,
       date_of_birth: decryptField(su.date_of_birth, orgId) || 'Unknown',
       room_number: su.room_number || 'N/A',
       allergies: Array.isArray(su.allergies) ? su.allergies.join(', ') || 'None known' : 'None known',
@@ -637,8 +740,8 @@ export class AIController {
       recent_goals: recentGoals,
       baseline_data: baselineData,
       staff_input: staffInput,
-      shift: shift || 'day',
-      note_date: noteDate || new Date().toISOString().split('T')[0],
+      shift: normalisedShift,
+      note_date: safeNoteDate,
     }, orgId);
 
     const start = Date.now();
@@ -665,15 +768,25 @@ export class AIController {
           provider: provider.name,
           durationMs: Date.now() - start,
           createdBy: req.user?.userId,
-          requestData: { personId, shift, noteDate },
+          requestData: { personId: resolvedPersonId, shift: normalisedShift, noteDate: safeNoteDate, source: safeSource },
           responseSummary: typeof parsed === 'object' ? `Risk: ${parsed.risk_level || 'unknown'}, Safeguarding flags: ${parsed.safeguarding_flags?.length || 0}` : result.content.slice(0, 200),
         });
       } catch { /* audit logging non-critical */ }
 
-      res.json({ 
-        result: parsed, 
-        person: { id: su.id, name: `${su.first_name} ${su.last_name}` },
-        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } 
+      res.json({
+        result: parsed,
+        // The brief wants the voice flow to return a structured draft Mica can
+        // show for review before anything is persisted. The existing approval
+        // endpoint still expects the same shape, so we return enough for the UI
+        // to render the review card and for approveDailyNote to consume.
+        person: { id: resolvedPersonId, name: resolvedPersonName },
+        noteContext: {
+          personId: resolvedPersonId,
+          shift: normalisedShift,
+          noteDate: safeNoteDate,
+          source: safeSource,
+        },
+        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens },
       });
     } catch (err: any) {
       try {
@@ -692,13 +805,327 @@ export class AIController {
     }
   }
 
+  /**
+   * Raw generation helper for the action framework.
+   *
+   * The Mica action implementations call this instead of reaching back into the
+   * HTTP handler, so the same prompt + parse + audit pipeline can be reused by
+   * voice, text, and any future care-note action without duplicating code.
+   */
+  static async generateDailyNoteRaw(
+    pool: any,
+    orgId: string,
+    userId: string,
+    body: {
+      personId?: string;
+      personName?: string;
+      staffInput: string;
+      shift?: string;
+      noteDate?: string;
+      source?: 'voice' | 'text' | 'manual';
+    },
+  ): Promise<{
+    result: any;
+    person: { id: string; name: string };
+    noteContext: {
+      personId: string;
+      shift: 'day' | 'night';
+      noteDate: string;
+      source: 'voice' | 'text' | 'manual';
+    };
+    usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  } | { error: { message: string } }> {
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return { error: { message: 'AI not configured. Configure AI provider in Settings first.' } };
+    }
+    if (!config.enabledFeatures?.includes('daily_note_generation')) {
+      return { error: { message: 'Daily Note Generation is not enabled for your organization.' } };
+    }
+
+    const { personId, personName, staffInput, shift, noteDate, source } = body;
+
+    if (!staffInput || staffInput.trim().length === 0) {
+      return { error: { message: 'Staff observation is required' } };
+    }
+
+    // --- Person resolution ---
+    let resolvedPersonId: string;
+    let resolvedPersonName: string;
+
+    if (personId) {
+      const suResult = await pool.query(
+        `SELECT first_name, last_name FROM people WHERE id = $1 AND organization_id = $2`,
+        [personId, orgId],
+      );
+      if (suResult.rows.length === 0) {
+        return { error: { message: 'Person not found in this organisation' } };
+      }
+      resolvedPersonId = personId;
+      resolvedPersonName = `${suResult.rows[0].first_name} ${suResult.rows[0].last_name}`;
+    } else if (personName) {
+      const candidates = await AIController.findPersonByName(pool, orgId, personName);
+      if (candidates.length === 0) {
+        return { error: { message: `No active person named "${personName}" found in this organisation` } };
+      }
+      if (candidates.length > 1) {
+        return { error: { message: `Multiple people match "${personName}". Please choose one.` } };
+      }
+      resolvedPersonId = candidates[0].id;
+      resolvedPersonName = `${candidates[0].first_name} ${candidates[0].last_name}`;
+    } else {
+      return { error: { message: 'Person ID or name is required' } };
+    }
+
+    const normalisedShift = shift ? AIController.normaliseShift(shift) : 'day';
+    const safeNoteDate = noteDate || new Date().toISOString().split('T')[0];
+    const safeSource = source || (body.source === 'voice' ? 'voice' : 'text');
+
+    // Fetch person context
+    const suResult = await pool.query(
+      `SELECT su.*, 
+              json_agg(DISTINCT jsonb_build_object('title', cp.title, 'category', cp.category, 'description', cp.description)) FILTER (WHERE cp.id IS NOT NULL) as care_plans,
+              json_agg(DISTINCT jsonb_build_object('title', sg.title, 'description', sg.description, 'status', sg.status, 'target_value', sg.target_value, 'value_unit', sg.value_unit)) FILTER (WHERE sg.id IS NOT NULL) as recent_goals
+       FROM people su
+       LEFT JOIN care_plans cp ON cp.person_id = su.id AND cp.status = 'active'
+       LEFT JOIN person_goals sg ON sg.person_id = su.id AND sg.status != 'completed'
+       WHERE su.id = $1 AND su.organization_id = $2 AND su.id = $3
+       GROUP BY su.id`,
+      [resolvedPersonId, orgId, resolvedPersonId],
+    );
+
+    if (suResult.rows.length === 0) {
+      return { error: { message: 'Person not found' } };
+    }
+
+    const su = suResult.rows[0];
+
+    // Fetch recent mood/baseline data
+    const baselineResult = await pool.query(
+      `SELECT content, category, note_date FROM daily_notes 
+       WHERE person_id = $1 AND note_date >= CURRENT_DATE - INTERVAL '7 days'
+       ORDER BY note_date DESC LIMIT 5`,
+      [resolvedPersonId],
+    );
+
+    const carePlans = (su.care_plans || []).filter((cp: any) => cp.title).map((cp: any) => 
+      `- ${cp.title} (${cp.category}): ${cp.description || 'No description'}`
+    ).join('\n') || 'No active care plans';
+
+    const recentGoals = (su.recent_goals || []).filter((g: any) => g.title).map((g: any) => 
+      `- ${g.title}: ${g.description || 'No description'} (Status: ${g.status}${g.target_value ? `, Target: ${g.target_value}${g.value_unit || ''}` : ''})`
+    ).join('\n') || 'No active goals';
+
+    const baselineData = baselineResult.rows.map((r: any) => 
+      `[${r.note_date}] (${r.category}): ${r.content.slice(0, 150)}...`
+    ).join('\n') || 'No recent notes';
+
+    const { system, user } = await renderOrgPrompt('daily_note_generation', {
+      person_name: resolvedPersonName,
+      date_of_birth: decryptField(su.date_of_birth, orgId) || 'Unknown',
+      room_number: su.room_number || 'N/A',
+      allergies: Array.isArray(su.allergies) ? su.allergies.join(', ') || 'None known' : 'None known',
+      dietary_requirements: su.dietary_requirements || 'None noted',
+      gp_name: su.gp_name || 'Unknown',
+      gp_surgery: su.gp_surgery || 'Unknown',
+      care_plans: carePlans,
+      recent_goals: recentGoals,
+      baseline_data: baselineData,
+      staff_input: staffInput,
+      shift: normalisedShift,
+      note_date: safeNoteDate,
+    }, orgId);
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        { model: config.model, temperature: 0.3 },
+      );
+
+      let parsed;
+      try { parsed = JSON.parse(result.content); }
+      catch { parsed = { raw: result.content }; }
+
+      return {
+        result: parsed,
+        person: { id: resolvedPersonId, name: resolvedPersonName },
+        noteContext: {
+          personId: resolvedPersonId,
+          shift: normalisedShift,
+          noteDate: safeNoteDate,
+          source: safeSource,
+        },
+        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens },
+      };
+    } catch (err: any) {
+      throw err;
+    }
+  }
+
+  static async handleVoiceNote(req: Request, res: Response) {
+    return res.status(501).json({ error: { message: 'Voice note handling is now performed by the Mica action gateway.' } });
+  }
+
+  /**
+   * Mica action gateway adapter for voice care notes.
+   *
+   * The HTTP contract is unchanged: the client still posts to /ai/voice/notes and
+   * still gets needClarification / result / person / noteContext. Internally the
+   * request is now routed through MicaGateway so the same resolver, clarification,
+   * draft, and audit contract is shared by future voice actions.
+   */
+  static async handleVoiceNoteViaGateway(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('daily_note_generation')) {
+      return res.status(403).json({ error: { message: 'Voice care notes are not enabled for your organization.' } });
+    }
+
+    const body = req.body as {
+      intent?: string;
+      personId?: string;
+      personName?: string;
+      transcription?: string;
+      shift?: string;
+      noteDate?: string;
+      clarify?: boolean;
+      staffInput?: string;
+      source?: 'voice' | 'text' | 'manual';
+    };
+
+    const actionRequest: MicaActionRequest = {
+      action: 'CREATE_CARE_NOTE',
+      clarify: body.clarify,
+      utterance: body.intent || body.transcription || undefined,
+      input: {
+        personId: body.personId,
+        personName: body.personName,
+        staffInput: body.staffInput || body.transcription,
+        shift: body.shift,
+        noteDate: body.noteDate,
+        source: body.source || 'voice',
+      },
+    };
+
+    const result = await MicaGateway.handle(actionRequest, {
+      req,
+      user: { organizationId: orgId, userId },
+    });
+
+    if ('error' in result) {
+      return res.status(400).json(result);
+    }
+
+    if (result.needClarification) {
+      return res.json(result);
+    }
+
+    if ('draft' in result) {
+      const extras = result.context.extras as {
+        personId: string;
+        personName: string;
+        shift: 'day' | 'night';
+        noteDate: string;
+        source: 'voice' | 'text' | 'manual';
+      } | undefined;
+      if (!extras) {
+        return res.status(500).json({ error: { message: 'Voice care note draft was returned without context.' } });
+      }
+      return res.json({
+        result: result.output,
+        person: { id: extras.personId, name: extras.personName },
+        noteContext: {
+          personId: extras.personId,
+          shift: extras.shift,
+          noteDate: extras.noteDate,
+          source: extras.source,
+        },
+        usage: (result.output as any).usage,
+      });
+    }
+
+    return res.json(result);
+  }
+
+  /**
+   * Minimal reusable person-resolution helper exported so the same disambiguation
+   * logic the brief requires for voice actions is available to any future Mica
+   * tool that needs to identify a person by name rather than UUID.
+   */
+  static async resolvePersonByIdentity(pool: any, orgId: string, personId?: string, personName?: string) {
+    if (!personId && !personName) {
+      return { error: { message: 'Person ID or name is required' } };
+    }
+    if (personId) {
+      const suResult = await pool.query(
+        `SELECT first_name, last_name, room_number, status FROM people WHERE id = $1 AND organization_id = $2`,
+        [personId, orgId],
+      );
+      if (suResult.rows.length === 0) {
+        return { error: { message: 'Person not found in this organisation' } };
+      }
+      const r = suResult.rows[0];
+      if (r.status !== 'active') {
+        return { error: { message: 'Person is not currently active' } };
+      }
+      return { person: { id: r.id, name: `${r.first_name} ${r.last_name}`, room_number: r.room_number || null } };
+    }
+    const candidates = await AIController.findPersonByName(pool, orgId, personName!);
+    if (candidates.length === 0) {
+      return { error: { message: `No active person named "${personName}" found in this organisation` } };
+    }
+    if (candidates.length > 1) {
+      return {
+        error: {
+          message: `Multiple people match "${personName}". Please choose one.`,
+          candidates: candidates.map((c: any) => ({
+            id: c.id,
+            name: `${c.first_name} ${c.last_name}`,
+            room_number: c.room_number || null,
+          })),
+        },
+      };
+    }
+    const r = candidates[0];
+    return { person: { id: r.id, name: `${r.first_name} ${r.last_name}`, room_number: r.room_number || null } };
+  }
+
   static async approveDailyNote(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     const userId = req.user?.userId;
     if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
 
     const pool = (await import('../../shared/database')).default;
-    const { personId, dailyNote, moodAnalysis, safeguardingFlags, carePlanUpdates, interventionsSuggested, riskLevel, followUpRequired, followUpDetails, linkedGoalId, noteDate } = req.body;
+    const body = req.body as {
+      personId?: string;
+      dailyNote?: {
+        content?: string;
+        shift?: string;
+        category?: string;
+        support_level?: string;
+      };
+      source?: 'voice' | 'text' | 'manual';
+      moodAnalysis?: any;
+      safeguardingFlags?: any[];
+      carePlanUpdates?: any[];
+      interventionsSuggested?: any[];
+      riskLevel?: string;
+      followUpRequired?: boolean;
+      followUpDetails?: string;
+      linkedGoalId?: string;
+      noteDate?: string;
+    };
+    const { personId, dailyNote, moodAnalysis, safeguardingFlags, carePlanUpdates, interventionsSuggested, riskLevel, followUpRequired, followUpDetails, linkedGoalId, noteDate } = body;
 
     // Verify person belongs to org
     const suCheck = await pool.query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
@@ -711,13 +1138,24 @@ export class AIController {
       await client.query('BEGIN');
 
       // 1. Insert the daily note with AI analysis metadata
-      const noteResult = await client.query(
+      // Shift is passed through from the approved draft. If the client already
+    // normalised it (which it should have, because generateDailyNote returns
+    // noteContext.shift as a day/night value), this is safe. If for some reason
+    // the client sent a natural-language word, we still accept it here because
+    // normaliseShift is the single source of truth and this is the persistence
+    // path that must never silently drop a valid shift.
+    const noteResult = await client.query(
         `INSERT INTO daily_notes (person_id, author_id, note_date, shift, category, content, support_level, generated_by_ai,
          ai_mood_analysis, ai_safeguarding_flags, ai_care_plan_updates, ai_interventions, ai_risk_level, ai_follow_up_required, ai_follow_up_details)
          VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
         [
-          personId, userId, noteDate || new Date().toISOString().split('T')[0],
-          dailyNote.shift, dailyNote.category, dailyNote.content, dailyNote.support_level || null,
+          personId,
+          userId,
+          noteDate || new Date().toISOString().split('T')[0],
+          dailyNote?.shift ? AIController.normaliseShift(dailyNote.shift) : 'day',
+          dailyNote?.category || 'wellbeing',
+          dailyNote?.content || '',
+          dailyNote?.support_level || null,
           moodAnalysis ? JSON.stringify(moodAnalysis) : null,
           safeguardingFlags && safeguardingFlags.length > 0 ? JSON.stringify(safeguardingFlags) : null,
           carePlanUpdates && carePlanUpdates.length > 0 ? JSON.stringify(carePlanUpdates) : null,
@@ -725,6 +1163,29 @@ export class AIController {
           riskLevel || null,
           followUpRequired || false,
           followUpDetails || null,
+        ]
+      );
+
+      // Audit the voice-assisted creation exactly as the brief asks for: who
+      // created it, that Mica assisted, the source, and the timestamp.
+      await client.query(
+        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_data)
+         VALUES ($1, $2, 'daily_note', $3, $4)`,
+        [
+          userId,
+          'ai_daily_note_approved',
+          noteResult.rows[0].id,
+          JSON.stringify({
+            mood_score: moodAnalysis?.mood_score,
+            safeguarding_flags: safeguardingFlags?.length || 0,
+            care_plan_updates: carePlanUpdates?.length || 0,
+            risk_level: riskLevel,
+            follow_up_required: followUpRequired,
+            assisted_by: 'Mica',
+            source: body.source || (body.dailyNote?.shift ? 'voice' : 'manual'),
+            note_date: noteDate || new Date().toISOString().split('T')[0],
+            shift: dailyNote?.shift ? AIController.normaliseShift(dailyNote.shift) : 'day',
+          }),
         ]
       );
 
@@ -1307,8 +1768,7 @@ export class AIController {
         responseSummary: `Generated ${parsed.questions?.length || 0} questions for ${area}`,
       });
 
-      res.json({ questions: (parsed.questions || []).map((q: any) => ({ ...q, generated_by_ai: true })), cqcStatement: parsed.cqc_statement || cqcStatement, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString(),
-        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
+      res.json({ questions:(parsed.questions||[]).map((q:any)=>({...q,generated_by_ai:true})),cqcStatement:parsed.cqc_statement||cqcStatement,generated_by_ai:true,ai_model:config.model,ai_generated_at:new Date().toISOString(),usage:{promptTokens:result.promptTokens,completionTokens:result.completionTokens}});
     } catch (err: any) {
       logger.error(err, 'Competency question generation failed');
       res.status(500).json({ error: { message: 'Competency question generation failed' } });

@@ -210,14 +210,14 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
     } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to record progress') }
   }
 
-  const progressColor = (p: number) => p >= 80 ? '#16A34A' : p >= 40 ? '#D97706' : '#DC2626'
+  const progressColor = (p: number) => p >= 80 ? '#10B981' : p >= 40 ? '#F59E0B' : '#EF4444'
 
   const statusChip = (s: string) => {
     const m: Record<string, { color: string; bg: string }> = {
-      active: { color: '#0F4C81', bg: '#E7EEF4' }, completed: { color: '#16A34A', bg: '#DCFCE7' },
-      cancelled: { color: '#DC2626', bg: '#FEE2E2' }, on_hold: { color: '#D97706', bg: '#FEF3C7' },
+      active: { color: '#2F80ED', bg: '#E6EAF0' }, completed: { color: '#10B981', bg: '#EAFBF5' },
+      cancelled: { color: '#EF4444', bg: '#FEF0F0' }, on_hold: { color: '#F59E0B', bg: '#FFF7E6' },
     }
-    const c = m[s] || { color: 'text.secondary', bg: '#F1F5F9' }
+    const c = m[s] || { color: 'text.secondary', bg: '#F5F7FA' }
     return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: '0.7rem' }} />
   }
 
@@ -235,7 +235,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
             {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </Select>
         </FormControl>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0F4C81' }}>Add Goal</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#2F80ED' }}>Add Goal</Button>
       </Stack>
 
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
@@ -256,7 +256,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
               <TableRow><TableCell colSpan={9} align="center"><EmptyRow message="No goals yet" /></TableCell></TableRow>
             ) : goals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((g) => (
               <>
-                <TableRow key={g.id} hover sx={{ bgcolor: g.overdue_review ? '#FFF7ED' : undefined }}>
+                <TableRow key={g.id} hover sx={{ bgcolor: g.overdue_review ? '#FFF7E6' : undefined }}>
                   <TableCell>
                     <IconButton size="small" onClick={() => toggleExpand(g.id)}>
                       <ExpandIcon fontSize="small" sx={{ transform: expandedGoalId === g.id ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
@@ -265,7 +265,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Typography sx={{ fontWeight: 700 }}>{g.title}</Typography>
-                      {g.overdue_review && <Tooltip title="Review overdue"><WarningIcon sx={{ color: '#DC2626', fontSize: 16 }} /></Tooltip>}
+                      {g.overdue_review && <Tooltip title="Review overdue"><WarningIcon sx={{ color: '#EF4444', fontSize: 16 }} /></Tooltip>}
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -283,7 +283,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   <TableCell>{g.care_plan_title ? <Chip label={g.care_plan_title} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontSize: '0.7rem' }} /> : '-'}</TableCell>
                   <TableCell>{g.target_date ? new Date(g.target_date).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#0F4C81' }} /></IconButton>
+                    <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#2F80ED' }} /></IconButton>
                     <IconButton size="small" onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteGoalId(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -299,15 +299,15 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                               <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setFetchError(''); setMilestoneDialogOpen(true) }}>Add</Button>
                             </Stack>
                             {(milestones[g.id] || []).length === 0 ? (
-                              <Typography variant="body2" color="#9CA3AF">No milestones yet</Typography>
+                              <Typography variant="body2" color="#98A2B3">No milestones yet</Typography>
                             ) : (
                               <Stack spacing={0.5}>
                                 {(milestones[g.id] || []).map(m => (
                                   <Stack key={m.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
                                     <IconButton size="small" onClick={() => handleToggleMilestone(g.id, m)}>
-                                      {m.is_completed ? <CheckIcon sx={{ color: '#16A34A', fontSize: 18 }} /> : <Box sx={{ width: 18, height: 18, border: '2px solid #D1D5DB', borderRadius: '50%' }} />}
+                                      {m.is_completed ? <CheckIcon sx={{ color: '#10B981', fontSize: 18 }} /> : <Box sx={{ width: 18, height: 18, border: '2px solid #D8DEE7', borderRadius: '50%' }} />}
                                     </IconButton>
-                                    <Typography variant="body2" sx={{ textDecoration: m.is_completed ? 'line-through' : 'none', color: m.is_completed ? '#9CA3AF' : '#111827' }}>{m.title}</Typography>
+                                    <Typography variant="body2" sx={{ textDecoration: m.is_completed ? 'line-through' : 'none', color: m.is_completed ? '#98A2B3' : '#17202A' }}>{m.title}</Typography>
                                   </Stack>
                                 ))}
                               </Stack>
@@ -316,14 +316,14 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                           <Grid item xs={12} md={6}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>Progress History</Typography>
                             {(progressHistory[g.id] || []).length === 0 ? (
-                              <Typography variant="body2" color="#9CA3AF">No progress entries yet</Typography>
+                              <Typography variant="body2" color="#98A2B3">No progress entries yet</Typography>
                             ) : (
                               <Stack spacing={0.5}>
                                 {(progressHistory[g.id] || []).slice(0, 10).map(p => (
                                   <Stack key={p.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
-                                    <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#fff', fontWeight: 700, minWidth: 50 }} />
+                                    <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#FFFFFF', fontWeight: 700, minWidth: 50 }} />
                                     <Typography variant="body2" sx={{ flex: 1 }}>{p.note || '-'}</Typography>
-                                    <Typography variant="caption" color="#9CA3AF">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
+                                    <Typography variant="caption" color="#98A2B3">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
                                   </Stack>
                                 ))}
                               </Stack>

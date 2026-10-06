@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material/styles'
 import InboxIcon from '@mui/icons-material/Inbox'
 import SearchOffIcon from '@mui/icons-material/SearchOff'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
@@ -16,9 +17,9 @@ interface EmptyStateProps {
 }
 
 const VARIANT_CONFIG = {
-  default: { Icon: InboxIcon, color: '#94A3B8' },
-  search: { Icon: SearchOffIcon, color: '#94A3B8' },
-  error: { Icon: ErrorOutlineIcon, color: '#EF4444' },
+  default: { Icon: InboxIcon, color: METICLE_COLORS.textMuted },
+  search: { Icon: SearchOffIcon, color: METICLE_COLORS.textMuted },
+  error: { Icon: ErrorOutlineIcon, color: METICLE_COLORS.danger },
 } as const
 
 export function EmptyState({ icon, title, description, action, variant = 'default' }: EmptyStateProps) {
@@ -32,36 +33,33 @@ export function EmptyState({ icon, title, description, action, variant = 'defaul
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        py: 8,
+        py: 6,
         px: 3,
         textAlign: 'center',
-        animation: 'fadeIn 0.4s ease-out',
-        '@keyframes fadeIn': {
-          from: { opacity: 0, transform: 'translateY(8px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
-        },
+        '@media (max-width: 600px)': { py: 4 },
       }}
     >
       <Box
         sx={{
-          width: 72,
-          height: 72,
+          width: 48,
+          height: 48,
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          mb: 2.5,
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : `${color}12`,
+          mb: 2,
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : variant === 'error' ? '#FEF0F0' : '#F2F4F7',
+          color,
         }}
       >
-        {icon || <DefaultIcon sx={{ fontSize: 36, color }} />}
+        {icon || <DefaultIcon sx={{ fontSize: 22, color }} />}
       </Box>
 
       <Typography
         variant="h6"
         sx={{
-          fontWeight: 700,
-          color: theme.palette.mode === 'dark' ? '#F1F5F9' : '#1E293B',
+          fontWeight: 600,
+          color: theme.palette.text.primary,
           mb: 1,
         }}
       >
@@ -72,10 +70,10 @@ export function EmptyState({ icon, title, description, action, variant = 'defaul
         <Typography
           variant="body2"
           sx={{
-            color: theme.palette.mode === 'dark' ? '#94A3B8' : '#64748B',
+            color: theme.palette.text.secondary,
             maxWidth: 360,
             lineHeight: 1.6,
-            mb: action ? 3 : 0,
+            mb: action ? 2.5 : 0,
           }}
         >
           {description}
@@ -90,9 +88,8 @@ export function EmptyState({ icon, title, description, action, variant = 'defaul
             textTransform: 'none',
             borderRadius: 2,
             fontWeight: 600,
-            px: 3,
-            bgcolor: '#0F4C81',
-            '&:hover': { bgcolor: '#0D3D6B' },
+            px: 2,
+            bgcolor: 'primary.main',
           }}
         >
           {action.label}

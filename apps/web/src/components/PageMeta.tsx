@@ -105,7 +105,7 @@ export function usePageMeta({
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: image })
     upsertMeta('meta[name="twitter:site"]', { name: 'twitter:site', content: TWITTER_HANDLE })
     upsertMeta('meta[name="author"]', { name: 'author', content: SITE_NAME })
-    upsertMeta('meta[name="theme-color"]', { name: 'theme-color', content: '#0B1426' })
+    upsertMeta('meta[name="theme-color"]', { name: 'theme-color', content: '#2F80ED' })
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonical })
 
     if (keywords && keywords.length > 0) {
