@@ -75,6 +75,25 @@ test-results/
 # classification and out of the repo.videos/
 section-*.png
 
+# Root-level scratch: ad-hoc typecheck/build logs and Playwright section
+# screenshots. Both git status noise and, worse, easy to `git add -A` by
+# mistake when they sit at the repo root.
+/tmp_*.log
+/tmp_*.png
+
+# Git must speak HTTP/1.1 to GitHub from this machine (Opeyemi's laptop).
+# Pushing master over the default HTTP/2 repeatedly failed with
+# "remote: Internal Server Error / ! [remote rejected] master -> master",
+# three times on 2026-10-07, while GitHub's status page showed Git Operations
+# healthy. `git -c http.version=HTTP/1.1 push` succeeded immediately, so the
+# failure is specific to this client's HTTP/2 (chunked upload) path against
+# GitHub's git-receive-pack. Config is set in BOTH ~/.gitconfig (global) and
+# .git/config (local) so every push, pull, clone and CI-helper on this
+# checkout uses HTTP/1.1 regardless of which config file a tool reads.
+# Remove these two lines only after GitHub-side HTTP/2 pushes work again.
+# Config (not gitignore) is the live setting; these comments are the record.
+#   git config --global http.version HTTP/1.1 && git config http.version HTTP/1.1
+
 # The incident queue is real app source with committed tests that import it;
 # ignoring it left the tree uncheckable (every fresh clone failed typecheck).
 # Mobile ships through EAS, but it lives in this repo and must stay green in CI.
