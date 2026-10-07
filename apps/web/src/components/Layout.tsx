@@ -35,6 +35,7 @@ import {
   DirectionsCar as DirectionsCarIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
+import MicaFab from './mica/MicaFab'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
 import { connectSocket, disconnectSocket, onReconnect } from '../services/socket'
@@ -711,6 +712,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         )}
         {children || <Outlet />}
       </Box>
+
+      {/* Mica: the floating assistant orb + voice overlay (authenticated pages only). */}
+      <MicaFab />
 
       <Menu
         anchorEl={anchorEl}
