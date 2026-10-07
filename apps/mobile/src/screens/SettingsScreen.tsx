@@ -8,14 +8,17 @@ import type { MobileUser, OfflineVisitAction, QueuedIncidentReport } from '../ty
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
+import { mica } from '../theme'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount, pendingIncidentReports = [], queue = [] }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onMica, onSos, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount, pendingIncidentReports = [], queue = [] }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
   onLearn?: () => void
+  onMica?: () => void
+  onSos?: () => void
   onAvailability?: () => void
   onAnnualLeave?: () => void
   /** The marketplace. Only passed for a care worker who can actually claim. */
@@ -80,17 +83,37 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
         </Pressable>
 
         {/* Settings groups */}
-        {onLearn ? <View style={s.group}>
+        {onLearn || onMica || onSos ? <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>HELP</Text>
           <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Pressable onPress={() => { hapticLight(); onLearn() }} style={s.menuRow}>
+            {onLearn ? <Pressable onPress={() => { hapticLight(); onLearn() }} style={s.menuRow}>
               <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}><Text style={{ fontSize: 18 }}>?</Text></View>
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Learn how to use Meticle Care</Text>
                 <Text style={[s.menuDesc, { color: c.muted }]}>Find features, steps, and field guidance</Text>
               </View>
               <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
-            </Pressable>
+            </Pressable> : null}
+            {onSos ? <Pressable onPress={() => { hapticLight(); onSos() }} style={[s.menuRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borderLight }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.dangerSurface, borderWidth: 1, borderColor: c.danger + '25' }]}>
+                <Ionicons name="alert-circle" size={18} color={c.danger} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>SOS & Help</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Emergency numbers, office contacts, and Mica</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable> : null}
+            {onMica ? <Pressable onPress={() => { hapticLight(); onMica() }} style={[s.menuRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borderLight }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: mica.surface, borderWidth: 1, borderColor: mica.blue + '25' }]}>
+                <Ionicons name="mic" size={18} color={mica.blue} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Mica</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Open Mica, your care assistant</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable> : null}
           </View>
         </View> : null}
 

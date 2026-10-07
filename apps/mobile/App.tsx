@@ -43,7 +43,10 @@ import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
 import { CarerTotalsScreen } from './src/screens/CarerTotalsScreen'
 import { RideShareScreen } from './src/screens/RideShareScreen'
 import { SwipeBack } from './src/components/SwipeBack'
-import { EmergencyButton, organisationSosContacts } from './src/components/EmergencyButton'
+import { organisationSosContacts } from './src/components/EmergencyButton'
+import { FloatingMicaOrb } from './src/components/FloatingMicaOrb'
+import { MicaHomeScreen } from './src/screens/MicaHomeScreen'
+import { SosHelpScreen } from './src/screens/SosHelpScreen'
 // Store-screenshot capture. All of it is inert unless EXPO_PUBLIC_CAPTURE_MODE=1
 // is set in a dev build — see src/capture/mode.ts.
 import { isCaptureMode } from './src/capture/mode'
@@ -69,11 +72,23 @@ type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 
  * to a rendered screen that skips the insets. A screen must not add its own
  * top padding either; `App.test.tsx` fails if one starts.
  */
-function ScreenFrame({ children, backgroundColor, contacts = [] }: { children: ReactNode; backgroundColor: string; contacts?: ReturnType<typeof organisationSosContacts> }) {
+function ScreenFrame({ children, backgroundColor, contacts = [], onMicaPress, onSosPress }: {
+  children: ReactNode
+  backgroundColor: string
+  contacts?: ReturnType<typeof organisationSosContacts>
+  onMicaPress?: () => void
+  onSosPress?: () => void
+}) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top', 'left', 'right', 'bottom']}>
       {children}
-      <EmergencyButton contacts={contacts} />
+      {onMicaPress ? (
+        <FloatingMicaOrb
+          onMicaPress={onMicaPress}
+          onSosPress={onSosPress}
+          sosContacts={contacts}
+        />
+      ) : null}
     </SafeAreaView>
   )
 }
@@ -121,6 +136,8 @@ type Screen =
   | { kind: 'rideShare'; visit?: HomecareVisit }
   | { kind: 'openCalls' }
   | { kind: 'learn' }
+  | { kind: 'mica' }
+  | { kind: 'sos' }
 
 export default function App() {
   return (
@@ -188,6 +205,15 @@ function AppInner() {
   // Organisation SOS contacts, taken from the session so the emergency sheet
   // still has them when the device is offline.
   const sosContacts = useMemo(() => organisationSosContacts(session?.organization), [session?.organization])
+
+  // Mica surface. Tap the floating orb anywhere to open the Mica home screen;
+  // long-press it to open the SOS & Help screen.
+  const openMica = useCallback(() => {
+    pushScreen({ kind: 'mica' })
+  }, [pushScreen])
+  const openSos = useCallback(() => {
+    pushScreen({ kind: 'sos' })
+  }, [pushScreen])
 
   const loadVisits = useCallback(async (activeSession: AuthSession, refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -531,7 +557,7 @@ function AppInner() {
   const frame = (element: ReactNode) => gated(
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
-      <ScreenFrame backgroundColor={c.bg} contacts={sosContacts}>{element}</ScreenFrame>
+      <ScreenFrame backgroundColor={c.bg} contacts={sosContacts} onMicaPress={openMica} onSosPress={openSos}>{element}</ScreenFrame>
     </>
   )
 
@@ -581,6 +607,10 @@ function AppInner() {
       return frame(<SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack>)
     case 'learn':
       return frame(<SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack>)
+    case 'mica':
+      return frame(<SwipeBack onBack={goBack}><MicaHomeScreen navigation={{ pop: goBack }} session={session} onCloseSheet={() => goBack()} onOpenSheet={openMica} /></SwipeBack>)
+    case 'sos':
+      return frame(<SwipeBack onBack={goBack}><SosHelpScreen navigation={{ pop: goBack }} session={session} onMicaPress={openMica} /></SwipeBack>)
     case 'tabs':
       break
     default:
@@ -632,7 +662,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} initialChannelId={captureChannelId} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} queue={activeQueue} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} pendingIncidentReports={pendingIncidentReports} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} queue={activeQueue} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onMica={openMica} onSos={openSos} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} pendingIncidentReports={pendingIncidentReports} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
@@ -652,7 +682,11 @@ function AppInner() {
             </Pressable>
           ))}
         </View>
-        <EmergencyButton contacts={sosContacts} />
+        <FloatingMicaOrb
+          onMicaPress={openMica}
+          onSosPress={openSos}
+          sosContacts={sosContacts}
+        />
       </SafeAreaView>
     </>
   )
