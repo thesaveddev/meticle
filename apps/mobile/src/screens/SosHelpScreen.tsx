@@ -3,10 +3,9 @@ import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, ScrollView
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme'
 import { spacing, radii, mcType } from '../theme'
-import { FloatingMicaOrb, SosContact, MICA_IDLE_IMAGE, MICA_ORB_IMAGE } from '../components/FloatingMicaOrb'
-import { organisationSosContacts } from '../components/EmergencyButton'
+import { FloatingMicaOrb, SosContact, MICA_ORB_IMAGE } from '../components/FloatingMicaOrb'
 import type { AuthSession, SessionOrganisation } from '../types'
-import { hapticWarning, hapticMedium } from '../services/haptics'
+import { hapticWarning } from '../services/haptics'
 
 interface Props {
   navigation: {
@@ -78,7 +77,6 @@ export function SosHelpScreen({ navigation, session, onMicaPress }: Props) {
         onSosPress={show}
         sosContacts={contacts}
         managerPhone={managerPhone}
-        idleImage={MICA_IDLE_IMAGE}
         listeningImage={MICA_ORB_IMAGE}
       />
       <ScrollView contentContainerStyle={styles.body}>

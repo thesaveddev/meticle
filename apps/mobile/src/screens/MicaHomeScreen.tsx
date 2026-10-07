@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Image, Pressable, StyleSheet, Text, View, ScrollView, Modal, Dimensions } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View, ScrollView, Modal } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme'
 import { spacing, radii, shadows, mcType, mica } from '../theme'
@@ -14,8 +14,6 @@ interface Props {
   onCloseSheet: () => void
   onOpenSheet: () => void
 }
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 function orgContacts(org: SessionOrganisation | null | undefined): SosContact[] {
   if (!org) return []
@@ -50,7 +48,6 @@ export function MicaHomeScreen({ navigation, session, onCloseSheet, onOpenSheet 
         onSosPress={handleSosPress}
         sosContacts={contacts}
         managerPhone={managerPhone}
-        idleImage={MICA_IDLE_IMAGE}
         listeningImage={MICA_ORB_IMAGE}
         listening={sheetOpen}
       />

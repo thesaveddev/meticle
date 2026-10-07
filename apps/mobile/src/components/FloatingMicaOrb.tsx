@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { Animated, Image, Pressable, StyleSheet, Text, useWindowDimensions } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { mica, elevation, FONT } from '../theme'
+import { elevation, FONT } from '../theme'
 import { hapticWarning, hapticMedium } from '../services/haptics'
 
 const BTN_SIZE = 56
@@ -20,12 +20,11 @@ function clamp(val: number, min: number, max: number) {
   return Math.max(min, Math.min(max, val))
 }
 
-export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], managerPhone, idleImage, listeningImage, listening }: {
+export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], managerPhone, listeningImage, listening }: {
   onMicaPress: OnMicaPress
   onSosPress?: OnSosPress
   sosContacts?: SosContact[]
   managerPhone?: string
-  idleImage?: any
   listeningImage?: any
   listening?: boolean
 }) {
