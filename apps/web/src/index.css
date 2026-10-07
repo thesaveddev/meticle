@@ -88,6 +88,53 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Spacing scale — the brief's 4/8/12/16... rhythm. Values are quoted so
+     calc(var(--space-4) + 2px) still works; MUI spacing uses numbers, so px. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Typography scale (Inter is already the loaded face). */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 30px;
+  --font-4xl: 36px;
+
+  /* Motion tokens — subtle by contract; MICA owns its own richer set. */
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 320ms;
+
+  /* Semantic aliases. Components reference these, not raw brand hexes, so a
+     rebrand is a one-file change. */
+  --color-action-primary: var(--mc-primary);
+  --color-action-primary-hover: var(--mc-primary-hover);
+  --color-action-secondary: var(--mc-secondary);
+  --color-surface: var(--mc-surface);
+  --color-surface-elevated: var(--mc-surface);
+  --color-text-primary: var(--mc-text);
+  --color-text-secondary: var(--mc-text-secondary);
+  --color-status-success: var(--mc-success);
+  --color-status-warning: var(--mc-warning);
+  --color-status-danger: var(--mc-danger);
+  --color-status-info: var(--mc-info);
+
+  /* Navigation */
+  --mc-sidebar: var(--mc-surface);
+  --mc-sidebar-active: var(--mc-primary-soft);
   --sidebar-width: 248px;
   --page-padding-x: 28px;
   --page-padding-top: 88px;

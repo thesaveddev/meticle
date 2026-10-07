@@ -190,3 +190,54 @@ export function EmptyRow({ message = 'No records yet', action }: { message?: str
     </Box>
   )
 }
+
+interface MetricCardProps {
+  icon?: ReactNode
+  value: string | number
+  label: string
+  /** e.g. "+2%" — rendered with the trend colour, or neutral when absent. */
+  trend?: string
+  trendDirection?: 'up' | 'down' | 'flat'
+  onClick?: () => void
+}
+
+/**
+ * Dashboard KPI card. Compact by contract: icon, value, label, optional trend.
+ * Composes the same surface as RecordCard (bordered Paper, no heavy shadow) so
+ * the dashboard grid reads as the same product as every list page.
+ */
+export function MetricCard({ icon, value, label, trend, trendDirection = 'flat', onClick }: MetricCardProps) {
+  const trendColor = trendDirection === 'up' ? 'var(--mc-success-text)' : trendDirection === 'down' ? 'var(--mc-danger-text)' : 'text.secondary'
+  return (
+    <Paper
+      onClick={onClick}
+      sx={{
+        p: 2.5,
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid',
+        borderColor: 'divider',
+        height: '100%',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow var(--motion-normal) ease, border-color var(--motion-normal) ease',
+        '&:hover': onClick ? { boxShadow: 'var(--shadow-sm)', borderColor: 'primary.light' } : {},
+      }}
+    >
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        {icon && (
+          <Box sx={{ display: 'flex', color: 'primary.main', bgcolor: 'var(--mc-primary-subtle)', borderRadius: 'var(--radius-md)', p: 1, flexShrink: 0 }}>
+            {icon}
+          </Box>
+        )}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.1, fontSize: 'var(--font-2xl)' }}>{value}</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }} noWrap>{label}</Typography>
+          {trend && (
+            <Typography variant="caption" sx={{ color: trendColor, fontWeight: 700, display: 'block', mt: 0.5 }}>
+              {trend} vs last week
+            </Typography>
+          )}
+        </Box>
+      </Stack>
+    </Paper>
+  )
+}

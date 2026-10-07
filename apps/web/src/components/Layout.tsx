@@ -36,6 +36,8 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import MicaFab from './mica/MicaFab'
+import GlobalSearch from './GlobalSearch'
+import SearchIcon from '@mui/icons-material/Search'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
 import { connectSocket, disconnectSocket, onReconnect } from '../services/socket'
@@ -51,6 +53,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
@@ -378,6 +382,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     return () => { clearInterval(interval); window.removeEventListener('focus', refreshUser) }
   }, [refreshUser])
 
+  // ⌘K / Ctrl-K toggles the global search palette (brief §12).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(o => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // Redirect away from restricted pages when subscription is inactive
   useEffect(() => {
     if (subLoading || isActive) return
@@ -494,11 +510,25 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                     borderRadius: 1.5,
                     minHeight: 40,
                     px: 1.25,
+                    position: 'relative',
+                    /* Brief §11: subtle 3px active indicator instead of a blue block. */
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: 8,
+                      bottom: 8,
+                      width: 3,
+                      borderRadius: 'var(--radius-pill)',
+                      bgcolor: 'transparent',
+                      transition: 'background-color var(--motion-fast) ease',
+                    },
                     '&.Mui-selected': {
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF',
-                      color: '#2F80ED',
-                      '& .MuiListItemIcon-root': { color: '#2F80ED' },
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.22)' : '#EAF3FF' }
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : 'var(--mc-sidebar-active, #EAF3FF)',
+                      color: 'var(--mc-primary)',
+                      '&::before': { bgcolor: 'var(--mc-primary)' },
+                      '& .MuiListItemIcon-root': { color: 'var(--mc-primary)' },
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.22)' : 'var(--mc-sidebar-active, #EAF3FF)' }
                     },
                     '&:hover': { bgcolor: theme.palette.action.hover },
                     '&.Mui-disabled': { opacity: 0.45 },
@@ -582,6 +612,39 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </Box>
 
           <Stack direction="row" spacing={1} alignItems="center">
+            {/* Global search (brief §12/§13): ⌘K / Ctrl-K opens the palette. */}
+            <Box
+              component="button"
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Open global search"
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                gap: 1,
+                minWidth: 260,
+                px: 1.5,
+                py: 0.75,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 'var(--radius-md)',
+                bgcolor: 'background.default',
+                color: 'text.secondary',
+                font: 'inherit',
+                cursor: 'pointer',
+                transition: 'border-color var(--motion-fast) ease, background-color var(--motion-fast) ease',
+                '&:hover': { borderColor: 'var(--mc-border-hover)', bgcolor: 'var(--mc-surface-hover)' },
+              }}
+            >
+              <SearchIcon sx={{ fontSize: 18 }} />
+              <Typography variant="body2" sx={{ flex: 1, textAlign: 'left', color: 'text.muted' }}>Search people, staff, pages…</Typography>
+              <Box component="kbd" sx={{ fontSize: 'var(--font-xs)', border: '1px solid var(--mc-border)', borderRadius: 1, px: 0.5, bgcolor: 'var(--mc-surface)', color: 'text.secondary', fontFamily: 'inherit' }}>
+                {isMac ? '⌘K' : 'Ctrl K'}
+              </Box>
+            </Box>
+            <IconButton aria-label="Open global search" size="small" onClick={() => setSearchOpen(true)} sx={{ display: { sm: 'none' }, width: 38, height: 38, color: 'text.secondary' }}>
+              <SearchIcon />
+            </IconButton>
             <IconButton aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} size="small" sx={{ width: 38, height: 38, bgcolor: 'transparent', color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover, color: 'text.primary' } }} onClick={handleOpenNotif}>
               <Badge badgeContent={unreadCount} color="error" max={99}>
                 <NotificationsIcon fontSize="small" />
@@ -715,6 +778,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
       {/* Mica: the floating assistant orb + voice overlay (authenticated pages only). */}
       <MicaFab />
+
+      {/* Global search palette (⌘K / Ctrl-K). */}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <Menu
         anchorEl={anchorEl}

@@ -29,6 +29,7 @@ import { EmptyState } from '../../components/design/EmptyState'
 import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon2 from '@mui/icons-material/Schedule'
 import PageContainer from '../../components/design/PageContainer'
+import MicaAssistant from '../../components/mica/MicaAssistant'
 import Skeleton from '@mui/material/Skeleton'
 import { METICLE_COLORS } from '../../context/ThemeContext'
 
@@ -603,6 +604,9 @@ export default function DashboardPage() {
           </PremiumCard>
         </Grid>
       </Grid>
+
+      {/* Mica assistant banner (brief §21) — sits at the bottom of the dashboard grid. */}
+      <MicaAssistant />
 
       {/* Overview Section */}
       {!isStaff && stats && (stats.open_incidents > 0) && (
