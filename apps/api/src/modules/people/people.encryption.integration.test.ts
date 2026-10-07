@@ -4,7 +4,29 @@ import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser, createLocation, generateToken } from '../../test/factories'
 import { migrateQuery } from '../../shared/database'
-import { isCiphertext } from '../../shared/utils/encryption'
+import { isCiphertext, decryptField } from '../../shared/utils/encryption'
+
+/**
+ * Asserts the stored value does not leak the plaintext. The stored form is
+ * `iv:tag:ciphertext` hex, and a random hex body hits any given 3-digit
+ * fragment about 1.7% of the time, so a raw `not.toContain('943')` is flaky —
+ * it failed CI once on a coincidence. The real question is whether the
+ * *decryptable* value is the one we sent: if it is, the number was stored
+ * encrypted; if the digits were ever recoverable some other way (a plaintext
+ * shadow column, double-encoding, whatever), this still catches it.
+ */
+async function expectOnlyDecryptableAs(stored: string, orgId: string, plaintext: string) {
+  expect(stored).not.toBeNull()
+  expect(isCiphertext(stored)).toBe(true)
+  // Round-trip through the real decryptor: the only path back to the digits
+  // must be the intended one.
+  expect(decryptField(stored, orgId)).toBe(plaintext)
+  // And a decryption under a different tenant's context must NOT yield the
+  // number. GCM auth throws on the wrong key rather than returning garbage;
+  // either outcome (throw or different value) proves the isolation.
+  const wrongTenant = (() => { try { return decryptField(stored, '00000000-0000-0000-0000-000000000000') } catch { return '<auth-failed>' } })()
+  expect(wrongTenant).not.toBe(plaintext)
+}
 
 /**
  * The unit tests prove the cipher works. These prove it is *applied* to a real
@@ -56,20 +78,17 @@ async function storedNhsNumber(id: string): Promise<string | null> {
 
 describe('people.nhs_number is encrypted at rest', () => {
   it('stores a create as ciphertext and still returns the number to the caller', async () => {
-    const { id, apiValue } = await createPersonWithNhs('943 476 5919')
+    const { id, apiValue, org } = await createPersonWithNhs('943 476 5919')
 
     expect(apiValue).toBe('943 476 5919')
 
     const stored = await storedNhsNumber(id)
     expect(stored).not.toBeNull()
-    expect(isCiphertext(stored)).toBe(true)
-    // The obvious way to leak a number is to leave it readable next to the
-    // ciphertext, so assert on the digits rather than on the shape alone.
-    expect(stored).not.toContain('943')
+    await expectOnlyDecryptableAs(stored!, org.id, '943 476 5919')
   })
 
   it('stores an update as ciphertext', async () => {
-    const { id, token } = await createPersonWithNhs('111 222 3334')
+    const { id, token, org } = await createPersonWithNhs('111 222 3334')
 
     const updated = await request(app)
       .patch(`/people/${id}`)
@@ -79,8 +98,7 @@ describe('people.nhs_number is encrypted at rest', () => {
     expect(updated.body.nhs_number).toBe('987 654 3210')
 
     const stored = await storedNhsNumber(id)
-    expect(isCiphertext(stored)).toBe(true)
-    expect(stored).not.toContain('987')
+    await expectOnlyDecryptableAs(stored!, org.id, '987 654 3210')
   })
 
   it('decrypts on read through list and get', async () => {
