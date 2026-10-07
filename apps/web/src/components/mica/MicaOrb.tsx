@@ -10,12 +10,18 @@ interface MicaOrbProps {
   onPress?: () => void
 }
 
+/**
+ * Mica's identity colours, shared with the mobile app (apps/mobile/src/theme.tsx
+ * `mica`). All of these are token values harvested by scripts/design/palette.mjs
+ * (ThemeContext / marketing-tokens), so the design-system lint stays clean and
+ * the orb cannot drift from the brand the rest of the app ships.
+ */
 const COLORS = {
-  primaryBlue: '#0170FD',
-  deepBlue: '#0052EE',
-  sky: '#41BAFD',
-  cyan: '#1DD2DE',
-  mint: '#2EE1DB',
+  primaryBlue: '#2F80ED',
+  deepBlue: '#1F68C7',
+  sky: '#6B8AFD',
+  cyan: '#10BFA5',
+  mint: '#10B981',
   white: '#FFFFFF',
 }
 
