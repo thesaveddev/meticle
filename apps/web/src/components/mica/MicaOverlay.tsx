@@ -1,15 +1,27 @@
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Box, Button, Typography } from '@mui/material'
+import { Autocomplete, Box, Button, TextField, Typography } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import MicaOrb, { type MicaState } from './MicaOrb'
+import type { MicaPerson } from './useMica'
+import api from '../../services/api'
 
 export type { MicaState }
+
+interface PersonOption {
+  id: string
+  first_name: string
+  last_name: string
+  room_number?: string
+}
 
 interface MicaOverlayProps {
   state: MicaState
   audioLevel: number
   transcript: string
   responseMessage: string | null
+  person: MicaPerson | null
+  onPersonChange: (person: MicaPerson | null) => void
   onCancel: () => void
 }
 
@@ -19,11 +31,37 @@ const STATE_COPY: Record<Exclude<MicaState, 'idle'>, { title: string; sub: strin
   responding: { title: 'MICA', sub: 'responding…', action: 'Done' },
 }
 
+const personName = (p: PersonOption) => `${p.first_name} ${p.last_name}`.trim()
+
 /**
  * Full-screen Mica voice overlay. Dimmed dashboard behind, live orb, waveform
  * and response card in front — mirrors the mobile listening/responding screens.
  */
-export default function MicaOverlay({ state, audioLevel, transcript, responseMessage, onCancel }: MicaOverlayProps) {
+export default function MicaOverlay({ state, audioLevel, transcript, responseMessage, person, onPersonChange, onCancel }: MicaOverlayProps) {
+  const [people, setPeople] = useState<PersonOption[]>([])
+
+  // Active people for the "who is this about?" picker. Loaded while the
+  // overlay is open (it only renders in a non-idle state) so the dashboard
+  // never pays for it.
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get('/people', { params: { status: 'active' } })
+      .then((r: { data: unknown }) => {
+        if (cancelled) return
+        const rows = Array.isArray(r.data) ? r.data : (r.data as { people?: PersonOption[] } | null)?.people || []
+        setPeople(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setPeople([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const value = useMemo(() => people.find(p => p.id === person?.id) ?? null, [people, person?.id])
+
   if (state === 'idle') {
     return null
   }
@@ -81,6 +119,56 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
                 “{transcript}”
               </Typography>
             </Box>
+          )}
+
+          {state === 'listening' && (
+            <Autocomplete
+              disablePortal
+              options={people}
+              value={value}
+              getOptionLabel={personName}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              onChange={(_, option) =>
+                onPersonChange(option ? { id: option.id, name: personName(option) } : null)
+              }
+              sx={{ width: '100%', mt: 2 }}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.id}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{personName(option)}</Typography>
+                    {option.room_number ? (
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Room {option.room_number}</Typography>
+                    ) : null}
+                  </Box>
+                </Box>
+              )}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  label="Who is this note about?"
+                  placeholder="Pick a person"
+                  InputLabelProps={{
+                    sx: { color: 'rgba(255,255,255,0.7)', '&.Mui-focused': { color: 'rgba(255,255,255,0.9)' } },
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: '#FFFFFF',
+                      bgcolor: 'rgba(255,255,255,0.08)',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
+                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.45)' },
+                      '&.Mui-focused fieldset': { borderColor: 'rgba(255,255,255,0.7)' },
+                    },
+                    '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.7)' },
+                  }}
+                />
+              )}
+            />
+          )}
+
+          {state !== 'listening' && person && (
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mt: 1.5 }}>
+              Note about {person.name}
+            </Typography>
           )}
 
           <AnimatePresence>

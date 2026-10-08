@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Paper } from '@mui/material'
+import { Box, Typography, Stack, Paper, Snackbar, Alert } from '@mui/material'
 import MicaOrb from './MicaOrb'
 import { useMica } from './useMica'
 import MicaOverlay from './MicaOverlay'
@@ -26,8 +26,23 @@ export default function MicaAssistant() {
         audioLevel={mica.audioLevel}
         transcript={mica.transcript}
         responseMessage={mica.responseMessage}
+        person={mica.selectedPerson}
+        onPersonChange={mica.setSelectedPerson}
         onCancel={mica.stopListening}
       />
+      {/* Mic-denied / unsupported-browser errors must be visible here too —
+          the overlay never opens on those paths, so without this the tap
+          would look dead (same contract as MicaFab). */}
+      <Snackbar
+        open={Boolean(mica.error) && !active}
+        autoHideDuration={6000}
+        onClose={() => mica.setState('idle')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="warning" variant="filled" sx={{ borderRadius: 2 }}>
+          {mica.error}
+        </Alert>
+      </Snackbar>
       <Paper
         elevation={0}
         sx={{

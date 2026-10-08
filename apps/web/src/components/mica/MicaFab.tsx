@@ -18,6 +18,8 @@ export default function MicaFab() {
         audioLevel={mica.audioLevel}
         transcript={mica.transcript}
         responseMessage={mica.responseMessage}
+        person={mica.selectedPerson}
+        onPersonChange={mica.setSelectedPerson}
         onCancel={mica.stopListening}
       />
       {/* Voice errors (denied mic, unsupported browser) must be visible: the

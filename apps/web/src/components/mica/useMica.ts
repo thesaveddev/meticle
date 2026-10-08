@@ -3,6 +3,24 @@ import api from '../../services/api'
 
 export type MicaState = 'idle' | 'listening' | 'thinking' | 'responding'
 
+export interface MicaPerson {
+  id: string
+  name: string
+}
+
+const PERSON_STORAGE_KEY = 'mica.selectedPerson'
+
+const readStoredPerson = (): MicaPerson | null => {
+  try {
+    const raw = window.localStorage.getItem(PERSON_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as MicaPerson
+    return parsed && typeof parsed.id === 'string' && typeof parsed.name === 'string' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 interface MicaVoiceResult {
   result?: unknown
   person?: { id: string; name: string }
@@ -54,6 +72,21 @@ export function useMica() {
   const [responseMessage, setResponseMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [supported, setSupported] = useState(true)
+  // Who the current voice note is about. The API requires a person for care
+  // notes, so without a selection Mica asks for one instead of POSTing and
+  // failing with "Person ID or name is required".
+  const [selectedPerson, setSelectedPerson] = useState<MicaPerson | null>(() => readStoredPerson())
+  const selectedPersonRef = useRef<MicaPerson | null>(selectedPerson)
+
+  useEffect(() => {
+    selectedPersonRef.current = selectedPerson
+    try {
+      if (selectedPerson) window.localStorage.setItem(PERSON_STORAGE_KEY, JSON.stringify(selectedPerson))
+      else window.localStorage.removeItem(PERSON_STORAGE_KEY)
+    } catch {
+      // Storage unavailable (private mode): the in-memory selection still works.
+    }
+  }, [selectedPerson])
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -127,12 +160,27 @@ export function useMica() {
   }, [])
 
   const sendToAiRef = useRef<(t: string) => void>(() => undefined)
+  const startListeningRef = useRef<() => void>(() => undefined)
   const sendToAi = useCallback(async (rawTranscript: string) => {
+    // No person chosen yet: explain, then return straight to listening so the
+    // in-overlay person picker is right there — no dead-end error, no re-tap.
+    if (!selectedPersonRef.current) {
+      const ask = 'Who is this note about? Pick a person, then say it again.'
+      setResponseMessage(ask)
+      setState('responding')
+      speak(ask, () => {
+        setResponseMessage(null)
+        setTranscript('')
+        startListeningRef.current()
+      })
+      return
+    }
     setState('thinking')
     try {
       const body = {
         transcription: rawTranscript,
         intent: rawTranscript,
+        personId: selectedPersonRef.current.id,
         source: 'voice' as const,
         noteDate: new Date().toISOString().split('T')[0],
       }
@@ -258,6 +306,8 @@ export function useMica() {
 
   // Post-render wiring: keep sendToAiRef pointing at the current callback.
   useEffect(() => { sendToAiRef.current = sendToAi })
+  // startListening is declared below sendToAi, so it reaches it via ref too.
+  useEffect(() => { startListeningRef.current = startListening })
 
   return {
     state,
@@ -267,6 +317,8 @@ export function useMica() {
     responseMessage,
     error,
     supported,
+    selectedPerson,
+    setSelectedPerson,
     startListening,
     stopListening,
   }
