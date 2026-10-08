@@ -5,6 +5,7 @@ import AuthGuard from './components/AuthGuard'
 import ModuleGuard from './components/ModuleGuard'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const SignupPage = lazy(() => import('./pages/auth/SignupPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'))
 const RotaPlannerPage = lazy(() => import('./pages/scheduling/RotaPlannerPage'))
@@ -26,6 +27,9 @@ const ContactPageNew = lazy(() => import('./pages/marketing/ContactPageNew'))
 const DownloadPageNew = lazy(() => import('./pages/marketing/DownloadPageNew'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const ResetSuccessPage = lazy(() => import('./pages/auth/ResetSuccessPage'))
+const ResetExpiredPage = lazy(() => import('./pages/auth/ResetExpiredPage'))
+const ResetInvalidPage = lazy(() => import('./pages/auth/ResetInvalidPage'))
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'))
 const MfaChallengePage = lazy(() => import('./pages/auth/MfaChallengePage'))
 const MfaSetupPage = lazy(() => import('./pages/auth/MfaSetupPage'))
@@ -175,9 +179,13 @@ function App() {
       <Route path="/blog/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicBlogPage /></Suspense></ErrorBoundary>} />
       <Route path="/compliance-badges" element={<ErrorBoundary><Suspense fallback={null}><ComplianceBadgesPage /></Suspense></ErrorBoundary>} />
       <Route path="/login" element={<ErrorBoundary><MeticleThemeProvider><LoginPage /></MeticleThemeProvider></ErrorBoundary>} />
+      <Route path="/signup" element={<ErrorBoundary><MeticleThemeProvider><SignupPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/register" element={<ErrorBoundary><MeticleThemeProvider><RegisterPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/forgot-password" element={<ErrorBoundary><MeticleThemeProvider><ForgotPasswordPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/reset-password" element={<ErrorBoundary><MeticleThemeProvider><ResetPasswordPage /></MeticleThemeProvider></ErrorBoundary>} />
+      <Route path="/reset-success" element={<ErrorBoundary><MeticleThemeProvider><ResetSuccessPage /></MeticleThemeProvider></ErrorBoundary>} />
+      <Route path="/reset-expired" element={<ErrorBoundary><MeticleThemeProvider><ResetExpiredPage /></MeticleThemeProvider></ErrorBoundary>} />
+      <Route path="/reset-invalid" element={<ErrorBoundary><MeticleThemeProvider><ResetInvalidPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/verify-email" element={<ErrorBoundary><MeticleThemeProvider><VerifyEmailPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/mfa-challenge" element={<ErrorBoundary><MeticleThemeProvider><MfaChallengePage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/mfa-setup" element={<ErrorBoundary><MeticleThemeProvider><MfaSetupPage /></MeticleThemeProvider></ErrorBoundary>} />

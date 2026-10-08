@@ -64,15 +64,37 @@ describe('password reset flow respects the active colour mode', () => {
     })
   }
 
-  it('both pages follow the LoginPage background convention', () => {
-    // LoginPage is the reference implementation and has been correct
-    // throughout. The reset pages had inverted it: light form on white with a
-    // grey marketing panel, where Login has a tinted form on a white panel.
+  it('every reset-flow page renders inside the shared AuthLayout shell', () => {
+    // The ground moved from "each page sets its own theme background" to "the
+    // shared shell sets it once" (apps/web/src/components/auth/AuthLayout.tsx).
+    // Pages must compose that shell — a page that rolls its own Box ground is
+    // exactly the copy-paste drift this test exists to catch.
     for (const file of RESET_FLOW_PAGES) {
       const source = readFileSync(join(AUTH_DIR, file), 'utf8')
-      expect(source, `${file} should ground itself on the theme background`).toContain(
-        "bgcolor: 'background.default'",
+      expect(source, `${file} should compose the shared AuthLayout shell`).toContain(
+        "from '../../components/auth/AuthLayout'",
       )
     }
+  })
+
+  it('the shared AuthLayout grounds on the dark-mode-swapped tokens', () => {
+    // AuthLayout's ground must be a var() token that the [data-theme="dark"]
+    // block redefines — that is what keeps the shell dark-safe. And the dark
+    // block must keep redefining it, or every auth page silently regresses to
+    // a light flash inside a dark application.
+    const layout = readFileSync(
+      join(process.cwd(), 'src/components/auth/AuthLayout.tsx'),
+      'utf8',
+    )
+    expect(layout, 'AuthLayout should ground on var(--mc-background)').toContain(
+      "bgcolor: 'var(--mc-background)'",
+    )
+
+    const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8')
+    const darkStart = css.indexOf('[data-theme="dark"]')
+    expect(darkStart, 'index.css should have a dark theme block').toBeGreaterThan(-1)
+    const darkBlock = css.slice(darkStart)
+    expect(darkBlock, 'dark block should redefine --mc-background').toContain('--mc-background:')
+    expect(darkBlock, 'dark block should redefine --mc-surface').toContain('--mc-surface:')
   })
 })

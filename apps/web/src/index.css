@@ -38,6 +38,13 @@
   --mc-info: #2F80ED;
   --mc-info-soft: #EAF3FF;
   --mc-info-text: #175CD3;
+  /* Status banner borders — tinted steps between soft fill and page. */
+  --mc-success-border: #C2EBDD;
+  --mc-warning-border: #F6E5C4;
+  --mc-danger-border: #FAD4D4;
+  --mc-info-border: #CFE4FB;
+  /* Decorative brand shapes (auth brand panel) — must never compete with content. */
+  --mc-shape-cyan: #DDF8FA;
   --mc-support-indigo: #6B8AFD;
   --mc-support-purple: #8B7CF6;
   --mc-support-teal: #5CC8B7;

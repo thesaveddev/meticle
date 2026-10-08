@@ -1,13 +1,20 @@
 import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
-import {
-  TextField, Button, Box, Typography, Container, FormControlLabel,
-  Link, Stack, Alert, CircularProgress, InputAdornment, IconButton,
-  Checkbox,
-} from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
-import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
+import AuthLayout from '../../components/auth/AuthLayout'
+import {
+  AuthHeader, AuthField, AuthInput, AuthPasswordInput,
+  AuthButton, AuthError, AuthFooterLine,
+} from '../../components/auth/AuthPrimitives'
+
+const LOGIN_FEATURES = [
+  { icon: 'notes' as const, title: 'Daily care notes', description: 'Capture and share care in real time.' },
+  { icon: 'person' as const, title: 'Support plans', description: 'Keep support up to date.' },
+  { icon: 'medication' as const, title: 'Medication', description: 'eMAR with audit trails.' },
+  { icon: 'schedule' as const, title: 'Staff scheduling', description: 'Right people, at the right time.' },
+]
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -15,7 +22,6 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const justRegistered = searchParams.get('registered') === 'true'
 
@@ -56,7 +62,7 @@ export default function LoginPage() {
       } else if (err.code === 'ERR_NETWORK') {
         setError('Unable to connect to the server. Please check your internet connection and try again.')
       } else {
-        setError('Something went wrong. Please try again later.')
+        setError('Unable to sign in. Your email or password may be incorrect.')
       }
     } finally {
       setLoading(false)
@@ -66,101 +72,68 @@ export default function LoginPage() {
   usePageMeta({ title: 'Login | Meticle Care', description: 'Log in to your Meticle Care care management account.', noindex: true })
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', color: 'text.primary' }}>
-      <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
-          <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              Meticle Care
+    <AuthLayout
+      heading={<>Better care<br />starts here.</>}
+      supporting="A simpler, smarter way to manage daily care, keep people safe, and stay compliant."
+      features={LOGIN_FEATURES}
+    >
+      <AuthHeader title="Sign in" supporting="Access your MeticleCare account." />
+
+      {justRegistered && (
+        <Box
+          role="status"
+          sx={{ bgcolor: 'var(--mc-success-soft, var(--mc-success-soft))', border: '1px solid var(--mc-success-border)', borderRadius: '12px', px: 2, py: 1.5, mb: 3 }}
+        >
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'var(--mc-success-text)' }}>Account created. You can sign in now.</Typography>
+        </Box>
+      )}
+      {error && <AuthError message={error} onClose={() => setError('')} />}
+
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <AuthField label="Email address" htmlFor="login-email">
+            <AuthInput
+              id="login-email"
+              value={email}
+              onChange={setEmail}
+              type="email"
+              placeholder="name@organization.com"
+              autoComplete="email"
+              autoFocus
+            />
+          </AuthField>
+
+          <AuthField label="Password" htmlFor="login-password">
+            <AuthPasswordInput
+              id="login-password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+            />
+          </AuthField>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Typography
+              component="button"
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              sx={{
+                background: 'none', border: 'none', p: 0, cursor: 'pointer', font: 'inherit',
+                fontSize: 13.5, fontWeight: 600, color: 'var(--mc-primary)',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Forgot password?
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Welcome back</Typography>
-            <Typography sx={{ color: 'text.secondary' }}>Care operations, unified.</Typography>
           </Box>
 
-          {justRegistered && (
-            <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }}>Registration successful! You can now sign in.</Alert>
-          )}
-          {error && (
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Work Email</Typography>
-                <TextField fullWidth placeholder="name@organization.com" variant="outlined"
-                  value={email} onChange={e => setEmail(e.target.value)}
-                  autoFocus autoComplete="email" />
-              </Box>
-
-              <Box>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Password</Typography>
-                  <Link onClick={() => navigate('/forgot-password')} sx={{ color: '#2F80ED', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
-                    Forgot password?
-                  </Link>
-                </Stack>
-                <TextField fullWidth type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••" variant="outlined"
-                  value={password} onChange={e => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }} />
-              </Box>
-
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <FormControlLabel
-                  control={<Checkbox sx={{ color: 'text.disabled', '&.Mui-checked': { color: '#2F80ED' } }} />}
-                  label={<Typography variant="body2" sx={{ color: 'text.secondary' }}>Remember me</Typography>}
-                />
-              </Stack>
-
-              <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none' }}>
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in to dashboard'}
-              </Button>
-
-              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Don't have an account?{' '}
-                  <Link onClick={() => navigate('/register')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
-                    Sign Up Free
-                  </Link>
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-
-          <Box sx={{ mt: 8, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-            <SecurityIcon sx={{ fontSize: 16 }} />
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>SSO Ready & Enterprise Secure</Typography>
-          </Box>
-        </Container>
-      </Box>
-
-      <Box sx={{
-        flex: { xs: 0, md: 1.2, lg: 1.6 },
-        display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column', bgcolor: 'background.paper', p: 8,
-        alignItems: 'center', justifyContent: 'center',
-        borderLeft: '1px solid', borderColor: 'divider'
-      }}>
-        <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
-            Care records, medication, staffing and compliance — one working view.
-          </Typography>
-          <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
-            Built for UK supported living teams who need complete records without the double-entry.
-          </Typography>
+          <AuthButton loading={loading} loadingLabel="Signing in…">
+            Sign in →
+          </AuthButton>
         </Box>
       </Box>
-    </Box>
+
+      <AuthFooterLine prompt="Don't have an account?" action="Get in touch" onAction={() => navigate('/register')} />
+    </AuthLayout>
   )
 }

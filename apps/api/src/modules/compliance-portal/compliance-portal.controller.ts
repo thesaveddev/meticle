@@ -83,7 +83,7 @@ export class CompliancePortalController {
       `<li>Medication administration records (MAR)</li>` +
       `<li>Active policies and care plans</li></ul>` +
       `<p>This link expires in <strong>${expires_hours || 72} hours</strong> and is unique to you. Do not share it.</p>` +
-      `<p><a href="${portalUrl}" style="display:inline-block;padding:10px 20px;background-color:#0F4C81;color:#ffffff;text-decoration:none;border-radius:4px;">Access Compliance Portal</a></p>`;
+      `<p><a href="${portalUrl}" style="display:inline-block;padding:10px 20px;background-color:#1F68C7;color:#ffffff;text-decoration:none;border-radius:4px;">Access Compliance Portal</a></p>`;
     EmailService.sendEmail(email, `${emailOrgName} — Compliance Audit Access for ${emailLocationName}`, emailBody).catch(() => {});
 
     res.status(201).json({

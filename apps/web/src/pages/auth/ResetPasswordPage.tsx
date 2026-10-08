@@ -1,175 +1,134 @@
 import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
-import {
-  TextField, Button, Box, Typography, Container,
-  Link, Stack, CircularProgress, InputAdornment, IconButton, Alert,
-} from '@mui/material'
-import { Visibility, VisibilityOff, LockReset as LockIcon, CheckCircleOutline as CheckIcon } from '@mui/icons-material'
+import { Box, Typography, Link } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import api from '../../services/api'
+import AuthLayout from '../../components/auth/AuthLayout'
+import {
+  AuthHeader, AuthField, AuthPasswordInput,
+  AuthButton, AuthError,
+} from '../../components/auth/AuthPrimitives'
+import PasswordRequirements, { RESET_PASSWORD_RULES } from '../../components/auth/PasswordRequirements'
+import ResetSuccessPage from './ResetSuccessPage'
+import ResetExpiredPage from './ResetExpiredPage'
+import ResetInvalidPage from './ResetInvalidPage'
 
+const RESET_FEATURES = [
+  { icon: 'notes' as const, title: 'Single-use link', description: 'Expires once used.' },
+  { icon: 'person' as const, title: 'One hour', description: 'Then it stops working.' },
+  { icon: 'medication' as const, title: 'Encrypted', description: 'Password never shown to anyone.' },
+  { icon: 'schedule' as const, title: 'UK hosted', description: 'Secure by design.' },
+]
+
+/**
+ * Reset password entry route. Three kinds of arrival:
+ *  - no token in the URL → invalid-link page
+ *  - token + successful reset → success page
+ *  - token rejected by the server → expired/invalid page (neutral wording;
+ *    the API reports both conditions the same way, so we never show token
+ *    details or distinguish what an attacker could use)
+ */
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
+
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [status, setStatus] = useState<'form' | 'success' | 'expired' | 'invalid'>('form')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  usePageMeta({ title: 'Reset Password | Meticle Care', description: 'Set a new password for your Meticle Care account.', noindex: true })
+
+  if (!token && status === 'form') {
+    return <ResetInvalidPage />
+  }
+
+  if (status === 'success') return <ResetSuccessPage />
+  if (status === 'expired') return <ResetExpiredPage />
+  if (status === 'invalid') return <ResetInvalidPage />
+
+  const passwordValid = RESET_PASSWORD_RULES.every(r => r.test(newPassword))
+  const confirmTouched = confirmPassword.length > 0
+  const passwordsMatch = newPassword === confirmPassword
+  const canReset = passwordValid && confirmTouched && passwordsMatch
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (newPassword !== confirmPassword) {
-      return setError('Passwords do not match')
-    }
-    if (newPassword.length < 8) {
-      return setError('Password must be at least 8 characters')
-    }
+    if (!passwordsMatch) return setError("Passwords don't match.")
+    if (!passwordValid) return setError('Your password does not meet all the requirements yet.')
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword }),
-      })
-      if (res.ok) {
-        setSuccess(true)
-        setTimeout(() => navigate('/login'), 3000)
+      // Uses the shared client (not raw fetch like the old page) so global
+      // auth/error interceptors apply consistently.
+      await api.post('/auth/reset-password', { token, newPassword }, { silentError: true })
+      setStatus('success')
+    } catch (err: any) {
+      if (err?.response?.status === 400) {
+        // Invalid OR expired — one neutral destination, no token details.
+        setStatus('expired')
+      } else if (err?.code === 'ERR_NETWORK') {
+        setError('Failed to connect to the server. Please try again.')
       } else {
-        const data = await res.json()
-        setError(data.message || 'Reset failed')
+        setError(err?.response?.data?.message || 'Could not reset your password. Please try again.')
       }
-    } catch {
-      setError('Failed to connect to the server')
     } finally {
       setLoading(false)
     }
   }
 
-  usePageMeta({ title: 'Reset Password | Meticle Care', description: 'Set a new password for your Meticle Care account.', noindex: true })
-
-  if (!token) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', color: 'text.primary' }}>
-        <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-          <Container maxWidth="xs" sx={{ mx: 'auto' }}>
-            <Box sx={{ mb: 6 }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-                Meticle Care
-              </Typography>
-            </Box>
-            {/* Alert, not a hand-built coloured box — `error.light` with a
-                hardcoded #B42318 label is unreadable in the app's dark mode,
-                which ThemeContext persists to localStorage. */}
-            <Alert severity="error" sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Invalid reset link</Typography>
-              <Typography variant="body2">
-                This link is invalid or has expired. Please request a new password reset.
-              </Typography>
-            </Alert>
-            <Button fullWidth variant="outlined" onClick={() => navigate('/forgot-password')}
-              sx={{ mt: 3, borderColor: 'divider', color: 'text.primary', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' } }}>
-              Request new reset link
-            </Button>
-          </Container>
-        </Box>
-        <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>Link expired?</Typography>
-            <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
-              Reset links expire after 1 hour for security. Request a new one and check your inbox.
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-    )
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', color: 'text.primary' }}>
-      <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
-          <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>Meticle Care</Typography>
-            <Box sx={{
-              width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', bgcolor: '#EAF2F8', color: '#2F80ED', mb: 3,
-            }}>
-              <LockIcon sx={{ fontSize: 22 }} />
-            </Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Choose a new password</Typography>
-            <Typography sx={{ color: 'text.secondary', lineHeight: 1.6 }}>Use a password you do not use anywhere else.</Typography>
-          </Box>
+    <AuthLayout
+      heading={<>Better care<br />starts here.</>}
+      supporting="A simpler, smarter way to manage daily care, keep people safe, and stay compliant."
+      features={RESET_FEATURES}
+    >
+      <AuthHeader title="Create a new password" supporting="Choose a new password for your MeticleCare account." />
+      {error && <AuthError message={error} onClose={() => setError('')} />}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <AuthField label="New password" htmlFor="reset-password">
+            <AuthPasswordInput
+              id="reset-password"
+              value={newPassword}
+              onChange={setNewPassword}
+              autoComplete="new-password"
+              autoFocus
+            />
+            <PasswordRequirements password={newPassword} />
+          </AuthField>
 
-          {success ? (
-            <Box>
-              <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} icon={<CheckIcon fontSize="inherit" />}>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>Password updated</Typography>
-                <Typography variant="caption" sx={{ display: 'block' }}>Redirecting to sign in...</Typography>
-              </Alert>
-              <Button fullWidth variant="outlined" onClick={() => navigate('/login')}
-                sx={{ borderColor: 'divider', color: 'text.primary', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' } }}>
-                Sign in now
-              </Button>
-            </Box>
-          ) : (
-            <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>New password</Typography>
-                  <TextField fullWidth type={showNewPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
-                    value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required autoFocus autoComplete="new-password"
-                    InputProps={{
-                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
-                      endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">{showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
-                    }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#2F80ED' } } }} />
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Confirm password</Typography>
-                  <TextField fullWidth type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
-                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"
-                    InputProps={{
-                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
-                      endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">{showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
-                    }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#2F80ED' } } }} />
-                </Box>
-                <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-                  sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#2674D9' } }}>
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Save new password'}
-                </Button>
-                <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Remember your password?{' '}
-                    <Link onClick={() => navigate('/login')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          )}
-        </Container>
-      </Box>
-      <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <Typography variant="body2" sx={{ color: '#2F80ED', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 2 }}>
-            Account security
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>A private moment for your account</Typography>
-          <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
-            This reset link is single-use and expires after one hour. Your password is never shown to anyone at Meticle Care.
-          </Typography>
+          <AuthField label="Confirm new password" htmlFor="reset-confirm">
+            <AuthPasswordInput
+              id="reset-confirm"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
+              error={confirmTouched && !passwordsMatch}
+              aria-describedby={confirmTouched && !passwordsMatch ? 'reset-confirm-error' : undefined}
+            />
+            {confirmTouched && !passwordsMatch && (
+              <Typography id="reset-confirm-error" role="alert" sx={{ fontSize: 12.5, color: 'var(--mc-danger, var(--mc-danger))', mt: 0.75 }}>
+                Passwords don't match.
+              </Typography>
+            )}
+          </AuthField>
+
+          <AuthButton loading={loading} loadingLabel="Resetting password…" disabled={!canReset}>
+            Reset password →
+          </AuthButton>
         </Box>
       </Box>
-    </Box>
+
+      <Typography sx={{ textAlign: 'center', fontSize: 14, color: 'var(--mc-text-secondary)', mt: 4 }}>
+        Remembered it?{' '}
+        <Link component="button" type="button" onClick={() => navigate('/login')} underline="hover" sx={{ color: 'var(--mc-primary)', fontWeight: 600, fontSize: 'inherit' }}>
+          Back to sign in
+        </Link>
+      </Typography>
+    </AuthLayout>
   )
 }

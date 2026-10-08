@@ -576,7 +576,7 @@ export class BillingController {
       [orgId]
     );
     const orgName = org.rows[0]?.name || 'Meticle Care customer';
-    const primaryColor = org.rows[0]?.primary_color || '#0F4C81';
+    const primaryColor = org.rows[0]?.primary_color || '#1F68C7';
     const invoiceStatus = inv.rows[0].status || 'open';
     const pdf = await generatePdf(buildInvoiceHtml({ ...inv.rows[0], status: invoiceStatus }, { name: orgName, primary_color: primaryColor }));
     const filename = `invoice-${(inv.rows[0].invoice_number || id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;

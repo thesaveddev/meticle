@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml } from './email.template';
+import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml, buildTransactionalEmailHtml } from './email.template';
+import { EmailSecurityNoticeHtml } from './email.securityNotice';
 import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
 import type { EmailQueueOptions } from './email.queue';
 import pool from '../database';
@@ -316,10 +317,16 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
-    await sendMail(email, 'Verify your Meticle Care account',
-      buildEmailHtml('Verify Email', 'Verify your email address',
-        `<p>Click the button below to verify your email address and activate your account.</p>`,
-        { label: 'Verify Email', url }), 'security');
+    await sendMail(email, 'Verify your Meticle Care email address',
+      buildTransactionalEmailHtml({
+        title: 'Verify your email address',
+        heading: 'Verify your email address',
+        bodyHtml:
+          `<p style="margin:0 0 14px 0">Hi,</p>` +
+          `<p style="margin:0">Please verify your email address to finish setting up your MeticleCare account.</p>`,
+        cta: { label: 'Verify email →', url },
+      })
+      + EmailSecurityNoticeHtml('This link will expire after 24 hours.'),      'security');
   }
 
   static async sendVerificationCode(email: string, code: string) {
@@ -328,10 +335,18 @@ export class EmailService {
 
   static async sendPasswordResetEmail(email: string, token: string) {
     const url = `${baseUrl()}/reset-password?token=${token}`;
-    await sendMail(email, 'Reset your Meticle Care password',
-      buildEmailHtml('Reset Password', 'Reset your password',
-        `<p>Click the button below to reset your password. This link expires in 1 hour.</p>`,
-        { label: 'Reset Password', url }), 'security');
+    await sendMail(email, 'Reset your MeticleCare password',
+      buildTransactionalEmailHtml({
+        title: 'Reset your password',
+        heading: 'Reset your password',
+        bodyHtml:
+          `<p style="margin:0 0 14px 0">Hi,</p>` +
+          `<p style="margin:0 0 14px 0">We received a request to reset the password for your MeticleCare account.</p>` +
+          `<p style="margin:0">If you didn't request a password reset, you can safely ignore this email. Your account will remain secure.</p>`,
+        cta: { label: 'Reset your password →', url },
+      })
+      + EmailSecurityNoticeHtml('This link will expire in 1 hour for your security.'),
+      'security');
   }
 
   static async sendInviteEmail(email: string, orgName: string, token: string) {
@@ -355,12 +370,12 @@ export class EmailService {
           `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle Care</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
           `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">What you can do with Meticle Care:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0">You're on a <strong>14-day free trial</strong> with full access to every feature. Here's how to get started:</p>` +
           `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
@@ -379,11 +394,11 @@ export class EmailService {
           `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle Care. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
           `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">Here's what you can do right away:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">View your shifts and rota</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Complete your compliance and training requirements</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Log care notes, observations, and eMAR administrations</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Request leave and swap shifts with your team</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Chat with colleagues in real-time</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">View your shifts and rota</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Complete your compliance and training requirements</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Log care notes, observations, and eMAR administrations</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Request leave and swap shifts with your team</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Chat with colleagues in real-time</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:#4B5563">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
           `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Care Team</p>`,
@@ -913,7 +928,7 @@ export class EmailService {
         `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Plan</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.planName}</td></tr>` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Invoice</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.invoiceNumber}</td></tr>` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#1F68C7;text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${next}</td></tr>` +
         `</table>` +
         `<p style="font-size:13px;color:#9CA3AF">Your invoice is attached to this email. Questions about this charge? Reply and we'll help.</p>`,
@@ -1016,7 +1031,7 @@ export class EmailService {
       `<p>A new invoice has been generated for your Meticle Care subscription:</p>` +
       `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${description}</td></tr>` +
-      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#1F68C7;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#DC2626;text-align:right">${dueDateStr}</td></tr>` +
       `</table>` +
       `<p>If a payment method is on file, it will be charged automatically on the due date. Review the invoice and payment method in Billing.</p>`,
@@ -1201,11 +1216,11 @@ ${lowStockRows}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
 <tr>
   <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:#0F4C81">${loc.total_shifts}</div>
+    <div style="font-size:24px;font-weight:800;color:#1F68C7">${loc.total_shifts}</div>
     <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Shifts</div>
   </td>
   <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:#0F4C81">${loc.staff_deployed}</div>
+    <div style="font-size:24px;font-weight:800;color:#1F68C7">${loc.staff_deployed}</div>
     <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Staff Deployed</div>
   </td>
   <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">

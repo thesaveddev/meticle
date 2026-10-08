@@ -40,7 +40,7 @@ export class LeaveController {
     const result = await pool.query(
       `INSERT INTO leave_types (organization_id, name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [orgId, name, color || '#0F4C81', days_allowed || 0, hours_allowed || 0, duration_type || 'days', is_paid ?? true, requires_approval ?? true]
+      [orgId, name, color || '#1F68C7', days_allowed || 0, hours_allowed || 0, duration_type || 'days', is_paid ?? true, requires_approval ?? true]
     );
     res.status(201).json(result.rows[0]);
   }

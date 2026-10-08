@@ -120,7 +120,7 @@ export class FamilyFeedbackController {
             </table>
             ${record.feedback_text ? `<p style="color:#374151;line-height:1.6;margin:16px 0;padding:12px;background:#F9FAFB;border-radius:8px;border-left:3px solid #00C9A7">"${record.feedback_text}"</p>` : ''}
             ${record.would_recommend !== null ? `<p style="margin:8px 0"><strong>Would recommend:</strong> ${record.would_recommend ? 'Yes ✓' : 'No'}</p>` : ''}
-            <p><a href="${process.env.FRONTEND_URL || ''}/people/${record.person_id}" style="display:inline-block;padding:10px 24px;background:#0F4C81;color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
+            <p><a href="${process.env.FRONTEND_URL || ''}/people/${record.person_id}" style="display:inline-block;padding:10px 24px;background:#1F68C7;color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
           ).catch(logWarn('feedbackEmail'));
         }
       }
