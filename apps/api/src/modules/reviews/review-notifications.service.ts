@@ -1,6 +1,7 @@
 import pool from '../../shared/database';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
+import { EMAIL_TEXT, EMAIL_BRAND } from '../../shared/utils/email.template';
 import logger from '../../shared/utils/logger';
 
 interface OverdueItem {
@@ -258,17 +259,17 @@ export class ReviewNotificationService {
     if (!to) return;
     const subject = `Overdue review: ${item.item_name} for ${item.person_name}`;
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
-        <h2 style="color: #DC2626; margin-top: 0;">Overdue Review</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid ${EMAIL_TEXT.line}; border-radius: 8px;">
+        <h2 style="color: ${EMAIL_TEXT.toneBad}; margin-top: 0;">Overdue Review</h2>
         <p>Hello ${recipientName},</p>
         <p>
           A <strong>${item.item_name}</strong> for <strong>${item.person_name}</strong>
           ${item.location_name ? ` at <strong>${item.location_name}</strong>` : ''}
           was due for review by <strong>${friendlyDue}</strong> and is now overdue.
         </p>
-        <p style="color: #6B7280; font-size: 14px;">
+        <p style="color: ${EMAIL_TEXT.secondary}; font-size: 14px;">
           Please review and update this item at your earliest convenience.
-          Log in to <a href="https://meticlecare.com" style="color: #1F68C7;">Meticle Care</a> to take action.
+          Log in to <a href="https://meticlecare.com" style="color: ${EMAIL_BRAND.primaryDeep};">Meticle Care</a> to take action.
         </p>
       </div>`;
     try {

@@ -1,6 +1,7 @@
 import pool, { query } from '../../shared/database';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
+import { EMAIL_TEXT, EMAIL_BRAND } from '../../shared/utils/email.template';
 import logger, { logWarn } from '../../shared/utils/logger';
 import { ComplianceRepository } from './compliance.repository';
 import { isIdentityType } from './compliance.vetting';
@@ -119,7 +120,7 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care — Compliance Alert: Threshold Breached (${org.name})`,
-              `<p>Hi ${admin.name},</p><p>The overall compliance rate for <strong>${org.name}</strong> has fallen below your organisation's alert threshold.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px"><strong style="color:#DC2626;font-size:24px">${Math.round(rate)}%</strong><br/><span style="color:#6B7280;font-size:13px">Current compliance rate</span></td><td style="padding:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px"><strong style="font-size:24px">${threshold}%</strong><br/><span style="color:#6B7280;font-size:13px">Alert threshold</span></td></tr></table><p style="color:#DC2626;font-weight:700">Immediate attention required.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:#1F68C7;color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
+              `<p>Hi ${admin.name},</p><p>The overall compliance rate for <strong>${org.name}</strong> has fallen below your organisation's alert threshold.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="color:${EMAIL_TEXT.toneBad};font-size:24px">${Math.round(rate)}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Current compliance rate</span></td><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="font-size:24px">${threshold}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Alert threshold</span></td></tr></table><p style="color:${EMAIL_TEXT.toneBad};font-weight:700">Immediate attention required.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
             ).catch(logWarn('complianceThresholdEmail'));
           }
         }
@@ -183,7 +184,7 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care — Predictive Alert: Compliance Declining (${org.name})`,
-              `<p>Hi ${admin.name},</p><p>Compliance for <strong>${org.name}</strong> is on a declining trend.</p><p>${trendMsg}</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:#1F68C7;color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
+              `<p>Hi ${admin.name},</p><p>Compliance for <strong>${org.name}</strong> is on a declining trend.</p><p>${trendMsg}</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
             ).catch(logWarn('predictiveAlertEmail'));
           }
         }
@@ -571,7 +572,7 @@ export class ComplianceNotificationService {
                   <li>Discuss with the care team and update nutrition records</li>
                   <li>Consider GP referral if appetite decline or weight loss is noted</li>
                 </ul>
-                <p><a href="${process.env.FRONTEND_URL || ''}/people/${person.person_id}" style="display:inline-block;padding:10px 24px;background:#1F68C7;color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
+                <p><a href="${process.env.FRONTEND_URL || ''}/people/${person.person_id}" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
               ).catch(logWarn('nutritionAlertEmail'));
             }
             result.notified++;
@@ -812,7 +813,7 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care Evidence Pack — ${org.name} (${new Date().toLocaleDateString('en-GB')})`,
-              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:#1F68C7">View in Meticle Care →</a></p><p style="color:#6B7280;font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_people || 0} · Training: ${pack.summary?.training_records || 0}</p>`
+              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:${EMAIL_BRAND.primaryDeep}">View in Meticle Care →</a></p><p style="color:${EMAIL_TEXT.secondary};font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_people || 0} · Training: ${pack.summary?.training_records || 0}</p>`
             ).catch(logWarn('scheduledPackEmail'));
           }
         }

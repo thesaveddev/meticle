@@ -3,6 +3,7 @@ import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
+import { EMAIL_TEXT, EMAIL_BRAND } from '../../shared/utils/email.template';
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -36,13 +37,13 @@ export class ContactController {
     const replyTo = escapeHtml(email);
     const body = `
       <p>New contact form submission from the Meticle Care website.</p>
-      <table role="presentation" cellpadding="8" cellspacing="0" style="border:1px solid #E5E7EB;border-collapse:collapse;width:100%">
+      <table role="presentation" cellpadding="8" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-collapse:collapse;width:100%">
         ${[
           ['Name', name], ['Email', replyTo], ['Organisation', company || '—'], ['Role', role || '—'],
           ['Care type', careType || '—'], ['Message', message], ['Lead ID', result.rows[0]?.id || '—'],
-        ].map(([label, value]) => `<tr><td style="border:1px solid #E5E7EB;background:#F9FAFB;font-weight:700;width:120px">${escapeHtml(String(label))}</td><td style="border:1px solid #E5E7EB">${escapeHtml(String(value))}</td></tr>`).join('')}
+        ].map(([label, value]) => `<tr><td style="border:1px solid ${EMAIL_TEXT.line};background:${EMAIL_TEXT.panelBg};font-weight:700;width:120px">${escapeHtml(String(label))}</td><td style="border:1px solid ${EMAIL_TEXT.line}">${escapeHtml(String(value))}</td></tr>`).join('')}
       </table>
-      <p style="font-size:13px;color:#6B7280">Reply to ${replyTo} to follow up with this lead.</p>`;
+      <p style="font-size:13px;color:${EMAIL_TEXT.secondary}">Reply to ${replyTo} to follow up with this lead.</p>`;
 
     await pool.query(
       `INSERT INTO marketing_events (event_name, source, consent_basis, metadata)
