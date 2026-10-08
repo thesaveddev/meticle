@@ -61,9 +61,10 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
  *
  * IDLE → (tap) LISTENING → (stops speaking) THINKING → (response ready) RESPONDING → IDLE
  *
- * `speaking` uses the browser TTS; the amplitude the hook reports is a modelled
- * value (TTS argues its own level via ` Uttterance boundary events`), and the
- * mic level drives the LISTENING waveform.
+ * `speaking` uses the browser TTS. Web Speech audio cannot be tapped through
+ * Web Audio, so the RESPONDING amplitude is an envelope driven by the
+ * utterance's real word-boundary events (word weight + punctuation pauses),
+ * and the mic level drives the LISTENING waveform.
  */
 export function useMica() {
   const [state, setState] = useState<MicaState>('idle')
@@ -147,11 +148,52 @@ export function useMica() {
       utter.lang = 'en-GB'
       utter.rate = 1.02
       utter.pitch = 1.05
-      // Modelled amplitude so the RESPONDING waveform reacts to speech.
-      utter.onstart = () => setAudioLevel(0.45)
-      utter.onboundary = () => setAudioLevel(v => (v > 0.2 ? 0.15 + Math.random() * 0.25 : v))
-      utter.onend = () => { setAudioLevel(0); onDone() }
-      utter.onerror = () => { setAudioLevel(0); onDone() }
+
+      // The RESPONDING waveform tracks the utterance's actual word stream:
+      // onboundary fires per spoken word with its charIndex, so each word's
+      // shape (length, vowels, emphasis, trailing punctuation) sets the level
+      // target and an rAF envelope eases toward it. Between words — and in
+      // browsers that never fire boundary events — the level decays to a
+      // quiet rest instead of holding a random spike.
+      let raf: number | null = null
+      let level = 0
+      let target = 0
+      let lastBoundaryAt = 0
+      const tick = (now: number) => {
+        // No word for a while (phrase pause, or boundary events unsupported):
+        // settle toward a low breathing level rather than freezing.
+        if (now - lastBoundaryAt > 650) target = 0.08
+        level += (target - level) * 0.3
+        setAudioLevel(Math.max(0, Math.min(1, level)))
+        raf = requestAnimationFrame(tick)
+      }
+      const stopEnvelope = () => {
+        if (raf !== null) cancelAnimationFrame(raf)
+        raf = null
+        setAudioLevel(0)
+      }
+      const wordWeight = (word: string) => {
+        const w = word.replace(/[^\p{L}\p{N}']/gu, '')
+        if (!w) return 0.12
+        const vowels = (w.match(/[aeiouy]/gi) || []).length
+        let weight = 0.3 + Math.min(0.4, vowels * 0.11 + w.length * 0.015)
+        if (w.length > 1 && w === w.toUpperCase()) weight = Math.min(0.85, weight + 0.2)
+        return weight
+      }
+      utter.onstart = () => {
+        lastBoundaryAt = performance.now()
+        target = 0.35
+        raf = requestAnimationFrame(tick)
+      }
+      utter.onboundary = (e) => {
+        lastBoundaryAt = performance.now()
+        const word = text.slice(e.charIndex).split(/\s+/)[0] || ''
+        // Punctuation just before this word marks a spoken phrase break.
+        const phraseBreak = /[.!?;:,]\s*$/.test(text.slice(0, e.charIndex))
+        target = phraseBreak ? 0.08 : wordWeight(word)
+      }
+      utter.onend = () => { stopEnvelope(); onDone() }
+      utter.onerror = () => { stopEnvelope(); onDone() }
       synth.cancel()
       synth.speak(utter)
     } catch {
