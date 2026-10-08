@@ -55,6 +55,33 @@ export const EMAIL_BRAND = {
   footerMuted: '#98A2B3',
 } as const;
 
+/**
+ * Semantic text/line tokens. The legacy builders and body markup hard-coded
+ * a near-identical Tailwind gray ramp; these names give every template one
+ * vocabulary so a palette change is a one-line edit per token, not a
+ * repo-wide hex sweep. Values keep the same visual weight as before.
+ */
+export const EMAIL_TEXT = {
+  /** Strongest ink — headings and key figures. */
+  heading: '#101828',
+  /** Legacy inline markup used #111827/#1F2937 for the same job. */
+  body: '#111827',
+  /** Paragraph copy. */
+  paragraph: '#4B5563',
+  /** Secondary copy, table headers, captions. */
+  secondary: '#6B7280',
+  /** Faintest copy — legal lines, timestamps. */
+  muted: '#9CA3AF',
+  /** Table/rules hairlines. */
+  line: '#E5E7EB',
+  /** Row striping and soft panels inside the card. */
+  panelBg: '#F9FAFB',
+  /** Semantic status tones shared by the digest and audit templates. */
+  toneOk: '#166534',
+  toneWarn: '#B45309',
+  toneBad: '#B91C1C',
+} as const;
+
 /** Text wordmark — never an image, so dark mode and Outlook cannot break it. */
 export function EmailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
@@ -139,10 +166,10 @@ export function buildEmailHtml(title: string, heading: string, content: string, 
   return emailLayout(
     title,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:21px;font-weight:700;color:#111827;padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
-<tr><td style="font-size:15px;color:#4B5563;line-height:1.65">${content}</td></tr>
+<tr><td style="font-size:21px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
+<tr><td style="font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.65">${content}</td></tr>
 ${ctaHtml}
-<tr><td style="padding:20px 0 0 0;border-top:1px solid #E5E7EB;margin-top:20px;font-size:12px;color:#6B7280;line-height:1.5">
+<tr><td style="padding:20px 0 0 0;border-top:1px solid ${EMAIL_TEXT.line};margin-top:20px;font-size:12px;color:${EMAIL_TEXT.secondary};line-height:1.5">
 This message was sent by Meticle Care because it relates to your account or subscription.
 </td></tr>
 </table>`
@@ -153,16 +180,16 @@ export function buildCodeEmailHtml(code: string) {
   return emailLayout(
     'Your Verification Code',
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:22px;font-weight:800;color:#111827;padding:0 0 16px 0;letter-spacing:-0.3px">Verify your email address</td></tr>
-<tr><td style="font-size:15px;color:#4B5563;line-height:1.7">Use the code below to verify your email and complete your Meticle Care registration. This code expires in 10 minutes.</td></tr>
+<tr><td style="font-size:22px;font-weight:800;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.3px">Verify your email address</td></tr>
+<tr><td style="font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.7">Use the code below to verify your email and complete your Meticle Care registration. This code expires in 10 minutes.</td></tr>
 <tr><td style="padding:28px 0;text-align:center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr>
-<td style="background:#F3F4F6;border-radius:12px;padding:18px 40px;text-align:center">
+<td style="background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:18px 40px;text-align:center">
 <span style="font-size:34px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};letter-spacing:10px;font-family:'Courier New',monospace">${code}</span>
 </td>
 </tr></table>
 </td></tr>
-<tr><td style="padding:16px 0 0 0;border-top:1px solid #F3F4F6;font-size:13px;color:#9CA3AF;line-height:1.6">
+<tr><td style="padding:16px 0 0 0;border-top:1px solid ${EMAIL_TEXT.panelBg};font-size:13px;color:${EMAIL_TEXT.muted};line-height:1.6">
 If you didn't request this code, you can safely ignore this email.
 </td></tr>
 </table>`
@@ -184,7 +211,7 @@ export function buildStatusEmailHtml(
   const color = colors[status]
   const bgColor = bgColors[status]
 
-  const detailsHtml = details.map(d => `<tr><td style="padding:6px 0;font-size:15px;color:#4B5563;line-height:1.6">${d}</td></tr>`).join('')
+  const detailsHtml = details.map(d => `<tr><td style="padding:6px 0;font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.6">${d}</td></tr>`).join('')
 
   const ctaHtml = cta
     ? `<tr><td style="padding:24px 0 0 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${EMAIL_BRAND.primary};border-radius:12px;text-align:center;padding:0"><a href="${cta.url}" style="display:inline-block;padding:15px 36px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;letter-spacing:0.2px">${cta.label}</a></td></tr></table></td></tr>`
@@ -198,7 +225,7 @@ export function buildStatusEmailHtml(
 <tr><td style="background:${bgColor};color:${color};font-size:11px;font-weight:700;padding:5px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:0.3px">${escapeHtml(statusLabel)}</td></tr>
 </table>
 </td></tr>
-<tr><td style="font-size:21px;font-weight:700;color:#111827;padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
+<tr><td style="font-size:21px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
 ${detailsHtml}
 ${ctaHtml}
 </table>`

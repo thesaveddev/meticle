@@ -56,6 +56,11 @@ async function fixture(suffix: string): Promise<Fixture> {
     person_id: person.id, name: 'Support package',
     start_date: new Date().toISOString().split('T')[0], hourly_rate_pence: 1500,
   })
+  // The package POST can lose a transient race with a parallel suite's bulk
+  // deletes (a deadlock surfaces here as a 500). Asserting it now makes that
+  // failure name itself instead of surfacing later as a baffling 400 on the
+  // visit — the visit request would carry `undefined` as its package_id.
+  expect(pkg.status).toBe(201)
   const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
     package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id,
     visit_type: 'morning', label: 'Morning call',

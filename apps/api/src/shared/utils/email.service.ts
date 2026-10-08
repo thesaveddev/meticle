@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml, buildTransactionalEmailHtml } from './email.template';
+import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml, buildTransactionalEmailHtml, EMAIL_BRAND, EMAIL_TEXT } from './email.template';
 import { EmailSecurityNoticeHtml } from './email.securityNotice';
 import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
 import type { EmailQueueOptions } from './email.queue';
@@ -169,7 +169,7 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
   const e = esc;
 
   const cell = (label: string, value: number | string, highlight?: string) =>
-    `<td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${highlight || '#263238'};">${e(value)}<span style="color:#9CA3AF;"> ${e(label)}</span></td>`;
+    `<td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${highlight || EMAIL_TEXT.body};">${e(value)}<span style="color:${EMAIL_TEXT.muted};"> ${e(label)}</span></td>`;
 
   // "scheduled today" and "due by now" are true of the daily windows and false
   // of the weekly one, which covers a finished week where every call was due.
@@ -182,31 +182,31 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
     <tr>
       ${cell(scheduledLabel, totals.scheduled)}
       ${cell(dueLabel, totals.dueSoFar)}
-      ${cell('completed', totals.completed, '#166534')}
+      ${cell('completed', totals.completed, EMAIL_TEXT.toneOk)}
     </tr>
     <tr>
       ${cell('in progress', totals.inProgress)}
       ${cell('not started', totals.notStarted)}
-      ${cell('late', totals.late, totals.late ? '#B45309' : undefined)}
+      ${cell('late', totals.late, totals.late ? EMAIL_TEXT.toneWarn : undefined)}
     </tr>
     <tr>
-      ${cell('missed', totals.missed, totals.missed ? '#B91C1C' : undefined)}
-      ${cell('overdue', totals.overdue, totals.overdue ? '#B91C1C' : undefined)}
-      ${cell('no carer assigned', totals.unassigned, totals.unassigned ? '#B45309' : undefined)}
+      ${cell('missed', totals.missed, totals.missed ? EMAIL_TEXT.toneBad : undefined)}
+      ${cell('overdue', totals.overdue, totals.overdue ? EMAIL_TEXT.toneBad : undefined)}
+      ${cell('no carer assigned', totals.unassigned, totals.unassigned ? EMAIL_TEXT.toneWarn : undefined)}
     </tr>
     <tr>
       ${cell('cancelled', totals.cancelled)}
-      ${cell('completed, no check-in', totals.completedWithoutCheckIn, totals.completedWithoutCheckIn ? '#B45309' : undefined)}
+      ${cell('completed, no check-in', totals.completedWithoutCheckIn, totals.completedWithoutCheckIn ? EMAIL_TEXT.toneWarn : undefined)}
       ${cell('completion of calls due', `${totals.completionRate}%`)}
     </tr>
   </table>`;
 
   /** Colours are keyed off the tone the digest layer assigned, not re-derived here. */
   const TONE: Record<string, string> = {
-    ok: '#166534',
-    warn: '#B45309',
-    bad: '#B91C1C',
-    neutral: '#263238',
+    ok: EMAIL_TEXT.toneOk,
+    warn: EMAIL_TEXT.toneWarn,
+    bad: EMAIL_TEXT.toneBad,
+    neutral: EMAIL_TEXT.body,
   };
 
   /**
@@ -226,34 +226,34 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
     if (state.detail) bits.push(state.detail);
     const extra = bits.join(' · ');
     return `<tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;white-space:nowrap;">${e(t(visit.scheduled_start))}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#111827;"><strong>${e(visit.person_name)}</strong><br><span style="color:#6B7280;">${e(visit.label)}</span></td>
-      ${isManager ? `<td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;">${e(visit.carer_name)}</td>` : ''}
-      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${colour};"><strong>${e(state.state)}</strong>${extra ? `<br><span style="color:#6B7280;">${e(extra)}</span>` : ''}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.body};white-space:nowrap;">${e(t(visit.scheduled_start))}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.heading};"><strong>${e(visit.person_name)}</strong><br><span style="color:${EMAIL_TEXT.secondary};">${e(visit.label)}</span></td>
+      ${isManager ? `<td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.body};">${e(visit.carer_name)}</td>` : ''}
+      <td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${colour};"><strong>${e(state.state)}</strong>${extra ? `<br><span style="color:${EMAIL_TEXT.secondary};">${e(extra)}</span>` : ''}</td>
     </tr>`;
   };
 
   const header = isManager
-    ? `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Carer</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`
-    : `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`;
+    ? `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Carer</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`
+    : `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`;
 
   const attentionBlock = attention.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Needs attention (${attention.length}${summary.attentionTruncated ? '+' : ''})</p>
-       <p style="margin:0 0 8px 0;font-size:12px;color:#6B7280;">${summary.attentionTruncated ? `Showing the ${attention.length} most pressing of ${attention.length + summary.attentionTruncated}. ` : ''}Missed calls first, then overdue, unassigned and late.</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Needs attention (${attention.length}${summary.attentionTruncated ? '+' : ''})</p>
+       <p style="margin:0 0 8px 0;font-size:12px;color:${EMAIL_TEXT.secondary};">${summary.attentionTruncated ? `Showing the ${attention.length} most pressing of ${attention.length + summary.attentionTruncated}. ` : ''}Missed calls first, then overdue, unassigned and late.</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${attention.map(line).join('')}</table>`
-    : `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#166534;">Nothing needs attention</p>
-       <p style="margin:0;font-size:13px;color:#6B7280;">No missed, overdue, unassigned or late calls.</p>`;
+    : `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.toneOk};">Nothing needs attention</p>
+       <p style="margin:0;font-size:13px;color:${EMAIL_TEXT.secondary};">No missed, overdue, unassigned or late calls.</p>`;
 
   const fullBlock = visits.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">${isWeekly ? 'All calls in the week' : 'All calls today'} (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">${isWeekly ? 'All calls in the week' : 'All calls today'} (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${visits.map(line).join('')}</table>
-       ${summary.visitsTruncated ? `<p style="margin:6px 0 0 0;font-size:12px;color:#6B7280;">${summary.visitsTruncated} further call${summary.visitsTruncated === 1 ? '' : 's'} not shown. Open the app for the full list.</p>` : ''}`
-    : `<p style="margin:20px 0 0 0;font-size:13px;color:#6B7280;">${isWeekly ? 'No calls were scheduled in this week.' : 'No calls are scheduled for today.'}</p>`;
+       ${summary.visitsTruncated ? `<p style="margin:6px 0 0 0;font-size:12px;color:${EMAIL_TEXT.secondary};">${summary.visitsTruncated} further call${summary.visitsTruncated === 1 ? '' : 's'} not shown. Open the app for the full list.</p>` : ''}`
+    : `<p style="margin:20px 0 0 0;font-size:13px;color:${EMAIL_TEXT.secondary};">${isWeekly ? 'No calls were scheduled in this week.' : 'No calls are scheduled for today.'}</p>`;
 
   const incidents = (summary.incidents || []).map((incident: any) =>
     `<li style="margin:0 0 6px 0;font-size:13px;">${e(incident.title)} · ${e(incident.severity)} · ${e(incident.status)}</li>`).join('');
   const incidentBlock = incidents
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Incidents recorded today (${summary.incidents.length})</p><ul style="margin:0;padding-left:18px;">${incidents}</ul>`
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Incidents recorded today (${summary.incidents.length})</p><ul style="margin:0;padding-left:18px;">${incidents}</ul>`
     : '';
 
   const missed = Number(totals.missed || 0);
@@ -287,25 +287,25 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
    */
   const weekDays: any[] = summary.week?.days || [];
   const weekBlock = weekDays.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Day by day</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Day by day</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-         <tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Day</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Due</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Completed</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Missed</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Late</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Completion</th></tr>
+         <tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Day</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Due</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Completed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Missed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Late</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Completion</th></tr>
          ${weekDays.map(d => `<tr>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;">${e(d.label)} ${e(d.date)}</td>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;">${e(d.scheduled)}</td>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#166534;">${e(d.completed)}</td>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.missed) ? '#B91C1C' : '#263238'};">${e(d.missed)}</td>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.late) ? '#B45309' : '#263238'};">${e(d.late)}</td>
-            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.completionRate) < 100 ? '#B45309' : '#166534'};">${e(d.completionRate)}%</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.body};">${e(d.label)} ${e(d.date)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;">${e(d.scheduled)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.toneOk};">${e(d.completed)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${Number(d.missed) ? EMAIL_TEXT.toneBad : EMAIL_TEXT.body};">${e(d.missed)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${Number(d.late) ? EMAIL_TEXT.toneWarn : EMAIL_TEXT.body};">${e(d.late)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${Number(d.completionRate) < 100 ? EMAIL_TEXT.toneWarn : EMAIL_TEXT.toneOk};">${e(d.completionRate)}%</td>
           </tr>`).join('')}
        </table>
        ${summary.week?.worstDay
-        ? `<p style="margin:6px 0 0 0;font-size:12px;color:#6B7280;">Weakest day: <strong>${e(summary.week.worstDay.label)} ${e(summary.week.worstDay.date)}</strong> at ${e(summary.week.worstDay.completionRate)}% completion (${e(summary.week.worstDay.completed)} of ${e(summary.week.worstDay.scheduled)}).</p>`
+        ? `<p style="margin:6px 0 0 0;font-size:12px;color:${EMAIL_TEXT.secondary};">Weakest day: <strong>${e(summary.week.worstDay.label)} ${e(summary.week.worstDay.date)}</strong> at ${e(summary.week.worstDay.completionRate)}% completion (${e(summary.week.worstDay.completed)} of ${e(summary.week.worstDay.scheduled)}).</p>`
         : ''}`
     : '';
 
   const content = `<p>Hi ${e(name || 'there')},</p>
-    <p style="color:#6B7280;font-size:13px;"><strong>${e(date)}</strong>${summary.generatedAtLabel ? ` · generated ${e(summary.generatedAtLabel)}` : ''}</p>
+    <p style="color:${EMAIL_TEXT.secondary};font-size:13px;"><strong>${e(date)}</strong>${summary.generatedAtLabel ? ` · generated ${e(summary.generatedAtLabel)}` : ''}</p>
     ${leadIn}
     ${figures}
     ${weekBlock}
@@ -368,23 +368,23 @@ export class EmailService {
           'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
           `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle Care</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
-          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">What you can do with Meticle Care:</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:${EMAIL_TEXT.heading}">What you can do with Meticle Care:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#1F68C7;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0">You're on a <strong>14-day free trial</strong> with full access to every feature. Here's how to get started:</p>` +
-          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
-          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>2.</strong> Set up your locations, departments, and teams</p>` +
-          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>3.</strong> Add people and configure care plans</p>` +
-          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>4.</strong> Build your rota and invite staff to claim shifts</p>` +
-          `<p style="margin:0 0 16px 0;font-size:14px;color:#1F2937"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
-          `<p style="margin:0;font-size:14px;color:#4B5563">If you need anything, just reply to this email — we're here to help.</p>` +
-          `<p style="margin:16px 0 0 0;font-size:13px;color:#9CA3AF">The Meticle Care Team</p>`,
+          `<p style="margin:0 0 4px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>2.</strong> Set up your locations, departments, and teams</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>3.</strong> Add people and configure care plans</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>4.</strong> Build your rota and invite staff to claim shifts</p>` +
+          `<p style="margin:0 0 16px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
+          `<p style="margin:0;font-size:14px;color:${EMAIL_TEXT.paragraph}">If you need anything, just reply to this email — we're here to help.</p>` +
+          `<p style="margin:16px 0 0 0;font-size:13px;color:${EMAIL_TEXT.muted}">The Meticle Care Team</p>`,
           { label: 'Go to Dashboard', url }), 'team');
     } else {
       await sendMail(email, subject,
@@ -392,16 +392,16 @@ export class EmailService {
           'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
           `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle Care. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
-          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">Here's what you can do right away:</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:${EMAIL_TEXT.heading}">Here's what you can do right away:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">View your shifts and rota</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Complete your compliance and training requirements</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Log care notes, observations, and eMAR administrations</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Request leave and swap shifts with your team</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#1F68C7;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Chat with colleagues in real-time</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">View your shifts and rota</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Complete your compliance and training requirements</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Log care notes, observations, and eMAR administrations</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Request leave and swap shifts with your team</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Chat with colleagues in real-time</td></tr>` +
           `</table>` +
-          `<p style="margin:0 0 16px 0;font-size:14px;color:#4B5563">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
-          `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Care Team</p>`,
+          `<p style="margin:0 0 16px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
+          `<p style="margin:0;font-size:13px;color:${EMAIL_TEXT.muted}">The Meticle Care Team</p>`,
           { label: 'Go to Dashboard', url }), 'team');
     }
   }
@@ -529,7 +529,7 @@ export class EmailService {
         `<p>Hi ${name || 'there'},</p>` +
         `<p>Your payslip for <strong>${periodLabel}</strong> is attached as a PDF. It shows your pay for the period and your year-to-date earnings for ${orgName}.</p>` +
         `<p>The figures are calculated from your completed calls and approved timesheets. If anything looks wrong, speak to your manager before payday.</p>` +
-        `<p style="font-size:13px;color:#9CA3AF">Payments and statutory deductions are handled by payroll, so the amounts here are estimates of your care earnings.</p>`,
+        `<p style="font-size:13px;color:${EMAIL_TEXT.muted}">Payments and statutory deductions are handled by payroll, so the amounts here are estimates of your care earnings.</p>`,
         { label: 'View my earnings', url: `${baseUrl()}/homecare/earnings` }), 'billing', attachments);
   }
 
@@ -558,7 +558,7 @@ export class EmailService {
   static async sendMissedCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, lateReason?: string) {
     await sendMail(managerEmail, `Missed call — ${personName}`,
       buildEmailHtml('Missed Call', `Hi ${managerName || 'Manager'},`,
-        `<p>A scheduled <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> was marked as <strong style="color:#DC2626">missed</strong>.</p>` +
+        `<p>A scheduled <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> was marked as <strong style="color:${EMAIL_TEXT.toneBad}">missed</strong>.</p>` +
         (lateReason ? `<p><strong>Reason:</strong> ${lateReason}</p>` : '') +
         `<p>Please review this exception and take appropriate action (welfare check, reschedule, etc.).</p>`,
         { label: 'Review exception', url: `${baseUrl()}/homecare` }), 'notifications');
@@ -567,7 +567,7 @@ export class EmailService {
   static async sendUnassignedCallAlertEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string) {
     await sendMail(managerEmail, `Unassigned call — ${personName}`,
       buildEmailHtml('Unassigned Call', `Hi ${managerName || 'Manager'},`,
-        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> has <strong style="color:#D97706">no carer assigned</strong>.</p>` +
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> has <strong style="color:${EMAIL_TEXT.toneWarn}">no carer assigned</strong>.</p>` +
         `<p>This call will be missed unless a carer is assigned soon. Please assign a carer or cancel the call.</p>`,
         { label: 'Assign carer', url: `${baseUrl()}/call-assignment` }), 'notifications');
   }
@@ -575,7 +575,7 @@ export class EmailService {
   static async sendOverdueCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, overdueMinutes: number) {
     await sendMail(managerEmail, `Overdue call — ${personName}`,
       buildEmailHtml('Overdue Call', `Hi ${managerName || 'Manager'},`,
-        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> is now <strong style="color:#DC2626">${overdueMinutes} minutes overdue</strong>.</p>` +
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> is now <strong style="color:${EMAIL_TEXT.toneBad}">${overdueMinutes} minutes overdue</strong>.</p>` +
         `<p>The carer has not checked in or completed this call. Please follow up to ensure the client is safe.</p>`,
         { label: 'View calls', url: `${baseUrl()}/homecare` }), 'notifications');
   }
@@ -583,7 +583,7 @@ export class EmailService {
   static async sendCallCompletedEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string) {
     await sendMail(managerEmail, `Call completed — ${personName}`,
       buildEmailHtml('Call Completed', `Hi ${managerName || 'Manager'},`,
-        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> has been <strong style="color:#16A34A">completed</strong>.</p>`,
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> has been <strong style="color:${EMAIL_TEXT.toneOk}">completed</strong>.</p>`,
         { label: 'View dashboard', url: `${baseUrl()}/dashboard` }), 'notifications');
   }
 
@@ -601,7 +601,7 @@ export class EmailService {
       buildEmailHtml('Incident Reported', `Hi ${managerName || 'Manager'},`,
         `<p><strong>${carerName}</strong> has reported an incident during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
         `<p><strong>Description:</strong> ${description}</p>` +
-        `<p style="color:#DC2626;font-weight:600">This requires immediate attention.</p>`,
+        `<p style="color:${EMAIL_TEXT.toneBad};font-weight:600">This requires immediate attention.</p>`,
         { label: 'View incident', url: `${baseUrl()}/incidents` }), 'notifications');
   }
 
@@ -610,13 +610,13 @@ export class EmailService {
     const shiftRows = shifts.map((s: any) => {
       const type = s.shift_type ? s.shift_type.charAt(0).toUpperCase() + s.shift_type.slice(1).replace('_', ' ') : 'Day';
       const person = s.person_first_name
-        ? `${s.person_first_name} ${s.person_last_name}${s.person_room ? ` <span style="font-weight:400;color:#9CA3AF">(Room ${s.person_room})</span>` : ''}`
-        : '<span style="color:#9CA3AF">—</span>';
+        ? `${s.person_first_name} ${s.person_last_name}${s.person_room ? ` <span style="font-weight:400;color:${EMAIL_TEXT.muted}">(Room ${s.person_room})</span>` : ''}`
+        : `<span style="color:${EMAIL_TEXT.muted}">—</span>`;
       return `<tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6;white-space:nowrap">${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${s.location_name || '—'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${type}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${person}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};white-space:nowrap">${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${s.location_name || '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${type}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${person}</td>
       </tr>`;
     }).join('');
 
@@ -627,27 +627,27 @@ export class EmailService {
       if (p.allergies?.length) bits.push(`Allergies: ${p.allergies.join(', ')}`);
       if (p.flags?.length) bits.push(`Flags: ${p.flags.join(', ')}`);
       return `<tr>
-        <td style="padding:6px 12px;vertical-align:top;font-weight:600;white-space:nowrap">${p.first_name} ${p.last_name}${p.room_number ? ` <span style="font-weight:400;color:#9CA3AF">(Room ${p.room_number})</span>` : ''}</td>
-        <td style="padding:6px 12px">${bits.join(' · ') || '<span style="color:#9CA3AF">—</span>'}</td>
+        <td style="padding:6px 12px;vertical-align:top;font-weight:600;white-space:nowrap">${p.first_name} ${p.last_name}${p.room_number ? ` <span style="font-weight:400;color:${EMAIL_TEXT.muted}">(Room ${p.room_number})</span>` : ''}</td>
+        <td style="padding:6px 12px">${bits.join(' · ') || `<span style="color:${EMAIL_TEXT.muted}">—</span>`}</td>
       </tr>`;
     }).join('');
 
     const appList = appointments?.length
-      ? `<p style="margin-top:20px;font-weight:600">Today's appointments</p><ul style="margin:8px 0 0;padding-left:20px;color:#374151">${appointments.map((a: any) => `<li><strong>${fmtTime(a.start_time)}</strong> — ${a.title}${a.first_name ? ` (${a.first_name} ${a.last_name})` : ''}</li>`).join('')}</ul>`
+      ? `<p style="margin-top:20px;font-weight:600">Today's appointments</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${appointments.map((a: any) => `<li><strong>${fmtTime(a.start_time)}</strong> — ${a.title}${a.first_name ? ` (${a.first_name} ${a.last_name})` : ''}</li>`).join('')}</ul>`
       : '';
     const incList = incidents?.length
-      ? `<p style="margin-top:20px;font-weight:600">Recent incidents</p><ul style="margin:8px 0 0;padding-left:20px;color:#374151">${incidents.map((i: any) => `<li><strong>${i.title}</strong> — ${i.severity}</li>`).join('')}</ul>`
+      ? `<p style="margin-top:20px;font-weight:600">Recent incidents</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${incidents.map((i: any) => `<li><strong>${i.title}</strong> — ${i.severity}</li>`).join('')}</ul>`
       : '';
 
     await sendMail(staffEmail, `Your shift preview for ${fmtDate(date)}`,
       buildEmailHtml('Shift Preview', `Hi ${staffName},`,
         `<p>Here are the details for your shift on <strong>${fmtDate(date)}</strong>.</p>
-         <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #F0EDE6;border-radius:8px;margin-top:12px">
-           <tr style="background:#F7F4EE">
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Time</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Location</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Type</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Person</th>
+         <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid ${EMAIL_TEXT.line};border-radius:8px;margin-top:12px">
+           <tr style="background:${EMAIL_TEXT.panelBg}">
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Time</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Location</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Type</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Person</th>
            </tr>${shiftRows}
          </table>
          ${peopleRows ? `<p style="margin-top:20px;font-weight:600">People requiring attention</p><table border="0" cellpadding="0" cellspacing="0" style="width:100%">${peopleRows}</table>` : ''}
@@ -925,13 +925,13 @@ export class EmailService {
       buildEmailHtml('Payment Receipt', `${opts.isRetry ? 'Payment received' : 'Thank you for your payment'}`,
         `<p>Hi ${name},</p>` +
         `<p>Your payment for <strong>${org}</strong> went through successfully.</p>` +
-        `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Plan</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.planName}</td></tr>` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Invoice</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.invoiceNumber}</td></tr>` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#1F68C7;text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${next}</td></tr>` +
+        `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:16px;width:100%">` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Plan</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${opts.planName}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Invoice</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${opts.invoiceNumber}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${next}</td></tr>` +
         `</table>` +
-        `<p style="font-size:13px;color:#9CA3AF">Your invoice is attached to this email. Questions about this charge? Reply and we'll help.</p>`,
+        `<p style="font-size:13px;color:${EMAIL_TEXT.muted}">Your invoice is attached to this email. Questions about this charge? Reply and we'll help.</p>`,
         { label: 'View Billing', url }), 'billing', attachments);
   }
 
@@ -1029,10 +1029,10 @@ export class EmailService {
     return buildEmailHtml('Invoice', 'Your invoice is ready',
       `<p>Hi ${name},</p>` +
       `<p>A new invoice has been generated for your Meticle Care subscription:</p>` +
-      `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
-      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${description}</td></tr>` +
-      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#1F68C7;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
-      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#DC2626;text-align:right">${dueDateStr}</td></tr>` +
+      `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:16px;width:100%">` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${description}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad};text-align:right">${dueDateStr}</td></tr>` +
       `</table>` +
       `<p>If a payment method is on file, it will be charged automatically on the due date. Review the invoice and payment method in Billing.</p>`,
       { label: 'View Invoice', url });
@@ -1114,8 +1114,8 @@ export class EmailService {
     }
   ) {
     const staffingBadge = loc.staffing_ok
-      ? '<span style="color:#065F46;background:#D1FAE5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">STAFFED</span>'
-      : '<span style="color:#991B1B;background:#FEE2E2;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">UNDERSTAFFED</span>';
+      ? `<span style="color:${EMAIL_TEXT.toneOk};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">STAFFED</span>`
+      : `<span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">UNDERSTAFFED</span>`;
 
     const shiftRows = loc.shifts.map(s => {
       const staffNames = s.staff.map(st =>
@@ -1123,33 +1123,32 @@ export class EmailService {
       ).join('') || '<em>Unassigned</em>';
 
       const suLabel = s.su_name
-        ? `<span style="color:#6B7280">Person: ${s.su_name}</span>`
+        ? `<span style="color:${EMAIL_TEXT.secondary}">Person: ${s.su_name}</span>`
         : '';
 
       const start = new Date(s.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const end = new Date(s.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
       return `<tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6">
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">
           <strong style="text-transform:capitalize">${s.shift_type}</strong><br>
-          <span style="color:#6B7280;font-size:13px">${start} – ${end}</span>
+          <span style="color:${EMAIL_TEXT.secondary};font-size:13px">${start} – ${end}</span>
         </td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${staffNames}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${suLabel}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:12px;text-transform:capitalize;color:${s.status === 'completed' ? '#065F46' : '#92400E'}">${s.status}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${staffNames}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${suLabel}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:12px;text-transform:capitalize;color:${s.status === 'completed' ? EMAIL_TEXT.toneOk : EMAIL_TEXT.toneWarn}">${s.status}</td>
       </tr>`;
     }).join('');
 
     const emarRows = loc.emar.map(e => {
       const missedTotal = e.missed + e.refused;
-      const color = missedTotal > 0 ? '#991B1B' : '#065F46';
-      const bg = missedTotal > 0 ? '#FEE2E2' : '#D1FAE5';
+      const color = missedTotal > 0 ? EMAIL_TEXT.toneBad : EMAIL_TEXT.toneOk;
       return `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${e.person_name}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.required}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.given}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
-          <span style="color:${color};background:${bg};padding:2px 8px;border-radius:10px;font-weight:600">${missedTotal}</span>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${e.person_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">${e.required}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">${e.given}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">
+          <span style="color:${color};background:${EMAIL_TEXT.panelBg};padding:2px 8px;border-radius:10px;font-weight:600">${missedTotal}</span>
         </td>
       </tr>`;
     }).join('');
@@ -1157,14 +1156,14 @@ export class EmailService {
     const emarSection = loc.emar.length > 0
       ? `<tr><td style="padding:20px 0 0 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 12px 0">eMAR Medication Status</td></tr>
+<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">eMAR Medication Status</td></tr>
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-<tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Required</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Given</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Missed/Refused</td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
+<tr style="background:${EMAIL_TEXT.panelBg}">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Required</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Given</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Missed/Refused</td>
 </tr>
 ${emarRows}
 </table>
@@ -1174,26 +1173,26 @@ ${emarRows}
 
     const lowStockRows = loc.low_stock.map(s =>
       `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.medication_name} ${s.dosage}${s.unit}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.person_name || 'Shared stock'}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
-          <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${s.quantity} ${s.quantity_unit || s.unit || ''}</span>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${s.medication_name} ${s.dosage}${s.unit}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${s.person_name || 'Shared stock'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">
+          <span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:2px 8px;border-radius:10px;font-weight:600">${s.quantity} ${s.quantity_unit || s.unit || ''}</span>
         </td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${s.reorder_level}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">${s.reorder_level}</td>
       </tr>`).join('');
 
     const lowStockSection = loc.low_stock.length > 0
       ? `<tr><td style="padding:20px 0 0 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 4px 0">Stock Reorder Alerts</td></tr>
-<tr><td style="font-size:13px;color:#6B7280;padding:0 0 12px 0">${loc.low_stock.length} item(s) at or below reorder level — please arrange delivery.</td></tr>
+<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 4px 0">Stock Reorder Alerts</td></tr>
+<tr><td style="font-size:13px;color:${EMAIL_TEXT.secondary};padding:0 0 12px 0">${loc.low_stock.length} item(s) at or below reorder level — please arrange delivery.</td></tr>
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-<tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Medication</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Remaining</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Reorder At</td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
+<tr style="background:${EMAIL_TEXT.panelBg}">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Remaining</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Reorder At</td>
 </tr>
 ${lowStockRows}
 </table>
@@ -1215,33 +1214,33 @@ ${lowStockRows}
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
 <tr>
-  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:#1F68C7">${loc.total_shifts}</div>
-    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Shifts</div>
+  <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:${EMAIL_BRAND.primaryDeep}">${loc.total_shifts}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Shifts</div>
   </td>
-  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:#1F68C7">${loc.staff_deployed}</div>
-    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Staff Deployed</div>
+  <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:${EMAIL_BRAND.primaryDeep}">${loc.staff_deployed}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Staff Deployed</div>
   </td>
-  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:${loc.staffing_ok ? '#065F46' : '#991B1B'}">${loc.minimum_staff}</div>
-    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Min Required</div>
+  <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:${loc.staffing_ok ? EMAIL_TEXT.toneOk : EMAIL_TEXT.toneBad}">${loc.minimum_staff}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Min Required</div>
   </td>
-  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
+  <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
     ${staffingBadge}
   </td>
 </tr>
 </table>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 12px 0">Shifts Today</td></tr>
+<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">Shifts Today</td></tr>
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-<tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Shift</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Staff</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Status</td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
+<tr style="background:${EMAIL_TEXT.panelBg}">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Shift</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Staff</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Status</td>
 </tr>
 ${shiftRows}
 </table>
@@ -1277,20 +1276,20 @@ ${lowStockSection}`,
         `<p>Hi ${managerName},</p>
 <p><strong>${item.medication_name} ${item.dosage}${item.unit}</strong>${item.person_name ? ` for <strong>${item.person_name}</strong>` : ''} has reached its reorder level.</p>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-<tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Remaining Stock</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Reorder Level</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Location</td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
+<tr style="background:${EMAIL_TEXT.panelBg}">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Remaining Stock</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Reorder Level</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Location</td>
 </tr>
 <tr>
-  <td style="padding:8px 12px;font-size:14px;font-weight:700;color:#991B1B">${remainingLabel}</td>
+  <td style="padding:8px 12px;font-size:14px;font-weight:700;color:${EMAIL_TEXT.toneBad}">${remainingLabel}</td>
   <td style="padding:8px 12px;font-size:14px;text-align:center">${item.reorder_level}</td>
   <td style="padding:8px 12px;font-size:13px">${item.location_name || '—'}</td>
 </tr>
 </table>
 
-<p style="font-size:13px;color:#6B7280">Once stock is below the reorder level, administrations cannot be recorded as given until a delivery is logged. Please arrange a delivery as soon as possible.</p>`,
+<p style="font-size:13px;color:${EMAIL_TEXT.secondary}">Once stock is below the reorder level, administrations cannot be recorded as given until a delivery is logged. Please arrange a delivery as soon as possible.</p>`,
         { label: 'View Stock', url: `${baseUrl()}/emedication` }
       )
     );
@@ -1313,10 +1312,10 @@ ${lowStockSection}`,
     const rows = items.map(i => {
       const time = new Date(i.scheduled_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       return `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${i.person_name}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px"><strong>${i.medication_name}</strong> ${i.dosage}${i.unit}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
-          <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${time}</span>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${i.person_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px"><strong>${i.medication_name}</strong> ${i.dosage}${i.unit}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">
+          <span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:2px 8px;border-radius:10px;font-weight:600">${time}</span>
         </td>
       </tr>`;
     }).join('');
@@ -1329,16 +1328,16 @@ ${lowStockSection}`,
         `<p>Hi ${recipientName},</p>
 <p>${items.length} medication administration${items.length !== 1 ? 's are' : ' is'} overdue by more than <strong>${delayMinutes} minutes</strong>. Please check on the person(s) and administer where appropriate.</p>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-<tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Medication</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Scheduled</td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
+<tr style="background:${EMAIL_TEXT.panelBg}">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Scheduled</td>
 </tr>
 ${rows}
 </table>
 
-<p style="font-size:13px;color:#6B7280">Any omitted or refused administration must be recorded on the MAR chart and reported to the prescriber if required.</p>`,
+<p style="font-size:13px;color:${EMAIL_TEXT.secondary}">Any omitted or refused administration must be recorded on the MAR chart and reported to the prescriber if required.</p>`,
         { label: 'Open eMAR', url: `${baseUrl()}/emedication` }
       )
     );
