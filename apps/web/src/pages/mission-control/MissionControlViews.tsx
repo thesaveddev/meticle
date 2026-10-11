@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Card, SectionError } from '../../components/ui'
 import api from '../../services/api'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 import {
   formatDate, formatTime, statusTitle, useMissionControlContext,
   type HomecareData, type PulseData,
@@ -59,7 +60,7 @@ function ActionRow({ icon, title, description, count, href, tone = 'warning' }: 
 }) {
   const navigate = useNavigate()
   const color = tone === 'danger' ? '#B42318' : tone === 'info' ? '#175CD3' : '#9A6700'
-  const soft = tone === 'danger' ? '#FEF3F2' : tone === 'info' ? '#EFF8FF' : '#FFFAEB'
+  const soft = tone === 'danger' ? METICLE_COLORS.dangerSoft : tone === 'info' ? METICLE_COLORS.infoSoft : METICLE_COLORS.warningSoft
   return (
     <Box
       component="button" type="button" onClick={() => navigate(href)}

@@ -6,6 +6,7 @@ import { SectionError } from '../../components/ui'
 import PageContainer from '../../components/design/PageContainer'
 import PageMeta from '../../components/PageMeta'
 import api from '../../services/api'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 
 export type ServiceModel = 'domiciliary' | 'supported_living'
 
@@ -135,8 +136,8 @@ function MissionControlTabs({ search }: { search: string }) {
             textTransform: 'none', flexShrink: 0, px: 1.75, py: 1.1, borderRadius: 0,
             borderBottom: '3px solid transparent', color: 'text.secondary', fontWeight: 500,
             '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
-            '&[aria-current="page"]': { color: '#0170FD', fontWeight: 700, borderBottomColor: '#0170FD', bgcolor: '#EFF8FF' },
-            '&:focus-visible': { outline: '2px solid', outlineColor: '#0170FD', outlineOffset: 2 },
+            '&[aria-current="page"]': { color: METICLE_COLORS.primary, fontWeight: 700, borderBottomColor: METICLE_COLORS.primary, bgcolor: METICLE_COLORS.infoSoft },
+            '&:focus-visible': { outline: '2px solid', outlineColor: METICLE_COLORS.primary, outlineOffset: 2 },
           }}
         >{tab.label}</Button>
       ))}

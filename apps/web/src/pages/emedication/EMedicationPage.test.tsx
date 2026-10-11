@@ -66,7 +66,8 @@ function renderPage() {
 async function openAddMedicationDialog() {
   renderPage()
   fireEvent.click(await screen.findByText('Ada Lovelace'))
-  fireEvent.click(await screen.findByRole('button', { name: 'Add Medication' }))
+  // The button renders only once the MAR chart query resolves; allow a cold-start window.
+  fireEvent.click(await screen.findByRole('button', { name: 'Add Medication' }, { timeout: 5000 }))
   return screen.findByRole('dialog')
 }
 

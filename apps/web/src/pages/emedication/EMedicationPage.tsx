@@ -7,6 +7,7 @@ import api from '../../services/api'
 import { formatDateOnly, parseDateOnly } from '../../utils/dateFormat'
 import { P } from '../../styles/tokens'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 import { EX } from '../../styles/export-tokens'
 import { countPeopleOnActiveMedication, getMedicationDailyMetrics } from './medicationMetrics'
 
@@ -153,7 +154,7 @@ function formatMonthLabel(ym: string) {
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Box component="section" aria-label={title} sx={{ minWidth: 0 }}>
-      <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600, color: '#101828', mb: 1.5, fontSize: 14 }}>{title}</Typography>
+      <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600, color: METICLE_COLORS.text, mb: 1.5, fontSize: 14 }}>{title}</Typography>
       {children}
     </Box>
   )
@@ -162,7 +163,7 @@ function FormSection({ title, children }: { title: string; children: React.React
 const medicationDialogPaperSx = {
   width: { xs: '100%', md: 960 }, maxWidth: '100%', m: { xs: 0, sm: 2 },
   height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' },
-  borderRadius: { xs: 0, sm: '18px' }, border: '1px solid #E4EAF2',
+  borderRadius: { xs: 0, sm: '18px' }, border: `1px solid ${METICLE_COLORS.border}`,
   boxShadow: '0 24px 48px rgba(16, 24, 40, 0.16)',
   display: 'flex', flexDirection: 'column', overflow: 'hidden',
 } as const
@@ -2284,10 +2285,10 @@ export default function EMedicationPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 1.5, md: 2.5 }, bgcolor: '#F7F9FC', minWidth: 0 }}>
+    <Box sx={{ py: { xs: 1.5, md: 2.5 }, bgcolor: 'notice.muted.bg', minWidth: 0 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }} className="no-print">
         <Box>
-          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 700, color: '#101828', letterSpacing: '-0.025em' }}>Medication (eMAR)</Typography>
+          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 700, color: METICLE_COLORS.text, letterSpacing: '-0.025em' }}>Medication (eMAR)</Typography>
           <Typography variant="body2" sx={{ color: '#667085', mt: 0.25 }}>Administration records, stock, deliveries and controlled-drug counts.</Typography>
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
@@ -2318,8 +2319,8 @@ export default function EMedicationPage() {
       )}
 
       {/* Tabs */}
-      <Paper sx={{ mb: 2, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
-        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#667085', '&.Mui-selected': { color: '#0170FD' } }, '& .MuiTabs-indicator': { backgroundColor: '#0170FD', height: 3 } }}>
+      <Paper sx={{ mb: 2, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
+        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#667085', '&.Mui-selected': { color: METICLE_COLORS.primary } }, '& .MuiTabs-indicator': { backgroundColor: METICLE_COLORS.primary, height: 3 } }}>
           <Tab id="emed-tab-0" aria-controls="emed-panel-0" label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
           <Tab id="emed-tab-1" aria-controls="emed-panel-1" label="Stock" icon={<InventoryIcon />} iconPosition="start" />
           <Tab id="emed-tab-2" aria-controls="emed-panel-2" label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
@@ -2332,16 +2333,16 @@ export default function EMedicationPage() {
       {tab === 0 && (
         <Box id="emed-panel-0" role="tabpanel" aria-labelledby="emed-tab-0">
           <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
-            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? '#F04438' : '#667085' },
+            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? METICLE_COLORS.danger : '#667085' },
 
-              { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: selectedPerson ? 'Scheduled doses' : 'Select a person for count', icon: <TodayIcon fontSize="small" />, color: '#2E90FA' },
-              { label: 'Administered today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: selectedPerson ? 'Recorded as given' : 'Select a person for count', icon: <CheckIcon fontSize="small" />, color: '#12B76A' },
-              { label: 'Missed today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? missedTodayCount : '—', detail: selectedPerson ? 'Explicitly recorded' : 'Select a person for count', icon: <CloseIcon fontSize="small" />, color: '#F04438' },
-              { label: 'People on medication', value: peopleOnMedication, detail: 'Active MAR records', icon: <PersonIcon fontSize="small" />, color: '#0170FD' },
+              { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: selectedPerson ? 'Scheduled doses' : 'Select a person for count', icon: <TodayIcon fontSize="small" />, color: METICLE_COLORS.info },
+              { label: 'Administered today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: selectedPerson ? 'Recorded as given' : 'Select a person for count', icon: <CheckIcon fontSize="small" />, color: METICLE_COLORS.success },
+              { label: 'Missed today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? missedTodayCount : '—', detail: selectedPerson ? 'Explicitly recorded' : 'Select a person for count', icon: <CloseIcon fontSize="small" />, color: METICLE_COLORS.danger },
+              { label: 'People on medication', value: peopleOnMedication, detail: 'Active MAR records', icon: <PersonIcon fontSize="small" />, color: METICLE_COLORS.primary },
             ].map(metric => <Grid item xs={6} sm={4} lg key={metric.label}>
-              <Paper variant="outlined" sx={{ p: 1.5, height: '100%', minHeight: 104, borderColor: '#E4EAF2', borderRadius: 2, bgcolor: '#fff' }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%', minHeight: 104, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
                 <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F2F4F7' : metric.color === '#F04438' ? NOTICE_COLORS.error.bg : metric.color === '#12B76A' ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
+                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F2F4F7' : metric.color === METICLE_COLORS.danger ? NOTICE_COLORS.error.bg : metric.color === METICLE_COLORS.success ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
                     <Typography variant="h5" sx={{ mt: 0.2, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{metric.value}</Typography>
@@ -2352,7 +2353,7 @@ export default function EMedicationPage() {
             </Grid>)}
           </Grid>
 
-          <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, borderColor: '#E4EAF2', borderRadius: 2, bgcolor: '#fff' }}>
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
             <Grid container spacing={1.25} alignItems="center">
               <Grid item xs={12} sm={6} md={4}>
                 <TextField size="small" fullWidth label="Search by name" placeholder="Search by name..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
@@ -2376,10 +2377,10 @@ export default function EMedicationPage() {
 
           <Grid container spacing={1.5}>
             <Grid item xs={12} md={3.25}>
-              <Paper sx={{ p: 1.5, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
+              <Paper sx={{ p: 1.5, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Box>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: '#101828' }}>People</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: METICLE_COLORS.text }}>People</Typography>
                     <Typography variant="caption" color="text.secondary">{visiblePeople.length} of {(people || []).length} people</Typography>
                   </Box>
                   {selectedPerson && (
@@ -2419,27 +2420,27 @@ export default function EMedicationPage() {
                     {visiblePeople.map((person: any) => {
                       const isSelected = selectedPerson?.id === person.id
                       const isOnMedication = personHasMedication(person.id)
-                      return <Box key={person.id} component="button" type="button" onClick={() => { setSelectedPerson(person); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)); setPersonMedicationSearch('') }} sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, p: 1, border: '1px solid', borderColor: isSelected ? '#0170FD' : 'transparent', borderRadius: 1.5, bgcolor: isSelected ? '#EFF8FF' : 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: isSelected ? '#EFF8FF' : '#F8FAFC' }, '&:focus-visible': { outline: '2px solid #0170FD', outlineOffset: 1 } }}>
-                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: '#EFF8FF', color: '#175CD3' }}><PersonIcon fontSize="small" /></Box>
+                      return <Box key={person.id} component="button" type="button" onClick={() => { setSelectedPerson(person); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)); setPersonMedicationSearch('') }} sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, p: 1, border: '1px solid', borderColor: isSelected ? METICLE_COLORS.primary : 'transparent', borderRadius: 1.5, bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'notice.subtle.bg' }, '&:focus-visible': { outline: `2px solid ${METICLE_COLORS.primary}`, outlineOffset: 1 } }}>
+                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: METICLE_COLORS.infoSoft, color: '#175CD3' }}><PersonIcon fontSize="small" /></Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={600} noWrap>{person.first_name} {person.last_name}</Typography><Typography variant="caption" color="text.secondary" noWrap>{person.location_name || locations.find((loc: any) => loc.id === person.location_id)?.name || 'No location'}</Typography></Box>
-                        {isOnMedication && <Box aria-label="Active medication record" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#12B76A', flexShrink: 0 }} />}
+                        {isOnMedication && <Box aria-label="Active medication record" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: METICLE_COLORS.success, flexShrink: 0 }} />}
                       </Box>
                     })}
                   </Stack>
                 )}
                 {recordsLoading || ensureMarMutation.isPending ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box> : selectedPerson && (!recordsData || recordsData.length === 0) ? (
-                  <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: '#F8FAFC', border: '1px solid #E4EAF2' }}>
+                  <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: 'notice.subtle.bg', border: `1px solid ${METICLE_COLORS.border}` }}>
                     <Typography variant="caption" color="text.secondary">No active chart for this person.</Typography>
                     <Button size="small" variant="text" startIcon={<ArchiveOutlined />} onClick={() => navigate('/emedication/archived')} sx={{ display: 'flex', mt: 0.5 }}>View archived charts</Button>
                   </Box>
-                ) : selectedPerson && <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: activeRecord ? '#EFF8FF' : '#FEF0F0', border: '1px solid', borderColor: activeRecord ? '#D1E9FF' : '#FECDCA' }}>
+                ) : selectedPerson && <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: activeRecord ? METICLE_COLORS.infoSoft : '#FEF0F0', border: '1px solid', borderColor: activeRecord ? METICLE_COLORS.infoSoft : METICLE_COLORS.dangerSoft }}>
                   {activeRecord ? <><Typography variant="body2" fontWeight={600}>{activeRecord.title}</Typography><Typography variant="caption" color="text.secondary" display="block">{new Date(activeRecord.start_date).toLocaleDateString()} – {new Date(activeRecord.end_date).toLocaleDateString()}</Typography><Typography variant="caption" color="text.secondary">{chartData?.items?.length || 0} medication{(chartData?.items?.length || 0) !== 1 ? 's' : ''}</Typography></> : <Typography variant="caption" color="text.secondary">No chart for this month</Typography>}
                 </Box>}
               </Paper>
             </Grid>
 
             <Grid item xs={12} md={8.75}>
-              {!activeRecord ? (                  <Paper sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
+              {!activeRecord ? (                  <Paper sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
                   <Box sx={{
                     width: 56, height: 56, borderRadius: 2, bgcolor: EMR.bone,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2
@@ -2448,7 +2449,7 @@ export default function EMedicationPage() {
                   </Box>
                   {!selectedPerson ? (
                     <>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#101828' }}>Select a person to view their MAR</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>Select a person to view their MAR</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Choose a person above to open their medication administration record and log administrations.
                       </Typography>
@@ -2851,7 +2852,7 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 1: Stock ═══ */}
       {tab === 1 && (
-        <Paper id="emed-panel-1" role="tabpanel" aria-labelledby="emed-tab-1" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
+        <Paper id="emed-panel-1" role="tabpanel" aria-labelledby="emed-tab-1" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Stock Inventory</Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -3032,7 +3033,7 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 2: Deliveries ═══ */}
       {tab === 2 && (
-        <Paper id="emed-panel-2" role="tabpanel" aria-labelledby="emed-tab-2" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
+        <Paper id="emed-panel-2" role="tabpanel" aria-labelledby="emed-tab-2" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Delivery Tracking</Typography>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)}>
@@ -3220,7 +3221,7 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 4: Audit Log ═══ */}
       {canManage && tab === 4 && (
-        <Paper id="emed-panel-4" role="tabpanel" aria-labelledby="emed-tab-4" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
+        <Paper id="emed-panel-4" role="tabpanel" aria-labelledby="emed-tab-4" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Medication Audit Trail</Typography>
           {!auditLogsData || auditLogsData.length === 0 ? (
             <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No audit log entries yet — actions on this page will appear here.</Typography>
@@ -3307,12 +3308,12 @@ export default function EMedicationPage() {
         maxWidth={false}
         PaperProps={{ sx: medicationDialogPaperSx }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 3, pt: 2.5, pb: 2, borderBottom: '1px solid #E4EAF2', flexShrink: 0 }}>
-          <Box sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#EAF3FF', color: '#0170FD' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 3, pt: 2.5, pb: 2, borderBottom: `1px solid ${METICLE_COLORS.border}`, flexShrink: 0 }}>
+          <Box sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#EAF3FF', color: METICLE_COLORS.primary }}>
             <MedIcon fontSize="small" />
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <DialogTitle id="medication-dialog-title" component="h2" sx={{ p: 0, fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: '#101828' }}>
+            <DialogTitle id="medication-dialog-title" component="h2" sx={{ p: 0, fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: METICLE_COLORS.text }}>
               {editItem ? 'Edit Medication' : 'Add Medication'}
             </DialogTitle>
             <Typography variant="body2" color="text.secondary">
@@ -3325,8 +3326,8 @@ export default function EMedicationPage() {
         </Box>
 
         {selectedPerson && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, py: 1.5, bgcolor: '#F4F8FF', borderBottom: '1px solid #E4EAF2', flexShrink: 0 }}>
-            <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#FFFFFF', color: '#0170FD', border: '1px solid #D6E4FB' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, py: 1.5, bgcolor: '#F4F8FF', borderBottom: `1px solid ${METICLE_COLORS.border}`, flexShrink: 0 }}>
+            <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#FFFFFF', color: METICLE_COLORS.primary, border: `1px solid ${METICLE_COLORS.borderStrong}` }}>
               <PersonIcon fontSize="small" />
             </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -3368,14 +3369,14 @@ export default function EMedicationPage() {
                         }}
                         sx={{
                           flex: 1, textAlign: 'left', p: 1.5, borderRadius: '10px', border: '1.5px solid',
-                          borderColor: selected ? '#0170FD' : '#E4EAF2', bgcolor: selected ? '#EFF8FF' : '#FFFFFF',
+                          borderColor: selected ? METICLE_COLORS.primary : METICLE_COLORS.border, bgcolor: selected ? METICLE_COLORS.infoSoft : '#FFFFFF',
                           cursor: 'pointer', font: 'inherit', color: 'inherit',
                           transition: 'border-color 120ms ease, background-color 120ms ease',
-                          '&:hover': { borderColor: selected ? '#0170FD' : '#B2CCFF' },
-                          '&:focus-visible': { outline: '2px solid #0170FD', outlineOffset: 2 },
+                          '&:hover': { borderColor: selected ? METICLE_COLORS.primary : METICLE_COLORS.primary },
+                          '&:focus-visible': { outline: `2px solid ${METICLE_COLORS.primary}`, outlineOffset: 2 },
                         }}
                       >
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: selected ? '#0170FD' : '#101828' }}>{option.label}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: selected ? METICLE_COLORS.primary : METICLE_COLORS.text }}>{option.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{option.description}</Typography>
                       </Box>
                     )
@@ -3503,13 +3504,13 @@ export default function EMedicationPage() {
                     </Box>
                     <TextField label="Instructions / notes" fullWidth value={itemForm.instructions}
                       onChange={(e) => setItemForm(p => ({ ...p, instructions: e.target.value }))} size="small" multiline rows={3} sx={medicationFieldSx} />
-                    <Box sx={{ p: 1.5, borderRadius: '10px', border: '1px solid', borderColor: itemForm.is_controlled_drug ? '#FEDF89' : '#E4EAF2', bgcolor: itemForm.is_controlled_drug ? '#FFFCF5' : '#FFFFFF' }}>
+                    <Box sx={{ p: 1.5, borderRadius: '10px', border: '1px solid', borderColor: itemForm.is_controlled_drug ? METICLE_COLORS.warningSoft : METICLE_COLORS.border, bgcolor: itemForm.is_controlled_drug ? METICLE_COLORS.warningSoft : '#FFFFFF' }}>
                       <FormControlLabel sx={{ m: 0 }}
                         control={<Checkbox size="small" checked={itemForm.is_controlled_drug}
                           onChange={(e) => setItemForm(p => ({ ...p, is_controlled_drug: e.target.checked }))} />}
                         label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Controlled drug (CD)</Typography>} />
                       <Stack direction="row" spacing={0.75} alignItems="flex-start" sx={{ pl: 4, mt: 0.25 }}>
-                        <WarningAmberOutlined sx={{ fontSize: 16, color: '#B54708', mt: '2px' }} />
+                        <WarningAmberOutlined sx={{ fontSize: 16, color: METICLE_COLORS.warningText, mt: '2px' }} />
                         <Typography variant="caption" color="text.secondary">Existing controlled drug recording requirements still apply.</Typography>
                       </Stack>
                     </Box>
@@ -3532,14 +3533,14 @@ export default function EMedicationPage() {
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #E4EAF2', bgcolor: '#FFFFFF', gap: 1, flexShrink: 0 }}>
+        <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${METICLE_COLORS.border}`, bgcolor: '#FFFFFF', gap: 1, flexShrink: 0 }}>
           <Button onClick={() => setItemDialog(false)} variant="outlined"
-            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', borderColor: '#D0D5DD', color: '#344054' }}>
+            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', borderColor: METICLE_COLORS.borderStrong, color: '#344054' }}>
             Cancel
           </Button>
           <Button variant="contained" onClick={handleSaveItem} disabled={itemSaveDisabled}
             startIcon={itemSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
-            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', bgcolor: '#0170FD', '&:hover': { bgcolor: '#0052EE' } }}>
+            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', bgcolor: METICLE_COLORS.primary, '&:hover': { bgcolor: METICLE_COLORS.primaryHover } }}>
             {itemSaving ? (editItem ? 'Saving…' : 'Adding…') : (editItem ? 'Save Changes' : 'Add Medication')}
           </Button>
         </DialogActions>
