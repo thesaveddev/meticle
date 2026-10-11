@@ -42,11 +42,12 @@ export interface DailyOverview {
   appointments: Array<{ id: string; title: string; start_time: string; status: string; person_name: string; room: string | null; photo_url: string | null }>
 }
 
-export function useDailyOverview() {
+export function useDailyOverview(enabled = true) {
   return useQuery<DailyOverview>({
     queryKey: ['dashboard', 'daily-overview'],
     queryFn: () => api.get('/dashboard/daily-overview', { timeout: 15000 }).then(r => r.data),
     refetchInterval: 60_000,
+    enabled,
   })
 }
 

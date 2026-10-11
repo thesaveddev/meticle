@@ -74,6 +74,29 @@ export const MissionControlAlertConsumer: EventConsumer = {
         break;
       }
 
+      case 'staffing.coverage_low': {
+        const p = event.payload as any;
+        const severity = p.coverage_percent < p.required_coverage_percent - 15 || p.unstaffed_shifts > 0 ? 'critical' : 'high';
+        const worst = Array.isArray(p.affected_shifts) ? p.affected_shifts[0] : null;
+        const detail = worst
+          ? `Lowest coverage: ${worst.location_name}, ${worst.assigned_staff}/${worst.minimum_staff} staff on ${formatDate(worst.start_time)}.`
+          : 'No location met its configured staffing minimum.';
+        await upsertAlert(orgId, alertType, aggregateId, severity,
+          `Staffing coverage below target: ${p.coverage_percent}%`,
+          `${p.below_minimum_shifts} of ${p.shifts_with_target} shifts are below minimum; ${p.staffing_shortfall} staff needed to fill the gaps. Target ${p.required_coverage_percent}%. ${detail}`,
+          `/scheduling`, null, null);
+        break;
+      }
+
+      case 'staffing.coverage_recovered': {
+        await query(
+          `UPDATE mission_control_alerts SET dismissed = TRUE, updated_at = NOW()
+           WHERE organization_id = $1 AND alert_type = 'staffing.coverage_low' AND aggregate_id = $2 AND dismissed = FALSE`,
+          [orgId, aggregateId]
+        );
+        break;
+      }
+
       case 'training.expiring': {
         const p = event.payload as any;
         const severity = p.days_remaining <= 0 ? 'high' : p.days_remaining <= 14 ? 'medium' : 'low';

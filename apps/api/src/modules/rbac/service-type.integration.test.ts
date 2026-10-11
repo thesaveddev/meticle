@@ -15,7 +15,7 @@ type RestrictedEndpoint = {
 
 const sharedCareEndpoints: RestrictedEndpoint[] = [
   { name: 'people', method: 'get', path: '/people' },
-  { name: 'health', method: 'get', path: '/health/person-00000000-0000-0000-0000-000000000000/observations' },
+  { name: 'health', method: 'get', path: '/health/00000000-0000-0000-0000-000000000000/observations' },
   { name: 'goals', method: 'get', path: '/goals' },
   { name: 'incidents', method: 'get', path: '/incidents' },
   { name: 'leave', method: 'get', path: '/leave/my-requests' },
@@ -30,7 +30,12 @@ const supportedLivingEndpoints: RestrictedEndpoint[] = [
   { name: 'expenses', method: 'get', path: '/expenses' },
   { name: 'tasks', method: 'get', path: '/tasks' },
   { name: 'room checks', method: 'get', path: '/room-checks' },
-  { name: 'supported-living dashboard', method: 'get', path: '/dashboard/stats' },
+  { name: 'supported-living dashboard stats', method: 'get', path: '/dashboard/stats' },
+  { name: 'supported-living dashboard compliance', method: 'get', path: '/dashboard/compliance' },
+  { name: 'supported-living dashboard rota', method: 'get', path: '/dashboard/today-rota' },
+  { name: 'supported-living dashboard widgets', method: 'get', path: '/dashboard/widgets' },
+  { name: 'supported-living dashboard review scheduler', method: 'get', path: '/dashboard/review-scheduler' },
+  { name: 'supported-living daily overview', method: 'get', path: '/dashboard/daily-overview' },
   { name: 'supported-living Mission Control', method: 'get', path: '/mission-control/summary' },
   { name: 'AI rota analysis', method: 'post', path: '/ai/analyze/rota' },
   { name: 'AI meal-plan generation', method: 'post', path: '/ai/generate/meal-plan' },
@@ -38,6 +43,7 @@ const supportedLivingEndpoints: RestrictedEndpoint[] = [
 
 const domiciliaryEndpoints: RestrictedEndpoint[] = [
   { name: 'homecare packages', method: 'get', path: '/homecare/packages' },
+  { name: 'assigned homecare visits', method: 'get', path: '/homecare/my-visits' },
   { name: 'domiciliary dashboard', method: 'get', path: '/dashboard/domiciliary' },
   { name: 'domiciliary Mission Control', method: 'get', path: '/mission-control/homecare-summary' },
   { name: 'homecare compliance', method: 'get', path: '/cqc/homecare-compliance' },
@@ -98,6 +104,15 @@ describe('service-type API boundary matrix', () => {
   it.each(domiciliaryEndpoints)('returns 403 for a supported-living organisation on $name', async endpoint => {
     const response = await callEndpoint(app, endpoint, generateToken(supportedLivingUser))
     expect(response.status, `${endpoint.method.toUpperCase()} ${endpoint.path}: ${JSON.stringify(response.body)}`).toBe(403)
+  })
+
+  it('allows the domiciliary dashboard and assigned visits for a domiciliary organisation', async () => {
+    const token = generateToken(domiciliaryUser)
+    const dashboardResponse = await request(app).get('/dashboard/domiciliary').set('Authorization', `Bearer ${token}`)
+    expect(dashboardResponse.status, JSON.stringify(dashboardResponse.body)).toBe(200)
+
+    const visitsResponse = await request(app).get('/homecare/my-visits').set('Authorization', `Bearer ${token}`)
+    expect(visitsResponse.status, JSON.stringify(visitsResponse.body)).toBe(200)
   })
 
   it('returns 403 for a malformed shared-module service configuration', async () => {

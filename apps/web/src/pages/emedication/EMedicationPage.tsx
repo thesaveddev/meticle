@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined, Person as PersonIcon, Search as SearchIcon, Today as TodayIcon } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { formatDateOnly, parseDateOnly } from '../../utils/dateFormat'
 import { P } from '../../styles/tokens'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { EX } from '../../styles/export-tokens'
+import { countPeopleOnActiveMedication, getMedicationDailyMetrics } from './medicationMetrics'
 
 const ROUTES = ['oral', 'topical', 'injection', 'inhalation', 'rectal', 'sublingual', 'other']
 const FREQUENCIES = ['once daily', 'twice daily', 'three times daily', 'four times daily', 'as required (PRN)', 'weekly', 'monthly']
@@ -148,6 +149,26 @@ function formatMonthLabel(ym: string) {
   return `${MONTH_NAMES[m - 1]} ${y}`
 }
 
+/** Numbered section of the Add Medication dialog. */
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Box component="section" aria-label={title} sx={{ minWidth: 0 }}>
+      <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600, color: '#101828', mb: 1.5, fontSize: 14 }}>{title}</Typography>
+      {children}
+    </Box>
+  )
+}
+
+const medicationDialogPaperSx = {
+  width: { xs: '100%', md: 960 }, maxWidth: '100%', m: { xs: 0, sm: 2 },
+  height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' },
+  borderRadius: { xs: 0, sm: '18px' }, border: '1px solid #E4EAF2',
+  boxShadow: '0 24px 48px rgba(16, 24, 40, 0.16)',
+  display: 'flex', flexDirection: 'column', overflow: 'hidden',
+} as const
+
+const medicationFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: '10px', minHeight: 44, bgcolor: '#FFFFFF' } } as const
+
 export default function EMedicationPage() {
   const navigate = useNavigate()
   // Deep links (Mission Control alerts, notification inbox) open the stock tab
@@ -164,6 +185,10 @@ export default function EMedicationPage() {
     err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || fallback
 
   const [selectedPerson, setSelectedPerson] = useState<any>(null)
+  const [personSearch, setPersonSearch] = useState('')
+  const [personStatusFilter, setPersonStatusFilter] = useState('all')
+  const [personMedicationSearch, setPersonMedicationSearch] = useState('')
+  const [selectedLocationFilter, setSelectedLocationFilter] = useState('all')
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [month, setMonth] = useState(() => {
     const m = todayStr().slice(0, 7)
@@ -243,11 +268,29 @@ export default function EMedicationPage() {
   const [countSession, setCountSession] = useState('end_of_day')
   const [editingCount, setEditingCount] = useState<any>(null)
 
-  // Fetch people
-  const { data: people, isError: suError } = useQuery({
+  // Fetch people and authorized organization locations using existing tenant-scoped APIs.
+  const { data: people, isError: suError, isLoading: peopleLoading } = useQuery({
     queryKey: ['people-list'],
     queryFn: async () => { const res = await api.get('/people'); return res.data as any[] }
   })
+  const { data: locations = [], isError: locationsError } = useQuery({
+    queryKey: ['emedication-authorized-locations'],
+    queryFn: async () => {
+      const organizationId = currentUser.organization_id || currentUser.organizationId
+      if (!organizationId) return []
+      const res = await api.get(`/organizations/${organizationId}/locations`)
+      return Array.isArray(res.data) ? res.data : []
+    },
+    enabled: !!(currentUser.organization_id || currentUser.organizationId),
+    staleTime: 60_000,
+  })
+  const visiblePeople = useMemo(() => (people || []).filter((person: any) => {
+    const name = `${person.first_name || ''} ${person.last_name || ''}`.toLowerCase()
+    const matchesName = !personSearch.trim() || name.includes(personSearch.trim().toLowerCase())
+    const matchesStatus = personStatusFilter === 'all' || String(person.status || '').toLowerCase() === personStatusFilter
+    const matchesLocation = selectedLocationFilter === 'all' || person.location_id === selectedLocationFilter
+    return matchesName && matchesStatus && matchesLocation
+  }), [people, personSearch, personStatusFilter, selectedLocationFilter])
 
   // Fetch staff
   const { data: staffList } = useQuery({
@@ -280,6 +323,15 @@ export default function EMedicationPage() {
     },
     enabled: !!selectedPerson
   })
+  const { data: organizationMedicationRecords, isLoading: organizationRecordsLoading, isError: organizationRecordsError } = useQuery({
+    queryKey: ['emedication-records-overview'],
+    queryFn: async () => {
+      const res = await api.get('/emedication/records')
+      return (res.data as MedicationRecord[]).filter(record => record.status === 'active')
+    },
+    enabled: tab === 0,
+    staleTime: 30_000,
+  })
 
   // Derive active record by matching month string to record TITLE (e.g. "July 2026 MAR").
   // Uses normalizeTitle to handle any locale or formatting differences.
@@ -309,12 +361,37 @@ export default function EMedicationPage() {
     enabled: !!activeRecord
   })
 
-  // Overdue
-  const { data: overdueData } = useQuery({
+  // Overdue administrations are the existing backend-defined pending doses >30 minutes late.
+  const { data: overdueData, isLoading: overdueLoading, isError: overdueError } = useQuery({
     queryKey: ['emedication-overdue'],
     queryFn: async () => { const res = await api.get('/emedication/overdue'); return res.data as any[] },
     refetchInterval: 60000
   })
+  const { data: overdueCountData, isLoading: overdueCountLoading, isError: overdueCountError } = useQuery({
+    queryKey: ['emedication-overdue-count'],
+    queryFn: async () => { const res = await api.get('/emedication/overdue/count'); return res.data as { count: number } },
+    refetchInterval: 60000,
+  })
+
+  const today = todayStr()
+  const overdueCount = overdueCountData?.count ?? overdueData?.length ?? 0
+  const activeRecordsByPerson = useMemo(() => new Set(
+    (organizationMedicationRecords || []).map(record => record.person_id),
+  ), [organizationMedicationRecords])
+  const peopleOnMedication = peopleLoading || organizationRecordsLoading || suError || organizationRecordsError
+    ? '—'
+    : countPeopleOnActiveMedication(people || [], organizationMedicationRecords || [])
+  const personHasMedication = (personId: string) => activeRecordsByPerson.has(personId)
+  const dailyMetrics = getMedicationDailyMetrics(chartData, today)
+  const dueTodayCount = dailyMetrics.dueToday
+  const administeredTodayCount = dailyMetrics.administeredToday
+  const missedTodayCount = dailyMetrics.missedToday
+  const filteredMarItems = useMemo(() => {
+    const query = personMedicationSearch.trim().toLowerCase()
+    return query ? (chartData?.items || []).filter((item: MedicationItem) =>
+      `${item.name} ${item.dosage} ${item.unit} ${item.route} ${item.instructions || ''}`.toLowerCase().includes(query),
+    ) : (chartData?.items || [])
+  }, [chartData, personMedicationSearch])
 
   // Stock
   const { data: stockData, isLoading: stockLoading, isError: stockError } = useQuery({
@@ -332,7 +409,7 @@ export default function EMedicationPage() {
 
   // Stock scoped to the person whose MAR is being viewed, for the "From stock" source
   // when adding a medication to a chart. Includes shared stock (person_id NULL).
-  const { data: itemStockData, isLoading: itemStockLoading } = useQuery({
+  const { data: itemStockData, isLoading: itemStockLoading, isError: itemStockError } = useQuery({
     queryKey: ['emedication-stock', 'item-dialog', selectedPerson?.id],
     queryFn: async () => {
       const res = await api.get('/emedication/stock')
@@ -427,7 +504,8 @@ export default function EMedicationPage() {
       setItemForm({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
       const linked = (res.data as any)?.stock_item_id
       setSuccessMsg(linked ? 'Medication added from stock' : 'Medication added - stock entry auto-created'); setTimeout(() => setSuccessMsg(''), 3000)
-    }
+    },
+    onError: (err: any) => setErrorMsg(apiErrorMsg(err, 'Failed to add the medication. Your entries have been kept.'))
   })
 
   const itemUpdateMutation = useMutation({
@@ -437,7 +515,8 @@ export default function EMedicationPage() {
       setItemDialog(false); setEditItem(null)
       setItemForm({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
       setSuccessMsg('Medication updated'); setTimeout(() => setSuccessMsg(''), 3000)
-    }
+    },
+    onError: (err: any) => setErrorMsg(apiErrorMsg(err, 'Failed to update the medication. Your changes have been kept.'))
   })
 
   const itemDeleteMutation = useMutation({
@@ -690,6 +769,10 @@ export default function EMedicationPage() {
   }
 
   const handleSaveItem = () => {
+    if (itemForm.start_date && itemForm.end_date && itemForm.end_date < itemForm.start_date) {
+      setErrorMsg('End date must be on or after the start date')
+      return
+    }
     const data: any = { ...itemForm }
     if (!data.start_date) delete data.start_date
     if (!data.end_date) delete data.end_date
@@ -1931,10 +2014,21 @@ export default function EMedicationPage() {
     setItemForm(p => ({ ...p, times: p.times.filter(x => x !== t) }))
   }
 
-  // Derive display data — archived (inactive) items are kept out of the active MAR
-  const regularItems = chartData?.items.filter((i: any) => !i.is_prn && i.is_active) || []
-  const prnItems = chartData?.items.filter((i: any) => i.is_prn && i.is_active) || []
-  const archivedItems = chartData?.items.filter((i: any) => !i.is_active) || []
+  // Dialog validation. Dates are YYYY-MM-DD strings, so string comparison is a valid date comparison.
+  const itemDateRangeInvalid = !!(itemForm.start_date && itemForm.end_date && itemForm.end_date < itemForm.start_date)
+  const itemSaving = editItem ? itemUpdateMutation.isPending : itemCreateMutation.isPending
+  const itemSaveDisabled = (() => {
+    if (!itemForm.name || !itemForm.dosage || itemDateRangeInvalid) return true
+    const maxTimes = getMaxTimesForFrequency(itemForm.frequency)
+    if (maxTimes !== null && itemForm.times.length !== maxTimes) return true
+    return itemSaving
+  })()
+
+  // Derive display data — archived (inactive) items are kept out of the active MAR.
+  // Keep PRN and inactive records available to the existing chart/print workflows.
+  const regularItems = filteredMarItems.filter((i: any) => !i.is_prn && i.is_active)
+  const prnItems = filteredMarItems.filter((i: any) => i.is_prn && i.is_active)
+  const archivedItems = (chartData?.items || []).filter((i: any) => !i.is_active)
 
   // Resolve an item's active stock record (linked, or matched by identity for imported/PRN items)
   const getItemStock = (item: MedicationItem | null | undefined): StockItem | undefined => {
@@ -2190,18 +2284,17 @@ export default function EMedicationPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, md: 3 }, bgcolor: EMR.bone, border: `1px solid ${EMR.hairline}`, borderRadius: 3 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 3 }} className="no-print">
+    <Box sx={{ py: { xs: 1.5, md: 2.5 }, bgcolor: '#F7F9FC', minWidth: 0 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }} className="no-print">
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 600, color: EMR.ink, letterSpacing: '-0.01em' }}>Medication (eMAR)</Typography>
-          <Typography variant="body2" sx={{ color: EMR.mist, mt: 0.25 }}>
-            Administration record, stock, deliveries and controlled-drug counts.
-          </Typography>
+          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 700, color: '#101828', letterSpacing: '-0.025em' }}>Medication (eMAR)</Typography>
+          <Typography variant="body2" sx={{ color: '#667085', mt: 0.25 }}>Administration records, stock, deliveries and controlled-drug counts.</Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
-          {overdueData && overdueData.length > 0 && (
-            <Chip icon={<WarningIcon />} label={`${overdueData.length} overdue`} color="error" size="small" />
-          )}
+        <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
+          {overdueError || overdueCountError ? <Chip icon={<WarningIcon />} label="Overdue status unavailable" size="small" variant="outlined" /> : overdueLoading || overdueCountLoading ? <Chip label="Checking overdue doses…" size="small" variant="outlined" /> : overdueCount > 0 ? (
+            <Chip icon={<WarningIcon />} label={`${overdueCount} overdue`} color="error" size="small" aria-label={`${overdueCount} overdue medication administrations`} />
+          ) : null}
+          {canManage && <Button size="small" variant="outlined" onClick={() => navigate('/mission-control/alerts')}>Manage alerts</Button>}
         </Stack>
       </Stack>
 
@@ -2209,54 +2302,85 @@ export default function EMedicationPage() {
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg('')}>{successMsg}</Alert>
       )}
 
-      {(suError || recordsError || chartError || (tab === 1 && stockError)) && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => {}}>
-          Failed to load data. Please try refreshing the page.
+      {(suError || recordsError || chartError || organizationRecordsError || locationsError || (tab === 1 && stockError)) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {suError ? 'People could not be loaded.' : organizationRecordsError ? 'Organisation medication records could not be loaded.' : locationsError ? 'Authorised locations could not be loaded.' : recordsError ? 'Medication charts could not be loaded.' : chartError ? 'The selected MAR chart could not be loaded.' : 'Medication stock could not be loaded.'}
         </Alert>
       )}
 
       {/* Overdue Alert */}
-      {overdueData && overdueData.length > 0 && tab === 0 && (
+      {overdueCount > 0 && tab === 0 && (
         <Alert severity="error" sx={{ mb: 2 }} icon={<WarningIcon />}>
-          {overdueData.length} overdue medication administration{overdueData.length > 1 ? 's' : ''}.{' '}
-          {overdueData.slice(0, 3).map((a: any) => a.person_name).join(', ')}
-          {overdueData.length > 3 ? ` and ${overdueData.length - 3} more` : ''} require attention.
+          {overdueCount} overdue medication administration{overdueCount > 1 ? 's' : ''}.{' '}
+          {Array.from(new Set((overdueData || []).slice(0, 3).map((a: any) => a.person_name).filter(Boolean))).join(', ')}
+          {overdueCount > 3 ? ` and ${overdueCount - Math.min(overdueCount, 3)} more` : ''} require attention.
         </Alert>
       )}
 
       {/* Tabs */}
-      <Paper sx={{ mb: 2.5, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ '& .MuiTab-root': { fontWeight: 600 } }}>
-          <Tab label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
-          <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />
-          <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
-          <Tab label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />
-          {canManage && <Tab label="Audit Log" icon={<AuditIcon />} iconPosition="start" />}
+      <Paper sx={{ mb: 2, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
+        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#667085', '&.Mui-selected': { color: '#0170FD' } }, '& .MuiTabs-indicator': { backgroundColor: '#0170FD', height: 3 } }}>
+          <Tab id="emed-tab-0" aria-controls="emed-panel-0" label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
+          <Tab id="emed-tab-1" aria-controls="emed-panel-1" label="Stock" icon={<InventoryIcon />} iconPosition="start" />
+          <Tab id="emed-tab-2" aria-controls="emed-panel-2" label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
+          <Tab id="emed-tab-3" aria-controls="emed-panel-3" label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />
+          {canManage && <Tab id="emed-tab-4" aria-controls="emed-panel-4" label="Audit Log" icon={<AuditIcon />} iconPosition="start" />}
         </Tabs>
       </Paper>
 
       {/* ═══ TAB 0: MAR Chart ═══ */}
       {tab === 0 && (
-        <>
-          {/* Person Selector */}
-          <Paper sx={{ p: 2, mb: 3, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-            <Autocomplete
-              options={people || []}
-              getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-              value={selectedPerson}
-              onChange={(_, v) => { setSelectedPerson(v); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)) }}
-              renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
-              sx={{ maxWidth: 400 }}
-            />
+        <Box id="emed-panel-0" role="tabpanel" aria-labelledby="emed-tab-0">
+          <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
+            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? '#F04438' : '#667085' },
+
+              { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: selectedPerson ? 'Scheduled doses' : 'Select a person for count', icon: <TodayIcon fontSize="small" />, color: '#2E90FA' },
+              { label: 'Administered today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: selectedPerson ? 'Recorded as given' : 'Select a person for count', icon: <CheckIcon fontSize="small" />, color: '#12B76A' },
+              { label: 'Missed today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? missedTodayCount : '—', detail: selectedPerson ? 'Explicitly recorded' : 'Select a person for count', icon: <CloseIcon fontSize="small" />, color: '#F04438' },
+              { label: 'People on medication', value: peopleOnMedication, detail: 'Active MAR records', icon: <PersonIcon fontSize="small" />, color: '#0170FD' },
+            ].map(metric => <Grid item xs={6} sm={4} lg key={metric.label}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%', minHeight: 104, borderColor: '#E4EAF2', borderRadius: 2, bgcolor: '#fff' }}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F2F4F7' : metric.color === '#F04438' ? NOTICE_COLORS.error.bg : metric.color === '#12B76A' ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                    <Typography variant="h5" sx={{ mt: 0.2, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{metric.value}</Typography>
+                    <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            </Grid>)}
+          </Grid>
+
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, borderColor: '#E4EAF2', borderRadius: 2, bgcolor: '#fff' }}>
+            <Grid container spacing={1.25} alignItems="center">
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField size="small" fullWidth label="Search by name" placeholder="Search by name..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
+              </Grid>
+              <Grid item xs={6} sm={3} md={2.5}>
+                <TextField select size="small" fullWidth label="Location" value={selectedLocationFilter} onChange={e => setSelectedLocationFilter(e.target.value)}>
+                  <MenuItem value="all">All locations</MenuItem>
+                  {locations.map((location: any) => <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={6} sm={3} md={2.5}>
+                <TextField select size="small" fullWidth label="Status" value={personStatusFilter} onChange={e => setPersonStatusFilter(e.target.value)}>
+                  <MenuItem value="all">All status</MenuItem><MenuItem value="active">Active</MenuItem><MenuItem value="inactive">Inactive</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField size="small" fullWidth label="Medication" placeholder="Filter chart medications..." value={personMedicationSearch} onChange={e => setPersonMedicationSearch(e.target.value)} disabled={!selectedPerson} />
+              </Grid>
+            </Grid>
           </Paper>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
-              <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={3.25}>
+              <Paper sx={{ p: 1.5, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Box>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: EMR.ink }}>MAR Charts</Typography>
-                    <Typography variant="caption" color="text.secondary">One month at a time</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: '#101828' }}>People</Typography>
+                    <Typography variant="caption" color="text.secondary">{visiblePeople.length} of {(people || []).length} people</Typography>
                   </Box>
                   {selectedPerson && (
                     <Button size="small" variant="outlined" startIcon={<ArchiveOutlined />}
@@ -2266,7 +2390,7 @@ export default function EMedicationPage() {
                   )}
                 </Stack>
 
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 2 }}>
+                {selectedPerson && <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1.25 }}>
                   <IconButton size="small" disabled={!recordsData?.length} onClick={() => {
                     const [y, m] = month.split('-').map(Number)
                     const d = new Date(y, m - 2, 1)
@@ -2284,63 +2408,38 @@ export default function EMedicationPage() {
                   }}>
                     <NextIcon fontSize="small" />
                   </IconButton>
-                </Stack>
+                </Stack>}
 
-                {recordsLoading || ensureMarMutation.isPending ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>
-                ) : !recordsData || recordsData.length === 0 ? (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography color="text.secondary" variant="body2">
-                      {selectedPerson ? 'No active charts.' : 'Select a person.'}
-                    </Typography>
-                    {selectedPerson && (
-                      <Button size="small" variant="text" startIcon={<ArchiveOutlined />}
-                        onClick={() => navigate('/emedication/archived')} sx={{ mt: 1 }}>
-                        View Archived Charts
-                      </Button>
-                    )}
+                {peopleLoading ? <Box sx={{ display: 'grid', gap: 0.75 }}>{[0, 1, 2, 3].map(i => <Box key={i} sx={{ height: 50, bgcolor: '#F2F4F7', borderRadius: 1 }} />)}</Box> : visiblePeople.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <Typography color="text.secondary" variant="body2">{personSearch || selectedLocationFilter !== 'all' || personStatusFilter !== 'all' ? 'No people match these filters.' : 'No people found for this organisation.'}</Typography>
                   </Box>
                 ) : (
-                  <Box sx={{
-                    mt: 2, p: 1.5, borderRadius: 1,
-                    bgcolor: activeRecord ? EMR.today : '#FDF2F2',
-                    border: `1px solid ${activeRecord ? 'rgba(15,76,129,0.18)' : 'rgba(220,38,38,0.18)'}`
-                  }}>
-                    {activeRecord ? (
-                      <Box>
-                        <Stack direction="row" spacing={0.75} alignItems="center">
-                          <Box sx={{
-                            width: 8, height: 8, borderRadius: '50%', bgcolor: EMR.emerald, flexShrink: 0,
-                            '@keyframes emrPulse': {
-                              '0%': { boxShadow: '0 0 0 0 rgba(16,185,129,0.45)' },
-                              '70%': { boxShadow: '0 0 0 6px rgba(16,185,129,0)' },
-                              '100%': { boxShadow: '0 0 0 0 rgba(16,185,129,0)' }
-                            },
-                            animation: 'emrPulse 2s ease-in-out infinite',
-                            '@media (prefers-reduced-motion: reduce)': { animation: 'none' }
-                          }} />
-                          <Typography variant="body2" fontWeight={600} sx={{ color: EMR.ink }}>{activeRecord.title}</Typography>
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                          {new Date(activeRecord.start_date).toLocaleDateString()} – {new Date(activeRecord.end_date).toLocaleDateString()}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {chartData?.items?.length || 0} medication{(chartData?.items?.length || 0) !== 1 ? 's' : ''}
-                        </Typography>
+                  <Stack spacing={0.5} sx={{ maxHeight: { xs: 250, md: 520 }, overflowY: 'auto', pr: 0.5 }}>
+                    {visiblePeople.map((person: any) => {
+                      const isSelected = selectedPerson?.id === person.id
+                      const isOnMedication = personHasMedication(person.id)
+                      return <Box key={person.id} component="button" type="button" onClick={() => { setSelectedPerson(person); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)); setPersonMedicationSearch('') }} sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, p: 1, border: '1px solid', borderColor: isSelected ? '#0170FD' : 'transparent', borderRadius: 1.5, bgcolor: isSelected ? '#EFF8FF' : 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: isSelected ? '#EFF8FF' : '#F8FAFC' }, '&:focus-visible': { outline: '2px solid #0170FD', outlineOffset: 1 } }}>
+                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: '#EFF8FF', color: '#175CD3' }}><PersonIcon fontSize="small" /></Box>
+                        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={600} noWrap>{person.first_name} {person.last_name}</Typography><Typography variant="caption" color="text.secondary" noWrap>{person.location_name || locations.find((loc: any) => loc.id === person.location_id)?.name || 'No location'}</Typography></Box>
+                        {isOnMedication && <Box aria-label="Active medication record" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#12B76A', flexShrink: 0 }} />}
                       </Box>
-                    ) : (
-                      <Typography variant="body2" color="error" sx={{ textAlign: 'center', py: 1 }}>
-                        No chart for this month
-                      </Typography>
-                    )}
-                  </Box>
+                    })}
+                  </Stack>
                 )}
+                {recordsLoading || ensureMarMutation.isPending ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box> : selectedPerson && (!recordsData || recordsData.length === 0) ? (
+                  <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: '#F8FAFC', border: '1px solid #E4EAF2' }}>
+                    <Typography variant="caption" color="text.secondary">No active chart for this person.</Typography>
+                    <Button size="small" variant="text" startIcon={<ArchiveOutlined />} onClick={() => navigate('/emedication/archived')} sx={{ display: 'flex', mt: 0.5 }}>View archived charts</Button>
+                  </Box>
+                ) : selectedPerson && <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1, bgcolor: activeRecord ? '#EFF8FF' : '#FEF0F0', border: '1px solid', borderColor: activeRecord ? '#D1E9FF' : '#FECDCA' }}>
+                  {activeRecord ? <><Typography variant="body2" fontWeight={600}>{activeRecord.title}</Typography><Typography variant="caption" color="text.secondary" display="block">{new Date(activeRecord.start_date).toLocaleDateString()} – {new Date(activeRecord.end_date).toLocaleDateString()}</Typography><Typography variant="caption" color="text.secondary">{chartData?.items?.length || 0} medication{(chartData?.items?.length || 0) !== 1 ? 's' : ''}</Typography></> : <Typography variant="caption" color="text.secondary">No chart for this month</Typography>}
+                </Box>}
               </Paper>
             </Grid>
 
-            <Grid item xs={12} md={9}>
-              {!activeRecord ? (
-                <Paper sx={{ p: 6, textAlign: 'center', border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}>
+            <Grid item xs={12} md={8.75}>
+              {!activeRecord ? (                  <Paper sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
                   <Box sx={{
                     width: 56, height: 56, borderRadius: 2, bgcolor: EMR.bone,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2
@@ -2349,7 +2448,7 @@ export default function EMedicationPage() {
                   </Box>
                   {!selectedPerson ? (
                     <>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Select a person to view their MAR</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#101828' }}>Select a person to view their MAR</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Choose a person above to open their medication administration record and log administrations.
                       </Typography>
@@ -2747,12 +2846,12 @@ export default function EMedicationPage() {
               )}
             </Grid>
           </Grid>
-        </>
+        </Box>
       )}
 
       {/* ═══ TAB 1: Stock ═══ */}
       {tab === 1 && (
-        <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
+        <Paper id="emed-panel-1" role="tabpanel" aria-labelledby="emed-tab-1" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Stock Inventory</Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -2933,7 +3032,7 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 2: Deliveries ═══ */}
       {tab === 2 && (
-        <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
+        <Paper id="emed-panel-2" role="tabpanel" aria-labelledby="emed-tab-2" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Delivery Tracking</Typography>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)}>
@@ -2990,7 +3089,7 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 3: Daily Counts ═══ */}
       {tab === 3 && (
-        <>
+        <Box id="emed-panel-3" role="tabpanel" aria-labelledby="emed-tab-3">
           {/* Person selector + log controls */}
           <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Daily Medication Counts</Typography>
@@ -3116,13 +3215,12 @@ export default function EMedicationPage() {
                 </Table>
               </TableContainer>
             )}
-          </Paper>
-        </>
-      )}
+          </Paper>          </Box>
+        )}
 
       {/* ═══ TAB 4: Audit Log ═══ */}
-      {tab === 4 && (
-        <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
+      {canManage && tab === 4 && (
+        <Paper id="emed-panel-4" role="tabpanel" aria-labelledby="emed-tab-4" sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid #E4EAF2', boxShadow: 'none', borderRadius: 2 }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Medication Audit Trail</Typography>
           {!auditLogsData || auditLogsData.length === 0 ? (
             <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No audit log entries yet — actions on this page will appear here.</Typography>
@@ -3202,133 +3300,247 @@ export default function EMedicationPage() {
       </Dialog>
 
       {/* Add/Edit Medication Dialog */}
-      <Dialog open={itemDialog} onClose={() => setItemDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editItem ? 'Edit Medication' : 'Add Medication'}</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={itemDialog}
+        onClose={() => setItemDialog(false)}
+        aria-labelledby="medication-dialog-title"
+        maxWidth={false}
+        PaperProps={{ sx: medicationDialogPaperSx }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 3, pt: 2.5, pb: 2, borderBottom: '1px solid #E4EAF2', flexShrink: 0 }}>
+          <Box sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#EAF3FF', color: '#0170FD' }}>
+            <MedIcon fontSize="small" />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <DialogTitle id="medication-dialog-title" component="h2" sx={{ p: 0, fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: '#101828' }}>
+              {editItem ? 'Edit Medication' : 'Add Medication'}
+            </DialogTitle>
+            <Typography variant="body2" color="text.secondary">
+              {editItem ? "Update this medication on the person's record" : "Add a new medication to the person's record"}
+            </Typography>
+          </Box>
+          <IconButton aria-label="Close" onClick={() => setItemDialog(false)} size="small" sx={{ mt: 0.25 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        {selectedPerson && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, py: 1.5, bgcolor: '#F4F8FF', borderBottom: '1px solid #E4EAF2', flexShrink: 0 }}>
+            <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#FFFFFF', color: '#0170FD', border: '1px solid #D6E4FB' }}>
+              <PersonIcon fontSize="small" />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>{selectedPerson.first_name} {selectedPerson.last_name}</Typography>
+              <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                {[
+                  selectedPerson.location_name || locations.find((loc: any) => loc.id === selectedPerson.location_id)?.name,
+                  selectedPerson.date_of_birth ? `DOB ${formatDateOnly(selectedPerson.date_of_birth, 'N/A')}` : null,
+                  selectedPerson.nhs_number ? `NHS ${selectedPerson.nhs_number}` : null,
+                ].filter(Boolean).join(' · ') || 'No location or details recorded'}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        <DialogContent sx={{ px: 3, py: 2.5, flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {errorMsg && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
+            <Alert severity="error" sx={{ mb: 2.5 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
           )}
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={3}>
             {!editItem && (
-              <Stack spacing={1}>
-                <Typography variant="subtitle2">Medication source</Typography>
-                <Stack direction="row" spacing={1}>
-                  <Button size="small" variant={itemStockSource === 'from_stock' ? 'contained' : 'outlined'}
-                    onClick={() => setItemStockSource('from_stock')}>From stock</Button>
-                  <Button size="small" variant={itemStockSource === 'new' ? 'contained' : 'outlined'}
-                    onClick={() => { setItemStockSource('new'); setSelectedStockItem(null) }}>New medication</Button>
+              <FormSection title="1. Medication source">
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  {([
+                    { value: 'from_stock', label: 'From stock', description: "Choose a medication already in this person's stock." },
+                    { value: 'new', label: 'New medication', description: 'Enter a medication that is not in stock yet.' },
+                  ] as const).map(option => {
+                    const selected = itemStockSource === option.value
+                    return (
+                      <Box
+                        key={option.value}
+                        component="button"
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setErrorMsg('')
+                          setItemStockSource(option.value)
+                          if (option.value === 'new') setSelectedStockItem(null)
+                        }}
+                        sx={{
+                          flex: 1, textAlign: 'left', p: 1.5, borderRadius: '10px', border: '1.5px solid',
+                          borderColor: selected ? '#0170FD' : '#E4EAF2', bgcolor: selected ? '#EFF8FF' : '#FFFFFF',
+                          cursor: 'pointer', font: 'inherit', color: 'inherit',
+                          transition: 'border-color 120ms ease, background-color 120ms ease',
+                          '&:hover': { borderColor: selected ? '#0170FD' : '#B2CCFF' },
+                          '&:focus-visible': { outline: '2px solid #0170FD', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: selected ? '#0170FD' : '#101828' }}>{option.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{option.description}</Typography>
+                      </Box>
+                    )
+                  })}
                 </Stack>
                 {itemStockSource === 'from_stock' ? (
-                  <>
+                  <Box sx={{ mt: 2 }}>
                     <Autocomplete
                       options={fromStockOptions}
+                      value={selectedStockItem}
+                      loading={itemStockLoading}
+                      loadingText="Loading stock…"
+                      noOptionsText={itemStockError ? 'Stock could not be loaded' : 'No matching stock'}
                       getOptionLabel={(s: StockItem) => `${s.medication_name} ${s.dosage} ${s.unit} — ${s.quantity} ${s.quantity_unit}${s.person_name ? ` (${s.person_name})` : ' (shared)'}`}
                       onChange={(_, v: StockItem | null) => {
                         setSelectedStockItem(v)
                         setErrorMsg('')
                         setItemForm(p => ({ ...p, name: v?.medication_name || '', dosage: v?.dosage || '', unit: v?.unit || p.unit }))
                       }}
-                      renderInput={(params) => <TextField {...params} label="Search stock" size="small" placeholder="Type to search the person's stock..." />}
+                      renderInput={(params) => <TextField {...params} label="Search stock" size="small" placeholder="Type to search the person's stock..." sx={medicationFieldSx} />}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
                     />
-                    {itemStockLoading ? (
-                      <Typography variant="caption" color="text.secondary">Loading stock…</Typography>
-                    ) : fromStockOptions.length === 0 ? (
-                      <Typography variant="caption" color="text.secondary">
-                        No stock available for {selectedPerson ? `${selectedPerson.first_name} ${selectedPerson.last_name}` : 'this person'} that isn't already on this MAR chart — switch to "New medication" to add one.
+                    {itemStockError && (
+                      <Alert severity="error" sx={{ mt: 1.5 }}>Stock could not be loaded. Try again shortly, or add a new medication instead.</Alert>
+                    )}
+                    {!itemStockLoading && !itemStockError && fromStockOptions.length === 0 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                        No stock available for {selectedPerson ? `${selectedPerson.first_name} ${selectedPerson.last_name}` : 'this person'} that isn't already on this MAR chart. Choose "New medication" to add one.
                       </Typography>
-                    ) : null}
-                  </>
+                    )}
+                  </Box>
                 ) : (
-                  <Typography variant="caption" color="text.secondary">Add a new medication — a stock entry will be auto-created so it can be counted.</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                    A stock entry is created automatically so the medication can be counted.
+                  </Typography>
                 )}
-              </Stack>
+              </FormSection>
             )}
-            <TextField label="Medication Name" fullWidth value={itemForm.name}
-              disabled={!editItem && itemStockSource === 'from_stock'}
-              onChange={(e) => setItemForm(p => ({ ...p, name: e.target.value }))} size="small" required />
-            <Stack direction="row" spacing={1}>
-              <TextField label="Dosage" fullWidth value={itemForm.dosage}
-                disabled={!editItem && itemStockSource === 'from_stock'}
-                onChange={(e) => setItemForm(p => ({ ...p, dosage: e.target.value }))} size="small" required />
-              <TextField select label="Unit" value={itemForm.unit}
-                disabled={!editItem && itemStockSource === 'from_stock'}
-                onChange={(e) => setItemForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={{ minWidth: 100 }}>
-                {['mg', 'ml', 'mcg', 'g', 'tablet(s)', 'capsule(s)', 'drop(s)', 'puff(s)', 'patch(es)', 'suppository'].map(u => (
-                  <MenuItem key={u} value={u}>{u}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack direction="row" spacing={1}>
-              <TextField select label="Route" value={itemForm.route}
-                onChange={(e) => setItemForm(p => ({ ...p, route: e.target.value }))} size="small" sx={{ flex: 1 }}>
-                {ROUTES.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-              </TextField>
-              <TextField select label="Frequency" value={itemForm.frequency}
-                onChange={(e) => {
-                  setErrorMsg('')
-                  const newFreq = e.target.value
-                  const maxTimes = getMaxTimesForFrequency(newFreq)
-                  const existingTimes = itemForm.times
-                  const trimmed = maxTimes !== null ? existingTimes.slice(0, maxTimes) : existingTimes
-                  setItemForm(p => ({ ...p, frequency: newFreq, is_prn: newFreq.includes('PRN'), times: trimmed }))
-                }} size="small" sx={{ flex: 1 }}>
-                {FREQUENCIES.map(f => <MenuItem key={f} value={f}>{f}</MenuItem>)}
-              </TextField>
-            </Stack>
-            <Stack direction="row" spacing={1}>
-              <TextField label="Start Date" type="date" fullWidth value={itemForm.start_date}
-                onChange={(e) => setItemForm(p => ({ ...p, start_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }}
-                helperText="Leave blank for continuous administration" />
-              <TextField label="End Date" type="date" fullWidth value={itemForm.end_date}
-                onChange={(e) => setItemForm(p => ({ ...p, end_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }}
-                helperText="Leave blank for continuous administration" />
-            </Stack>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Administration Times</Typography>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mb: 0.5 }}>
-                {itemForm.times.map(t => (
-                  <Chip key={t} label={t} size="small" onDelete={() => removeTime(t)} sx={{ mb: 0.5 }} />
-                ))}
-              </Stack>
-              <TextField size="small" placeholder="Type time e.g. 08:00 and press Enter" value={timeInput}
-                onChange={(e) => setTimeInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTime() } }}
-                InputProps={{ endAdornment: timeInput ? (<InputAdornment position="end"><IconButton size="small" onClick={addTime}><AddIcon fontSize="small" /></IconButton></InputAdornment>) : undefined }} fullWidth />
-            </Box>
-            <TextField label="Instructions / Notes" fullWidth value={itemForm.instructions}
-              onChange={(e) => setItemForm(p => ({ ...p, instructions: e.target.value }))} size="small" multiline rows={2} />
-            <FormControlLabel control={<Checkbox checked={itemForm.is_controlled_drug}
-              onChange={(e) => setItemForm(p => ({ ...p, is_controlled_drug: e.target.checked }))} />}
-              label={<Typography variant="body2"><Box component="span" sx={{ color: 'error.main', fontWeight: 600 }}>●</Box> Controlled Drug (CD)</Typography>} />
-            <Typography variant="subtitle2" sx={{ mt: 1 }}>Prescriber Information</Typography>
-            <Stack direction="row" spacing={1}>
-              <TextField label="Prescriber Name" fullWidth value={itemForm.prescriber_name}
-                onChange={(e) => setItemForm(p => ({ ...p, prescriber_name: e.target.value }))} size="small" />
-              <TextField label="Prescriber Phone" fullWidth value={itemForm.prescriber_phone}
-                onChange={(e) => setItemForm(p => ({ ...p, prescriber_phone: e.target.value }))} size="small" />
-            </Stack>
-            <TextField label="Prescription Reference" fullWidth value={itemForm.prescription_ref}
-              onChange={(e) => setItemForm(p => ({ ...p, prescription_ref: e.target.value }))} size="small" />
-            {editItem && (
-              <TextField select label="Active" value={itemForm.is_active ? 'true' : 'false'}
-                onChange={(e) => setItemForm(p => ({ ...p, is_active: e.target.value === 'true' }))} size="small">
-                <MenuItem value="true">Active</MenuItem>
-                <MenuItem value="false">Inactive</MenuItem>
-              </TextField>
-            )}
+
+            <FormSection title="2. Medication details">
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField label="Medication name" fullWidth value={itemForm.name}
+                    disabled={!editItem && itemStockSource === 'from_stock'}
+                    onChange={(e) => setItemForm(p => ({ ...p, name: e.target.value }))} size="small" required sx={medicationFieldSx} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Dosage" fullWidth value={itemForm.dosage}
+                    disabled={!editItem && itemStockSource === 'from_stock'}
+                    onChange={(e) => setItemForm(p => ({ ...p, dosage: e.target.value }))} size="small" required sx={medicationFieldSx} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField select label="Unit" fullWidth value={itemForm.unit}
+                    disabled={!editItem && itemStockSource === 'from_stock'}
+                    onChange={(e) => setItemForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={medicationFieldSx}>
+                    {['mg', 'ml', 'mcg', 'g', 'tablet(s)', 'capsule(s)', 'drop(s)', 'puff(s)', 'patch(es)', 'suppository'].map(u => (
+                      <MenuItem key={u} value={u}>{u}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField select label="Route" fullWidth value={itemForm.route}
+                    onChange={(e) => setItemForm(p => ({ ...p, route: e.target.value }))} size="small" sx={medicationFieldSx}>
+                    {ROUTES.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField select label="Frequency" fullWidth value={itemForm.frequency}
+                    onChange={(e) => {
+                      setErrorMsg('')
+                      const newFreq = e.target.value
+                      const maxTimes = getMaxTimesForFrequency(newFreq)
+                      const existingTimes = itemForm.times
+                      const trimmed = maxTimes !== null ? existingTimes.slice(0, maxTimes) : existingTimes
+                      setItemForm(p => ({ ...p, frequency: newFreq, is_prn: newFreq.includes('PRN'), times: trimmed }))
+                    }} size="small" sx={medicationFieldSx}>
+                    {FREQUENCIES.map(f => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Start date" type="date" fullWidth value={itemForm.start_date}
+                    onChange={(e) => setItemForm(p => ({ ...p, start_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} sx={medicationFieldSx} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="End date" type="date" fullWidth value={itemForm.end_date}
+                    onChange={(e) => setItemForm(p => ({ ...p, end_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }}
+                    inputProps={{ min: itemForm.start_date || undefined }}
+                    error={itemDateRangeInvalid}
+                    helperText={itemDateRangeInvalid ? 'End date must be on or after the start date' : 'Leave blank for continuous (ongoing) administration'}
+                    sx={medicationFieldSx} />
+                </Grid>
+                {editItem && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField select label="Status" fullWidth value={itemForm.is_active ? 'true' : 'false'}
+                      onChange={(e) => setItemForm(p => ({ ...p, is_active: e.target.value === 'true' }))} size="small" sx={medicationFieldSx}>
+                      <MenuItem value="true">Active</MenuItem>
+                      <MenuItem value="false">Inactive</MenuItem>
+                    </TextField>
+                  </Grid>
+                )}
+              </Grid>
+            </FormSection>
+
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={7}>
+                <FormSection title="3. Administration">
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.75 }}>Administration times</Typography>
+                      {itemForm.times.length > 0 && (
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mb: 1 }}>
+                          {itemForm.times.map(t => (
+                            <Chip key={t} label={t} size="small" onDelete={() => removeTime(t)} sx={{ mb: 0.5 }} />
+                          ))}
+                        </Stack>
+                      )}
+                      <TextField size="small" fullWidth placeholder="e.g. 08:00" value={timeInput}
+                        onChange={(e) => setTimeInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTime() } }}
+                        InputProps={{ endAdornment: timeInput ? (<InputAdornment position="end"><IconButton size="small" aria-label="Add time" onClick={addTime}><AddIcon fontSize="small" /></IconButton></InputAdornment>) : undefined }}
+                        helperText={getMaxTimesForFrequency(itemForm.frequency) !== null
+                          ? `${getMaxTimesForFrequency(itemForm.frequency)} time${getMaxTimesForFrequency(itemForm.frequency) === 1 ? '' : 's'} for this frequency. Press Enter after each time.`
+                          : 'Press Enter after each time, for example 08:00.'}
+                        sx={medicationFieldSx} />
+                    </Box>
+                    <TextField label="Instructions / notes" fullWidth value={itemForm.instructions}
+                      onChange={(e) => setItemForm(p => ({ ...p, instructions: e.target.value }))} size="small" multiline rows={3} sx={medicationFieldSx} />
+                    <Box sx={{ p: 1.5, borderRadius: '10px', border: '1px solid', borderColor: itemForm.is_controlled_drug ? '#FEDF89' : '#E4EAF2', bgcolor: itemForm.is_controlled_drug ? '#FFFCF5' : '#FFFFFF' }}>
+                      <FormControlLabel sx={{ m: 0 }}
+                        control={<Checkbox size="small" checked={itemForm.is_controlled_drug}
+                          onChange={(e) => setItemForm(p => ({ ...p, is_controlled_drug: e.target.checked }))} />}
+                        label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Controlled drug (CD)</Typography>} />
+                      <Stack direction="row" spacing={0.75} alignItems="flex-start" sx={{ pl: 4, mt: 0.25 }}>
+                        <WarningAmberOutlined sx={{ fontSize: 16, color: '#B54708', mt: '2px' }} />
+                        <Typography variant="caption" color="text.secondary">Existing controlled drug recording requirements still apply.</Typography>
+                      </Stack>
+                    </Box>
+                  </Stack>
+                </FormSection>
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <FormSection title="4. Prescriber information (optional)">
+                  <Stack spacing={2}>
+                    <TextField label="Prescriber name" fullWidth value={itemForm.prescriber_name}
+                      onChange={(e) => setItemForm(p => ({ ...p, prescriber_name: e.target.value }))} size="small" sx={medicationFieldSx} />
+                    <TextField label="Prescriber phone" type="tel" fullWidth value={itemForm.prescriber_phone}
+                      onChange={(e) => setItemForm(p => ({ ...p, prescriber_phone: e.target.value }))} size="small" sx={medicationFieldSx} />
+                    <TextField label="Prescription reference" fullWidth value={itemForm.prescription_ref}
+                      onChange={(e) => setItemForm(p => ({ ...p, prescription_ref: e.target.value }))} size="small" sx={medicationFieldSx} />
+                  </Stack>
+                </FormSection>
+              </Grid>
+            </Grid>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setItemDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveItem}
-            disabled={(() => {
-              if (!itemForm.name || !itemForm.dosage) return true
-              const maxTimes = getMaxTimesForFrequency(itemForm.frequency)
-              if (maxTimes !== null && itemForm.times.length !== maxTimes) return true
-              return editItem ? itemUpdateMutation.isPending : itemCreateMutation.isPending
-            })()}>
-            {editItem ? 'Save Changes' : 'Add Medication'}
+
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #E4EAF2', bgcolor: '#FFFFFF', gap: 1, flexShrink: 0 }}>
+          <Button onClick={() => setItemDialog(false)} variant="outlined"
+            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', borderColor: '#D0D5DD', color: '#344054' }}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSaveItem} disabled={itemSaveDisabled}
+            startIcon={itemSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', bgcolor: '#0170FD', '&:hover': { bgcolor: '#0052EE' } }}>
+            {itemSaving ? (editItem ? 'Saving…' : 'Adding…') : (editItem ? 'Save Changes' : 'Add Medication')}
           </Button>
         </DialogActions>
       </Dialog>

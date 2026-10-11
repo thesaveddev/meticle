@@ -8,6 +8,7 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const SignupPage = lazy(() => import('./pages/auth/SignupPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'))
+import { getDashboardEntryPath } from './pages/dashboard/dashboardEntry'
 const RotaPlannerPage = lazy(() => import('./pages/scheduling/RotaPlannerPage'))
 const OvertimeClaimsPage = lazy(() => import('./pages/scheduling/OvertimeClaimsPage'))
 const MarketplacePage = lazy(() => import('./pages/marketplace/MarketplacePage'))
@@ -112,7 +113,14 @@ const AppointmentsPage = lazy(() => import('./pages/appointments/AppointmentsPag
 const PoliciesPage = lazy(() => import('./pages/policies/PoliciesPage'))
 const PolicyDetailPage = lazy(() => import('./pages/policies/PolicyDetailPage'))
 const MissionControlPage = lazy(() => import('./pages/mission-control/MissionControlPage'))
-const HomecareMissionControl = lazy(() => import('./pages/mission-control/HomecareMissionControl'))
+const MissionControlLayout = lazy(() => import('./pages/mission-control/MissionControlWorkspace'))
+const MissionControlIndexRedirect = lazy(() => import('./pages/mission-control/MissionControlWorkspace').then(m => ({ default: m.MissionControlIndexRedirect })))
+const MissionControlTodayView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlTodayView })))
+const MissionControlCallsView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlCallsView })))
+const MissionControlStaffingView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlStaffingView })))
+const MissionControlComplianceView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlComplianceView })))
+const MissionControlCareView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlCareView })))
+const MissionControlIncidentsView = lazy(() => import('./pages/mission-control/MissionControlViews').then(m => ({ default: m.MissionControlIncidentsView })))
 const CompliancePortalPage = lazy(() => import('./pages/compliance-portal/CompliancePortalPage'))
 const PortalLoginPage = lazy(async () => {
   const module = await import('./pages/compliance-portal/CompliancePortalPage')
@@ -151,9 +159,16 @@ function MissionControlSwitch() {
     })
   }, [])
   if (isDom === null) return <RouteLoading />
-  return isDom ? <HomecareMissionControl /> : <MissionControlPage />
+  return <MissionControlLayout serviceModel={isDom ? 'domiciliary' : 'supported_living'} />
 }
 
+function DashboardRoute() {
+  let role = ''
+  try { role = JSON.parse(localStorage.getItem('user') || '{}').role || '' } catch { /* redirect to the safe operational landing page */ }
+  return getDashboardEntryPath(role) === '/dashboard'
+    ? <DashboardPage />
+    : <Navigate to="/mission-control" replace />
+}
 
 function App() {
   return (
@@ -216,8 +231,17 @@ function App() {
       <Route element={<AuthGuard />}>
         <Route path="/onboarding" element={<OnboardingFlow />} />
         <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
-          <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardPage /></ModuleGuard>} />
-          <Route path="/mission-control" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><Suspense fallback={null}><MissionControlSwitch /></Suspense></AuthGuard>} />
+          <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardRoute /></ModuleGuard>} />
+          <Route path="/mission-control" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><Suspense fallback={<RouteLoading />}><MissionControlSwitch /></Suspense></AuthGuard>}>
+            <Route index element={<Suspense fallback={<RouteLoading />}><MissionControlIndexRedirect /></Suspense>} />
+            <Route path="today" element={<Suspense fallback={<RouteLoading />}><MissionControlTodayView /></Suspense>} />
+            <Route path="calls" element={<Suspense fallback={<RouteLoading />}><MissionControlCallsView /></Suspense>} />
+            <Route path="staffing" element={<Suspense fallback={<RouteLoading />}><MissionControlStaffingView /></Suspense>} />
+            <Route path="compliance" element={<Suspense fallback={<RouteLoading />}><MissionControlComplianceView /></Suspense>} />
+            <Route path="care" element={<Suspense fallback={<RouteLoading />}><MissionControlCareView /></Suspense>} />
+            <Route path="incidents" element={<Suspense fallback={<RouteLoading />}><MissionControlIncidentsView /></Suspense>} />
+          </Route>
+          <Route path="/mission-control/alerts" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><Suspense fallback={<RouteLoading />}><MissionControlPage /></Suspense></AuthGuard>} />
           <Route path="/staff" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffDirectoryPage /></ModuleGuard></AuthGuard>} />
           <Route path="/staff/:userId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffProfilePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompliancePage /></ModuleGuard></AuthGuard>} />

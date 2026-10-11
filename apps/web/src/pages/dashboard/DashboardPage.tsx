@@ -26,6 +26,7 @@ import { useDailyOverview, PeopleOverviewCard, TodaysTasks, AlertsPanel, Upcomin
 import { useQuery } from '@tanstack/react-query'
 import Skeleton from '@mui/material/Skeleton'
 import { METICLE_COLORS } from '../../context/ThemeContext'
+import { getDashboardServiceMode } from './dashboardServiceMode'
 
 interface DashboardStats {
   total_staff: number
@@ -79,22 +80,21 @@ export default function DashboardPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-  // Right-rail + section data (brief phases 7–8). The widgets query feeds the
-  // AlertsPanel with real counts; the daily-overview query feeds people, tasks,
-  // activity, medication and appointments. Each renders its own empty/error
-  // state so one failing section never breaks the dashboard.
-  const overview = useDailyOverview()
+  // Load model-specific dashboard sections only after the organisation has
+  // been fetched and classified. These API routes intentionally enforce model
+  // access, so firing them before the organization query completes causes a
+  // transient (but visible) 403 for domiciliary and unconfigured organisations.
+  const [org, setOrg] = useState<any>(null)
+  const orgId = rawUser.organization_id || rawUser.organizationId
+  const serviceMode = getDashboardServiceMode(org)
+  const isSupportedLiving = serviceMode === 'supported_living'
+  const overview = useDailyOverview(isSupportedLiving && !isStaff)
   const widgetsQuery = useQuery({
     queryKey: ['dashboard', 'widgets'],
     queryFn: () => api.get('/dashboard/widgets', { timeout: 15000 }).then(r => r.data),
     refetchInterval: 60_000,
+    enabled: isSupportedLiving && !isStaff,
   })
-
-  const [org, setOrg] = useState<any>(null)
-  const orgId = rawUser.organization_id || rawUser.organizationId
-  const serviceTypes: string[] = org?.primary_service_type
-    ? [org.primary_service_type]
-    : (org?.service_types || [])
   const [hideOnboarding, setHideOnboarding] = useState(() => {
     try { return orgId ? localStorage.getItem(ONBOARDING_STEPS_BY_KEY + orgId) === 'true' : false } catch { return false }
   })
@@ -113,21 +113,37 @@ export default function DashboardPage() {
         localStorage.setItem('organization', JSON.stringify(orgData))
         if (orgData.onboarding_dismissed_at) setHideOnboarding(true)
 
-        // Service type is authoritative before loading any dashboard widgets.
-        // Supported-living endpoints are not valid for domiciliary care and
-        // would otherwise surface a misleading organisation-type error.
-        const effectiveTypes: string[] = orgData.primary_service_type
-          ? [orgData.primary_service_type]
-          : (Array.isArray(orgData.service_types) ? orgData.service_types : [])
-        const isDomiciliaryOrg = effectiveTypes.some(type => ['domiciliary', 'live_in'].includes(type))
+        // Service type is authoritative before loading any model-specific dashboard data.
+        const mode = getDashboardServiceMode(orgData)
         const todayStr = new Date().toISOString().split('T')[0]
-        if (isDomiciliaryOrg && !isStaff) {
+        if (mode === 'domiciliary' && !isStaff) {
           setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
           setLoading(false)
-          api.get('/dashboard/domiciliary').catch(() => {})
+          return
+        }
+        if (mode === 'unconfigured') {
+          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
+          setTodayRota([])
+          setTodayAppointments([])
+          setLoading(false)
           return
         }
         if (isStaff) {
+          if (mode === 'domiciliary') {
+            const visitsRes = await api.get('/homecare/my-visits', { timeout: 15000 })
+            const visits = Array.isArray(visitsRes.data) ? visitsRes.data : []
+            setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
+            setTodayRota(visits.filter((visit: any) => String(visit.scheduled_start || '').startsWith(todayStr)).map((visit: any) => ({
+              id: visit.id,
+              start_time: visit.scheduled_start,
+              end_time: visit.scheduled_end,
+              status: visit.status,
+              location_name: visit.person_name || 'Homecare visit',
+              assigned_staff: '',
+            })))
+            setTodayAppointments([])
+            return
+          }
           const [rotaRes, aptRes] = await Promise.all([
             api.get('/dashboard/today-rota', { timeout: 15000 }),
             api.get(`/appointments?date=${todayStr}`, { timeout: 15000 }),
@@ -185,7 +201,7 @@ export default function DashboardPage() {
 
   // If this is a domiciliary care organisation, show the dedicated dom care dashboard.
   // The child owns its data loading; do not keep the parent spinner mounted while it loads.
-  if (serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type)) && !isStaff) {
+  if (serviceMode === 'domiciliary' && !isStaff) {
     return <DomiciliaryDashboard />
   }
 
@@ -222,13 +238,18 @@ export default function DashboardPage() {
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>{greeting}, {firstName}</Typography>
-        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>{greeting}, {firstName}</Typography>          <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
           Here’s what needs your attention today.
         </Typography>
+        {serviceMode === 'unconfigured' && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Choose a service model in Settings to load your operational dashboard.
+          </Alert>
+        )}
       </Box>
 
       {/* Onboarding Checklist */}
+
       {isAdmin && org && !hideOnboarding && !onboardComplete && (
         <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, mb: 4 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-start' }} spacing={1} sx={{ mb: 2 }}>

@@ -37,6 +37,7 @@ import { EmptyState } from '../../components/design/EmptyState'
 import LocationDecisionControl from '../../components/LocationDecisionControl'
 import LocationDecisionEvidence from '../../components/LocationDecisionEvidence'
 import LocationRetentionCard from '../../components/LocationRetentionCard'
+import { getDashboardServiceMode } from '../dashboard/dashboardServiceMode'
 
 // Mirrors the API rule for SOS contact numbers: a number that reaches the mobile
 // dialer must contain nothing but dialable characters.
@@ -92,6 +93,8 @@ export default function SettingsPage() {
 
   // Org settings
   const [orgSettings, setOrgSettings] = useState<any>({})
+  // Carer location (tracking, retention, decisions) is domiciliary-only on the API.
+  const isDomiciliaryOrg = getDashboardServiceMode(orgSettings) === 'domiciliary'
   // Carer location kill switch. `pending` is the position of the switch, `enabled`
   // the saved one; a difference between the two is what reveals the confirm panel,
   // so the two are kept apart rather than flipping the value on click.
@@ -244,23 +247,30 @@ export default function SettingsPage() {
           api.get(`/organizations/${orgId}`),
         ])
         if (orgRes.status === 'fulfilled') setOrgSettings(orgRes.value.data)
+        // Only domiciliary organisations request the carer-location endpoints;
+        // for any other model they return a service-type 403 on every page.
+        const orgIsDomiciliary = orgRes.status === 'fulfilled' && getDashboardServiceMode(orgRes.value.data) === 'domiciliary'
         if (staffRes.status === 'fulfilled') setStaffList(staffRes.value.data)
         if (compRes.status === 'fulfilled') setComplianceConfigs(compRes.value.data)
         if (delRes.status === 'fulfilled') setDelegations(delRes.value.data)
         if (compProfileRes.status === 'fulfilled') setComplianceProfiles(compProfileRes.value.data)
-        api.get('/homecare/settings/location-tracking')
-          .then(res => {
-            const on = res.data?.location_tracking_enabled !== false
-            setLocationTracking({ enabled: on, pending: on, saving: false })
-          })
-          .catch(() => setLocationTracking({ enabled: true, pending: true, saving: false }))
+        if (orgIsDomiciliary) {
+          api.get('/homecare/settings/location-tracking')
+            .then(res => {
+              const on = res.data?.location_tracking_enabled !== false
+              setLocationTracking({ enabled: on, pending: on, saving: false })
+            })
+            .catch(() => setLocationTracking({ enabled: true, pending: true, saving: false }))
+        }
         // Read once here purely so the switch-off dialog can say how many
         // positions are actually at stake and whether a period exists. The
         // numbers in the dialog come from the server rather than from anything
         // counted on this page, so there is one source for them.
-        api.get('/homecare/settings/location-retention')
-          .then(res => setRetentionSummary(res.data))
-          .catch(() => setRetentionSummary(null))
+        if (orgIsDomiciliary) {
+          api.get('/homecare/settings/location-retention')
+            .then(res => setRetentionSummary(res.data))
+            .catch(() => setRetentionSummary(null))
+        }
         if (orgDetRes.status === 'fulfilled') {
           setOrgDetails(orgDetRes.value.data)
           setBrandingColors({
@@ -675,7 +685,7 @@ export default function SettingsPage() {
         no endpoint for it — so the control cannot become a tick-box on someone
         else's behalf.
       */}
-      <LocationDecisionControl />
+      {isDomiciliaryOrg && <LocationDecisionControl />}
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#EF4444' }}>Danger Zone</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
@@ -891,7 +901,7 @@ export default function SettingsPage() {
         reasonably feel misled, and this is the one setting on this page that
         changes what is written to every care record from that moment on.
       */}
-      <Paper sx={{ p: 4 }}>
+      {isDomiciliaryOrg && <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}><LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Carer location</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Where a carer's position is recorded when they check in and out of a call, and whether
@@ -933,7 +943,7 @@ export default function SettingsPage() {
             Only an organisation administrator can change this.
           </Typography>
         )}
-      </Paper>
+      </Paper>}
 
       {/*
         The organisation switch sets the ceiling; this is what each carer
@@ -941,7 +951,7 @@ export default function SettingsPage() {
         because the question "has everyone on shift actually been told?" is
         asked by the person running the shift.
       */}
-      <LocationDecisionEvidence />
+      {isDomiciliaryOrg && <LocationDecisionEvidence />}
 
       {/*
         How long the positions on those visits are kept, and the record of what
@@ -949,7 +959,7 @@ export default function SettingsPage() {
         switch because it answers the question the switch leaves open: switching
         off stops the next position, not the ones already held.
       */}
-      <LocationRetentionCard />
+      {isDomiciliaryOrg && <LocationRetentionCard />}
 
       {/*
         Switching collection off has never been able to do anything about the
@@ -1236,6 +1246,13 @@ export default function SettingsPage() {
               helperText="Staff below this compliance % cannot be assigned to shifts in the rota planner (max 100)" />
           </Grid>
           <Grid item xs={12} sm={6}>
+            <TextField label="Minimum staffing coverage %" type="number" fullWidth size="small"
+              value={orgSettings.minimum_staffing_coverage_percent ?? 100}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, minimum_staffing_coverage_percent: Math.max(1, Math.min(100, Number(e.target.value))) }))}
+              inputProps={{ min: 1, max: 100 }}
+              helperText="Mission Control raises a high-priority alert when average coverage across the next 7 days falls below this level." />
+          </Grid>
+          <Grid item xs={12} sm={6}>
             <FormControlLabel
               control={<Switch checked={orgSettings.overtime_requires_approval !== false}
                 onChange={e => setOrgSettings((p: any) => ({ ...p, overtime_requires_approval: e.target.checked }))} />}
@@ -1247,7 +1264,7 @@ export default function SettingsPage() {
             </Typography>
           </Grid>
         </Grid>
-        <Button variant="contained" onClick={() => saveOrgSettings({ minimum_compliance_percent: orgSettings.minimum_compliance_percent, overtime_requires_approval: orgSettings.overtime_requires_approval })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ minimum_compliance_percent: orgSettings.minimum_compliance_percent, minimum_staffing_coverage_percent: orgSettings.minimum_staffing_coverage_percent, overtime_requires_approval: orgSettings.overtime_requires_approval })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Staffing Rules
         </Button>
       </Paper>

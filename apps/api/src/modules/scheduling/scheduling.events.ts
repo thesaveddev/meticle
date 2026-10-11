@@ -1,5 +1,30 @@
 import { publishDomainEvent } from '../events/events.outbox';
 
+export interface StaffingCoveragePayload {
+  coverage_percent: number;
+  required_coverage_percent: number;
+  shifts_with_target: number;
+  below_minimum_shifts: number;
+  unstaffed_shifts: number;
+  staffing_shortfall: number;
+  affected_shifts: Array<Record<string, unknown>>;
+}
+
+/** Publish the organization-wide, seven-day staffing coverage state. */
+export async function publishStaffingCoverageEvent(args: {
+  organizationId: string;
+  recovered: boolean;
+  payload: StaffingCoveragePayload;
+}): Promise<{ id: string }> {
+  return publishDomainEvent({
+    organizationId: args.organizationId,
+    eventName: args.recovered ? 'staffing.coverage_recovered' : 'staffing.coverage_low',
+    aggregateType: 'staffing_coverage',
+    aggregateId: args.organizationId,
+    payload: args.payload as unknown as Record<string, unknown>,
+  });
+}
+
 export interface ShiftUnfilledPayload {
   shift_id: string;
   location_id: string;

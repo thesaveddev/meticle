@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     onboarding_step INTEGER DEFAULT 0,
     onboarding_completed BOOLEAN DEFAULT FALSE,
     minimum_compliance_percent INTEGER DEFAULT 100,
+    minimum_staffing_coverage_percent INTEGER NOT NULL DEFAULT 100 CHECK (minimum_staffing_coverage_percent BETWEEN 1 AND 100),
     overtime_requires_approval BOOLEAN DEFAULT TRUE,
     force_mfa BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

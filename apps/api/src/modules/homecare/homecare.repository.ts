@@ -661,13 +661,18 @@ export async function createVisitPlan(orgId: string, input: HomecareVisitPlanInp
   return result.rows[0];
 }
 
-export async function listVisits(orgId: string, filters: { from?: string; to?: string; staffId?: string; status?: string }) {
+export async function listVisits(orgId: string, filters: { from?: string; to?: string; staffId?: string; status?: string; overdue?: boolean; assignment?: 'assigned' | 'unassigned' }) {
   const conditions = ['v.organization_id = $1'];
   const params: any[] = [orgId];
   let i = 2;
   if (filters.from) { conditions.push(`v.scheduled_start >= $${i++}`); params.push(filters.from); }
   if (filters.to) { conditions.push(`v.scheduled_start < $${i++}`); params.push(filters.to); }
   if (filters.staffId) { conditions.push(`v.assigned_staff_id = $${i++}`); params.push(filters.staffId); }
+  if (filters.assignment === 'unassigned') conditions.push('v.assigned_staff_id IS NULL');
+  if (filters.assignment === 'assigned') conditions.push('v.assigned_staff_id IS NOT NULL');
+  if (filters.overdue) {
+    conditions.push("v.status IN ('scheduled', 'en_route') AND v.scheduled_end < NOW()");
+  }
   if (filters.status) { conditions.push(`v.status = $${i++}`); params.push(filters.status); }
   return (await query(`${VISIT_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY v.scheduled_start`, params)).rows;
 }

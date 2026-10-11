@@ -2,7 +2,7 @@ import { query } from '../../shared/database';
 import logger from '../../shared/utils/logger';
 import { publishAdministrationLateEvent, publishStockLowEvent } from '../emedication/medication.events';
 import { publishIncidentActionOverdueEvent } from '../incidents/incidents.events';
-import { publishShiftUnfilledEvent, publishShiftUnderstaffedEvent } from '../scheduling/scheduling.events';
+import { publishShiftUnfilledEvent, publishShiftUnderstaffedEvent, publishStaffingCoverageEvent } from '../scheduling/scheduling.events';
 import { publishTrainingExpiringEvent } from '../training/training.events';
 import { publishDbsExpiringEvent } from '../compliance/compliance.events';
 import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
@@ -43,6 +43,10 @@ export async function publishBatchEvents(): Promise<Record<string, number>> {
       counts['shift.understaffed'] =
         (counts['shift.understaffed'] || 0) +
         await checkUnderstaffedShifts(orgId);
+
+      counts['staffing.coverage_low'] =
+        (counts['staffing.coverage_low'] || 0) +
+        await checkStaffingCoverage(orgId);
 
       counts['training.expiring'] =
         (counts['training.expiring'] || 0) +
@@ -255,6 +259,77 @@ async function checkUnderstaffedShifts(orgId: string): Promise<number> {
     count++;
   }
   return count;
+}
+
+async function checkStaffingCoverage(orgId: string): Promise<number> {
+  const result = await query(
+    `WITH shift_coverage AS (
+       SELECT s.id AS shift_id, l.id AS location_id, l.name AS location_name,
+              s.start_time, s.end_time, s.shift_type,
+              l.minimum_staff_per_day AS minimum_staff,
+              COUNT(sa.id) FILTER (WHERE sa.status IN ('assigned', 'accepted'))::int AS assigned_staff,
+              CASE WHEN l.minimum_staff_per_day > 0
+                   THEN LEAST(COUNT(sa.id) FILTER (WHERE sa.status IN ('assigned', 'accepted'))::numeric / l.minimum_staff_per_day, 1)
+                   ELSE 1 END AS coverage_ratio
+       FROM shifts s
+       JOIN locations l ON l.id = s.location_id
+       LEFT JOIN shift_assignments sa ON sa.shift_id = s.id
+       WHERE l.organization_id = $1
+         AND s.status NOT IN ('cancelled', 'completed')
+         AND s.end_time > CURRENT_TIMESTAMP
+         AND s.start_time < CURRENT_TIMESTAMP + interval '7 days'
+         AND l.minimum_staff_per_day > 0
+       GROUP BY s.id, l.id, l.name, s.start_time, s.end_time, s.shift_type, l.minimum_staff_per_day
+     )
+     SELECT o.minimum_staffing_coverage_percent AS required_coverage_percent,
+            COUNT(c.shift_id)::int AS shifts_with_target,
+            COUNT(c.shift_id) FILTER (WHERE c.assigned_staff < c.minimum_staff)::int AS below_minimum_shifts,
+            COUNT(c.shift_id) FILTER (WHERE c.assigned_staff = 0)::int AS unstaffed_shifts,
+            COALESCE(ROUND(AVG(c.coverage_ratio) * 100), 100)::int AS coverage_percent,
+            COALESCE(SUM(GREATEST(c.minimum_staff - c.assigned_staff, 0)), 0)::int AS staffing_shortfall,
+            COALESCE(json_agg(json_build_object(
+              'shift_id', c.shift_id, 'location_id', c.location_id,
+              'location_name', c.location_name, 'start_time', c.start_time,
+              'end_time', c.end_time, 'shift_type', c.shift_type,
+              'minimum_staff', c.minimum_staff, 'assigned_staff', c.assigned_staff,
+              'shortfall', GREATEST(c.minimum_staff - c.assigned_staff, 0),
+              'coverage_percent', ROUND(c.coverage_ratio * 100)::int
+            ) ORDER BY c.start_time) FILTER (WHERE c.assigned_staff < c.minimum_staff), '[]'::json) AS affected_shifts
+     FROM organizations o
+     LEFT JOIN shift_coverage c ON TRUE
+     WHERE o.id = $1
+     GROUP BY o.minimum_staffing_coverage_percent`,
+    [orgId]
+  );
+  const coverage = result.rows[0];
+  if (!coverage || !coverage.shifts_with_target) return 0;
+
+  const latest = await query(
+    `SELECT event_name FROM domain_events
+     WHERE organization_id = $1 AND aggregate_type = 'staffing_coverage'
+       AND aggregate_id = $1
+     ORDER BY event_timestamp DESC LIMIT 1`,
+    [orgId]
+  );
+  const belowThreshold = coverage.coverage_percent < coverage.required_coverage_percent;
+
+  const wasBelowThreshold = latest.rows[0]?.event_name === 'staffing.coverage_low';
+  if (belowThreshold === wasBelowThreshold) return 0;
+
+  await publishStaffingCoverageEvent({
+    organizationId: orgId,
+    recovered: !belowThreshold,
+    payload: {
+      coverage_percent: coverage.coverage_percent,
+      required_coverage_percent: coverage.required_coverage_percent,
+      shifts_with_target: coverage.shifts_with_target,
+      below_minimum_shifts: coverage.below_minimum_shifts,
+      unstaffed_shifts: coverage.unstaffed_shifts,
+      staffing_shortfall: coverage.staffing_shortfall,
+      affected_shifts: coverage.affected_shifts,
+    },
+  });
+  return 1;
 }
 
 async function checkExpiringTraining(orgId: string): Promise<number> {

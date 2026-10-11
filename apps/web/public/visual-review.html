@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing visual delta review</title>
+  <style>
+    body { margin: 16px; background: #f0f0f0; font: 14px system-ui, sans-serif; }
+    section { margin: 0 0 28px; }
+    .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    figure { margin: 0; }
+    figcaption { position: sticky; top: 0; padding: 8px; color: white; background: #222; }
+    img { display: block; width: 100%; height: auto; border: 1px solid #aaa; }
+  </style>
+</head>
+<body>
+  <h1>Marketing screenshot comparison</h1>
+  <div id="review"></div>
+  <script>
+    const review = document.querySelector('#review');
+    for (const route of ['home', 'pricing', 'login']) {
+      const section = document.createElement('section');
+      section.innerHTML = `<h2>${route}</h2><div class="row"></div>`;
+      for (const variant of ['baseline', 'actual', 'diff']) {
+        const figure = document.createElement('figure');
+        figure.innerHTML = `<figcaption>${variant}</figcaption><img src="/__visual-review/${route}-${variant}.png" alt="${route} ${variant}">`;
+        section.querySelector('.row').append(figure);
+      }
+      review.append(section);
+    }
+  </script>
+</body>
+</html>

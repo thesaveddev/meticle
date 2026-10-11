@@ -21,6 +21,8 @@ export function registerProductionConsumers(): void {
   registerConsumer('incident.action_overdue', MissionControlAlertConsumer);
   registerConsumer('shift.unfilled', MissionControlAlertConsumer);
   registerConsumer('shift.understaffed', MissionControlAlertConsumer);
+  registerConsumer('staffing.coverage_low', MissionControlAlertConsumer);
+  registerConsumer('staffing.coverage_recovered', MissionControlAlertConsumer);
   registerConsumer('training.expiring', MissionControlAlertConsumer);
   registerConsumer('dbs.expiring', MissionControlAlertConsumer);
   registerConsumer('policy.review_due', MissionControlAlertConsumer);

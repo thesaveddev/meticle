@@ -23,7 +23,11 @@ export class DashboardController {
     const orgId = req.user?.organizationId;
     const userId = req.user?.userId;
     if (!orgId) throw new AppError(403, 'Organization required');
-    const rota = await DashboardRepository.getTodayRota(orgId, userId);
+    const rota = await DashboardRepository.getTodayRota(
+      orgId,
+      userId,
+      typeof req.query.date === 'string' ? req.query.date : undefined,
+    );
     res.json(rota);
   }
 

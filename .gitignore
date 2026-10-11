@@ -102,3 +102,7 @@ section-*.png
 # as first-class app modules rather than scratch.
 # (No ignore here: ai.actions.ts, ai.gateway.ts, actions/ and the new migrations
 # are intentional release content.)
+
+# Playwright E2E artifacts
+apps/web/test-results/
+apps/web/playwright-report/

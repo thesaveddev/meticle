@@ -193,11 +193,11 @@ export class DashboardRepository {
     ];
   }
 
-  static async getTodayRota(orgId: string, userId?: string) {
+  static async getTodayRota(orgId: string, userId?: string, selectedDate?: string) {
     const userFilter = userId
-      ? `AND EXISTS (SELECT 1 FROM shift_assignments sa3 JOIN staff_profiles sp4 ON sp4.id = sa3.staff_id WHERE sa3.shift_id = sh.id AND sp4.user_id = $2)`
+      ? `AND EXISTS (SELECT 1 FROM shift_assignments sa3 JOIN staff_profiles sp4 ON sp4.id = sa3.staff_id WHERE sa3.shift_id = sh.id AND sp4.user_id = $3)`
       : '';
-    const params = userId ? [orgId, userId] : [orgId];
+    const params = userId ? [orgId, selectedDate || null, userId] : [orgId, selectedDate || null];
     const result = await query(`
       SELECT
         sh.id,
@@ -215,8 +215,8 @@ export class DashboardRepository {
       FROM shifts sh
       JOIN locations l ON l.id = sh.location_id
       WHERE l.organization_id = $1
-        AND sh.start_time >= CURRENT_DATE
-        AND sh.start_time < CURRENT_DATE + INTERVAL '1 day'
+        AND sh.start_time >= COALESCE($2::date, CURRENT_DATE)
+        AND sh.start_time < COALESCE($2::date, CURRENT_DATE) + INTERVAL '1 day'
         ${userFilter}
       ORDER BY sh.start_time
       LIMIT 10

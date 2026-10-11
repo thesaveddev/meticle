@@ -30,6 +30,7 @@ interface DomiciliaryData {
   calls_missed: number
   calls_cancelled: number
   calls_unassigned: number
+  overdue_calls: number
   coverage_percent: number
   carers_working_today: number
   carers_with_calls: number
@@ -230,6 +231,7 @@ export default function DomiciliaryDashboard() {
           { label: 'In Progress', value: data.calls_in_progress, color: '#2F80ED', icon: <CallIcon />, filter: 'checked_in' },
           { label: 'Upcoming', value: data.calls_scheduled, color: 'text.secondary', icon: <PendingIcon />, filter: 'scheduled' },
           { label: 'Missed', value: data.calls_missed, color: '#EF4444', icon: <MissedIcon />, filter: 'missed' },
+          { label: 'Overdue backlog', value: data.overdue_calls, color: '#EF4444', icon: <PendingIcon />, filter: 'scheduled' },
           { label: 'Unassigned', value: data.calls_unassigned, color: '#F59E0B', icon: <UnassignedIcon />, filter: '' },
         ].map(card => (
           <Grid item xs={6} sm={4} md={2.4} key={card.label}>
@@ -238,7 +240,7 @@ export default function DomiciliaryDashboard() {
               value={card.value}
               icon={card.icon}
               color={card.color}
-              onClick={() => navigate(card.filter ? `/homecare?status=${card.filter}` : '/homecare')}
+              onClick={() => navigate(card.label === 'Overdue backlog' ? '/homecare?overdue=true' : card.filter ? `/homecare?status=${card.filter}` : '/homecare')}
             />
           </Grid>
         ))}
@@ -292,7 +294,7 @@ export default function DomiciliaryDashboard() {
                   return (
                     <Box
                       key={call.id}
-                      onClick={() => navigate(`/homecare?status=${call.status}`)}
+                      onClick={() => navigate(`/homecare?status=${call.status}&date=${selectedDate}`)}
                       sx={{
                         display: 'flex',
                         gap: 'var(--card-gap)',

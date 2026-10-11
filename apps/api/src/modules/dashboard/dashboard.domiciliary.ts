@@ -10,6 +10,8 @@ export interface DomiciliaryDashboardData {
   calls_missed: number;
   calls_cancelled: number;
   calls_unassigned: number;
+  /** Outstanding scheduled/en-route visits past their end time, across all dates. */
+  overdue_calls: number;
   coverage_percent: number;
   carers_working_today: number;
   carers_with_calls: number;
@@ -24,7 +26,7 @@ export async function getDomiciliaryDashboard(orgId: string, dateStr?: string): 
   const now = new Date().toISOString();
   const tomorrow = new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0];
 
-  const [visitsResult, tasksResult, exceptionsResult, packagesResult] = await Promise.all([
+  const [visitsResult, tasksResult, exceptionsResult, packagesResult, overdueResult] = await Promise.all([
     query(`
       SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,
              v.assigned_staff_id, v.exception_type,
@@ -61,6 +63,15 @@ export async function getDomiciliaryDashboard(orgId: string, dateStr?: string): 
              COUNT(*) FILTER (WHERE status = 'active') AS active_count
       FROM homecare_packages
       WHERE organization_id = $1
+    `, [orgId]),
+    // This is an outstanding backlog across all dates (the existing Mission
+    // Control definition), not a count limited to the selected day's schedule.
+    query(`
+      SELECT COUNT(*)::int AS count
+      FROM homecare_visits
+      WHERE organization_id = $1
+        AND status IN ('scheduled', 'en_route')
+        AND scheduled_end < NOW()
     `, [orgId]),
   ]);
 
@@ -143,6 +154,7 @@ export async function getDomiciliaryDashboard(orgId: string, dateStr?: string): 
     calls_missed: missed,
     calls_cancelled: cancelled,
     calls_unassigned: unassigned,
+    overdue_calls: overdueResult.rows[0]?.count ?? 0,
     coverage_percent: coveragePercent,
     carers_working_today: carerBreakdown.length,
     carers_with_calls: carerBreakdown.filter(c => c.calls_assigned > 0).length,

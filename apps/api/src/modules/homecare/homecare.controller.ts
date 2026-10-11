@@ -135,6 +135,8 @@ export class HomecareController {
       to: req.query.to as string | undefined,
       staffId: req.query.staffId as string | undefined,
       status: req.query.status as string | undefined,
+      overdue: req.query.overdue === 'true',
+      assignment: req.query.assignment === 'assigned' || req.query.assignment === 'unassigned' ? req.query.assignment : undefined,
     }));
   }
 
@@ -194,11 +196,17 @@ export class HomecareController {
 
   static async myVisits(req: Request, res: Response) {
     const staff = await import('../../shared/database').then(({ query }) => query('SELECT id FROM staff_profiles WHERE user_id = $1', [userId(req)]));
+    if (!staff.rows[0]) {
+      res.json([]);
+      return;
+    }
     res.json(await repo.listVisits(orgId(req), {
       from: req.query.from as string | undefined,
       to: req.query.to as string | undefined,
       staffId: staff.rows[0]?.id || '__none__',
       status: req.query.status as string | undefined,
+      overdue: req.query.overdue === 'true',
+      assignment: req.query.assignment === 'assigned' || req.query.assignment === 'unassigned' ? req.query.assignment : undefined,
     }));
   }
 

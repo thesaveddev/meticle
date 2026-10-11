@@ -17,7 +17,10 @@ export class MissionControlController {
   }
 
   static async getHomecareSummary(req: Request, res: Response) {
-    const summary = await MissionControlRepository.getHomecareSummary(req.user!.organizationId!);
+    const summary = await MissionControlRepository.getHomecareSummary(
+      req.user!.organizationId!,
+      typeof req.query.date === 'string' ? req.query.date : undefined,
+    );
     res.json(summary);
   }
 

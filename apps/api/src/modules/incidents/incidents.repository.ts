@@ -55,7 +55,11 @@ export class IncidentsRepository {
     // A support worker sees only what they raised, so filing a concern never
     // exposes them to the organisation's whole incident history.
     if (opts.reportedBy) { sql += ` AND i.reported_by = $${idx}`; params.push(opts.reportedBy); idx++; }
-    if (opts.status) { sql += ` AND i.status = $${idx}`; params.push(opts.status); idx++; }
+    if (opts.status === 'open') {
+      sql += ` AND i.status IN ('reported', 'investigating')`;
+    } else if (opts.status) {
+      sql += ` AND i.status = $${idx}`; params.push(opts.status); idx++;
+    }
     if (opts.category_id) { sql += ` AND i.category_id = $${idx}`; params.push(opts.category_id); idx++; }
     if (opts.severity) { sql += ` AND i.severity = $${idx}`; params.push(opts.severity); idx++; }
     if (opts.is_near_miss) { sql += ` AND i.is_near_miss = $${idx}`; params.push(opts.is_near_miss === 'true'); idx++; }

@@ -40,12 +40,26 @@ export default function HomecarePage() {
   const [patternPkg, setPatternPkg] = useState<any>(null)
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
-  const from = new Date(); from.setHours(0, 0, 0, 0)
+  const overdueOnly = params.get('overdue') === 'true'
+  const selectedStatus = params.get('status') || ''
+  const selectedAssignment = params.get('assignment') || ''
+  const dateParam = params.get('date')
+  const from = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+    ? new Date(`${dateParam}T00:00:00`)
+    : new Date()
+  from.setHours(0, 0, 0, 0)
   const to = new Date(from); to.setDate(to.getDate() + 2)
 
   const { data: visits = [], isLoading: visitsLoading } = useQuery({
-    queryKey: ['homecare-visits', from.toISOString().slice(0, 10), isManager],
-    queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', { params: { from: from.toISOString(), to: to.toISOString() } }).then(r => Array.isArray(r.data) ? r.data : []),
+    queryKey: ['homecare-visits', overdueOnly ? 'overdue-backlog' : from.toISOString().slice(0, 10), isManager, selectedStatus, selectedAssignment],
+    queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', {
+      params: {
+        ...(!overdueOnly ? { from: from.toISOString(), to: to.toISOString() } : {}),
+        ...(selectedStatus ? { status: selectedStatus } : {}),
+        ...(selectedAssignment ? { assignment: selectedAssignment } : {}),
+        ...(overdueOnly ? { overdue: true } : {}),
+      },
+    }).then(r => Array.isArray(r.data) ? r.data : []),
   })
   const { data: packages = [] } = useQuery({ queryKey: ['homecare-packages'], queryFn: () => api.get('/homecare/packages').then(r => Array.isArray(r.data) ? r.data : []) })
   const { data: people = [] } = useQuery({ queryKey: ['homecare-people'], queryFn: () => api.get('/people?status=active').then(r => Array.isArray(r.data) ? r.data : r.data?.people || []), enabled: isManager })
@@ -54,7 +68,10 @@ export default function HomecarePage() {
   const { data: staff = [] } = useQuery({ queryKey: ['homecare-staff'], queryFn: () => api.get('/homecare/staff').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
   const { data: exceptions = [] } = useQuery({ queryKey: ['homecare-exceptions'], queryFn: () => api.get('/homecare/exceptions').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
 
-  const filteredVisits = params.get('status') ? visits.filter((v: any) => v.status === params.get('status')) : visits
+  const filteredVisits = visits.filter((visit: any) =>
+    (!selectedStatus || visit.status === selectedStatus) &&
+    (!selectedAssignment || (selectedAssignment === 'unassigned' ? !visit.assigned_staff_id : Boolean(visit.assigned_staff_id))),
+  )
   const filteredPackages = packages.filter((pkg: any) => {
     const q = packageSearch.trim().toLowerCase()
     const matchesText = !q || `${pkg.name || ''} ${pkg.person_name || ''} ${pkg.funding_type || ''}`.toLowerCase().includes(q)
@@ -75,6 +92,7 @@ export default function HomecarePage() {
       {isManager && <Tab icon={<PackageIcon />} iconPosition="start" label="Care packages" />}
       {isManager && <Tab icon={<ExceptionIcon />} iconPosition="start" label={`Missed calls${exceptions.length ? ` · ${exceptions.length}` : ''}`} />}
     </Tabs>
+    {overdueOnly && <Alert severity="warning" sx={{ mb: 2 }}>Showing the outstanding overdue backlog across all dates. Overdue means a scheduled or en-route call whose scheduled end time has passed; unassigned calls are not counted as overdue unless they also meet that rule.</Alert>}
     {tab === 0 && <VisitBoard visits={filteredVisits} loading={visitsLoading} />}
     {tab === 1 && isManager && <PackageBoard packages={visiblePackages} total={filteredPackages.length} search={packageSearch} status={packageStatus} page={packagePage} pages={packagePages} onSearch={(value: string) => { setPackageSearch(value); setPackagePage(0) }} onStatus={(value: string) => { setPackageStatus(value); setPackagePage(0) }} onPage={setPackagePage} onPattern={(pkg: any) => setPatternPkg(pkg)} />}
     {tab === 2 && isManager && <ExceptionBoard exceptions={exceptions} />}

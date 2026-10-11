@@ -13,7 +13,7 @@ export class SettingsController {
     const result = await pool.query(
       `SELECT leave_start_month, leave_calculation_type, default_hours_per_leave_day,
                 base_leave_hours, base_contracted_hours, minimum_compliance_percent,
-                overtime_requires_approval, force_mfa, regulator,
+                minimum_staffing_coverage_percent, overtime_requires_approval, force_mfa, regulator,
                 compliance_digest_enabled, predictive_alerts_enabled,
                 auto_evidence_pack_enabled, auto_evidence_pack_frequency,
                 daily_shift_audit_enabled, daily_shift_audit_time,
@@ -98,7 +98,7 @@ export class SettingsController {
     // leave policy, notification/alert behaviour and medication safety.
     // Identity and security policy (force_mfa, regulator, service model) and
     // SOS contacts stay with the org admin.
-    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'stock_low_alert_days_threshold', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention', 'minimum_compliance_percent', 'overtime_requires_approval', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'auto_evidence_pack_enabled', 'auto_evidence_pack_frequency', 'leave_start_month', 'leave_calculation_type', 'default_hours_per_leave_day', 'base_leave_hours', 'base_contracted_hours']);
+    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'stock_low_alert_days_threshold', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention', 'minimum_compliance_percent', 'minimum_staffing_coverage_percent', 'overtime_requires_approval', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'auto_evidence_pack_enabled', 'auto_evidence_pack_frequency', 'leave_start_month', 'leave_calculation_type', 'default_hours_per_leave_day', 'base_leave_hours', 'base_contracted_hours']);
     if (user.role === 'MANAGER') {
       const filtered: any = {};
       for (const k of Object.keys(req.body)) {
@@ -110,7 +110,7 @@ export class SettingsController {
       req.body = filtered;
     }
 
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, service_types, primary_service_type, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone } = req.body;
+    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, minimum_staffing_coverage_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, service_types, primary_service_type, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone } = req.body;
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -119,6 +119,7 @@ export class SettingsController {
         base_leave_hours = COALESCE($4, base_leave_hours),
         base_contracted_hours = COALESCE($5, base_contracted_hours),
         minimum_compliance_percent = COALESCE($6, minimum_compliance_percent),
+        minimum_staffing_coverage_percent = COALESCE($30, minimum_staffing_coverage_percent),
         overtime_requires_approval = COALESCE($7, overtime_requires_approval),
         force_mfa = COALESCE($8, force_mfa),
         regulator = COALESCE($9, regulator),
@@ -143,7 +144,7 @@ export class SettingsController {
         emergency_contact_2_phone = CASE WHEN $29::text IS NULL THEN emergency_contact_2_phone ELSE NULLIF($29, '') END,
         primary_service_type = COALESCE($25, primary_service_type)
        WHERE id = $23 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, orgId, service_types || null, primary_service_type || null, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone]
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, orgId, service_types || null, primary_service_type || null, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone, minimum_staffing_coverage_percent]
     );
 
     AuditRepository.log({

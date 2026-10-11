@@ -39,6 +39,8 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import PageContainer from '../../components/design/PageContainer'
 import { METICLE_COLORS } from '../../context/ThemeContext'
 import { PremiumCard } from '../../components/design/PremiumCard'
+import AppButton from '../../components/design/AppButton'
+import { CarePlanCardView } from './carePlanCardView'
 
 const RISK_COLORS: Record<string, string> = { low: METICLE_COLORS.success, medium: METICLE_COLORS.warning, high: METICLE_COLORS.danger, critical: '#8B7CF6' }
 
@@ -188,7 +190,7 @@ export default function PersonProfilePage() {
     other: ['mobility_level', 'mobility_aids', 'capacity_status', 'sleep_pattern', 'emergency_info', 'personal_goals', 'likes_dislikes', 'communication_needs', 'cultural_needs'],
   }
 
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, isError, refetch } = useQuery({
     queryKey: ['person', id],
     queryFn: () => api.get(`/people/${id}`).then(r => r.data),
     enabled: !!id,
@@ -222,7 +224,7 @@ export default function PersonProfilePage() {
 
   const addPlanMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/care-plans`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar('Care plan added') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add care plan'),
   })
 
@@ -252,13 +254,13 @@ export default function PersonProfilePage() {
 
   const updatePlanMutation = useMutation({
     mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/people/care-plans/${planId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar('Care plan updated') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update care plan'),
   })
 
   const deletePlanMutation = useMutation({
     mutationFn: (planId: string) => api.delete(`/people/care-plans/${planId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['person', id] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setDeleteConfirm(null); setError(''); showSnackbar('Care plan deleted') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to delete care plan'),
   })
 
@@ -980,60 +982,53 @@ export default function PersonProfilePage() {
 
       {/* Tab: Care Plans */}
       {tab === 2 && (
-        <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Care Plans</Typography>
-            <Button size="small" variant="contained" startIcon={<AddIcon />}
-              onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setAddPlanOpen(true) }}
-              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Care Plan</Button>
+        <Box sx={{ pb: { xs: 10, sm: 5 } }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
+            <Box>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Care Plans</Typography>
+              <Typography variant="body2" color="text.secondary">Agreed support and care needs for this person.</Typography>
+            </Box>
+            <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setError(''); setAddPlanOpen(true) }} sx={{ textTransform: 'none', alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+              Add Care Plan
+            </AppButton>
           </Stack>
-          {(!user.care_plans || user.care_plans.length === 0) ? (
-            <EmptyState
-              icon={<AssignmentIcon />}
-              title="No care plans yet"
-              description="Create a care plan to document support needs, goals, and review dates."
-              action={{ label: 'Add Care Plan', onClick: () => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setAddPlanOpen(true) } }}
-            />
+          {isLoading ? (
+            <Grid container spacing={2} aria-label="Loading care plans">
+              {[0, 1].map(index => <Grid item xs={12} md={6} key={index}>
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: 176 }}>
+                  <Stack spacing={1.5}><Box sx={{ display: 'flex', gap: 1 }}><Box sx={{ width: '48%', height: 24, bgcolor: 'action.hover', borderRadius: 1 }} /><Box sx={{ width: 92, height: 22, bgcolor: 'action.hover', borderRadius: 1 }} /></Box><Box sx={{ width: '82%', height: 18, bgcolor: 'action.hover', borderRadius: 1 }} /><Box sx={{ width: '38%', height: 18, bgcolor: 'action.hover', borderRadius: 1, mt: 'auto' }} /></Stack>
+                </Paper>
+              </Grid>)}
+            </Grid>
+          ) : isError ? (
+            <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => refetch()}>Try again</Button>}>
+              Unable to load this person's care plans. Please try again.
+            </Alert>
+          ) : !user.care_plans?.length ? (
+            <Paper variant="outlined" sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 2, textAlign: 'center', bgcolor: 'background.paper' }}>
+              <Box sx={{ width: 40, height: 40, mx: 'auto', mb: 1.25, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'text.secondary' }}><AssignmentIcon fontSize="small" /></Box>
+              <Typography variant="subtitle1" component="h3" fontWeight={600}>No care plans yet</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: 'auto', my: 1 }}>Create a care plan to document this person's agreed support and care needs.</Typography>
+              <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setError(''); setAddPlanOpen(true) }} sx={{ textTransform: 'none', mt: 0.5 }}>Add Care Plan</AppButton>
+            </Paper>
           ) : (
             <Grid container spacing={2}>
               {user.care_plans.map((cp: any) => {
-                const isOverdue = cp.review_date && new Date(cp.review_date) < new Date()
+                const editPlanForCard = (plan: any) => {
+                  setPlanForm({ title: plan.title, category: plan.category, description: plan.description || '', risk_assessment: plan.risk_assessment || '', review_date: plan.review_date ? toDateInput(plan.review_date) : '', mobility_level: plan.mobility_level || '', mobility_aids: plan.mobility_aids || '', communication_needs: plan.communication_needs || '', capacity_status: plan.capacity_status || '', sleep_pattern: plan.sleep_pattern || '', emergency_info: plan.emergency_info || '', personal_goals: plan.personal_goals || '', likes_dislikes: plan.likes_dislikes || '', cultural_needs: plan.cultural_needs || '', file_url: plan.file_url || '', file_name: plan.file_name || '', sections: plan.sections || { ...EMPTY_PLAN_FORM.sections } })
+                  setEditPlanId(plan.id); setPlanTab(0); setError(''); setAddPlanOpen(true)
+                }
                 return (
-                <Grid item xs={12} md={6} key={cp.id}>
-                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Typography variant="subtitle2" fontWeight={600}>{cp.title}</Typography>
-                          <Chip label={cp.category?.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
-                        </Stack>
-                        {cp.description && <Typography variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cp.description}</Typography>}
-                      </Box>
-                      <Stack direction="row" spacing={0.5} sx={{ ml: 1, flexShrink: 0 }}>
-                        <IconButton size="small" onClick={e => { e.stopPropagation(); setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', file_name: cp.file_name || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={e => { e.stopPropagation(); setDeleteConfirm({ type: 'plan', id: cp.id }) }}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    </Stack>
-                    <Stack direction="row" flexWrap="wrap" spacing={0.5} useFlexGap sx={{ mt: 1.5 }}>
-                      {cp.mobility_level && <Chip label={`Mobility: ${cp.mobility_level.replace(/_/g, ' ')}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
-                      {cp.capacity_status && <Chip label={`Capacity: ${cp.capacity_status.replace(/_/g, ' ')}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
-                      {cp.personal_goals && <Chip label="Goals set" size="small" color="primary" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
-                      {cp.cultural_needs && <Chip label="Cultural needs" size="small" color="secondary" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
-                      {cp.file_url && <Chip label="File uploaded" size="small" color="info" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
-                    </Stack>
-                    {cp.review_date && (
-                      <Typography variant="caption" sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5, color: isOverdue ? METICLE_COLORS.danger : 'text.muted' }}>
-                        {isOverdue ? <WarningIcon sx={{ fontSize: 13 }} /> : null}
-                        Review: {new Date(cp.review_date).toLocaleDateString('en-GB')} {isOverdue ? '(overdue)' : ''}
-                      </Typography>
-                    )}
-                  </Paper>
-                </Grid>
-              )})}
+                  <Grid item xs={12} md={6} key={cp.id}>
+                    <CarePlanCardView
+                      plan={cp}
+                      onView={viewCarePlan}
+                      onEdit={plan => editPlanForCard(plan)}
+                      onDelete={plan => setDeleteConfirm({ type: 'plan', id: plan.id })}
+                    />
+                  </Grid>
+                )
+              })}
             </Grid>
           )}
         </Box>
@@ -1514,7 +1509,7 @@ export default function PersonProfilePage() {
       </Dialog>
 
       {/* Add / Edit Care Plan Dialog */}
-       <Dialog open={addPlanOpen} onClose={() => { setAddPlanOpen(false); setEditPlanId(null) }} maxWidth="md" fullWidth key={editPlanId || 'new'}>
+       <Dialog open={addPlanOpen} onClose={() => { if (!addPlanMutation.isPending && !updatePlanMutation.isPending) { setAddPlanOpen(false); setEditPlanId(null); setError('') } }} maxWidth="md" fullWidth key={editPlanId || 'new'}>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault()
           if (editPlanId) {
@@ -1529,7 +1524,8 @@ export default function PersonProfilePage() {
             <Tab label="Person-Centred Plan" />
           </Tabs>
           <DialogContent>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>For {user.first_name} {user.last_name}</Typography>
             {planTab === 0 ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required value={planForm.title} onChange={e => setPlanForm({ ...planForm, title: e.target.value })} />
@@ -1600,8 +1596,8 @@ export default function PersonProfilePage() {
               <Stack direction="row" spacing={1} alignItems="center">
                 <Button variant="outlined" size="small" onClick={() => planFileInputRef.current?.click()} disabled={planUploading}
                   sx={{ textTransform: 'none',}}>
-                  {planUploading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                  {planForm.file_url ? 'Replace File' : 'Upload PDF / Document'}
+              {planUploading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              {planForm.file_url ? 'Replace File' : 'Upload PDF / Document'}
                 </Button>
                 {planForm.file_url && (
                   <>
@@ -1671,11 +1667,10 @@ export default function PersonProfilePage() {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => { setAddPlanOpen(false); setEditPlanId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addPlanMutation.isPending || updatePlanMutation.isPending}
-              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addPlanMutation.isPending || updatePlanMutation.isPending) ? <CircularProgress size={20} /> : (editPlanId ? 'Save' : 'Add Plan')}
-            </Button>
+            <Button onClick={() => { setAddPlanOpen(false); setEditPlanId(null); setError('') }} disabled={addPlanMutation.isPending || updatePlanMutation.isPending}>Cancel</Button>
+            <AppButton type="submit" variant="primary" loading={addPlanMutation.isPending || updatePlanMutation.isPending} disabled={planUploading || !planForm.title.trim() || !planForm.category}>
+              {editPlanId ? 'Save changes' : 'Add care plan'}
+            </AppButton>
           </DialogActions>
         </Box>
       </Dialog>
@@ -2370,16 +2365,17 @@ export default function PersonProfilePage() {
         <DialogTitle sx={{ fontWeight: 600, color: 'error.main' }}>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this {deleteConfirm?.type}? This action cannot be undone.</Typography>
+          {deleteConfirm?.type === 'plan' && error && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-          <Button variant="contained" color="error" onClick={() => {
+          <Button onClick={() => { setDeleteConfirm(null); setError('') }} disabled={deletePlanMutation.isPending || deleteRiskMutation.isPending}>Cancel</Button>
+          <Button variant="contained" color="error" disabled={deletePlanMutation.isPending || deleteRiskMutation.isPending} startIcon={(deletePlanMutation.isPending || deleteRiskMutation.isPending) ? <CircularProgress size={16} color="inherit" /> : undefined} onClick={() => {
             if (!deleteConfirm) return
             const { type, id: delId } = deleteConfirm
             if (type === 'plan') deletePlanMutation.mutate(delId)
             else if (type === 'risk') deleteRiskMutation.mutate(delId)
-            setDeleteConfirm(null)
-          }}>Delete</Button>
+            else setDeleteConfirm(null)
+          }}>{(deletePlanMutation.isPending || deleteRiskMutation.isPending) ? 'Deleting…' : 'Delete'}</Button>
         </DialogActions>
       </Dialog>
     </PageContainer>

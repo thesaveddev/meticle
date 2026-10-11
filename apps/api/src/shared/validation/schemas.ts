@@ -822,6 +822,7 @@ export const updateOrgSettingsSchema = z.object({
   base_leave_hours: z.number().min(0).optional(),
   base_contracted_hours: z.number().min(0).optional(),
   minimum_compliance_percent: z.number().min(0).max(100).optional(),
+  minimum_staffing_coverage_percent: z.number().int().min(1).max(100).optional(),
   overtime_requires_approval: z.boolean().optional(),
   force_mfa: z.boolean().optional(),
   compliance_digest_enabled: z.boolean().optional(),

@@ -6,6 +6,8 @@ import { createOrg, createUser, generateToken } from '../../test/factories'
 import { migrateQuery } from '../../shared/database'
 import { publishDomainEvent, processOutbox, listPendingEvents, retryEvent, cleanupOutbox, MAX_PUBLISH_ATTEMPTS } from './events.outbox'
 import { registerConsumer, resetConsumers, DomainEvent } from './events.consumers'
+import { MissionControlAlertConsumer } from './consumers/mission-control-alert.consumer'
+import { publishStaffingCoverageEvent } from '../scheduling/scheduling.events'
 
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
   rateLimit: () => (_req: any, _res: any, next: any) => next(),
@@ -140,6 +142,43 @@ describe('Event outbox — publish and deliver', () => {
 
     row = (await migrateQuery(`SELECT status FROM domain_events WHERE id = $1`, [id])).rows[0]
     expect(row.status).toBe('published')
+  })
+})
+
+describe('Mission Control staffing escalation consumer', () => {
+  it('creates a critical coverage alert and resolves it after a recovery event', async () => {
+    const { org } = await makeOrgAdmin()
+    const coverage = {
+      coverage_percent: 50,
+      required_coverage_percent: 85,
+      shifts_with_target: 8,
+      below_minimum_shifts: 5,
+      unstaffed_shifts: 2,
+      staffing_shortfall: 7,
+      affected_shifts: [{ location_name: 'Maple House', start_time: new Date().toISOString(), assigned_staff: 0, minimum_staff: 2 }],
+    }
+    registerConsumer('staffing.coverage_low', MissionControlAlertConsumer)
+    registerConsumer('staffing.coverage_recovered', MissionControlAlertConsumer)
+
+    await publishStaffingCoverageEvent({ organizationId: org.id, recovered: false, payload: coverage })
+    await processOutbox(org.id)
+    let alert = await migrateQuery(
+      `SELECT severity, title, message, dismissed FROM mission_control_alerts
+       WHERE organization_id = $1 AND alert_type = 'staffing.coverage_low' AND aggregate_id = $2`,
+      [org.id, org.id],
+    )
+    expect(alert.rows[0]).toMatchObject({ severity: 'critical', dismissed: false })
+    expect(alert.rows[0].message).toContain('Maple House')
+    expect(alert.rows[0].message).toContain('Target 85%')
+
+    await publishStaffingCoverageEvent({ organizationId: org.id, recovered: true, payload: { ...coverage, coverage_percent: 92 } })
+    await processOutbox(org.id)
+    alert = await migrateQuery(
+      `SELECT dismissed FROM mission_control_alerts
+       WHERE organization_id = $1 AND alert_type = 'staffing.coverage_low' AND aggregate_id = $2`,
+      [org.id, org.id],
+    )
+    expect(alert.rows[0].dismissed).toBe(true)
   })
 })
 

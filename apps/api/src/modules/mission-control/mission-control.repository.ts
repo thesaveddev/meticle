@@ -21,7 +21,7 @@ export class MissionControlRepository {
     if (filters?.category) {
       const catMap: Record<string, string[]> = {
         medication: ["alert_type LIKE 'medication.%'"],
-        staffing: ["alert_type IN ('shift.unfilled')"],
+        staffing: ["alert_type IN ('shift.unfilled', 'shift.understaffed', 'staffing.coverage_low')"],
         safety: ["alert_type IN ('incident.action_overdue')"],
         compliance: ["alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due')"],
         care: ["alert_type IN ('care_plan.review_due', 'fluid.intake_below_target', 'nutrition.appetite_decline', 'nutrition.refused_meal')"],
@@ -182,7 +182,7 @@ export class MissionControlRepository {
     const categoryResult = await query(
       `SELECT
          COUNT(*) FILTER (WHERE alert_type LIKE 'medication.%' AND dismissed = FALSE)::int AS medication,
-         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'shift.understaffed', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
+         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'shift.understaffed', 'staffing.coverage_low', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
          COUNT(*) FILTER (WHERE alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due') AND dismissed = FALSE)::int AS compliance,
          COUNT(*) FILTER (WHERE alert_type IN ('care_plan.review_due', 'fluid.intake_below_target') AND dismissed = FALSE)::int AS care
        FROM mission_control_alerts
@@ -210,14 +210,18 @@ export class MissionControlRepository {
        FROM shifts s
        JOIN locations l ON s.location_id = l.id
        WHERE l.organization_id = $1
-         AND s.staff_id IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM shift_assignments assigned
+           WHERE assigned.shift_id = s.id AND assigned.status IN ('assigned', 'accepted')
+         )
          AND s.status NOT IN ('cancelled', 'completed')
          AND s.start_time > CURRENT_TIMESTAMP
          AND s.start_time < CURRENT_TIMESTAMP + interval '24 hours'`,
       [orgId]
     );
 
-    // Understaffed shifts (has staff but below minimum)
+    // Understaffed shifts (below configured location minimum), including
+    // completely unfilled shifts so the operational count matches coverage.
     const understaffedShifts = await query(
       `SELECT COUNT(*)::int AS count
        FROM (
@@ -232,8 +236,56 @@ export class MissionControlRepository {
            AND l.minimum_staff_per_day IS NOT NULL
            AND l.minimum_staff_per_day > 0
          GROUP BY s.id, l.minimum_staff_per_day
-         HAVING COUNT(sa.id) > 0 AND COUNT(sa.id) < l.minimum_staff_per_day
+         HAVING COUNT(sa.id) FILTER (WHERE sa.status IN ('assigned', 'accepted')) < l.minimum_staff_per_day
        ) sub`,
+      [orgId]
+    );
+
+    // Coverage is the average staffed share of each location's configured
+    // minimum across active shifts in the next seven days. Keep scheduled shifts
+    // with no assignee in the denominator so a wholly uncovered shift is a
+    // critical gap rather than disappearing from the calculation.
+    const staffingCoverage = await query(
+      `WITH shift_coverage AS (
+         SELECT s.id AS shift_id, s.location_id, l.name AS location_name,
+                s.start_time, s.end_time, s.shift_type,
+                l.minimum_staff_per_day AS minimum_staff,
+                COUNT(sa.id) FILTER (WHERE sa.status IN ('assigned', 'accepted'))::int AS assigned_staff,
+                CASE WHEN l.minimum_staff_per_day > 0
+                     THEN LEAST(COUNT(sa.id) FILTER (WHERE sa.status IN ('assigned', 'accepted'))::numeric / l.minimum_staff_per_day, 1)
+                     ELSE 1 END AS coverage_ratio
+         FROM shifts s
+         JOIN locations l ON l.id = s.location_id
+         LEFT JOIN shift_assignments sa ON sa.shift_id = s.id
+         WHERE l.organization_id = $1
+           AND s.status NOT IN ('cancelled', 'completed')
+           AND s.end_time > CURRENT_TIMESTAMP
+           AND s.start_time < CURRENT_TIMESTAMP + interval '7 days'
+           AND l.minimum_staff_per_day > 0
+         GROUP BY s.id, l.id, l.name, s.start_time, s.end_time, s.shift_type, l.minimum_staff_per_day
+       )
+       SELECT COUNT(c.shift_id)::int AS shifts_with_target,
+              COUNT(*) FILTER (WHERE assigned_staff < minimum_staff)::int AS below_minimum_shifts,
+              COUNT(*) FILTER (WHERE assigned_staff = 0)::int AS unstaffed_shifts,
+              COALESCE(ROUND(AVG(coverage_ratio) * 100), 100)::int AS coverage_percent,
+              COALESCE(SUM(GREATEST(minimum_staff - assigned_staff, 0)), 0)::int AS staffing_shortfall,
+              COALESCE(o.minimum_staffing_coverage_percent, 100)::int AS required_coverage_percent,
+              COALESCE(json_agg(json_build_object(
+                'shift_id', c.shift_id,
+                'location_id', c.location_id,
+                'location_name', c.location_name,
+                'start_time', c.start_time,
+                'end_time', c.end_time,
+                'shift_type', c.shift_type,
+                'minimum_staff', c.minimum_staff,
+                'assigned_staff', c.assigned_staff,
+                'shortfall', GREATEST(c.minimum_staff - c.assigned_staff, 0),
+                'coverage_percent', ROUND(c.coverage_ratio * 100)::int
+              ) ORDER BY c.start_time) FILTER (WHERE c.assigned_staff < c.minimum_staff), '[]'::json) AS affected_shifts
+       FROM organizations o
+       LEFT JOIN shift_coverage c ON TRUE
+       WHERE o.id = $1
+       GROUP BY o.minimum_staffing_coverage_percent`,
       [orgId]
     );
 
@@ -263,7 +315,8 @@ export class MissionControlRepository {
          AND (d.type = ANY(${VETTING_DOC_TYPES_SQL}) OR d.type = 'ENHANCED_DBS')
          AND d.status NOT IN ('expired', 'rejected')
          AND d.expiry_date IS NOT NULL
-         AND d.expiry_date <= CURRENT_DATE + interval '30 days'`,
+         AND d.expiry_date <= CURRENT_DATE + interval '30 days'
+         AND d.expiry_date >= CURRENT_DATE`,
       [orgId]
     );
 
@@ -326,6 +379,13 @@ export class MissionControlRepository {
       overdue_medications: overdueMeds.rows[0]?.count || 0,
       unfilled_shifts: unfilledShifts.rows[0]?.count || 0,
       understaffed_shifts: understaffedShifts.rows[0]?.count || 0,
+      staffing_coverage: staffingCoverage.rows[0] || {
+        shifts_with_target: 0, below_minimum_shifts: 0, unstaffed_shifts: 0,
+        coverage_percent: 100,
+        staffing_shortfall: 0,
+        required_coverage_percent: 100,
+        affected_shifts: [],
+      },
       expiring_training: expiringTraining.rows[0]?.count || 0,
       expiring_dbs: expiringDbs.rows[0]?.count || 0,
       overdue_care_plan_reviews: overdueCarePlanReviews.rows[0]?.count || 0,
@@ -341,14 +401,19 @@ export class MissionControlRepository {
      compliance gaps, incidents, coverage, exception trends
      ═══════════════════════════════════════════════════════════ */
 
-  static async getHomecareSummary(orgId: string) {
-    const today = new Date().toISOString().split('T')[0];
+  static async getHomecareSummary(orgId: string, selectedDate?: string) {
+    const today = selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+      ? selectedDate
+      : new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(`${today}T12:00:00Z`);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const nextDate = tomorrow.toISOString().split('T')[0];
 
     // Missed calls today
     const missedCalls = await query(
       `SELECT COUNT(*)::int AS count FROM homecare_visits
        WHERE organization_id = $1 AND status = 'missed'
-         AND scheduled_start::date = $2`, [orgId, today]
+         AND scheduled_start >= $2::date AND scheduled_start < $3::date`, [orgId, today, nextDate]
     );
 
     // Unassigned calls today and upcoming
@@ -356,7 +421,7 @@ export class MissionControlRepository {
       `SELECT COUNT(*)::int AS count FROM homecare_visits
        WHERE organization_id = $1 AND assigned_staff_id IS NULL
          AND status IN ('scheduled')
-         AND scheduled_start::date = $2`, [orgId, today]
+         AND scheduled_start >= $2::date AND scheduled_start < $3::date`, [orgId, today, nextDate]
     );
 
     const unassignedUpcoming = await query(
@@ -374,17 +439,18 @@ export class MissionControlRepository {
          AND scheduled_end < NOW()`, [orgId]
     );
 
-    // Calls completed today
+    // Completion belongs to the selected scheduled-call set, so it shares the
+    // schedule's date window (and its denominator) instead of checkout date.
     const completedToday = await query(
       `SELECT COUNT(*)::int AS count FROM homecare_visits
        WHERE organization_id = $1 AND status = 'completed'
-         AND check_out_at::date = $2`, [orgId, today]
+         AND scheduled_start >= $2::date AND scheduled_start < $3::date`, [orgId, today, nextDate]
     );
 
-    // Total calls today
+    // Total calls in the selected scheduled-call window.
     const totalToday = await query(
       `SELECT COUNT(*)::int AS count FROM homecare_visits
-       WHERE organization_id = $1 AND scheduled_start::date = $2`, [orgId, today]
+       WHERE organization_id = $1 AND scheduled_start >= $2::date AND scheduled_start < $3::date`, [orgId, today, nextDate]
     );
 
     // Carer compliance: training expiring within 14 days
@@ -410,13 +476,15 @@ export class MissionControlRepository {
          AND d.status NOT IN ('expired', 'rejected')
          AND d.expiry_date IS NOT NULL
          AND d.expiry_date <= CURRENT_DATE + interval '30 days'
+         AND d.expiry_date >= CURRENT_DATE
          AND (d.type = ANY(${VETTING_DOC_TYPES_SQL}) OR d.type = 'ENHANCED_DBS')`, [orgId]
     );
 
     // Open incidents needing follow-up
+    // Match the incidents module/dashboard definition of open work exactly.
     const openIncidents = await query(
       `SELECT COUNT(*)::int AS count FROM incidents
-       WHERE organization_id = $1 AND status IN ('open', 'investigating')`, [orgId]
+       WHERE organization_id = $1 AND status IN ('reported', 'investigating')`, [orgId]
     );
 
     // Overdue incident actions
@@ -434,22 +502,31 @@ export class MissionControlRepository {
       `SELECT COUNT(*)::int AS count FROM care_plans cp
        JOIN people p ON cp.person_id = p.id
        WHERE p.organization_id = $1 AND cp.status = 'active'
-         AND cp.review_date IS NOT NULL AND cp.review_date < CURRENT_DATE`, [orgId]
+         AND cp.review_date < CURRENT_DATE`, [orgId]
     );
 
-    // Coverage: carers working today vs calls today
+    const activeStaff = await query(
+      `SELECT COUNT(*)::int AS count FROM users
+       WHERE organization_id = $1 AND status = 'active' AND role != 'SUPER_ADMIN'`, [orgId]
+    );
+    const peopleSupported = await query(
+      `SELECT COUNT(*)::int AS count FROM people
+       WHERE organization_id = $1 AND status = 'active'`, [orgId]
+    );
+
+    // Coverage: carers assigned to at least one call in the selected date window
     const carersWorkingToday = await query(
       `SELECT COUNT(DISTINCT assigned_staff_id)::int AS count FROM homecare_visits
-       WHERE organization_id = $1 AND scheduled_start::date = $2
+       WHERE organization_id = $1 AND scheduled_start >= $2::date AND scheduled_start < $3::date
          AND assigned_staff_id IS NOT NULL
-         AND status NOT IN ('cancelled')`, [orgId, today]
+         AND status NOT IN ('cancelled')`, [orgId, today, nextDate]
     );
 
     // Today's calls by status for the breakdown
     const callsByStatus = await query(
       `SELECT status, COUNT(*)::int AS count FROM homecare_visits
-       WHERE organization_id = $1 AND scheduled_start::date = $2
-       GROUP BY status`, [orgId, today]
+       WHERE organization_id = $1 AND scheduled_start >= $2::date AND scheduled_start < $3::date
+       GROUP BY status`, [orgId, today, nextDate]
     );
 
     // Exception trends: missed calls last 7 days
@@ -483,6 +560,8 @@ export class MissionControlRepository {
       open_incidents: openIncidents.rows[0]?.count || 0,
       overdue_incident_actions: overdueIncidentActions.rows[0]?.count || 0,
       overdue_care_plans: overdueCarePlans.rows[0]?.count || 0,
+      active_staff: activeStaff.rows[0]?.count || 0,
+      people_supported: peopleSupported.rows[0]?.count || 0,
       carers_working_today: carersWorkingToday.rows[0]?.count || 0,
       calls_by_status: callsByStatus.rows,
       missed_trend: missedTrend.rows,

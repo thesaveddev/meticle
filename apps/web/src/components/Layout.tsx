@@ -40,6 +40,7 @@ import GlobalSearch from './GlobalSearch'
 import SearchIcon from '@mui/icons-material/Search'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
+import { getDashboardServiceMode } from '../pages/dashboard/dashboardServiceMode'
 import { connectSocket, disconnectSocket, onReconnect } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
@@ -104,13 +105,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       if (Array.isArray(types)) setOrgServiceTypes(types)
       setPrimaryServiceType(typeof res.data?.primary_service_type === 'string' ? res.data.primary_service_type : null)
     }).catch(() => setOrgServiceTypes([])).finally(() => setServiceTypesLoaded(true))
-    api.get('/homecare/settings/location-tracking')
-      .then(res => setLocationTrackingEnabled(res.data?.location_tracking_enabled !== false))
-      .catch(() => setLocationTrackingEnabled(true))
   }, [rawUser.id])
 
   // Rename nav labels based on org service type for familiar terminology
   const navigationServiceTypes = primaryServiceType ? [primaryServiceType] : orgServiceTypes
+
+  // Carer location is a domiciliary-only API. Request it only once the org's
+  // model is known to be domiciliary, so other organisations never receive the
+  // service-type 403 on every page.
+  const isDomiciliaryOrg = getDashboardServiceMode({ primary_service_type: primaryServiceType, service_types: orgServiceTypes }) === 'domiciliary'
+  useEffect(() => {
+    if (!serviceTypesLoaded || !isDomiciliaryOrg) return
+    api.get('/homecare/settings/location-tracking')
+      .then(res => setLocationTrackingEnabled(res.data?.location_tracking_enabled !== false))
+      .catch(() => setLocationTrackingEnabled(true))
+  }, [serviceTypesLoaded, isDomiciliaryOrg])
   // These modules are supported-living-only. Keep this deny-list separate
   // from permissions so stale grants or mixed legacy service types cannot put
   // them back into a domiciliary organisation's sidebar.
@@ -139,8 +148,14 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Overview',
       items: [
-        { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['supported_living', 'residential', 'domiciliary', 'live_in'] },
+        {
+          text: userRole === UserRole.CARE_WORKER ? 'Dashboard' : 'Mission Control',
+          icon: userRole === UserRole.CARE_WORKER ? <DashboardIcon /> : <RadarIcon />,
+          path: userRole === UserRole.CARE_WORKER ? '/dashboard' : '/mission-control',
+          module: 'dashboard',
+          roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER],
+          serviceTypes: userRole === UserRole.CARE_WORKER ? undefined : ['supported_living', 'residential', 'domiciliary', 'live_in'],
+        },
       ],
     },
     {
@@ -282,9 +297,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         const perms: Record<string, string> = {}
         res.data.permissions.forEach((p: any) => { perms[p.module] = p.permission_level })
         setModulePermissions(perms)
+        localStorage.setItem('mc_module_permissions', JSON.stringify(perms))
       } catch {
         // Hide protected navigation when permission metadata cannot be verified.
         setModulePermissions({})
+        localStorage.removeItem('mc_module_permissions')
       } finally {
         setPermissionsLoaded(true)
       }

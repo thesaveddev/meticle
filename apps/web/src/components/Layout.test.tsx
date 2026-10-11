@@ -28,6 +28,7 @@ function renderLayout(initialPath = '/dashboard') {
         <Layout>
           <Routes>
             <Route path="/dashboard" element={<div data-testid="page-dashboard">Dashboard Page</div>} />
+            <Route path="/mission-control" element={<div data-testid="page-mission-control">Mission Control Page</div>} />
             <Route path="/people" element={<div data-testid="page-people">People Page</div>} />
           </Routes>
         </Layout>
@@ -84,7 +85,46 @@ beforeEach(() => {
   })
 })
 
+describe('Layout carer-location requests', () => {
+  it('does not request the domiciliary-only carer-location setting for a supported-living organisation', async () => {
+    renderLayout('/dashboard')
+
+    // Nav items render only once service types have loaded, so the carer-location
+    // effect (which waits on the same state) has had its chance to run by then.
+    await screen.findAllByRole('button', { name: 'People' })
+    const requested = vi.mocked(api.get).mock.calls.map(call => call[0])
+    expect(requested).toContain('/settings/org')
+    expect(requested).not.toContain('/homecare/settings/location-tracking')
+  })
+
+  it('requests the carer-location setting for a domiciliary organisation', async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: GRANT_ALL_MODULES } })
+      if (url.includes('/settings/org')) {
+        return Promise.resolve({ data: { service_types: ['domiciliary'], primary_service_type: 'domiciliary' } })
+      }
+      if (url.includes('/homecare/settings/location-tracking')) {
+        return Promise.resolve({ data: { location_tracking_enabled: true } })
+      }
+      return Promise.resolve({ data: {} })
+    })
+    renderLayout('/dashboard')
+
+    await waitFor(() => expect(vi.mocked(api.get)).toHaveBeenCalledWith('/homecare/settings/location-tracking'))
+  })
+})
+
 describe('Layout sidebar navigation', () => {
+  it('shows a single Mission Control overview entry for managers instead of two dashboards', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ ...ORG_ADMIN, role: 'MANAGER' }))
+    renderLayout('/mission-control')
+
+    await waitFor(() => expect(screen.getByTestId('page-mission-control')).toBeInTheDocument())
+    const sidebar = within(screen.getByRole('navigation'))
+    expect(sidebar.getByRole('button', { name: 'Mission Control' })).toHaveAttribute('aria-current', 'page')
+    expect(sidebar.queryByRole('button', { name: 'Dashboard' })).not.toBeInTheDocument()
+  })
+
   it('focuses the main content area after a sidebar nav click', async () => {
     const { container } = renderLayout('/dashboard')
 
@@ -101,14 +141,15 @@ describe('Layout sidebar navigation', () => {
     })
   })
 
-  it('focuses the main content area even when re-clicking the current route', async () => {
-    const { container } = renderLayout('/dashboard')
+  it('focuses the main content area even when re-clicking the current Mission Control route', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ ...ORG_ADMIN, role: 'MANAGER' }))
+    const { container } = renderLayout('/mission-control')
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
+      expect(screen.getByTestId('page-mission-control')).toBeInTheDocument()
     })
 
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Dashboard' }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Mission Control' }))[0])
 
     await waitFor(() => {
       expect(document.activeElement).toBe(container.querySelector('main'))
