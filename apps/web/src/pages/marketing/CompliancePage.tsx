@@ -11,7 +11,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -147,8 +147,8 @@ export function ComplianceOverviewPage() {
                 Requirements differ across England, Scotland, Wales and Northern Ireland. The platform helps your team maintain the continuous, evidence-rich record that inspection-ready services require — without claiming equivalence between UK regulatory frameworks.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>See the platform</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>See the platform</Button>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -162,8 +162,8 @@ export function ComplianceOverviewPage() {
                       transition: 'all 0.2s',
                       '&:hover': { borderColor: r.color, boxShadow: M.shadow.md },
                     }}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.nation}</Typography>
-                      <Typography sx={{ fontWeight: 700, fontSize: '1.15rem', mt: 0.5 }}>{r.code}</Typography>
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: r.color, textTransform: 'none', letterSpacing: '0.08em' }}>{r.nation}</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '1.15rem', mt: 0.5 }}>{r.code}</Typography>
                       <Typography sx={{ color: M.muted, fontSize: '0.82rem', mt: 0.5 }}>{r.name}</Typography>
                     </Box>
                   </Grid>
@@ -192,12 +192,12 @@ export function ComplianceOverviewPage() {
             </Grid>
             <Grid item xs={12} md={7}>
               <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-                <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inspection readiness</Typography>
+                <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'none', letterSpacing: '0.08em' }}>Inspection readiness</Typography>
                 <Grid container spacing={2}>
                   {readinessMetrics.map((m) => (
                     <Grid item xs={4} key={m.label}>
                       <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
-                        <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: m.color, letterSpacing: '-0.03em' }}>{m.value}</Typography>
+                        <Typography sx={{ fontSize: '1.5rem', fontWeight: 600, color: m.color, letterSpacing: '-0.03em' }}>{m.value}</Typography>
                         <Typography sx={{ fontSize: '0.72rem', color: M.muted, mt: 0.25 }}>{m.label}</Typography>
                       </Box>
                     </Grid>
@@ -209,7 +209,7 @@ export function ComplianceOverviewPage() {
                     {attentionItems.map((a) => (
                       <Stack key={a.text} direction="row" justifyContent="space-between" alignItems="center">
                         <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{a.text}</Typography>
-                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: a.color, bgcolor: `${a.color}15`, px: 1, py: 0.25, borderRadius: M.r.sm }}>{a.count}</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: a.color, bgcolor: `${a.color}15`, px: 1, py: 0.25, borderRadius: M.r.sm }}>{a.count}</Typography>
                       </Stack>
                     ))}
                   </Stack>
@@ -240,7 +240,7 @@ export function ComplianceOverviewPage() {
               <Stack spacing={0}>
                 {['Care plans and support records', 'Daily care notes and observations', 'Medication administration records', 'Risk assessments and linked actions', 'Incident records and follow-up', 'Reviews, goals and health checks', 'Training and competency evidence', 'Audit logs, reports and governance'].map((label, i) => (
                   <Stack key={label} direction="row" spacing={2} alignItems="center" sx={{ py: 1.8, borderBottom: i < 7 ? `1px solid ${M.faint}` : 'none' }}>
-                    <Box sx={{ width: 32, height: 32, borderRadius: M.r.sm, bgcolor: M.tealSoft, color: M.tealDeep, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '0.82rem', flexShrink: 0 }}>{i + 1}</Box>
+                    <Box sx={{ width: 32, height: 32, borderRadius: M.r.sm, bgcolor: M.tealSoft, color: M.tealDeep, display: 'grid', placeItems: 'center', fontWeight: 600, fontSize: '0.82rem', flexShrink: 0 }}>{i + 1}</Box>
                     <Typography sx={{ fontWeight: 600 }}>{label}</Typography>
                   </Stack>
                 ))}
@@ -269,7 +269,7 @@ export function ComplianceOverviewPage() {
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2.5 }}>
                     <e.icon sx={{ color: M.tealDeep, fontSize: 24 }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>{e.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{e.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{e.desc}</Typography>
                 </Box>
               </Grid>
@@ -297,10 +297,10 @@ export function ComplianceOverviewPage() {
                 border: `1px solid ${M.faint}`,               }}>
                 <Grid container spacing={{ xs: 4, md: 6 }} alignItems="flex-start">
                   <Grid item xs={12} md={4}>
-                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>{r.nation}</Typography>
-                    <Typography sx={{ fontWeight: 700, fontSize: '1.3rem', mb: 1 }}>{r.code}</Typography>
+                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: r.color, textTransform: 'none', letterSpacing: '0.08em', mb: 1 }}>{r.nation}</Typography>
+                    <Typography sx={{ fontWeight: 600, fontSize: '1.3rem', mb: 1 }}>{r.code}</Typography>
                     <Typography sx={{ color: M.muted, fontSize: '0.85rem', mb: 2 }}>{r.name}</Typography>
-                    <Button component="a" href={`/compliance/${r.slug}`} endIcon={<ArrowForward />} sx={{ color: r.color, fontWeight: 700, px: 0, textTransform: 'none', fontSize: '0.85rem' }}>
+                    <Button component="a" href={`/compliance/${r.slug}`} endIcon={<ArrowForward />} sx={{ color: r.color, fontWeight: 600, px: 0, textTransform: 'none', fontSize: '0.85rem' }}>
                       Explore {r.code} guidance
                     </Button>
                   </Grid>
@@ -358,7 +358,7 @@ export function ComplianceOverviewPage() {
                       bgcolor: i === 5 ? M.teal : M.faint,
                       color: i === 5 ? M.navy : M.muted,
                       display: 'grid', placeItems: 'center',
-                      fontWeight: 700, fontSize: '0.72rem', flexShrink: 0, mt: 0.25,
+                      fontWeight: 600, fontSize: '0.72rem', flexShrink: 0, mt: 0.25,
                     }}>{i + 1}</Box>
                     <Box>
                       <Typography sx={{ fontWeight: i === 5 ? 700 : 600, color: i === 5 ? M.tealDeep : M.ink }}>{item.step}</Typography>
@@ -376,7 +376,7 @@ export function ComplianceOverviewPage() {
       <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ p: 3, bgcolor: M.amberLight, borderRadius: M.r.md,  }}>
-            <Typography sx={{ fontWeight: 700, color: '#9A6700', mb: 0.5 }}>Important context</Typography>
+            <Typography sx={{ fontWeight: 600, color: '#9A6700', mb: 0.5 }}>Important context</Typography>
             <Typography sx={{ color: '#9A6700', fontSize: '0.9rem', lineHeight: 1.6 }}>
               MeticleCare is a software tool, not a regulator, legal adviser or substitute for your organisation's policies and professional judgement. Requirements differ by nation and service type. The responsibility for compliance remains with the provider.
             </Typography>
@@ -390,7 +390,7 @@ export function ComplianceOverviewPage() {
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ready to see your evidence more clearly?
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>
@@ -429,7 +429,7 @@ export function RegulatorPage() {
         <Container maxWidth="lg">
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: r.color }} />
-            <Typography sx={{ color: r.color, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{r.nation} · {r.code}</Typography>
+            <Typography sx={{ color: r.color, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'none' }}>{r.nation} · {r.code}</Typography>
           </Stack>
           <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
             {r.desc.split('.')[0]}.
@@ -437,7 +437,7 @@ export function RegulatorPage() {
           <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, maxWidth: 640, mb: 4 }}>
             {r.desc}
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: r.color, color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Talk to us</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: r.color, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Talk to us</Button>
         </Container>
       </Box>
 
@@ -496,7 +496,7 @@ export function RegulatorPage() {
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: `${r.color}12`, display: 'grid', placeItems: 'center', mb: 2.5 }}>
                     <e.icon sx={{ color: r.color, fontSize: 24 }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>{e.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{e.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{e.desc}</Typography>
                 </Box>
               </Grid>
@@ -516,7 +516,7 @@ export function RegulatorPage() {
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Talk through your {r.nation} regulatory context.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>

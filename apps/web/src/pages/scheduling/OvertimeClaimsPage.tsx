@@ -406,7 +406,7 @@ export default function OvertimeClaimsPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Stack spacing={0.5}>
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{s.location_name}</Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{s.location_name}</Typography>
                           {shiftTypeChip(s.shift_type)}
                           {nearWindow && (
                             <Chip icon={<WarningIcon sx={{ fontSize: 12 }} />}
@@ -443,7 +443,7 @@ export default function OvertimeClaimsPage() {
       )}
       {/* Swap Overtime Dialog */}
       <Dialog open={!!swapOTDialog} onClose={() => !actionLoading && setSwapOTDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Swap Overtime</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Swap Overtime</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
             Reassign the approved overtime from <strong>{swapOTDialog?.currentStaffName}</strong> to:
@@ -468,7 +468,7 @@ export default function OvertimeClaimsPage() {
 
       {/* Revoke Confirmation Dialog */}
       <Dialog open={!!revokeDialog} onClose={() => !actionLoading && setRevokeDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Revoke Overtime Claim</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Revoke Overtime Claim</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="#667085" sx={{ mt: 1 }}>
             This will revoke the approved overtime for <strong>{revokeDialog?.staffName}</strong> and return the shift to open/unclaimed status.

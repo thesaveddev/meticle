@@ -106,7 +106,7 @@ export default function DSPTPage() {
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ShieldIcon sx={{ fontSize: 32, color: '#2F80ED' }} />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>NHS DSPT Certification</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>NHS DSPT Certification</Typography>
             <Typography variant="body2" color="text.secondary">Your organisation's Data Security & Protection Toolkit self-assessment — 2025/26</Typography>
           </Box>
         </Stack>
@@ -126,21 +126,21 @@ export default function DSPTPage() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Overall Status</Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <VerifiedIcon sx={{ color: si.color, fontSize: 20 }} />
-              <Typography variant="h6" fontWeight={700} sx={{ color: si.color }}>{si.label}</Typography>
+              <Typography variant="h6" fontWeight={600} sx={{ color: si.color }}>{si.label}</Typography>
             </Stack>
           </CardContent>
         </Card>
         <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${daysLeft < 60 ? '#EF4444' : '#2F80ED'}` }}>
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Submission Deadline</Typography>
-            <Typography variant="h6" fontWeight={700}>{new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
+            <Typography variant="h6" fontWeight={600}>{new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
             <Typography variant="caption" color={daysLeft < 60 ? 'error' : 'text.secondary'}>{daysLeft} days remaining</Typography>
           </CardContent>
         </Card>
         <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${pct >= 80 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444'}` }}>
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Standards Met</Typography>
-            <Typography variant="h6" fontWeight={700}>{metCount} / {totalCount}</Typography>
+            <Typography variant="h6" fontWeight={600}>{metCount} / {totalCount}</Typography>
             {mergedStds.length > 0 && <LinearProgress variant="determinate" value={pct} sx={{ mt: 1, height: 6, borderRadius: 3 }} />}
           </CardContent>
         </Card>
@@ -162,7 +162,7 @@ export default function DSPTPage() {
       {active && (
         <Paper sx={{ p: 3, mb: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight={700}>10 Data Security Standards</Typography>
+            <Typography variant="h6" fontWeight={600}>10 Data Security Standards</Typography>
             <Button size="small" variant="contained"
               onClick={() => submitAssessment.mutate()}
               disabled={submitAssessment.isPending || active.status !== 'draft'}
@@ -180,7 +180,7 @@ export default function DSPTPage() {
                 if (themeStds.length === 0) return null
                 return (
                   <Box key={theme.key} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: theme.color, fontWeight: 700, fontSize: 13 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: theme.color, fontWeight: 600, fontSize: 13 }}>
                       {theme.key}
                     </Typography>
                     {themeStds.map(std => {
@@ -245,7 +245,7 @@ export default function DSPTPage() {
           <Stack direction="row" spacing={1.5} alignItems="center">
             <CheckCircle sx={{ color: 'notice.success.fg' }} />
             <Box>
-              <Typography variant="subtitle2" fontWeight={700}>Assessment Submitted</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Assessment Submitted</Typography>
               <Typography variant="body2" color="text.secondary">
                 Your organisation's DSPT self-assessment has been submitted. The official NHS DSPT portal will process your submission.
               </Typography>

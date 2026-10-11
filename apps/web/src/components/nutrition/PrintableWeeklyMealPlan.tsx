@@ -235,7 +235,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
         <Stack direction="row" alignItems="center" spacing={1}>
           <AIIcon sx={{ color: '#8B7CF6', fontSize: 24 }} />
           <Box>
-            <Typography variant="subtitle2" fontWeight={700}>Weekly Meal Plan</Typography>
+            <Typography variant="subtitle2" fontWeight={600}>Weekly Meal Plan</Typography>
             <Typography variant="caption" color="text.secondary">
               AI-generated 7-day plan for {personName}
             </Typography>
@@ -246,7 +246,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
             variant="outlined" size="small"
             startIcon={loading ? <CircularProgress size={14} /> : <AIIcon />}
             onClick={generateWeek} disabled={loading}
-            sx={{ textTransform: 'none', borderRadius: 2 }}
+            sx={{ textTransform: 'none',}}
           >
             {weeklyPlan ? 'Regenerate' : 'Generate Plan'}
           </Button>
@@ -304,7 +304,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                 variant="outlined" size="small"
                 startIcon={pdfLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
                 onClick={handleDownloadPdf} disabled={pdfLoading}
-                sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#087A55', color: '#087A55' }}
+                sx={{ textTransform: 'none', borderColor: '#087A55', color: '#087A55' }}
               >
                 {pdfLoading ? 'Generating...' : 'Download PDF'}
               </Button>
@@ -312,7 +312,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                 variant="contained" size="small"
                 startIcon={<PrintIcon />}
                 onClick={handlePrint}
-                sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#2F80ED' }}
+                sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}
               >
                 Print
               </Button>
@@ -336,7 +336,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           className="no-print"
         >
           <MealIcon sx={{ fontSize: 56, color: '#8B7CF6', mb: 2 }} />
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
             Generate a Weekly Meal Plan
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 480, mx: 'auto' }}>
@@ -346,7 +346,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           <Button
             variant="contained" startIcon={<AIIcon />}
             onClick={generateWeek}
-            sx={{ bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' }, borderRadius: 2, textTransform: 'none', px: 4 }}
+            sx={{ bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' }, textTransform: 'none', px: 4 }}
           >
             Generate Weekly Plan
           </Button>
@@ -370,7 +370,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           <Box className="print-header" sx={{ mb: 2, borderBottom: '2px solid #2F80ED', pb: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
               <Box>
-                <Typography variant="h5" fontWeight={800} color="#2F80ED">
+                <Typography variant="h5" fontWeight={600} color="#2F80ED">
                   Weekly Meal Plan
                 </Typography>
                 <Typography variant="subtitle1" color="#344054" sx={{ mt: 0.5 }}>
@@ -447,7 +447,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                         }}
                       >
                         <Typography
-                          variant="subtitle2" fontWeight={700}
+                          variant="subtitle2" fontWeight={600}
                           sx={{ color: isToday ? '#2F80ED' : 'inherit' }}
                         >
                           {DAY_LABELS[day]}
@@ -473,7 +473,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                     >
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <Typography fontSize="14px">{mt.icon}</Typography>
-                        <Typography variant="caption" fontWeight={700} sx={{ color: mt.color, lineHeight: 1.2 }}>
+                        <Typography variant="caption" fontWeight={600} sx={{ color: mt.color, lineHeight: 1.2 }}>
                           {mt.label}
                         </Typography>
                       </Stack>
@@ -507,7 +507,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                               <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.25 }}>
                                 <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: mt.color, flexShrink: 0 }} />
                                 <Typography
-                                  variant="caption" fontWeight={700}
+                                  variant="caption" fontWeight={600}
                                   sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.7rem', color: '#1F2937' }}
                                 >
                                   {primary.name}
@@ -547,7 +547,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                                   {/* Option A */}
                                   <Box sx={{ p: 0.75, borderRadius: 1, bgcolor: selectedOptions[`${day}-${mt.value}`] === 'a' ? mt.color + '15' : 'transparent', border: selectedOptions[`${day}-${mt.value}`] === 'a' ? `1px solid ${mt.color}40` : '1px solid transparent' }}>
                                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A (Recommended)</Typography>
+                                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A (Recommended)</Typography>
                                       <Button
                                         size="small"
                                         onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'a') }}
@@ -576,7 +576,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                                   {secondary && (
                                     <Box sx={{ p: 0.75, borderRadius: 1, mt: 0.5, bgcolor: selectedOptions[`${day}-${mt.value}`] === 'b' ? mt.color + '15' : 'transparent', border: selectedOptions[`${day}-${mt.value}`] === 'b' ? `1px solid ${mt.color}40` : '1px solid transparent' }}>
                                       <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                        <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99' }}>Option B (Alternative)</Typography>
+                                        <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color + '99' }}>Option B (Alternative)</Typography>
                                         <Button
                                           size="small"
                                           onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'b') }}
@@ -623,7 +623,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
               {DAYS.map(day => (
                 <Paper key={day} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }} className="meal-card">
                   <Box sx={{ bgcolor: '#F9FAFB', px: 2, py: 1, borderBottom: '1px solid #E6EAF0' }}>
-                    <Typography variant="subtitle2" fontWeight={700} color="#2F80ED">
+                    <Typography variant="subtitle2" fontWeight={600} color="#2F80ED">
                       {DAY_LABELS[day]}{day === today ? ' (Today)' : ''}
                     </Typography>
                   </Box>
@@ -639,7 +639,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                           <Box key={mt.value}>
                             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                               <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: mt.color, flexShrink: 0 }} />
-                              <Typography variant="caption" fontWeight={700} sx={{ color: mt.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              <Typography variant="caption" fontWeight={600} sx={{ color: mt.color, textTransform: 'none', letterSpacing: 0.5 }}>
                                 {mt.label}
                               </Typography>
                             </Stack>
@@ -657,7 +657,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                                   }}
                                 >
                                   <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                                    <Typography variant="caption" fontWeight={700} sx={{ color: mt.color }}>Option A (Recommended)</Typography>
+                                    <Typography variant="caption" fontWeight={600} sx={{ color: mt.color }}>Option A (Recommended)</Typography>
                                     <Button
                                       size="small"
                                       onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'a') }}
@@ -702,7 +702,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                                     }}
                                   >
                                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                                      <Typography variant="caption" fontWeight={700} sx={{ color: mt.color + '99' }}>Option B (Alternative)</Typography>
+                                      <Typography variant="caption" fontWeight={600} sx={{ color: mt.color + '99' }}>Option B (Alternative)</Typography>
                                       <Button
                                         size="small"
                                         onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'b') }}
@@ -747,7 +747,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           {/* Weekly Totals */}
           {weeklyPlan.weekly_totals && (
             <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#EAFBF5' }} className="meal-card">
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#087A55' }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#087A55' }}>
                 Weekly Summary
               </Typography>
               <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
@@ -770,7 +770,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           {/* Nutritional Notes */}
           {weeklyPlan.nutritional_notes?.length > 0 && (
             <Paper variant="outlined" sx={{ p: 2, mt: 2 }} className="meal-card">
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#344054' }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#344054' }}>
                 Nutritional Notes
               </Typography>
               {weeklyPlan.nutritional_notes.map((n, i) => (

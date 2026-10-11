@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import AuthBrandPanel from './AuthBrandPanel'
+import BrandWordmark from '../BrandWordmark'
 
 export const AUTH_CARD_WIDTH = 500
 export const AUTH_CARD_SHADOW = '0 12px 40px rgba(16, 24, 40, 0.06)'
@@ -31,7 +32,18 @@ export default function AuthLayout({
   const navigate = useNavigate()
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', bgcolor: 'var(--mc-background)', color: 'var(--mc-text-primary)' }}>
+    <Box
+      sx={{
+        // Fixed to the viewport: the auth canvas never grows past one screen,
+        // so the page itself never scrolls. On short viewports the right panel
+        // scrolls internally rather than stretching the page.
+        height: '100dvh',
+        overflow: 'hidden',
+        display: 'flex',
+        bgcolor: 'var(--mc-background)',
+        color: 'var(--mc-text-primary)',
+      }}
+    >
       <AuthBrandPanel
         heading={heading}
         supporting={supporting}
@@ -41,6 +53,15 @@ export default function AuthLayout({
       {/* RIGHT — authentication canvas. One continuous surface, so the two
           halves read as one page rather than two sites. */}
       <Box
+        // data-lenis-prevent: Lenis's global wheel handler preventDefaults
+        // every wheel event unless a node in the composed path carries this
+        // attribute — without it, trackpad/gesture scrolling on this inner
+        // panel is dead even when Lenis is stop()ed on auth routes, because
+        // the virtual-scroll instance keeps listening on window. Verified in
+        // browser: a dispatched wheel event on this panel had
+        // defaultPrevented === true before this attribute existed. The same
+        // opt-out the codebase applies to open MUI overlays.
+        data-lenis-prevent
         sx={{
           flex: { xs: 1, md: 1 },
           display: 'flex',
@@ -48,8 +69,13 @@ export default function AuthLayout({
           alignItems: 'center',
           justifyContent: 'center',
           px: { xs: 3, sm: 6, md: 8 },
-          py: { xs: 4, md: 6 },
+          py: { xs: 3, md: 4 },
           position: 'relative',
+          // The one place scrolling is permitted: inside the right panel when
+          // the viewport is genuinely too short for the card. The page never
+          // scrolls; this panel does, invisibly.
+          overflowY: 'auto',
+          maxHeight: '100%',
         }}
       >
         {/* Slim top bar: wordmark on mobile (brand panel is hidden there),
@@ -60,17 +86,9 @@ export default function AuthLayout({
             top: { xs: 20, md: 28 },
             left: { xs: 24, md: 40 },
             display: { md: 'none' },
-            fontWeight: 800,
-            fontSize: 20,
-            letterSpacing: '-0.5px',
-            color: 'var(--mc-primary)',
-            cursor: 'pointer',
           }}
-          onClick={() => navigate('/')}
-          role="link"
-          aria-label="MeticleCare home"
         >
-          Meticle<span style={{ fontWeight: 400 }}>Care</span>
+          <BrandWordmark size={20} onClick={() => navigate('/')} />
         </Box>
         <Box
           sx={{
@@ -93,9 +111,10 @@ export default function AuthLayout({
             border: '1px solid var(--mc-border)',
             borderRadius: '24px',
             boxShadow: AUTH_CARD_SHADOW,
-            px: { xs: 3, sm: 5, md: 6 },
-            py: { xs: 4, sm: 5, md: 6 },
-            my: { xs: 6, md: 0 },
+            px: { xs: 3, sm: 4, md: 5 },
+            py: { xs: 3.5, sm: 4, md: 4.5 },
+            my: { xs: 7, md: 7 },
+            flexShrink: 0,
           }}
         >
           {children}

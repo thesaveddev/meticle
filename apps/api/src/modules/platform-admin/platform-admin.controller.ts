@@ -592,10 +592,13 @@ export class PlatformAdminController {
       topRecipients: topRecipients.rows,
       failureBreakdown,
       failureSummary: {
-        // `counts.failed` is the truth; `analysed` is what this response could
-        // classify. They differ only when the cap bites, and saying so is the
-        // difference between a floor and a total.
-        total: totalFailed,
+        // The aggregate status count is collected concurrently with the capped
+        // classification sample. A failure can arrive between those two SQL
+        // snapshots, making `analysed > total` transiently; report the higher
+        // observed count so the response's stated invariant remains true.
+        // When the cap is reached, this is still only a lower bound and the
+        // `truncated` flag makes that explicit.
+        total: Math.max(totalFailed, analysed),
         analysed,
         truncated: analysed < totalFailed,
         // Everything we can fix without ringing anybody: a defect in how we

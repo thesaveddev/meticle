@@ -105,7 +105,7 @@ export default function ReportingPage() {
     <PageContainer>
 
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>{isDomiciliary ? 'Domiciliary operations reporting' : 'Reporting Suite'}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Domiciliary operations reporting' : 'Reporting Suite'}</Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
           {isDomiciliary
             ? 'A practical view of visit delivery, area coverage, client safety and workforce readiness.'
@@ -118,13 +118,13 @@ export default function ReportingPage() {
       {overview && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: '0.12em' }}>Organisation overview</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>What needs attention today</Typography>
+            <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: '0.12em' }}>Organisation overview</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>What needs attention today</Typography>
             <Grid container spacing={1.5}>
               {overview.cards.map(card => <Grid item xs={6} sm={4} key={card.label}>
                 <Box sx={{ pl: 1.5 }}>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: card.color }}>{card.value}</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{card.label}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600, color: card.color }}>{card.value}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{card.label}</Typography>
                   <Typography variant="caption" color="text.secondary">{card.subtitle}</Typography>
                 </Box>
               </Grid>)}
@@ -132,7 +132,7 @@ export default function ReportingPage() {
           </Box>
           <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
           <Box sx={{ width: { xs: '100%', lg: 300 } }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>Quick actions</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Quick actions</Typography>
             <Stack spacing={0.5}>
               {overview.attention.map(item => <Button key={item.label} size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate(item.target === 'locations' ? '/locations' : `/${item.target}`)} sx={{ justifyContent: 'space-between', textTransform: 'none', color: item.value > 0 && item.target !== 'locations' ? 'error.main' : 'text.primary' }}>
                 <span>{item.label}: <strong>{item.value}</strong></span>
@@ -159,8 +159,8 @@ export default function ReportingPage() {
               <Avatar sx={{ width: 32, height: 32, bgcolor: `${cat.color}18`, color: cat.color, fontSize: 18 }}>
                 {ICON_MAP[cat.icon] || <AssessIcon />}
               </Avatar>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>{cat.label}</Typography>
-              <Chip label={catReports.length} size="small" sx={{ fontWeight: 700, bgcolor: `${cat.color}15`, color: cat.color }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>{cat.label}</Typography>
+              <Chip label={catReports.length} size="small" sx={{ fontWeight: 600, bgcolor: `${cat.color}15`, color: cat.color }} />
             </Stack>
 
             <Grid container spacing={2.5}>
@@ -181,7 +181,7 @@ export default function ReportingPage() {
                           <Avatar sx={{ width: 36, height: 36, bgcolor: `${report.color}15`, color: report.color, fontSize: 18 }}>
                             {ICON_MAP[report.icon] || <AssessIcon />}
                           </Avatar>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, flex: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3, flex: 1 }}>
                             {report.title}
                           </Typography>
                         </Stack>

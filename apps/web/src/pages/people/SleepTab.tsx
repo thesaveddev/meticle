@@ -45,7 +45,7 @@ function SleepViewDialog({ open, onClose, record }: { open: boolean; onClose: ()
   if (!record) return null
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+      <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
         <BedtimeIcon sx={{ mr: 1, color: '#2F80ED' }} />
         Sleep Record
         <Box sx={{ flex: 1 }} />
@@ -55,25 +55,25 @@ function SleepViewDialog({ open, onClose, record }: { open: boolean; onClose: ()
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Stack direction="row" spacing={2}>
             <Chip label={new Date(record.record_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} size="small" variant="outlined" />
-            <Chip label={QUALITY_LABELS[record.sleep_quality]} size="small" sx={{ bgcolor: `${QUALITY_COLORS[record.sleep_quality]}15`, color: QUALITY_COLORS[record.sleep_quality], fontWeight: 700 }} />
+            <Chip label={QUALITY_LABELS[record.sleep_quality]} size="small" sx={{ bgcolor: `${QUALITY_COLORS[record.sleep_quality]}15`, color: QUALITY_COLORS[record.sleep_quality], fontWeight: 600 }} />
           </Stack>
           <Stack direction="row" spacing={3}>
             <Box sx={{ flex: 1 }}>
               <Typography variant="caption" color="#667085">Bedtime</Typography>
-              <Typography variant="body1" fontWeight={700}>{record.bedtime?.slice(0, 5)}</Typography>
+              <Typography variant="body1" fontWeight={600}>{record.bedtime?.slice(0, 5)}</Typography>
             </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="caption" color="#667085">Wake time</Typography>
-              <Typography variant="body1" fontWeight={700}>{record.wake_time?.slice(0, 5)}</Typography>
+              <Typography variant="body1" fontWeight={600}>{record.wake_time?.slice(0, 5)}</Typography>
             </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="caption" color="#667085">Duration</Typography>
-              <Typography variant="body1" fontWeight={700}>{formatDuration(record.bedtime, record.wake_time)}</Typography>
+              <Typography variant="body1" fontWeight={600}>{formatDuration(record.bedtime, record.wake_time)}</Typography>
             </Box>
           </Stack>
           {record.night_disturbances && (
             <Paper sx={{ p: 2, bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0', borderRadius: 2 }}>
-              <Typography variant="subtitle2" fontWeight={700} color='notice.error.fg' sx={{ mb: 0.5 }}>Night disturbances: {record.disturbance_count || 0}</Typography>
+              <Typography variant="subtitle2" fontWeight={600} color='notice.error.fg' sx={{ mb: 0.5 }}>Night disturbances: {record.disturbance_count || 0}</Typography>
               {record.disturbance_reasons && <Typography variant="body2" color='notice.error.fg'>{record.disturbance_reasons}</Typography>}
             </Paper>
           )}
@@ -155,7 +155,7 @@ export default function SleepTab({ personId }: { personId: string }) {
         action={
           <Stack direction="row" spacing={1} alignItems="center">
             {avgQuality && (
-              <Chip label={`Avg quality: ${avgQuality}/5`} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700 }} />
+              <Chip label={`Avg quality: ${avgQuality}/5`} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 600 }} />
             )}
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
               Log Sleep
@@ -189,22 +189,22 @@ export default function SleepTab({ personId }: { personId: string }) {
                   />
                   <Stack direction="row" spacing={1} alignItems="center">
                     <BedtimeIcon sx={{ fontSize: 16, color: '#6B8AFD' }} />
-                    <Typography variant="body2" fontWeight={700}>{r.bedtime?.slice(0, 5)}</Typography>
+                    <Typography variant="body2" fontWeight={600}>{r.bedtime?.slice(0, 5)}</Typography>
                   </Stack>
                   <Typography variant="body2" color="#98A2B3">→</Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <WakeIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
-                    <Typography variant="body2" fontWeight={700}>{r.wake_time?.slice(0, 5)}</Typography>
+                    <Typography variant="body2" fontWeight={600}>{r.wake_time?.slice(0, 5)}</Typography>
                   </Stack>
                   <Chip
                     label={formatDuration(r.bedtime, r.wake_time)}
                     size="small"
-                    sx={{ bgcolor: 'notice.muted.bg', fontWeight: 700 }}
+                    sx={{ bgcolor: 'notice.muted.bg', fontWeight: 600 }}
                   />
                   <Chip
                     label={`${QUALITY_LABELS[r.sleep_quality]} (${r.sleep_quality}/5)`}
                     size="small"
-                    sx={{ bgcolor: `${QUALITY_COLORS[r.sleep_quality]}15`, color: QUALITY_COLORS[r.sleep_quality], fontWeight: 700 }}
+                    sx={{ bgcolor: `${QUALITY_COLORS[r.sleep_quality]}15`, color: QUALITY_COLORS[r.sleep_quality], fontWeight: 600 }}
                   />
                   {r.night_disturbances && (
                     <Chip
@@ -245,7 +245,7 @@ export default function SleepTab({ personId }: { personId: string }) {
           if (editId) updMut.mutate({ id: editId, d: form })
           else addMut.mutate(form)
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Sleep Record' : 'Log Sleep'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Sleep Record' : 'Log Sleep'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2.5} sx={{ mt: 1 }}>
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.record_date} onChange={e => setForm(f => ({ ...f, record_date: e.target.value }))} />
@@ -257,14 +257,14 @@ export default function SleepTab({ personId }: { personId: string }) {
 
               {form.bedtime && form.wake_time && (
                 <Paper sx={{ p: 1.5, bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="body2" fontWeight={700} color='notice.info.fg'>
+                  <Typography variant="body2" fontWeight={600} color='notice.info.fg'>
                     Estimated sleep duration: {formatDuration(form.bedtime, form.wake_time)}
                   </Typography>
                 </Paper>
               )}
 
               <Box>
-                <Typography variant="body2" fontWeight={700} sx={{ mb: 1 }}>Sleep Quality</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Sleep Quality</Typography>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Rating
                     value={form.sleep_quality}
@@ -272,7 +272,7 @@ export default function SleepTab({ personId }: { personId: string }) {
                     max={5}
                     sx={{ '& .MuiRating-iconFilled': { color: QUALITY_COLORS[form.sleep_quality] } }}
                   />
-                  <Chip label={QUALITY_LABELS[form.sleep_quality]} size="small" sx={{ bgcolor: `${QUALITY_COLORS[form.sleep_quality]}15`, color: QUALITY_COLORS[form.sleep_quality], fontWeight: 700 }} />
+                  <Chip label={QUALITY_LABELS[form.sleep_quality]} size="small" sx={{ bgcolor: `${QUALITY_COLORS[form.sleep_quality]}15`, color: QUALITY_COLORS[form.sleep_quality], fontWeight: 600 }} />
                 </Stack>
               </Box>
 

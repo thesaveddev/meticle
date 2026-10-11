@@ -171,7 +171,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Memory Book" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openCreate}
-        sx={{ textTransform: 'none', borderRadius: 2, px: 2 }}>Add Memory</Button>} />
+        sx={{ textTransform: 'none', px: 2 }}>Add Memory</Button>} />
 
       {entries.length === 0 ? (
         <EmptyState
@@ -206,7 +206,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                   )}
                   <CardContent sx={{ pb: 1 }}>
                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.5 }}>
-                      <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ flex: 1 }}>{e.title}</Typography>
+                      <Typography variant="subtitle2" fontWeight={600} noWrap sx={{ flex: 1 }}>{e.title}</Typography>
                       {e.support_level && SUPPORT_LEVEL_LABELS[e.support_level] && (
                         <Chip label={SUPPORT_LEVEL_LABELS[e.support_level]} size="small"
                           color={SUPPORT_LEVEL_COLORS[e.support_level] || 'default'} sx={{ height: 20, fontSize: 10 }} />
@@ -244,7 +244,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
       <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="md" fullWidth>
         {viewEntry && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               {viewEntry.title}
               {viewEntry.support_level && SUPPORT_LEVEL_LABELS[viewEntry.support_level] && (
                 <Chip label={SUPPORT_LEVEL_LABELS[viewEntry.support_level]} size="small"
@@ -316,7 +316,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
             createMutation.mutate()
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editingEntry ? 'Edit Memory' : 'Add Memory'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editingEntry ? 'Edit Memory' : 'Add Memory'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -355,7 +355,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                   )}
                   {!editingEntry && (
                     <Button variant="outlined" startIcon={<CameraAlt />} onClick={() => fileInputRef.current?.click()}
-                      sx={{ textTransform: 'none', width: '100%', py: 1.5, borderStyle: 'dashed', borderRadius: 1 }}>
+                      sx={{ textTransform: 'none', width: '100%', py: 1.5, borderStyle: 'dashed',}}>
                       {previewUrls.length > 0 ? 'Add More Photos' : 'Add Photos'}
                     </Button>
                   )}
@@ -371,7 +371,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={closeDialog} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending || updateMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5 }}>
+              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
               {createMutation.isPending || updateMutation.isPending ? <CircularProgress size={20} /> : (editingEntry ? 'Update' : 'Save Memory')}
             </Button>
           </DialogActions>

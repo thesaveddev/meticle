@@ -8,6 +8,7 @@ import { ThemeModeProvider } from './context/ThemeContext'
 import { SnackbarProvider } from './context/SnackbarContext'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
+import LenisBridge from './router/LenisBridge'
 
 const queryClient = new QueryClient()
 
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ThemeModeProvider>
           <BrowserRouter>
             <SnackbarProvider>
+              <LenisBridge />
               <App />
             </SnackbarProvider>
           </BrowserRouter>

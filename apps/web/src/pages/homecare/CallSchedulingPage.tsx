@@ -153,7 +153,7 @@ export default function CallSchedulingPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Schedule</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Call Schedule</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Today's visit schedule — manage, assign, and track calls</Typography>
         </Box>
       </Stack>
@@ -165,7 +165,7 @@ export default function CallSchedulingPage() {
           label={`${dateLabel(dayStr)} — ${sorted.length} calls`}
           color={offset === 0 ? 'primary' : 'default'}
           onClick={() => setOffset(0)}
-          sx={{ fontWeight: 700, bgcolor: offset === 0 ? '#2F80ED' : undefined, color: offset === 0 ? 'white' : undefined }}
+          sx={{ fontWeight: 600, bgcolor: offset === 0 ? '#2F80ED' : undefined, color: offset === 0 ? 'white' : undefined }}
         />
         <Button size="small" onClick={() => setOffset(o => o + 1)} sx={{ minWidth: 'auto' }}><ChevronRightIcon /></Button>
       </Stack>
@@ -216,13 +216,13 @@ export default function CallSchedulingPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Client</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Carer</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Package</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Duration</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  {isManager && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Actions</TableCell>}
+                  <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Client</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Carer</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Package</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Duration</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  {isManager && <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>

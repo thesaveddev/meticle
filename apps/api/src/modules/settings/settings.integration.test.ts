@@ -20,12 +20,25 @@ describe('Settings — org, locations, compliance, delegations', () => {
       .get('/settings/org')
       .set('Authorization', `Bearer ${token}`)
     expect(got.status).toBe(200)
+    expect(got.body.stock_low_alert_days_threshold).toBe(7)
 
     const updated = await request(app)
       .patch('/settings/org')
       .set('Authorization', `Bearer ${token}`)
-      .send({ minimum_compliance_percent: 90 })
+      .send({ minimum_compliance_percent: 90, stock_low_alert_days_threshold: 14 })
     expect(updated.status).toBe(200)
+    expect(updated.body.stock_low_alert_days_threshold).toBe(14)
+
+    const persisted = await request(app)
+      .get('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+    expect(persisted.body.stock_low_alert_days_threshold).toBe(14)
+
+    const invalid = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ stock_low_alert_days_threshold: 0 })
+    expect(invalid.status).toBe(400)
   })
 
   it('should create, list, update and delete a location as ORG_ADMIN', async () => {
@@ -215,8 +228,9 @@ describe('Settings — org, locations, compliance, delegations', () => {
     const ops = await request(app)
       .patch('/settings/org')
       .set('Authorization', `Bearer ${token}`)
-      .send({ minimum_compliance_percent: 92, overtime_requires_approval: true })
+      .send({ minimum_compliance_percent: 92, overtime_requires_approval: true, stock_low_alert_days_threshold: 12 })
     expect(ops.status).toBe(200)
+    expect(ops.body.stock_low_alert_days_threshold).toBe(12)
 
     // Security policy and SOS contacts stay admin-only at field level
     const mfa = await request(app)

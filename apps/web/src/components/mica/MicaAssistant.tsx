@@ -28,6 +28,7 @@ export default function MicaAssistant() {
         responseMessage={mica.responseMessage}
         person={mica.selectedPerson}
         onPersonChange={mica.setSelectedPerson}
+        onSendText={mica.sendText}
         onCancel={mica.stopListening}
       />
       {/* Mic-denied / unsupported-browser errors must be visible here too —
@@ -63,7 +64,7 @@ export default function MicaAssistant() {
         </Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 'var(--font-lg)' }}>Mica</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 'var(--font-lg)' }}>Mica</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>Your AI care assistant</Typography>
           </Stack>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>

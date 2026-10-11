@@ -80,7 +80,7 @@ export default function FamilyFeedbackPage() {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FBFCFE', p: 3 }}>
         <Paper sx={{ p: 5, maxWidth: 480, textAlign: 'center', borderRadius: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#17202A', mb: 2 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#17202A', mb: 2 }}>
             Link expired or already used
           </Typography>
           <Typography sx={{ color: '#667085' }}>
@@ -96,7 +96,7 @@ export default function FamilyFeedbackPage() {
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FBFCFE', p: 3 }}>
         <Paper sx={{ p: 6, maxWidth: 480, textAlign: 'center', borderRadius: 3 }}>
           <CheckCircle sx={{ fontSize: 64, color: '#10BFA5', mb: 2 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#17202A', mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#17202A', mb: 1 }}>
             Thank you for your feedback
           </Typography>
           <Typography sx={{ color: '#667085', lineHeight: 1.6 }}>
@@ -124,10 +124,10 @@ export default function FamilyFeedbackPage() {
             bgcolor: '#F4F8FF', color: '#17202A', p: { xs: 3, md: 4 },
             borderBottom: '1px solid #E6EAF0',
           }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#087A55', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1 }}>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55', textTransform: 'none', letterSpacing: '0.1em', mb: 1 }}>
               {data.organization.name}
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
               How was the visit?
             </Typography>
             <Typography sx={{ color: '#667085', fontSize: '0.9rem' }}>
@@ -181,8 +181,7 @@ export default function FamilyFeedbackPage() {
                 startIcon={<ThumbUp />}
                 onClick={() => setWouldRecommend(true)}
                 sx={{
-                  flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600, borderRadius: 2,
-                  ...(wouldRecommend === true
+                  flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600,...(wouldRecommend === true
                     ? { bgcolor: '#10BFA5', color: '#FFFFFF', '&:hover': { bgcolor: '#0FAF97' } }
                     : { borderColor: '#CBD5E1', color: '#667085', '&:hover': { borderColor: '#10BFA5', bgcolor: '#E8FAF6' } }),
                 }}
@@ -194,8 +193,7 @@ export default function FamilyFeedbackPage() {
                 startIcon={<ThumbDown />}
                 onClick={() => setWouldRecommend(false)}
                 sx={{
-                  flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600, borderRadius: 2,
-                  ...(wouldRecommend === false
+                  flex: 1, py: 1.2, textTransform: 'none', fontWeight: 600,...(wouldRecommend === false
                     ? { bgcolor: '#EF4444', color: '#FFFFFF', '&:hover': { bgcolor: '#EF4444' } }
                     : { borderColor: '#CBD5E1', color: '#667085', '&:hover': { borderColor: '#EF4444', bgcolor: '#FEF0F0' } }),
                 }}
@@ -236,8 +234,7 @@ export default function FamilyFeedbackPage() {
               disabled={!overallRating || submitMutation.isPending}
               onClick={() => submitMutation.mutate()}
               sx={{
-                bgcolor: '#10BFA5', color: '#FFFFFF', fontWeight: 700, py: 1.5,
-                borderRadius: 2, textTransform: 'none', fontSize: '1rem',
+                bgcolor: '#10BFA5', color: '#FFFFFF', fontWeight: 600, py: 1.5, textTransform: 'none', fontSize: '1rem',
                 '&:hover': { bgcolor: '#0FAF97' },
                 '&.Mui-disabled': { bgcolor: '#CBD5E1', color: '#94A3B8' },
               }}

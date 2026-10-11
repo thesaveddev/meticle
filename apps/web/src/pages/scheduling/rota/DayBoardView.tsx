@@ -42,7 +42,7 @@ export default function DayBoardView(props: RotaViewProps) {
             {/* Column header */}
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.1, color: today ? '#2F80ED' : '#17202A' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.1, color: today ? '#2F80ED' : '#17202A' }}>
                   {DAYS[i]}
                 </Typography>
                 <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
@@ -78,7 +78,7 @@ export default function DayBoardView(props: RotaViewProps) {
                     <Chip label={selectedLocationId ? `${x.cnt}/${x.need}` : x.loc.name.split(' ')[0]}
                       size="small"
                       sx={{
-                        height: 16, fontSize: '0.52rem', fontWeight: 700, cursor: 'help',
+                        height: 16, fontSize: '0.52rem', fontWeight: 600, cursor: 'help',
                         bgcolor: x.ok ? '#EAFBF5' : '#FFF7E6',
                         color: x.ok ? '#087A55' : '#9A6700',
                         '& .MuiChip-icon': { color: x.ok ? '#10B981' : '#F59E0B' },

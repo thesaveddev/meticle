@@ -81,7 +81,7 @@ export default function ContactPage() {
               }}
             >
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-              <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
+              <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
                 GET IN TOUCH · UK BUSINESS HOURS
               </Typography>
             </Box>
@@ -89,7 +89,7 @@ export default function ContactPage() {
               variant="h1"
               sx={{
                 fontSize: { xs: '2.4rem', md: '3.2rem' },
-                fontWeight: 900, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
+                fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
               }}
             >
               Let's talk about your service.
@@ -110,7 +110,7 @@ export default function ContactPage() {
                 <Box>
                   <Typography
                     variant="h2"
-                    sx={{ fontSize: { xs: '1.6rem', md: '1.9rem' }, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.02em', color: INK, mb: 2 }}
+                    sx={{ fontSize: { xs: '1.6rem', md: '1.9rem' }, fontWeight: 600, lineHeight: 1.2, letterSpacing: '-0.02em', color: INK, mb: 2 }}
                   >
                     Three ways to reach us.
                   </Typography>
@@ -132,10 +132,10 @@ export default function ContactPage() {
                     >
                       <Box sx={{ flexShrink: 0, mt: 0.25, display: 'flex' }}>{m.icon}</Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.95rem', lineHeight: 1.2 }}>
+                        <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.95rem', lineHeight: 1.2 }}>
                           {m.title}
                         </Typography>
-                        <Typography sx={{ color: NAVY, fontWeight: 800, fontSize: '0.92rem', mt: 0.5, lineHeight: 1.4 }}>
+                        <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.92rem', mt: 0.5, lineHeight: 1.4 }}>
                           {m.detail}
                         </Typography>
                         <Typography sx={{ color: MIST, fontSize: '0.78rem', lineHeight: 1.5, mt: 0.5 }}>
@@ -161,11 +161,11 @@ export default function ContactPage() {
               >
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-                  <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none' }}>
                     SEND US A NOTE
                   </Typography>
                 </Stack>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: INK, fontSize: { xs: '1.4rem', md: '1.6rem' }, lineHeight: 1.2, mb: 1.25 }}>
+                <Typography variant="h3" sx={{ fontWeight: 600, color: INK, fontSize: { xs: '1.4rem', md: '1.6rem' }, lineHeight: 1.2, mb: 1.25 }}>
                   Tell us about your service.
                 </Typography>
                 <Typography sx={{ color: MIST, fontSize: '0.92rem', lineHeight: 1.6, mb: 3.5 }}>
@@ -231,7 +231,7 @@ export default function ContactPage() {
                       disabled={sending}
                       sx={{
                         bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP },
-                        fontWeight: 800, py: 1.65, fontSize: '1rem',
+                        fontWeight: 600, py: 1.65, fontSize: '1rem',
                       }}
                     >
                       {sending ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Send message'}
@@ -258,16 +258,16 @@ export default function ContactPage() {
                   borderRadius: 3,
                                   }}
               >
-                <Typography sx={{ fontWeight: 900, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1 }}>
+                <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none', mb: 1 }}>
                   ENTERPRISE · 100+ STAFF
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: INK, fontSize: '1.4rem', lineHeight: 1.25, mb: 1.5 }}>
+                <Typography variant="h3" sx={{ fontWeight: 600, color: INK, fontSize: '1.4rem', lineHeight: 1.25, mb: 1.5 }}>
                   For groups, franchises and local authorities.
                 </Typography>
                 <Typography sx={{ color: MIST, fontSize: '0.92rem', lineHeight: 1.65, mb: 2 }}>
                   Multi-site rollouts, custom SSO and API integrations, named CSM, on-site training and quarterly review. Page through the questionnaire and we'll arrange a procurement conversation.
                 </Typography>
-                <Typography sx={{ fontWeight: 800 }}>
+                <Typography sx={{ fontWeight: 600 }}>
                   <Box component="span" sx={{ color: MIST, fontSize: '0.78rem', mr: 1 }}>EMAIL</Box>
                   <Box component="span" sx={{ color: NAVY, fontSize: '0.95rem' }}>enterprise@meticlecare.com</Box>
                 </Typography>
@@ -283,16 +283,16 @@ export default function ContactPage() {
                   borderRadius: 3,
                                   }}
               >
-                <Typography sx={{ fontWeight: 900, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1 }}>
+                <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none', mb: 1 }}>
                   PROCUREMENT & TENDER
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: INK, fontSize: '1.4rem', lineHeight: 1.25, mb: 1.5 }}>
+                <Typography variant="h3" sx={{ fontWeight: 600, color: INK, fontSize: '1.4rem', lineHeight: 1.25, mb: 1.5 }}>
                   For NHS, councils and Section 1(1) bodies.
                 </Typography>
                 <Typography sx={{ color: MIST, fontSize: '0.92rem', lineHeight: 1.65, mb: 2 }}>
                   UK GDPR / DPA 2018 data-processing agreement and accessible procurement documentation. We have not submitted the NHS Data Security and Protection Toolkit and hold no NHS accreditation; if a tender requires a DSPT return, we will complete it as part of the process rather than claim it in advance. We have no published list price or discount schedule, so pricing is quoted per tender — get in touch.
                 </Typography>
-                <Typography sx={{ fontWeight: 800 }}>
+                <Typography sx={{ fontWeight: 600 }}>
                   <Box component="span" sx={{ color: MIST, fontSize: '0.78rem', mr: 1 }}>EMAIL</Box>
                   <Box component="span" sx={{ color: NAVY, fontSize: '0.95rem' }}>procurement@meticlecare.com</Box>
                 </Typography>
@@ -307,7 +307,7 @@ export default function ContactPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: NAVY, letterSpacing: '0.14em', textTransform: 'none' }}>
                 Built for the UK's care sector
               </Typography>
             </Grid>
@@ -327,14 +327,14 @@ export default function ContactPage() {
                           width: 36, height: 36, borderRadius: 1.5,
                           bgcolor: t.mark === 'CIW' || t.mark === 'GDPR' ? EMERALD : NAVY,
                           color: '#FFFFFF', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontWeight: 900, fontSize: '0.7rem',
+                          justifyContent: 'center', fontWeight: 600, fontSize: '0.7rem',
                           flexShrink: 0,
                         }}
                       >
                         {t.mark}
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>{t.label}</Typography>
+                        <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>{t.label}</Typography>
                         <Typography sx={{ color: MIST, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>{t.detail}</Typography>
                       </Box>
                     </Stack>
@@ -351,7 +351,7 @@ export default function ContactPage() {
         <Container maxWidth="md">
           <Typography
             variant="h2"
-            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
+            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
           >
             Prefer to start with a conversation?
           </Typography>
@@ -365,7 +365,7 @@ export default function ContactPage() {
               onClick={() => { window.location.href = '/contact' }}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
-                fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               Book a demo
@@ -377,7 +377,7 @@ export default function ContactPage() {
               sx={{
                 borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
                 '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' },
-                fontWeight: 700, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               See pricing first

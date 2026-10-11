@@ -422,7 +422,7 @@ export default function LeaveManagerPage() {
         <Stack direction="row" spacing={1.25} alignItems="center">
           <LeaveIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Leave Manager</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, letterSpacing: '-0.02em' }}>Leave Manager</Typography>
             <Typography variant="body2" color="text.secondary">Plan time away and keep your balance visible.</Typography>
           </Box>
         </Stack>
@@ -436,11 +436,11 @@ export default function LeaveManagerPage() {
           <Box sx={{ position: 'relative', width: 104, height: 104, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
             <CircularProgress variant="determinate" value={100} size={104} thickness={4} sx={{ color: '#E5EEF5', position: 'absolute' }} />
             <CircularProgress variant="determinate" value={takenPercentage} size={104} thickness={4} sx={{ color: '#2F80ED', position: 'absolute', transform: 'rotate(-90deg)' }} />
-            <Box sx={{ textAlign: 'center' }}><Typography variant="h6" sx={{ fontWeight: 800, color: '#2F80ED' }}>{takenPercentage}%</Typography><Typography variant="caption" color="text.secondary">used</Typography></Box>
+            <Box sx={{ textAlign: 'center' }}><Typography variant="h6" sx={{ fontWeight: 600, color: '#2F80ED' }}>{takenPercentage}%</Typography><Typography variant="caption" color="text.secondary">used</Typography></Box>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 800, letterSpacing: '0.08em' }}>Your leave balance</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.25 }}>{fmtDaysHours(totalRemainingHours)} left</Typography>
+            <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.08em' }}>Your leave balance</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25 }}>{fmtDaysHours(totalRemainingHours)} left</Typography>
             <Typography variant="body2" color="text.secondary">{fmtDaysHours(totalTakenHours)} taken from {fmtDaysHours(totalAllocatedHours)} allocated · {fmtDaysHours(pendingHoursTotal)} pending</Typography>
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(72px, 1fr))', gap: 1, width: { xs: '100%', md: 330 } }}>
@@ -448,7 +448,7 @@ export default function LeaveManagerPage() {
               ['Allocated', fmtDaysHours(totalAllocatedHours), '#2F80ED'],
               ['Taken', fmtDaysHours(totalTakenHours), '#B42318'],
               ['Remaining', fmtDaysHours(totalRemainingHours), '#087A55'],
-            ].map(([label, value, color]) => <Box key={label} sx={{ p: 1.25, bgcolor: '#FFFFFF', borderRadius: 1.75, border: '1px solid #E6EAF0' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ fontWeight: 800, color }}>{value}</Typography></Box>)}
+            ].map(([label, value, color]) => <Box key={label} sx={{ p: 1.25, bgcolor: '#FFFFFF', borderRadius: 1.75, border: '1px solid #E6EAF0' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ fontWeight: 600, color }}>{value}</Typography></Box>)}
           </Box>
         </Stack>
         {balances.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No leave balances configured.</Typography>}
@@ -460,7 +460,7 @@ export default function LeaveManagerPage() {
 
       {isAdminOrManager && (
         <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #EAF3FF', bgcolor: 'notice.subtle.bg' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#2F80ED', mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#2F80ED', mb: 1 }}>
             Active Delegations
           </Typography>
           {activeDelegations.length > 0 ? (
@@ -468,7 +468,7 @@ export default function LeaveManagerPage() {
               {activeDelegations.map((d: any) => (
                 <Stack key={d.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {d.delegate_first_name || 'Delegate'} {d.delegate_last_name || ''}
                     </Typography>
                     <Typography variant="caption" color="#667085">
@@ -496,7 +496,7 @@ export default function LeaveManagerPage() {
 
       <Paper sx={{ borderRadius: 2 }}>
         <Tabs value={tab} onChange={(_, v) => { setTab(v); if (v === 1 && isAdminOrManager) fetchAllRequests() }}
-          sx={{ borderBottom: 1, borderColor: 'divider', px: 2, '& .MuiTab-root': { fontWeight: 700, textTransform: 'none' } }}>
+          sx={{ borderBottom: 1, borderColor: 'divider', px: 2, '& .MuiTab-root': { fontWeight: 600, textTransform: 'none' } }}>
           <Tab label="My Requests" />
           {isAdminOrManager && <Tab label="All Requests" />}
           <Tab label="Calendar" />
@@ -510,25 +510,25 @@ export default function LeaveManagerPage() {
         {tab === 0 && (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(230px, 0.32fr) minmax(0, 1fr)' }, gap: 0, alignItems: 'stretch' }}>
             <Box sx={{ p: { xs: 2, lg: 3 }, bgcolor: '#F4F8FF', borderRight: { lg: '1px solid #E6EAF0' }, borderBottom: { xs: '1px solid #E6EAF0', lg: 0 } }}>
-              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 800, letterSpacing: '0.08em' }}>New request</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.25, mb: 1 }}>Need time away?</Typography>
+              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.08em' }}>New request</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.25, mb: 1 }}>Need time away?</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Choose your dates and leave type. Your current balance will be shown before you submit.</Typography>
               <Button fullWidth variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Apply for leave</Button>
               <Stack spacing={1} sx={{ mt: 3 }}>
-                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Pending</Typography><Typography variant="body2" sx={{ fontWeight: 800, color: '#9A6700' }}>{fmtDaysHours(pendingHoursTotal)}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Available</Typography><Typography variant="body2" sx={{ fontWeight: 800, color: '#087A55' }}>{fmtDaysHours(totalRemainingHours)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Pending</Typography><Typography variant="body2" sx={{ fontWeight: 600, color: '#9A6700' }}>{fmtDaysHours(pendingHoursTotal)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Available</Typography><Typography variant="body2" sx={{ fontWeight: 600, color: '#087A55' }}>{fmtDaysHours(totalRemainingHours)}</Typography></Stack>
               </Stack>
             </Box>
             <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Dates</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Duration</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Dates</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Duration</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -609,13 +609,13 @@ export default function LeaveManagerPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Dates</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Duration</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Dates</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Duration</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -684,7 +684,7 @@ export default function LeaveManagerPage() {
                   const d = new Date(calendarMonth); d.setMonth(d.getMonth() - 1); setCalendarMonth(d)
                 }}><ChevronLeft /></IconButton>
                 <CalendarIcon sx={{ color: '#2F80ED' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </Typography>
                 <IconButton size="small" onClick={() => {
@@ -694,15 +694,15 @@ export default function LeaveManagerPage() {
               {isAdminOrManager && (
                 <Stack direction="row" spacing={2}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#2F80ED' }}>{totalOnLeave}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#2F80ED' }}>{totalOnLeave}</Typography>
                     <Typography variant="caption" color="#667085">On Leave</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#10B981' }}>{totalApproved}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#10B981' }}>{totalApproved}</Typography>
                     <Typography variant="caption" color="#667085">Approved</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#F59E0B' }}>{totalPending}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#F59E0B' }}>{totalPending}</Typography>
                     <Typography variant="caption" color="#667085">Pending</Typography>
                   </Box>
                 </Stack>
@@ -712,7 +712,7 @@ export default function LeaveManagerPage() {
             <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                 <Box key={d} sx={{ width: '14.285%', textAlign: 'center', py: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700 }}>{d}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{d}</Typography>
                 </Box>
               ))}
               {calendarDays.map((day, i) => {
@@ -757,13 +757,13 @@ export default function LeaveManagerPage() {
                       {day.getDate()}
                     </Typography>
                     {dayAvailability.length > 0 && (
-                      <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#2F80ED', fontWeight: 700, lineHeight: 1.2 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#2F80ED', fontWeight: 600, lineHeight: 1.2 }}>
                         {isAdminOrManager ? `${new Set(dayAvailability.map(record => record.staff_id)).size} available` : 'Available'}
                       </Typography>
                     )}
                     {stats && isAdminOrManager && (
                       <Box sx={{ mt: 0.3 }}>
-                        <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#10B981', fontWeight: 700, lineHeight: 1.2 }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#10B981', fontWeight: 600, lineHeight: 1.2 }}>
                           {stats.staff_on_leave > 0 ? `${stats.staff_on_leave} on leave` : '0 on leave'}
                         </Typography>
                         <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#F59E0B', fontWeight: 600, lineHeight: 1.2 }}>
@@ -774,7 +774,7 @@ export default function LeaveManagerPage() {
                     {events.slice(0, 2).map(e => (
                       <Chip key={e.id} label={e.label} size="small"
                         sx={{ width: '100%', height: 14, fontSize: '0.45rem', mt: 0.1,
-                          bgcolor: (e.color || '#2F80ED') + '30', color: e.color || '#2F80ED', fontWeight: 700, '& .MuiChip-label': { px: 0.2 } }} />
+                          bgcolor: (e.color || '#2F80ED') + '30', color: e.color || '#2F80ED', fontWeight: 600, '& .MuiChip-label': { px: 0.2 } }} />
                     ))}
                     {events.length > 2 && (
                       <Typography variant="caption" sx={{ fontSize: '0.45rem', color: 'text.secondary', display: 'block', textAlign: 'center' }}>
@@ -801,18 +801,18 @@ export default function LeaveManagerPage() {
       >
         {dayPopover && (
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               {new Date(dayPopover.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </Typography>
             <Divider sx={{ mb: 1 }} />
             {availabilityForDate(parseYMD(dayPopover.date)).length > 0 && (
-              <Typography variant="caption" color="#2F80ED" sx={{ display: 'block', mb: 1, fontWeight: 700 }}>
+              <Typography variant="caption" color="#2F80ED" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
                 {isAdminOrManager ? `${new Set(availabilityForDate(parseYMD(dayPopover.date)).map(record => record.staff_id)).size} staff with availability recorded` : 'Availability recorded for this day'}
               </Typography>
             )}
             {dayPopover.stats && isAdminOrManager && (
               <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-                <Typography variant="caption" color="#10B981" sx={{ fontWeight: 700 }}>
+                <Typography variant="caption" color="#10B981" sx={{ fontWeight: 600 }}>
                   {dayPopover.stats.staff_on_leave} staff on leave
                 </Typography>
                 <Typography variant="caption" color="#F59E0B" sx={{ fontWeight: 600 }}>
@@ -835,9 +835,9 @@ export default function LeaveManagerPage() {
                       <ListItemText
                         primary={
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{e.first_name} {e.last_name}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{e.first_name} {e.last_name}</Typography>
                             <Chip label={e.leave_type_name || e.type} size="small"
-                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#2F80ED') + '20', color: e.leave_type_color || '#2F80ED', fontWeight: 700 }} />
+                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#2F80ED') + '20', color: e.leave_type_color || '#2F80ED', fontWeight: 600 }} />
                             <Chip label={e.status} size="small"
                               color={e.status === 'approved' ? 'success' : e.status === 'rejected' ? 'error' : e.status === 'pending' ? 'warning' : 'default'}
                               sx={{ height: 18, fontSize: '0.6rem' }} />
@@ -878,7 +878,7 @@ export default function LeaveManagerPage() {
       </Popover>
 
       <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setError(''); setSuccess('') }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Request Leave</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Request Leave</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
@@ -976,7 +976,7 @@ export default function LeaveManagerPage() {
       </Dialog>
 
       <Dialog open={delegationDialog} onClose={() => setDelegationDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Set Up Delegation?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Set Up Delegation?</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="body2" color="#667085">
@@ -1041,7 +1041,7 @@ export default function LeaveManagerPage() {
       <Dialog open={Boolean(detailRequest)} onClose={() => setDetailRequest(null)} maxWidth="sm" fullWidth>
         {detailRequest && (
           <>
-            <DialogTitle sx={{ fontWeight: 800 }}>
+            <DialogTitle sx={{ fontWeight: 600 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <span>{detailRequest.first_name} {detailRequest.last_name}</span>
                 {statusChip(detailRequest.status)}
@@ -1050,19 +1050,19 @@ export default function LeaveManagerPage() {
             <DialogContent dividers>
               <Stack spacing={1.5}>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>LEAVE TYPE</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>LEAVE TYPE</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     <Chip label={detailRequest.leave_type_name} size="small"
                       sx={{ bgcolor: (detailRequest.leave_type_color || '#2F80ED') + '20', color: detailRequest.leave_type_color || '#2F80ED', fontWeight: 600 }} />
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>DATES</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>DATES</Typography>
                   <Typography variant="body2">{fmtDay(parseYMD(detailRequest.start_date))}
                     {detailRequest.end_date !== detailRequest.start_date ? ` - ${fmtDay(parseYMD(detailRequest.end_date))}` : ''}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>DURATION</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>DURATION</Typography>
                   <Typography variant="body2">
                     {detailRequest.duration_type === 'hours' && detailRequest.hours_requested
                       ? `${detailRequest.hours_requested}h`
@@ -1070,17 +1070,17 @@ export default function LeaveManagerPage() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>REASON</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REASON</Typography>
                   <Typography variant="body2">{detailRequest.reason || '-'}</Typography>
                 </Box>
                 {detailRequest.notes && (
                   <Box>
-                    <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>REVIEWER NOTES</Typography>
+                    <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REVIEWER NOTES</Typography>
                     <Typography variant="body2" color="#475467">{detailRequest.notes}</Typography>
                   </Box>
                 )}
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>REVIEWER</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REVIEWER</Typography>
                   <Typography variant="body2">
                     {detailRequest.reviewer_first_name || detailRequest.reviewer_last_name
                       ? `${detailRequest.reviewer_first_name || ''} ${detailRequest.reviewer_last_name || ''}`.trim()
@@ -1088,7 +1088,7 @@ export default function LeaveManagerPage() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 700 }}>REQUESTED</Typography>
+                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REQUESTED</Typography>
                   <Typography variant="body2">{new Date(detailRequest.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Typography>
                 </Box>
               </Stack>

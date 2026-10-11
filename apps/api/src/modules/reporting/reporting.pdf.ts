@@ -1,3 +1,4 @@
+import { PDF_TEXT as T } from '../../shared/utils/email.template'
 import { buildReportStyles } from '../../shared/pdf/pdf.service'
 
 const now = () => new Date().toLocaleString()
@@ -57,7 +58,7 @@ export function buildStaffComplianceHtml(data: any, orgName = 'Meticle Care'): s
     </div>
     <h2>Staff Compliance Details (${rows.length})</h2>
     ${rows.length ? table(['Staff Name', 'Role', 'Overall %', 'DBS Status', 'Training Status', 'Last Review'], rows) : '<p>No staff data.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -96,7 +97,7 @@ export function buildTrainingMatrixHtml(data: any, orgName = 'Meticle Care'): st
     </div>
     <h2>Training Records (${rows.length})</h2>
     ${rows.length ? table(['Staff Name', 'Module', 'Category', 'Status', 'Completed', 'Expires'], rows) : '<p>No training records.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -136,7 +137,7 @@ export function buildIncidentLogHtml(data: any, orgName = 'Meticle Care'): strin
     </div>
     <h2>Incident Details (${rows.length})</h2>
     ${rows.length ? table(['Date', 'Location', 'Type', 'Severity', 'Reported By', 'Status', 'Resolution'], rows) : '<p>No incidents recorded.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -176,7 +177,7 @@ export function buildLeaveOverviewHtml(data: any, orgName = 'Meticle Care'): str
     </div>
     <h2>Leave Balances (${rows.length})</h2>
     ${rows.length ? table(['Staff Name', 'Allocated Days', 'Used', 'Pending', 'Remaining'], rows) : '<p>No leave balances configured.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -212,7 +213,7 @@ export function buildPersonRosterHtml(data: any, orgName = 'Meticle Care'): stri
     </div>
     <h2>People (${rows.length})</h2>
     ${rows.length ? table(['Name', 'Location', 'Status', 'Start Date', 'Key Worker', 'Care Level'], rows) : '<p>No people.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -268,7 +269,7 @@ export function buildMedicationAdminHtml(data: any, orgName = 'Meticle Care'): s
     </div>
     <h2>Medication Details (${rows.length})</h2>
     ${rows.length ? table(['Medication', 'Scheduled Times', 'Administered %', 'Missed', 'Refused'], rows) : '<p>No medication records.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -303,7 +304,7 @@ export function buildPersonOutcomesHtml(data: any, orgName = 'Meticle Care'): st
     </div>
     <h2>Person Outcomes (${rows.length})</h2>
     ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing'], rows) : '<p>No people.</p>'}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
@@ -345,7 +346,7 @@ export function buildOrgOutcomesSummaryHtml(data: any, orgName = 'Meticle Care')
     </div>
     ${goalRows.length ? `<h2>Goals by CQC Domain</h2>${table(['Domain', 'Total', 'Completed', 'Rate'], goalRows)}` : ''}
     ${wellbeingRows.length ? `<h2>Wellbeing Average (Last 30 Days)</h2>${table(['Domain', 'Avg Score', 'Entries'], wellbeingRows)}` : ''}
-    <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
+    <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">Meticle Care Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 

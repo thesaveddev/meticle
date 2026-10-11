@@ -1,4 +1,5 @@
 import { query, transaction } from '../../shared/database';
+import { STOCK_USAGE_CTES } from './medication-alert.service';
 
 export interface EMedicationRecord {
   id: string;
@@ -555,16 +556,30 @@ export class EMedicationRepository {
   }
 
   static async listStock(orgId: string, includeArchived = false, personId?: string) {
-    const personName = `(SELECT first_name || ' ' || last_name FROM people WHERE id = emedication_stock.person_id) AS person_name`;
-    const base = `SELECT emedication_stock.*, ${personName} FROM emedication_stock WHERE organization_id = $1`;
     const conditions: string[] = [];
     const params: any[] = [orgId];
     let idx = 2;
-    if (!includeArchived) { conditions.push(`status = 'active'`); }
-    if (personId) { conditions.push(`person_id = $${idx++}`); params.push(personId); }
+    if (!includeArchived) { conditions.push(`s.status = 'active'`); }
+    if (personId) { conditions.push(`s.person_id = $${idx++}`); params.push(personId); }
     const where = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
-    const sql = `${base}${where} ORDER BY medication_name`;
-    const result = await query(sql, params);
+    const result = await query(`
+      WITH ${STOCK_USAGE_CTES}
+      SELECT s.*,
+             p.first_name || ' ' || p.last_name AS person_name,
+             COALESCE(u.given_28d, 0)::int AS given_28d,
+             u.daily_usage,
+             CASE WHEN u.daily_usage > 0
+                  THEN ROUND((s.quantity / u.daily_usage)::numeric, 1)::float8
+                  ELSE NULL END AS days_until_empty
+      FROM emedication_stock s
+      LEFT JOIN people p ON p.id = s.person_id
+      LEFT JOIN usage u
+        ON u.organization_id = s.organization_id
+       AND u.person_id IS NOT DISTINCT FROM s.person_id
+       AND u.med_key = LOWER(TRIM(s.medication_name))
+       AND u.dosage_key = LOWER(TRIM(COALESCE(s.dosage, '')))
+      WHERE s.organization_id = $1${where}
+      ORDER BY s.medication_name`, params);
     return result.rows;
   }
 
@@ -649,13 +664,37 @@ export class EMedicationRepository {
   }
 
   static async getLowStockForOrg(orgId: string) {
+    // days_until_empty carries the same 28-day given-dose-rate projection the
+    // reorder sweep email and Mica's stock tool use, so the daily shift audit
+    // says how urgent each low line is, not just that it is low.
     const result = await query(
-      `SELECT s.id, s.medication_name, s.dosage, s.unit, s.quantity, s.reorder_level, s.quantity_unit,
+      `WITH usage AS (
+         SELECT r.organization_id, r.person_id,
+                LOWER(TRIM(mi.name)) AS med_key,
+                LOWER(TRIM(COALESCE(mi.dosage, ''))) AS dosage_key,
+                COUNT(a.id)::int AS given_28d,
+                ROUND((COUNT(a.id)::float8 / 28.0)::numeric, 4)::float8 AS daily_usage
+         FROM emedication_administrations a
+         JOIN emedication_items mi ON mi.id = a.emedication_item_id
+         JOIN emedication_records r ON r.id = mi.emedication_record_id
+         WHERE r.organization_id = $1
+           AND a.status = 'given'
+           AND COALESCE(a.administered_time, a.scheduled_time) >= NOW() - interval '28 days'
+         GROUP BY 1, 2, 3, 4
+       )
+       SELECT s.id, s.medication_name, s.dosage, s.unit, s.quantity, s.reorder_level, s.quantity_unit,
               l.id AS location_id, l.name AS location_name,
-              su.first_name || ' ' || su.last_name AS person_name
+              su.first_name || ' ' || su.last_name AS person_name,
+              CASE WHEN u.daily_usage > 0
+                   THEN ROUND((s.quantity / u.daily_usage)::numeric, 1)::float8
+                   ELSE NULL END AS days_until_empty
        FROM emedication_stock s
        JOIN people su ON su.id = s.person_id
        JOIN locations l ON l.id = su.location_id
+       LEFT JOIN usage u
+         ON u.person_id IS NOT DISTINCT FROM s.person_id
+        AND u.med_key = LOWER(TRIM(s.medication_name))
+        AND u.dosage_key = LOWER(TRIM(COALESCE(s.dosage, '')))
        WHERE s.organization_id = $1
          AND s.status = 'active'
          AND s.quantity IS NOT NULL
@@ -914,6 +953,7 @@ export class EMedicationRepository {
       await query(`
         UPDATE emedication_stock
         SET quantity = quantity + $1,
+            last_stock_low_notified_at = NULL,
             batch_number = COALESCE($2, batch_number),
             expiry_date = COALESCE($3, expiry_date),
             updated_at = CURRENT_TIMESTAMP
@@ -923,8 +963,8 @@ export class EMedicationRepository {
     }
 
     const created = await query(`
-      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'active', $9) RETURNING *`,
+      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id, last_stock_low_notified_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'active', $9, NULL) RETURNING *`,
       [orgId, name, item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)', personId || null]);
 
     // Link the first active, unlinked MAR item with the same name (scoped to the person for person-scoped deliveries)
@@ -996,8 +1036,8 @@ export class EMedicationRepository {
 
       const qty = Number(item.quantity) || 0;
       const stock = await query(`
-        INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 10, 'active', $9) RETURNING *`,
+        INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id, last_stock_low_notified_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 10, 'active', $9, NULL) RETURNING *`,
         [orgId, (item.medication_name || '').trim(), item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)', personId]);
       await this.updateItem(createdItem.id, { stock_item_id: stock.rows[0].id });
       return { stock: stock.rows[0], new_item_id: createdItem.id };

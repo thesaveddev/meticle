@@ -51,7 +51,7 @@ export default function MessageList({
   if (messages.length === 0) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1, bgcolor: BONE, px: 3 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: INK }}>No messages yet</Typography>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: INK }}>No messages yet</Typography>
         <Typography sx={{ fontSize: 13, color: MIST, textAlign: 'center', lineHeight: 1.5 }}>Send the first message to start the conversation.</Typography>
       </Box>
     )
@@ -92,7 +92,7 @@ export default function MessageList({
             {isUnreadStart && (
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 1.5, mb: 1.5 }}>
                 <Box sx={{ flex: 1, borderTop: `1px solid ${EMERALD}` }} />
-                <Typography variant="caption" sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: EMERALD_DEEP }}>
+                <Typography variant="caption" sx={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'none', color: EMERALD_DEEP }}>
                   New messages
                 </Typography>
                 <Box sx={{ flex: 1, borderTop: `1px solid ${EMERALD}` }} />

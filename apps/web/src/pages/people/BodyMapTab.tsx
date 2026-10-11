@@ -234,8 +234,8 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
       <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', mb: 3, overflow: 'hidden' }}>
         <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0' }}>
-          <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 700 }} />
-          <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 700 }} />
+          <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 600 }} />
+          <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 600 }} />
         </Tabs>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'notice.subtle.bg', py: 2, px: 1, position: 'relative' }}>
           <Typography variant="caption" color="#667085" sx={{ mb: 0.5 }}>
@@ -283,7 +283,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
                 <g key={e.id} style={{ cursor: 'pointer' }} onClick={(ev) => { ev.stopPropagation(); openEdit(e) }}>
                   <circle cx={c.cx} cy={c.cy} r={13} fill={color} fillOpacity={0.12} stroke={color} strokeWidth={1.5} />
                   <circle cx={c.cx} cy={c.cy} r={6} fill={color} />
-                  <text x={c.cx} y={c.cy - 18} textAnchor="middle" fontSize={9} fontWeight={800} fill={color}>
+                  <text x={c.cx} y={c.cy - 18} textAnchor="middle" fontSize={9} fontWeight={600} fill={color}>
                     {e.condition_type.slice(0, 2).toUpperCase()}
                   </text>
                 </g>
@@ -315,7 +315,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
             return (
               <Box sx={{ position: 'absolute', left, top, zIndex: 5, pointerEvents: 'none',
                 bgcolor: '#2F80ED', color: '#FFFFFF', px: 1, py: 0.5, borderRadius: '6px',
-                fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap',
+                fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap',
                 boxShadow: '0 2px 8px rgba(23,32,42,0.18)' }}>
                 {z.label}
               </Box>
@@ -347,7 +347,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={e.condition_type.replace(/_/g, ' ')} size="small"
-                    sx={{ bgcolor: `${CONDITION_COLORS[e.condition_type] || '#667085'}20`, color: CONDITION_COLORS[e.condition_type] || '#667085', fontWeight: 700, textTransform: 'capitalize' }} />
+                    sx={{ bgcolor: `${CONDITION_COLORS[e.condition_type] || '#667085'}20`, color: CONDITION_COLORS[e.condition_type] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
                   <Chip label={e.severity} size="small"
                     sx={{ bgcolor: `${SEVERITY_COLORS[e.severity] || '#667085'}20`, color: SEVERITY_COLORS[e.severity] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
                   <Chip label={e.status} size="small" variant="outlined"
@@ -368,7 +368,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
       {/* Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={save}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{selectedEntry ? 'Edit Entry' : `New — ${selectedZone?.label || ''}`}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{selectedEntry ? 'Edit Entry' : `New — ${selectedZone?.label || ''}`}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>

@@ -104,7 +104,7 @@ function StatCard({ icon, label, value, color, onClick, accent }: {
     >
       <Stack alignItems="center" spacing={0.5}>
         <Box sx={{ color, mb: 0.5 }}>{icon}</Box>
-        <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color, letterSpacing: '-0.02em' }}>{value}</Typography>
+        <Typography sx={{ fontSize: '1.35rem', fontWeight: 600, color, letterSpacing: '-0.02em' }}>{value}</Typography>
         <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 500 }}>{label}</Typography>
       </Stack>
     </Paper>
@@ -130,10 +130,10 @@ function CarerCard({ carer, onClick }: { carer: CarerTotal; onClick: () => void 
         <Box sx={{
           width: 40, height: 40, borderRadius: '50%', bgcolor: '#F4F8FF',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, fontSize: '0.8rem', color: '#175CD3',
+          fontWeight: 600, fontSize: '0.8rem', color: '#175CD3',
         }}>{initials}</Box>
         <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{carer.staff_name}</Typography>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{carer.staff_name}</Typography>
           <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8' }}>{carer.visit_count} visits</Typography>
         </Box>
         {hasIssues && (
@@ -150,7 +150,7 @@ function CarerCard({ carer, onClick }: { carer: CarerTotal; onClick: () => void 
         <Chip icon={<MileageIcon sx={{ fontSize: 13 }} />} label={fmtM(carer.total_mileage_miles)} size="small"
           sx={{ bgcolor: '#F4F8FF', color: '#8B7CF6', fontWeight: 600, fontSize: '0.7rem' }} />
         <Chip icon={<MoneyIcon sx={{ fontSize: 13 }} />} label={fmtP(carer.total_gross_pay_pence)} size="small"
-          sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 700, fontSize: '0.7rem' }} />
+          sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 600, fontSize: '0.7rem' }} />
       </Stack>
 
       <Stack direction="row" gap={1} sx={{ mt: 1.5 }} alignItems="center">
@@ -275,7 +275,7 @@ export default function CarerTotalsPanel() {
           {view !== 'overview' && <IconButton onClick={goBack} sx={{ color: '#2F80ED' }}><BackIcon /></IconButton>}
           <TrendingIcon sx={{ color: '#10B981', fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {view === 'carer-detail' ? displayText(selectedCarer?.staff_name, 'Carer details') :
                view === 'pending-approvals' ? 'Timesheets needing action' : 'Carer totals'}
             </Typography>
@@ -427,7 +427,7 @@ export default function CarerTotalsPanel() {
                     <Box sx={{ p: 2, cursor: hasNotes ? 'pointer' : 'default' }}
                       onClick={hasNotes ? () => setExpandedVisit(isExpanded ? null : v.id) : undefined}>
                       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{v.label || v.visit_type}</Typography>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>{v.label || v.visit_type}</Typography>
                         <Chip label={v.status} size="small" sx={{ bgcolor: sc.bg, color: sc.fg, fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
                         <Chip label={v.timesheet_status === 'approved' ? 'Pay added' : v.timesheet_status === 'rejected' ? 'Rejected' : v.timesheet_status === 'submitted' ? 'Not yet paid' : 'No pay entry'}
                           size="small" sx={{ bgcolor: tc.bg, color: tc.fg, fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
@@ -449,7 +449,7 @@ export default function CarerTotalsPanel() {
                           <Typography sx={{ fontSize: '0.75rem', color: '#667085' }}>Actual: {fmtT(v.check_in_at)} – {v.check_out_at ? fmtT(v.check_out_at) : 'ongoing'}</Typography>
                         )}
                         {v.gross_pay_pence != null && (
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#2F80ED' }}>{fmtP(v.gross_pay_pence)}</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#2F80ED' }}>{fmtP(v.gross_pay_pence)}</Typography>
                         )}
                       </Stack>
                       {/* Quick chips */}
@@ -509,7 +509,7 @@ export default function CarerTotalsPanel() {
                   <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={2}>
                     <Box>
                       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{v.visit_label}</Typography>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>{v.visit_label}</Typography>
                         <Chip label="Not yet paid" size="small"
                           sx={{ bgcolor: '#FFF7E6', color: '#F59E0B', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
                       </Stack>
@@ -519,7 +519,7 @@ export default function CarerTotalsPanel() {
                       <Stack direction="row" gap={1} sx={{ mt: 1 }} flexWrap="wrap">
                         <Chip size="small" label={`Work: ${fmtH(v.work_minutes)}`} sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
                         <Chip size="small" label={`Travel: ${fmtH(v.paid_travel_minutes)}`} sx={{ bgcolor: '#F4F8FF', color: '#175CD3', fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
-                        <Chip size="small" label={fmtP(v.gross_pay_pence)} sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                        <Chip size="small" label={fmtP(v.gross_pay_pence)} sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
                       </Stack>
                     </Box>
                     <Stack direction="row" gap={1}>
@@ -546,7 +546,7 @@ export default function CarerTotalsPanel() {
 function NoteBlock({ label, text, color }: { label: string; text: string; color?: string }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: color || '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
+      <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: color || '#94A3B8', textTransform: 'none', letterSpacing: '0.05em' }}>{label}</Typography>
       <Typography sx={{ fontSize: '0.85rem', color: '#344054', whiteSpace: 'pre-wrap', mt: 0.25, lineHeight: 1.5 }}>{text}</Typography>
     </Box>
   )
@@ -555,7 +555,7 @@ function NoteBlock({ label, text, color }: { label: string; text: string; color?
 function MiniField({ label, value }: { label: string; value: string }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
+      <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#94A3B8', textTransform: 'none', letterSpacing: '0.05em' }}>{label}</Typography>
       <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#344054', mt: 0.25 }}>{value}</Typography>
     </Box>
   )

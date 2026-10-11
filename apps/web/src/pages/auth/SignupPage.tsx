@@ -161,9 +161,16 @@ export default function SignupPage() {
             <Box
               sx={{
                 border: '1px solid var(--mc-border)',
+                // Same 12px radius as every other boxed element in the auth
+                // card (inputs, buttons, error/success banners). Anything else
+                // reads as a different card language on one page.
                 borderRadius: '12px',
-                p: 2.5,
-                bgcolor: 'var(--mc-surface-soft, var(--mc-surface-hover))',
+                // Match the banner padding scale (px 2 / py 1.5 → 2 all round
+                // for a taller interactive box) instead of a one-off 2.5.
+                p: 2,
+                // --mc-surface-soft does not exist as a token (verified);
+                // name the actual colour rather than relying on the fallback.
+                bgcolor: 'var(--mc-surface-hover)',
               }}
             >
               {!codeSent ? (
@@ -212,7 +219,7 @@ export default function SignupPage() {
               )}
             </Box>
           ) : (
-            <Box role="status" sx={{ bgcolor: 'var(--mc-success-soft, var(--mc-success-soft))', border: '1px solid var(--mc-success-border)', borderRadius: '12px', px: 2, py: 1.5 }}>
+            <Box role="status" sx={{ bgcolor: 'var(--mc-success-soft)', border: '1px solid var(--mc-success-border)', borderRadius: '12px', px: 2, py: 1.5 }}>
               <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'var(--mc-success-text)' }}>Email verified ✓</Typography>
             </Box>
           )}

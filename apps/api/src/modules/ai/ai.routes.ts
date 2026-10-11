@@ -4,7 +4,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
-import { updateAIConfigSchema, aiAnalysisRequestSchema, aiRotaAnalysisSchema, aiRotaGenerateSchema, aiDailyNoteGenerateSchema, aiDailyNoteApproveSchema, aiMealPlanGenerationSchema, aiManagerBriefingSchema, aiIntelligenceSchema } from '../../shared/validation/schemas';
+import { updateAIConfigSchema, aiAnalysisRequestSchema, aiRotaAnalysisSchema, aiRotaGenerateSchema, aiDailyNoteGenerateSchema, aiDailyNoteApproveSchema, aiMealPlanGenerationSchema, aiManagerBriefingSchema, aiIntelligenceSchema, aiTtsSchema, aiMicaAskSchema, aiMicaActionSchema, aiMicaActionConfirmSchema, aiMicaIntentSchema } from '../../shared/validation/schemas';
 import { UserRole } from '@meticle/shared';
 import { requireSupportedLivingOnly } from '../../shared/middleware/requireServiceType';
 
@@ -13,6 +13,10 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/prompts', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getPrompts));
+// Capability data-class disclosure: cheap enough for the Settings AI tab to
+// fetch alongside the config read, admin-gated because it is still a raw
+// statement of what crosses the provider boundary.
+router.get('/data-classes', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getDataClasses));
 router.get('/data-minimisation', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getDataMinimisation));
 router.put('/data-minimisation', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.updateDataMinimisation));
 router.get('/config', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getConfig));
@@ -46,6 +50,20 @@ router.post('/daily-notes/generate', requireRole(UserRole.ORG_ADMIN, UserRole.MA
 // sends personName instead of personId and natural-language shift words, so it
 // reuses generateDailyNote after resolving those fields itself.
 router.post('/voice/notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.handleVoiceNoteViaGateway));
+// TTS for Mica's spoken replies: same roles as the voice-note flow it answers.
+// The request is a small JSON body; the *response* is raw MP3 audio bytes.
+router.post('/tts', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiTtsSchema), asyncHandler(AIController.textToSpeech));
+// Mica's platform-wide read-only question answering. Roles mirror the care-note
+// flow: everyone who can use Mica's voice can also ask it questions.
+router.post('/mica/ask', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMicaAskSchema), asyncHandler(AIController.micaAsk));
+// Intent classifier for ambiguous write imperatives the client's regex
+// heuristic misses ("book podiatry"). Same roles as ask; failure is bounded.
+router.post('/mica/settle', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMicaIntentSchema), asyncHandler(AIController.micaSettle));
+// Mica write-action gateway: prepare a DRAFT (task or appointment) with
+// clarification rounds, then confirm the user-approved draft to persist.
+// Two endpoints, one contract — nothing is written by the prepare call.
+router.post('/mica/actions', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMicaActionSchema), asyncHandler(AIController.micaAction));
+router.post('/mica/actions/confirm', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMicaActionConfirmSchema), asyncHandler(AIController.micaActionConfirm));
 router.post('/daily-notes/approve', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiDailyNoteApproveSchema), asyncHandler(AIController.approveDailyNote));
 router.post('/daily-notes/:noteId/analyze', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.analyzeExistingNote));
 router.get('/audit-logs', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.auditLogs));

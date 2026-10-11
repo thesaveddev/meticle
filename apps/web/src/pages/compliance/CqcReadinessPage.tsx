@@ -6,6 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import { X as DX } from '../../styles/export-tokens'
 
 type Html2Pdf = typeof import('html2pdf.js').default
 let html2pdfLoader: Promise<Html2Pdf> | undefined
@@ -130,24 +131,24 @@ export default function CqcReadinessPage() {
     const chartRows = data.domains.map((d: any) => {
       const r = getRating(d.score, data?.framework?.ratings)
       const c = scoreColor(d.score, r)
-      return `<tr><td style="padding:4px 8px;font-size:13px;font-weight:600">${d.label}</td><td style="padding:4px 8px"><div style="width:100%;background:#E6EAF0;height:10px;border-radius:5px"><div style="width:${d.score}%;height:10px;background:${c};border-radius:5px"></div></div></td><td style="padding:4px 8px;text-align:right;font-size:13px;font-weight:700;color:${c}">${d.score}%</td></tr>`
+      return `<tr><td style="padding:4px 8px;font-size:13px;font-weight:${DX.strong}">${d.label}</td><td style="padding:4px 8px"><div style="width:100%;background:${DX.line};height:10px;border-radius:5px"><div style="width:${d.score}%;height:10px;background:${c};border-radius:5px"></div></div></td><td style="padding:4px 8px;text-align:right;font-size:13px;font-weight:${DX.strong};color:${c}">${d.score}%</td></tr>`
     }).join('')
     const gapsRows = (aiResult.critical_gaps || []).map((g: any) => {
-      const priColor = g.priority === 'critical' || g.priority === 'high' ? '#EF4444' : g.priority === 'medium' ? '#F59E0B' : '#667085'
-      const priBg = g.priority === 'critical' || g.priority === 'high' ? '#FEF0F0' : g.priority === 'medium' ? '#FFF7E6' : '#F9FAFB'
-      return `<div style="padding:8px 12px;margin:6px 0;border:1px solid ${priColor};border-radius:6px;background:${priBg}"><strong>${g.area}</strong> <span style="float:right;font-size:11px;font-weight:700;text-transform:uppercase">${g.priority}</span><br><span style="color:#667085;font-size:12px">Statement: ${g.statement || '-'}</span><br><span style="color:#667085;font-size:12px">Current: ${g.current_state || '-'}</span><br>→ ${g.recommended_action || ''}</div>`
+      const priFg = g.priority === 'critical' || g.priority === 'high' ? DX.badFg : g.priority === 'medium' ? DX.warnFg : DX.muted
+      const priBg = g.priority === 'critical' || g.priority === 'high' ? DX.badBg : g.priority === 'medium' ? DX.warnBg : DX.panelBg
+      return `<div style="padding:8px 12px;margin:6px 0;border:1px solid ${priFg};border-radius:6px;background:${priBg}"><strong>${g.area}</strong> <span style="float:right;font-size:11px;font-weight:${DX.strong}">${g.priority}</span><br><span style="color:${DX.secondary};font-size:12px">Statement: ${g.statement || '-'}</span><br><span style="color:${DX.secondary};font-size:12px">Current: ${g.current_state || '-'}</span><br>→ ${g.recommended_action || ''}</div>`
     }).join('')
-    const quickWinsRows = (aiResult.quick_wins || []).map((w: string) => `<div style="padding:8px 12px;margin:4px 0;background:#EAFBF5;border:1px solid #EAFBF5;border-radius:4px;font-size:13px">✓ ${w}</div>`).join('')
+    const quickWinsRows = (aiResult.quick_wins || []).map((w: string) => `<div style="padding:8px 12px;margin:4px 0;background:${DX.okBg};border:1px solid ${DX.okBg};border-radius:4px;font-size:13px">✓ ${w}</div>`).join('')
     const frameworkName = data.framework?.name || 'CQC'
     return `
-<h1 style="color:#8B7CF6;font-size:22px;border-bottom:2px solid #8B7CF6;padding-bottom:6px">AI Compliance Gap Analysis</h1>
-<p style="font-size:13px;color:#667085">Regulator: ${frameworkName} &bull; Generated ${new Date().toLocaleString()}</p>
-<h2 style="color:#2F80ED;font-size:16px;margin-top:20px">Domain Scores</h2>
+<h1 style="color:${DX.accent};font-size:22px;border-bottom:2px solid ${DX.accent};padding-bottom:6px;font-weight:${DX.strong}">AI Compliance Gap Analysis</h1>
+<p style="font-size:13px;color:${DX.secondary}">Regulator: ${frameworkName} &bull; Generated ${new Date().toLocaleString()}</p>
+<h2 style="color:${DX.brand};font-size:16px;margin-top:20px;font-weight:${DX.strong}">Domain Scores</h2>
 <table style="width:100%;border-collapse:collapse">${chartRows}</table>
-${aiResult.overall_assessment ? `<h2 style="color:#2F80ED;font-size:16px;margin-top:20px">Overall Assessment</h2><div style="background:#F4F8FF;padding:12px;border-radius:8px;margin:12px 0;border:1px solid #F4F8FF">${aiResult.overall_assessment}</div>` : ''}
-${gapsRows ? `<h2 style="color:#2F80ED;font-size:16px;margin-top:20px">Critical Gaps (${aiResult.critical_gaps.length})</h2>${gapsRows}` : ''}
-${quickWinsRows ? `<h2 style="color:#2F80ED;font-size:16px;margin-top:20px">Quick Wins</h2>${quickWinsRows}` : ''}
-${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;background:#F8FAFC;border:1px solid #F4F8FF;border-radius:6px;font-style:italic;font-size:13px;color:#667085">⏱ Estimated timeline: ${aiResult.estimated_timeline}</div>` : ''}
+${aiResult.overall_assessment ? `<h2 style="color:${DX.brand};font-size:16px;margin-top:20px;font-weight:${DX.strong}">Overall Assessment</h2><div style="background:${DX.accentSoft};padding:12px;border-radius:8px;margin:12px 0;border:1px solid ${DX.accentSoft}">${aiResult.overall_assessment}</div>` : ''}
+${gapsRows ? `<h2 style="color:${DX.brand};font-size:16px;margin-top:20px;font-weight:${DX.strong}">Critical Gaps (${aiResult.critical_gaps.length})</h2>${gapsRows}` : ''}
+${quickWinsRows ? `<h2 style="color:${DX.brand};font-size:16px;margin-top:20px;font-weight:${DX.strong}">Quick Wins</h2>${quickWinsRows}` : ''}
+${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;background:${DX.panelBg};border:1px solid ${DX.accentSoft};border-radius:6px;font-style:italic;font-size:13px;color:${DX.secondary}">⏱ Estimated timeline: ${aiResult.estimated_timeline}</div>` : ''}
 `
   }
 
@@ -157,9 +158,9 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
     return `<!DOCTYPE html>
 <html><head><title>AI Compliance Gap Analysis - Meticle Care</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 24px; color: #17202A; max-width: 800px; margin: 0 auto; }
+  body { font-family: ${DX.font}; padding: 24px; color: ${DX.ink}; max-width: 800px; margin: 0 auto; }
   @media print { body { padding: 16px; } }
-</style></head><body>${content}<div class="footer" style="margin-top:24px;padding-top:12px;border-top:1px solid #D8DEE7;font-size:11px;color:#98A2B3">Meticle Care AI Analysis &bull; ${new Date().toLocaleString()}</div></body></html>`
+</style></head><body>${content}<div class="footer" style="margin-top:24px;padding-top:12px;border-top:1px solid ${DX.line};font-size:11px;color:${DX.muted}">Meticle Care AI Analysis &bull; ${new Date().toLocaleString()}</div></body></html>`
   }
 
   const handleDownloadAiPDF = () => {
@@ -296,25 +297,25 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
     const emotionStyles = collectEmotionStyles()
     return `<!DOCTYPE html><html><head><title>Meticle Care ${frameworkLabel} Readiness Report</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #17202A; }
-        h1 { color: #2F80ED; border-bottom: 2px solid #2F80ED; padding-bottom: 8px; }
-        h2 { color: #2F80ED; margin-top: 32px; }
-        h3 { color: #2F80ED; margin-top: 24px; }
+        body { font-family: ${DX.font}; padding: 40px; color: ${DX.ink}; }
+        h1 { color: ${DX.brand}; border-bottom: 2px solid ${DX.brand}; padding-bottom: 8px; font-weight: ${DX.strong}; }
+        h2 { color: ${DX.brand}; margin-top: 32px; font-weight: ${DX.strong}; }
+        h3 { color: ${DX.brand}; margin-top: 24px; font-weight: ${DX.strong}; }
         table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        th, td { border: 1px solid #D8DEE7; padding: 8px 12px; text-align: left; font-size: 13px; }
-        th { background: #F7F9FC; font-weight: 700; }
-        .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #D8DEE7; font-size: 12px; color: #667085; }
+        th, td { border: 1px solid ${DX.line}; padding: 8px 12px; text-align: left; font-size: 13px; }
+        th { background: ${DX.panelBg}; font-weight: ${DX.strong}; }
+        .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: ${DX.strong}; }
+        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid ${DX.line}; font-size: 12px; color: ${DX.secondary}; }
         .gauge { text-align: center; padding: 40px; }
-        .gauge-score { font-size: 48px; font-weight: 700; }
-        .metric-card { text-align: center; padding: 16px; border: 1px solid #D8DEE7; border-radius: 8px; }
-        .action-item { padding: 8px 12px; margin: 4px 0; border: 1px solid #FEF0F0; border-radius: 6px; background: #FEF0F0; }
-        .action-item.medium { border-color: #FFF7E6; background: #FFF7E6; }
-        .action-item.low { border-color: #D8DEE7; background: #F9FAFB; }
-        .priority-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .priority-high { background: #FEF0F0; color: #B42318; }
-        .priority-medium { background: #FFF7E6; color: #9A6700; }
-        .priority-low { background: #F7F9FC; color: #344054; }
+        .gauge-score { font-size: 48px; font-weight: ${DX.strong}; }
+        .metric-card { text-align: center; padding: 16px; border: 1px solid ${DX.line}; border-radius: 8px; }
+        .action-item { padding: 8px 12px; margin: 4px 0; border: 1px solid ${DX.badBg}; border-radius: 6px; background: ${DX.badBg}; }
+        .action-item.medium { border-color: ${DX.warnBg}; background: ${DX.warnBg}; }
+        .action-item.low { border-color: ${DX.line}; background: ${DX.panelBg}; }
+        .priority-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: ${DX.strong}; }
+        .priority-high { background: ${DX.badBg}; color: ${DX.badFg}; }
+        .priority-medium { background: ${DX.warnBg}; color: ${DX.warnFg}; }
+        .priority-low { background: ${DX.panelBg}; color: ${DX.neutralFg}; }
         @media print { body { padding: 20px; } .no-print { display: none; } }
       </style>
       <style>${emotionStyles}</style>
@@ -372,7 +373,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
           <Typography variant="h4">Readiness</Typography>
           {data?.framework && (
             <>
-              <Chip label={fs.label} size="small" sx={{ bgcolor: fs.color, color: '#FFFFFF', fontWeight: 700 }} />
+              <Chip label={fs.label} size="small" sx={{ bgcolor: fs.color, color: '#FFFFFF', fontWeight: 600 }} />
               <Chip label={data.framework.country} size="small" variant="outlined" />
             </>
           )}
@@ -413,18 +414,18 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 sx={{ color: overallColor }}
               />
               <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="h3" fontWeight={700} sx={{ color: overallColor }}>
+                <Typography variant="h3" fontWeight={600} sx={{ color: overallColor }}>
                   {data.overall}%
                 </Typography>
               </Box>
             </Box>
             {canShowOverallRating ? (
-              <Typography variant="body1" fontWeight={700} sx={{ color: overallColor, mt: 2, fontSize: '1.1rem' }}>
+              <Typography variant="body1" fontWeight={600} sx={{ color: overallColor, mt: 2, fontSize: '1.1rem' }}>
                 {rating!.label}
               </Typography>
             ) : (
               <Stack spacing={0.5} sx={{ mt: 2, alignItems: 'center', maxWidth: 620 }}>
-                <Typography variant="body2" fontWeight={700}>
+                <Typography variant="body2" fontWeight={600}>
                   {data.framework?.ratings
                     ? 'Rated per theme, not overall'
                     : 'This regulator publishes no numeric rating'}
@@ -468,7 +469,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   bgcolor: a.priority === 'high' ? '#FEF0F0' : a.priority === 'medium' ? '#FFF7E6' : '#F2F4F7'
                 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={700}>{a.action}</Typography>
+                    <Typography variant="subtitle2" fontWeight={600}>{a.action}</Typography>
                     <Chip label={a.priority === 'high' ? 'High Priority' : a.priority === 'medium' ? 'Medium' : 'Low'} size="small"
                       color={a.priority === 'high' ? 'error' : a.priority === 'medium' ? 'warning' : 'default'} />
                   </Stack>
@@ -507,7 +508,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="subtitle2" fontWeight={700}>{g.area}</Typography>
+                        <Typography variant="subtitle2" fontWeight={600}>{g.area}</Typography>
                         <Chip label={g.priority} size="small" color={g.priority === 'HIGH' ? 'error' : g.priority === 'MEDIUM' ? 'warning' : 'default'} />
                       </Stack>
                       <Chip icon={<EffortIcon />} label={g.effort} size="small" variant="outlined" sx={{ fontSize: 11 }} />
@@ -606,7 +607,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
             <Stack spacing={2}>
               {/* Domain Score Bar Chart */}
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>Domain Score Breakdown</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>Domain Score Breakdown</Typography>
                 {data.domains.map((domain: any) => {
                   const dr = getRating(domain.score, data?.framework?.ratings)
                   const drColor = scoreColor(domain.score, dr)
@@ -622,7 +623,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                           transition: 'width 1s ease-out'
                         }} />
                       </Box>
-                      <Typography variant="caption" fontWeight={700} sx={{ minWidth: 36, textAlign: 'right', fontSize: 12, color: drColor }}>
+                      <Typography variant="caption" fontWeight={600} sx={{ minWidth: 36, textAlign: 'right', fontSize: 12, color: drColor }}>
                         {Math.round(domain.score)}%
                       </Typography>
                     </Stack>
@@ -636,13 +637,13 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
 
               {aiResult.overall_assessment && (
                 <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Overall Assessment</Typography>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Overall Assessment</Typography>
                   <Typography variant="body2" color="text.secondary">{aiResult.overall_assessment}</Typography>
                 </Paper>
               )}
               {aiResult.critical_gaps && aiResult.critical_gaps.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" fontWeight={700}>Critical Gaps</Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>Critical Gaps</Typography>
                   <Stack spacing={1}>
                     {aiResult.critical_gaps.map((item: any, i: number) => (
                       <Box key={i} sx={{
@@ -665,7 +666,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
               )}
               {aiResult.quick_wins && aiResult.quick_wins.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" fontWeight={700}>Quick Wins</Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>Quick Wins</Typography>
                   <Stack spacing={1}>
                     {aiResult.quick_wins.map((item: string, i: number) => (
                       <Box key={i} sx={{ p: 1.5, borderRadius: 1, bgcolor: 'notice.success.bg', border: '1px solid #EAFBF5' }}>
@@ -742,25 +743,25 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight={700}>{data.metrics.total_staff}</Typography>
+              <Typography variant="h5" fontWeight={600}>{data.metrics.total_staff}</Typography>
               <Typography variant="caption" color="text.secondary">Active Staff</Typography>
             </Paper>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight={700} color={data.metrics.training_completion_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.training_completion_rate}%</Typography>
+              <Typography variant="h5" fontWeight={600} color={data.metrics.training_completion_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.training_completion_rate}%</Typography>
               <Typography variant="caption" color="text.secondary">Training Completion</Typography>
             </Paper>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight={700} color={data.metrics.document_compliance_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.document_compliance_rate}%</Typography>
+              <Typography variant="h5" fontWeight={600} color={data.metrics.document_compliance_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.document_compliance_rate}%</Typography>
               <Typography variant="caption" color="text.secondary">Document Compliance</Typography>
             </Paper>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight={700} color={data.metrics.competency_pass_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.competency_pass_rate}%</Typography>
+              <Typography variant="h5" fontWeight={600} color={data.metrics.competency_pass_rate >= 80 ? '#087A55' : '#B42318'}>{data.metrics.competency_pass_rate}%</Typography>
               <Typography variant="caption" color="text.secondary">Competency Pass Rate</Typography>
             </Paper>
           </Grid>
@@ -802,7 +803,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
               >
                 <Box sx={{ flex: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography fontWeight={700}>{domain.label}</Typography>
+                    <Typography fontWeight={600}>{domain.label}</Typography>
                     <Chip label={domain.score + '%'} size="small" sx={{ bgcolor: domainColor, color: '#FFFFFF', fontWeight: 600 }} />
                     {domainRating && (
                       <Chip label={domainRating.label} size="small" variant="outlined" sx={{ borderColor: domainColor, color: domainColor, fontWeight: 600 }} />

@@ -154,8 +154,8 @@ export default function PayrollExportPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: 1.2 }}>Payroll workspace</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>My pay & timesheets</Typography>
+          <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 1.2 }}>Payroll workspace</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>My pay & timesheets</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Pay is added automatically when you clock in and out of a call — no approval needed. Download a payslip for any completed period.</Typography>
         </Box>
       </Stack>
@@ -167,8 +167,8 @@ export default function PayrollExportPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: 1.2 }}>Payroll workspace</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Timesheets & payroll</Typography>
+          <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 1.2 }}>Payroll workspace</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Timesheets & payroll</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Pay is added automatically when a carer clocks in and out of a call — no approval needed. Export provider-ready payroll inputs and reconcile what payroll actually pays.</Typography>
         </Box>
         <AppButton variant="primary" startIcon={<DownloadIcon />} onClick={exportPayroll} disabled={!from || !to || from > to || approved.length === 0}>
@@ -220,7 +220,7 @@ export default function PayrollExportPage() {
                 {(payView === 'carer' && !selectedCarer
                   ? ['Carer', 'Calls', 'Hours', 'Travel', 'Mileage', 'Pay']
                   : [...(payView === 'carer' ? [] : ['Carer']), 'Client', 'Date', 'Hours', 'Travel', 'Pay', 'Status']
-                ).map(label => <TableCell key={label} sx={{ fontWeight: 700 }}>{label}</TableCell>)}
+                ).map(label => <TableCell key={label} sx={{ fontWeight: 600 }}>{label}</TableCell>)}
               </TableRow></TableHead>
               <TableBody>
                 {payView === 'carer' && !selectedCarer ? (
@@ -256,11 +256,11 @@ export default function PayrollExportPage() {
       ) : (
         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
           <Table size="small" aria-label="Timesheet rate audit">
-            <TableHead><TableRow>{['Carer / client', 'Date', 'Hourly rate source', 'Mileage source', 'Travel policy', 'Gross pay', 'Audit'].map(label => <TableCell key={label} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+            <TableHead><TableRow>{['Carer / client', 'Date', 'Hourly rate source', 'Mileage source', 'Travel policy', 'Gross pay', 'Audit'].map(label => <TableCell key={label} sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
             <TableBody>
               {!approvedAuditRows.length ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No paid calls in this date range.</Typography></TableCell></TableRow> : approvedAuditRows.map((row: any) => (
                 <TableRow key={row.id} hover>
-                  <TableCell><Typography variant="body2" fontWeight={700}>{String(row.staff_name || 'Unassigned')}</Typography><Typography variant="caption" color="text.secondary">{String(row.person_name || '—')}</Typography></TableCell>
+                  <TableCell><Typography variant="body2" fontWeight={600}>{String(row.staff_name || 'Unassigned')}</Typography><Typography variant="caption" color="text.secondary">{String(row.person_name || '—')}</Typography></TableCell>
                   <TableCell>{dateOnly(row.scheduled_start)}</TableCell>
                   <TableCell><Typography variant="body2">{rateLabel(row, 'hourly_rate_source_label', 'hourly_rate_source')}</Typography><Typography variant="caption" color="text.secondary">{rate(row.hourly_rate_pence, 'hour')}</Typography></TableCell>
                   <TableCell><Typography variant="body2">{rateLabel(row, 'mileage_rate_source_label', 'mileage_rate_source')}</Typography><Typography variant="caption" color="text.secondary">{rate(row.mileage_rate_pence, 'mile')}</Typography></TableCell>
@@ -279,7 +279,7 @@ export default function PayrollExportPage() {
 
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={1.5} sx={{ mt: 5, mb: 1.5 }}>
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Export & reconciliation</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Export & reconciliation</Typography>
           <Typography variant="body2" color="text.secondary">Track what was exported, confirm payroll import, then match each provider amount to the approved timesheet.</Typography>
         </Box>
         <TextField select size="small" label="Payroll export" value={selectedExportId} onChange={e => setSelectedExportId(e.target.value)} sx={{ minWidth: { xs: '100%', md: 340 } }}>
@@ -287,7 +287,7 @@ export default function PayrollExportPage() {
         </TextField>
       </Stack>
 
-      {!payrollExports.length ? <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}><Typography fontWeight={700}>No payroll exports yet</Typography><Typography variant="body2" color="text.secondary">Once calls are clocked out and paid, create an export above. Each exported timesheet will appear here for acknowledgement and reconciliation.</Typography></Paper> : <>
+      {!payrollExports.length ? <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}><Typography fontWeight={600}>No payroll exports yet</Typography><Typography variant="body2" color="text.secondary">Once calls are clocked out and paid, create an export above. Each exported timesheet will appear here for acknowledgement and reconciliation.</Typography></Paper> : <>
         {(() => {
           const selected = payrollExports.find((item: any) => item.id === selectedExportId)
           if (!selected) return null
@@ -303,7 +303,7 @@ export default function PayrollExportPage() {
         })()}
         {reconciliationLoading ? <Box sx={{ py: 5, textAlign: 'center' }}><Typography color="text.secondary">Loading reconciliation rows…</Typography></Box> : <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small">
-            <TableHead><TableRow>{['Carer', 'Client / call', 'Date', 'Exported', 'Payroll amount', 'Variance', 'Stage', 'Action'].map(label => <TableCell key={label} sx={{ fontWeight: 700 }}>{label}</TableCell>)}</TableRow></TableHead>
+            <TableHead><TableRow>{['Carer', 'Client / call', 'Date', 'Exported', 'Payroll amount', 'Variance', 'Stage', 'Action'].map(label => <TableCell key={label} sx={{ fontWeight: 600 }}>{label}</TableCell>)}</TableRow></TableHead>
             <TableBody>
               {!reconciliationRows.length ? <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5 }}><Typography color="text.secondary">This export has no rows to reconcile.</Typography></TableCell></TableRow> : reconciliationRows.map((row: any) => {
                 const isVariance = row.reconciled_gross_pay_pence != null && Number(row.reconciled_gross_pay_pence) !== Number(row.exported_gross_pay_pence)
@@ -353,7 +353,7 @@ function PayEntryDialog({ row, onClose }: { row: any; onClose: () => void }) {
     <DialogTitle>Call &amp; pay entry</DialogTitle>
     <DialogContent>
       {row && <Stack spacing={0.5} sx={{ pt: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{row.label || row.visit_type || 'Care call'}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{row.label || row.visit_type || 'Care call'}</Typography>
         <Alert severity="info" sx={{ mb: 1 }}>Pay is added automatically when the carer clocks in and out of this call — no approval needed.</Alert>
         {line('Client', row.person_name || '—')}
         {line('Carer', row.staff_name || 'Unassigned')}
@@ -376,5 +376,5 @@ function PayEntryDialog({ row, onClose }: { row: any; onClose: () => void }) {
 }
 
 function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
-  return <Paper elevation={0} sx={{ p: 2, flex: 1, minWidth: 150, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}><Stack direction="row" spacing={1.25} alignItems="center"><Box color="primary.main">{icon}</Box><Box><Typography variant="h6" sx={{ fontWeight: 800 }}>{value}</Typography><Typography variant="caption" color="text.secondary">{label}</Typography></Box></Stack></Paper>
+  return <Paper elevation={0} sx={{ p: 2, flex: 1, minWidth: 150, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}><Stack direction="row" spacing={1.25} alignItems="center"><Box color="primary.main">{icon}</Box><Box><Typography variant="h6" sx={{ fontWeight: 600 }}>{value}</Typography><Typography variant="caption" color="text.secondary">{label}</Typography></Box></Stack></Paper>
 }

@@ -156,7 +156,7 @@ export default function PersonDirectoryPage() {
             </>
           )}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
-            sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+            sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
             {inlineForm ? 'Close' : 'Add client'}
           </Button>
         </Stack>
@@ -229,7 +229,7 @@ export default function PersonDirectoryPage() {
               <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id}
                 onClick={(e) => { e.preventDefault(); handleCreate(e as any) }}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
                 {createMutation.isPending ? 'Adding...' : 'Add client'}
               </Button>
             </Stack>
@@ -304,7 +304,7 @@ export default function PersonDirectoryPage() {
                     <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <PersonAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
-                          sx={{ width: 36, height: 36, bgcolor: 'text.primary', fontSize: 14 }} />
+                          sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14 }} />
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                           {u.first_name} {u.last_name}
                         </Typography>
@@ -390,7 +390,7 @@ export default function PersonDirectoryPage() {
           <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+              sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
               {createMutation.isPending ? 'Creating...' : 'Create Person'}
             </Button>
           </DialogActions>
@@ -410,7 +410,7 @@ export default function PersonDirectoryPage() {
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button onClick={() => setBulkOpen(null)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" onClick={() => bulkStatusMutation.mutate({ ids: Array.from(selected), status: bulkStatus })}
-            disabled={bulkStatusMutation.isPending} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+            disabled={bulkStatusMutation.isPending} sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
             {bulkStatusMutation.isPending ? 'Updating...' : 'Apply'}
           </Button>
         </DialogActions>

@@ -23,7 +23,7 @@ function HealthEntryViewDialog({ open, onClose, title, chips, rows }: {
 }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+      <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
         {title}
         <Box sx={{ flex: 1 }} />
         <IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton>
@@ -78,8 +78,8 @@ function ObservationsSection({ personId }: { personId: string }) {
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Chip label={o.category} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700, textTransform: 'capitalize' }} />
-                  <Chip label={o.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[o.severity] || '#10B981'}20`, color: SEVERITY_COLORS[o.severity] || '#10B981', fontWeight: 700 }} />
+                  <Chip label={o.category} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 600, textTransform: 'capitalize' }} />
+                  <Chip label={o.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[o.severity] || '#10B981'}20`, color: SEVERITY_COLORS[o.severity] || '#10B981', fontWeight: 600 }} />
                   <Typography variant="caption" color="#667085">{new Date(o.observation_date).toLocaleDateString('en-GB')}</Typography>
                   {o.recorded_by_name && <Typography variant="caption" color="#98A2B3">by {o.recorded_by_name}</Typography>}
                 </Stack>
@@ -95,7 +95,7 @@ function ObservationsSection({ personId }: { personId: string }) {
       )}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editId) updMut.mutate({ id: editId, d: form }); else addMut.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Observation' : 'Add Observation'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Observation' : 'Add Observation'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.observation_date} onChange={e => setForm(f => ({ ...f, observation_date: e.target.value }))} />
@@ -131,8 +131,8 @@ function ObservationsSection({ personId }: { personId: string }) {
         title="Health Observation"
         chips={viewEntry ? (
           <>
-            <Chip label={viewEntry.category} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700, textTransform: 'capitalize' }} />
-            <Chip label={viewEntry.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[viewEntry.severity] || '#10B981'}20`, color: SEVERITY_COLORS[viewEntry.severity] || '#10B981', fontWeight: 700 }} />
+            <Chip label={viewEntry.category} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 600, textTransform: 'capitalize' }} />
+            <Chip label={viewEntry.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[viewEntry.severity] || '#10B981'}20`, color: SEVERITY_COLORS[viewEntry.severity] || '#10B981', fontWeight: 600 }} />
             <Chip label={new Date(viewEntry.observation_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
           </>
         ) : undefined}
@@ -173,7 +173,7 @@ function BowelSection({ personId }: { personId: string }) {
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
           <Table size="small">
-            <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Date/Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Consistency</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
+            <TableHead><TableRow><TableCell sx={{ fontWeight: 600 }}>Date/Time</TableCell><TableCell sx={{ fontWeight: 600 }}>Type</TableCell><TableCell sx={{ fontWeight: 600 }}>Consistency</TableCell><TableCell sx={{ fontWeight: 600 }}>Notes</TableCell><TableCell sx={{ fontWeight: 600 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
               {data.map((b: any) => (
                 <TableRow key={b.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewEntry(b)}>
@@ -200,7 +200,7 @@ function BowelSection({ personId }: { personId: string }) {
       )}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editId) updMut.mutate({ id: editId, d: form }); else addMut.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Bowel Movement' : 'Record Bowel Movement'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Bowel Movement' : 'Record Bowel Movement'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.recorded_date} onChange={e => setForm(f => ({ ...f, recorded_date: e.target.value }))} />
@@ -292,7 +292,7 @@ function DentalSection({ personId }: { personId: string }) {
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
-                  <Typography variant="subtitle2" fontWeight={700}>{r.dentist_name || 'Dental Checkup'}</Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>{r.dentist_name || 'Dental Checkup'}</Typography>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
                     <Chip label={new Date(r.checkup_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
                     {r.next_checkup_date && <Chip label={`Next: ${new Date(r.next_checkup_date).toLocaleDateString('en-GB')}`} size="small" color={new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? 'warning' : 'default'} variant="outlined" />}
@@ -311,7 +311,7 @@ function DentalSection({ personId }: { personId: string }) {
       )}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editId) updMut.mutate({ id: editId, d: form }); else addMut.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Dental Record' : 'Add Dental Record'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Dental Record' : 'Add Dental Record'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Checkup Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.checkup_date} onChange={e => setForm(f => ({ ...f, checkup_date: e.target.value }))} />
@@ -392,7 +392,7 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
       />
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', bgcolor: 'notice.info.bg' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" fontWeight={700}>Daily Total: <strong style={{ fontSize: '1.1rem', color: 'notice.info.fg' }}>{totalMl} ml</strong></Typography>
+          <Typography variant="body2" fontWeight={600}>Daily Total: <strong style={{ fontSize: '1.1rem', color: 'notice.info.fg' }}>{totalMl} ml</strong></Typography>
           <Box sx={{ width: 200, bgcolor: '#E6EAF0', borderRadius: 1, height: 8, overflow: 'hidden' }}>
             <Box sx={{ width: `${Math.min((totalMl / (fluidTarget || 2000)) * 100, 100)}%`, bgcolor: totalMl >= (fluidTarget || 2000) * 0.75 ? '#10B981' : totalMl >= (fluidTarget || 2000) * 0.5 ? '#F59E0B' : '#EF4444', height: 8, borderRadius: 1, transition: 'width 0.3s' }} />
           </Box>
@@ -422,13 +422,13 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
           <Table size="small">
-            <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Amount</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
+            <TableHead><TableRow><TableCell sx={{ fontWeight: 600 }}>Time</TableCell><TableCell sx={{ fontWeight: 600 }}>Type</TableCell><TableCell sx={{ fontWeight: 600 }}>Amount</TableCell><TableCell sx={{ fontWeight: 600 }}>Notes</TableCell><TableCell sx={{ fontWeight: 600 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
               {data.map((f: any) => (
                 <TableRow key={f.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewEntry(f)}>
                   <TableCell>{f.recorded_time ? f.recorded_time.slice(0, 5) : '-'}</TableCell>
                   <TableCell><Chip label={f.fluid_type} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED' }} /></TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>{f.amount_ml} ml</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{f.amount_ml} ml</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{f.notes || '-'}</Typography></TableCell>
                   <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: f.recorded_date?.split('T')[0] || f.recorded_date, recorded_time: f.recorded_time || '', amount_ml: f.amount_ml, fluid_type: f.fluid_type, notes: f.notes || '' }); setEditId(f.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
@@ -442,7 +442,7 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
       )}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editId) updMut.mutate({ id: editId, d: form }); else addMut.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Fluid Intake' : 'Add Fluid Intake'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Fluid Intake' : 'Add Fluid Intake'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.recorded_date} onChange={e => setForm(f => ({ ...f, recorded_date: e.target.value }))} />
@@ -502,7 +502,7 @@ export default function HealthTab({ personId, fluidTarget }: HealthSectionProps)
   return (
     <Box>
       <Stack direction="row" alignItems="flex-start" spacing={2}>
-        <Tabs orientation="vertical" value={innerTab} onChange={(_, v) => setInnerTab(v)} sx={{ borderRight: 1, borderColor: '#E6EAF0', minWidth: { xs: 132, sm: 170 }, flexShrink: 0, '& .MuiTabs-flexContainer': { gap: 0.5 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 42, alignItems: 'flex-start', textAlign: 'left', px: 1.5, borderRadius: 1.5, '&.Mui-selected': { bgcolor: 'notice.muted.bg', color: '#2F80ED' } }, '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 2, bgcolor: '#2F80ED' } }}>
+        <Tabs orientation="vertical" value={innerTab} onChange={(_, v) => setInnerTab(v)} sx={{ borderRight: 1, borderColor: '#E6EAF0', minWidth: { xs: 132, sm: 170 }, flexShrink: 0, '& .MuiTabs-flexContainer': { gap: 0.5 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 42, alignItems: 'flex-start', textAlign: 'left', px: 1.5, borderRadius: 1.5, '&.Mui-selected': { bgcolor: 'notice.muted.bg', color: '#2F80ED' } }, '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 2, bgcolor: '#2F80ED' } }}>
           {HEALTH_TABS.map((t) => <Tab key={t.label} label={t.label} />)}
         </Tabs>
         <Box sx={{ minWidth: 0, flex: 1 }}><Active personId={personId} fluidTarget={fluidTarget} /></Box>

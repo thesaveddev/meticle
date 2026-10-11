@@ -117,7 +117,7 @@ export default function InsightsPage() {
     <PageContainer>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>Insights</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>Insights</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => navigate('/intelligence')} sx={{ color: '#2F80ED', borderColor: '#D8DEE7' }}>
             Open Intelligence
@@ -143,7 +143,7 @@ export default function InsightsPage() {
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ color: item.color }}>{item.icon}</Box>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{item.value}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{item.value}</Typography>
                   <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{item.label}</Typography>
                 </Box>
               </Stack>
@@ -156,7 +156,7 @@ export default function InsightsPage() {
         {/* Staffing */}
         <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Staff by Role</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Staff by Role</Typography>
             {staffingByRole.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No staff data</Typography>
             ) : (
@@ -164,15 +164,15 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Count</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Count</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {staffingByRole.map((r) => (
                       <TableRow key={r.role}>
                         <TableCell>{roleLabels[r.role] || r.role}</TableCell>
-                        <TableCell align="right"><Chip label={r.count} size="small" sx={{ fontWeight: 700 }} /></TableCell>
+                        <TableCell align="right"><Chip label={r.count} size="small" sx={{ fontWeight: 600 }} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -180,7 +180,7 @@ export default function InsightsPage() {
               </TableContainer>
             )}
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Staff by Location</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Staff by Location</Typography>
             {staffingByLocation.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No locations</Typography>
             ) : (
@@ -188,8 +188,8 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Staff</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Staff</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -209,12 +209,12 @@ export default function InsightsPage() {
         {/* Compliance */}
         <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Compliance</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Compliance</Typography>
             <Stack spacing={2}>
               <Box>
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                   <Typography variant="body2" fontWeight={600}>Overall Rate</Typography>
-                  <Typography variant="body2" fontWeight={700} color={(complianceOverall?.rate ?? 0) >= complianceThreshold ? '#10B981' : '#EF4444'}>
+                  <Typography variant="body2" fontWeight={600} color={(complianceOverall?.rate ?? 0) >= complianceThreshold ? '#10B981' : '#EF4444'}>
                     {complianceOverall?.rate ?? 0}%
                   </Typography>
                 </Stack>
@@ -226,12 +226,12 @@ export default function InsightsPage() {
               </Box>
               <Typography variant="caption" color="#667085">
                 {complianceOverall?.completed ?? 0} / {complianceOverall?.total_records ?? 0} records complete
-                &nbsp;| {staffBelowThreshold > 0 && <span style={{ color: '#EF4444', fontWeight: 700 }}>{staffBelowThreshold} staff below {complianceThreshold}% threshold</span>}
+                &nbsp;| {staffBelowThreshold > 0 && <span style={{ color: '#EF4444', fontWeight: 600 }}>{staffBelowThreshold} staff below {complianceThreshold}% threshold</span>}
               </Typography>
             </Stack>
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>By Category</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>By Category</Typography>
             {complianceByCategory.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No compliance data</Typography>
             ) : (
@@ -239,8 +239,8 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Rate</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Rate</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -249,7 +249,7 @@ export default function InsightsPage() {
                         <TableCell sx={{ textTransform: 'capitalize' }}>{c.category.replace(/_/g, ' ')}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-                            <Typography variant="body2" fontWeight={700}>
+                            <Typography variant="body2" fontWeight={600}>
                               {c.total > 0 ? Math.round((c.completed / c.total) * 100) : 0}%
                             </Typography>
                             <LinearProgress
@@ -267,7 +267,7 @@ export default function InsightsPage() {
             )}
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Expiring Documents</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Expiring Documents</Typography>
             {expiring ? (
               <Stack direction="row" spacing={2}>
                 {[
@@ -287,7 +287,7 @@ export default function InsightsPage() {
         {/* Leave */}
         <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Leave by Type (This Year)</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Leave by Type (This Year)</Typography>
             {leaveByType.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No leave data</Typography>
             ) : (
@@ -295,10 +295,10 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Hours</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Approved</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Pending</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Hours</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Approved</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Pending</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -312,10 +312,10 @@ export default function InsightsPage() {
                         </TableCell>
                         <TableCell align="right">{lt.total_hours}h</TableCell>
                         <TableCell align="right">
-                          <Chip label={lt.approved} size="small" sx={{ bgcolor: '#10B98115', color: '#10B981', fontWeight: 700 }} />
+                          <Chip label={lt.approved} size="small" sx={{ bgcolor: '#10B98115', color: '#10B981', fontWeight: 600 }} />
                         </TableCell>
                         <TableCell align="right">
-                          {lt.pending > 0 && <Chip label={lt.pending} size="small" sx={{ bgcolor: '#F59E0B15', color: '#F59E0B', fontWeight: 700 }} />}
+                          {lt.pending > 0 && <Chip label={lt.pending} size="small" sx={{ bgcolor: '#F59E0B15', color: '#F59E0B', fontWeight: 600 }} />}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -325,7 +325,7 @@ export default function InsightsPage() {
             )}
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Currently on Leave</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Currently on Leave</Typography>
             {onLeaveStaff.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No staff on leave today</Typography>
             ) : (
@@ -334,7 +334,7 @@ export default function InsightsPage() {
                   <Paper key={i} variant="outlined" sx={{ p: 1.5, borderRadius: 1.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
-                        <Typography variant="body2" fontWeight={700}>{s.first_name} {s.last_name}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{s.first_name} {s.last_name}</Typography>
                         <Typography variant="caption" color="#667085">{s.leave_type}</Typography>
                       </Box>
                       <Chip label={`until ${s.end_date}`} size="small" variant="outlined" />
@@ -345,7 +345,7 @@ export default function InsightsPage() {
             )}
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Monthly Trend</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Monthly Trend</Typography>
             {leaveTrend.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No trend data</Typography>
             ) : (
@@ -353,9 +353,9 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Month</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Hours</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Requests</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Month</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Hours</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Requests</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -376,7 +376,7 @@ export default function InsightsPage() {
         {/* Rota */}
         <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Shift Status (Last 30 Days)</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Shift Status (Last 30 Days)</Typography>
             {shiftStatuses.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No shift data</Typography>
             ) : (
@@ -386,13 +386,13 @@ export default function InsightsPage() {
                     key={s.status}
                     label={`${s.status}: ${s.count}`}
                     size="small"
-                    sx={{ fontWeight: 700, bgcolor: `${statusColors[s.status] || '#667085'}15`, color: statusColors[s.status] || '#667085', textTransform: 'capitalize' }}
+                    sx={{ fontWeight: 600, bgcolor: `${statusColors[s.status] || '#667085'}15`, color: statusColors[s.status] || '#667085', textTransform: 'capitalize' }}
                   />
                 ))}
               </Stack>
             )}
 
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Fill Rate by Location</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Fill Rate by Location</Typography>
             {fillRate.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No data</Typography>
             ) : (
@@ -400,9 +400,9 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Filled / Total</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Rate</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Filled / Total</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Rate</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -413,7 +413,7 @@ export default function InsightsPage() {
                           <TableCell>{l.name}</TableCell>
                           <TableCell align="right">{l.filled} / {l.total_shifts}</TableCell>
                           <TableCell align="right">
-                            <Typography variant="body2" fontWeight={700} color={pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444'}>
+                            <Typography variant="body2" fontWeight={600} color={pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444'}>
                               {pct}%
                             </Typography>
                           </TableCell>
@@ -426,7 +426,7 @@ export default function InsightsPage() {
             )}
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Upcoming Shifts (Next 7 Days)</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Upcoming Shifts (Next 7 Days)</Typography>
             {upcomingShifts.length === 0 ? (
               <Typography variant="body2" color="#98A2B3">No upcoming shifts</Typography>
             ) : (
@@ -434,10 +434,10 @@ export default function InsightsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Staffed</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Min Req</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Staffed</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Min Req</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -449,7 +449,7 @@ export default function InsightsPage() {
                           <TableCell>{s.location}</TableCell>
                           <TableCell>{date}</TableCell>
                           <TableCell align="right">
-                            <Typography variant="body2" fontWeight={700} color={understaffed ? '#EF4444' : '#10B981'}>
+                            <Typography variant="body2" fontWeight={600} color={understaffed ? '#EF4444' : '#10B981'}>
                               {s.assigned_staff}
                             </Typography>
                           </TableCell>
@@ -471,31 +471,31 @@ export default function InsightsPage() {
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
               <OutcomeIcon sx={{ color: '#2F80ED' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Care Outcomes</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Care Outcomes</Typography>
             </Stack>
             {outcomes ? (
               <>
                 {outcomes.goal_completion_by_domain.length > 0 && (
                   <>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Goal Completion by CQC Domain</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Goal Completion by CQC Domain</Typography>
                     <TableContainer>
                       <Table size="small">
                         <TableHead><TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }} align="right">Completed</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }} align="right">Total</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }} align="right">Avg Progress</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Domain</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="right">Completed</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="right">Total</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="right">Avg Progress</TableCell>
                         </TableRow></TableHead>
                         <TableBody>
                           {outcomes.goal_completion_by_domain.map(d => (
                             <TableRow key={d.cqc_domain}>
                               <TableCell><Chip label={d.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
-                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 700 }} /></TableCell>
+                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 600 }} /></TableCell>
                               <TableCell align="right">{d.total}</TableCell>
                               <TableCell align="right">
                                 <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
                                   <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#10B981' : '#F59E0B' } }} />
-                                  <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 30 }}>{d.avg_progress || 0}%</Typography>
+                                  <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 30 }}>{d.avg_progress || 0}%</Typography>
                                 </Stack>
                               </TableCell>
                             </TableRow>
@@ -509,18 +509,18 @@ export default function InsightsPage() {
                 {outcomes.overdue_reviews > 0 && (
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'notice.warning.bg', borderRadius: 1.5 }}>
                     <WarningAmberIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'notice.warning.fg' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
                   </Stack>
                 )}
                 {outcomes.wellbeing_by_domain.length > 0 && (
                   <>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Wellbeing Averages (30d)</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Wellbeing Averages (30d)</Typography>
                     <Stack spacing={1}>
                       {outcomes.wellbeing_by_domain.map(w => (
                         <Stack key={w.domain} direction="row" alignItems="center" spacing={1}>
                           <Typography variant="body2" sx={{ minWidth: 80, textTransform: 'capitalize', fontSize: '0.8rem' }}>{w.domain}</Typography>
                           <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#10B981' : (w.avg_score || 0) >= 5 ? '#F59E0B' : '#EF4444' } }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 35 }}>{w.avg_score}/10</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 35 }}>{w.avg_score}/10</Typography>
                         </Stack>
                       ))}
                     </Stack>

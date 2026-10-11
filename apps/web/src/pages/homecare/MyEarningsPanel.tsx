@@ -62,7 +62,7 @@ function StatCard({ icon, label, value, color, sub }: {
       </Box>
       <Box sx={{ minWidth: 0 }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2, display: 'block' }}>{label}</Typography>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, color, lineHeight: 1.3 }}>{value}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color, lineHeight: 1.3 }}>{value}</Typography>
         {sub && <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>{sub}</Typography>}
       </Box>
     </Paper>
@@ -95,11 +95,11 @@ function BreakdownCard({ label, detail, amount, color, icon }: {
         }}>
           {icon}
         </Box>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.65rem' }}>
           {label}
         </Typography>
       </Stack>
-      <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2 }}>{amount}</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 600, color, lineHeight: 1.2 }}>{amount}</Typography>
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25, fontSize: '0.7rem' }}>{detail}</Typography>
     </Paper>
   )
@@ -257,7 +257,7 @@ export default function MyEarningsPanel() {
           {hasData && (
             <>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 1, fontSize: '0.65rem' }}>
                   Earnings breakdown
                 </Typography>
               </Box>
@@ -293,20 +293,20 @@ export default function MyEarningsPanel() {
           {hasData && (
             <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
               <Stack direction="row" gap={3} flexWrap="wrap" alignItems="center">
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.65rem' }}>
                   Your rates
                 </Typography>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.65rem' }}>Hourly</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{fmtPence(s.hourly_rate_pence)}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtPence(s.hourly_rate_pence)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.65rem' }}>Mileage</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{fmtPence(s.mileage_rate_pence)}/mi</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtPence(s.mileage_rate_pence)}/mi</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.65rem' }}>Travel paid</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{s.total_paid_travel_minutes > 0 ? 'Yes' : 'No'}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{s.total_paid_travel_minutes > 0 ? 'Yes' : 'No'}</Typography>
                 </Box>
               </Stack>
             </Paper>
@@ -317,26 +317,26 @@ export default function MyEarningsPanel() {
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
               <Stack direction="row" alignItems="center" gap={1} mb={2}>
                 <CalendarIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.65rem' }}>
                   Year to date · {data.ytd.year}
                 </Typography>
               </Stack>
               <Stack direction="row" gap={2} flexWrap="wrap" mb={(data.ytd.months || []).length ? 2 : 0}>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Gross pay</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#2F80ED' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#2F80ED' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Calls</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{data.ytd.visit_count || 0}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>{data.ytd.visit_count || 0}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Work</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{fmtMins(data.ytd.total_work_minutes)}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>{fmtMins(data.ytd.total_work_minutes)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Mileage</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{Number(data.ytd.total_mileage_miles || 0).toFixed(1)} mi</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>{Number(data.ytd.total_mileage_miles || 0).toFixed(1)} mi</Typography>
                 </Box>
               </Stack>
               {(data.ytd.months || []).map((m: any) => (
@@ -348,7 +348,7 @@ export default function MyEarningsPanel() {
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       {m.visit_count} calls · {fmtMins(m.work_minutes)}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{fmtPence(m.gross_pay_pence)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtPence(m.gross_pay_pence)}</Typography>
                   </Stack>
                 </Box>
               ))}
@@ -359,7 +359,7 @@ export default function MyEarningsPanel() {
           {hasData && (
             <>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 1, fontSize: '0.65rem' }}>
                   Calls in this period
                 </Typography>
               </Box>
@@ -410,7 +410,7 @@ export default function MyEarningsPanel() {
                           <Chip size="small" label={`${Number(v.mileage_miles).toFixed(1)} mi`} sx={{ height: 22, fontSize: '0.7rem', bgcolor: '#EAFBF5', color: '#087A55' }} />
                         )}
                       </Stack>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#2F80ED', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#2F80ED', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
                     </Paper>
                   ))}
                 </Stack>

@@ -39,7 +39,7 @@ export default function SharedFiles({ files, loading, onUpload, onDelete, onOpen
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1, py: 6 }}>
         <FileIcon sx={{ fontSize: 40, color: HAIRLINE }} />
-        <Typography sx={{ fontSize: 14, fontWeight: 700, color: INK }}>No shared files</Typography>
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: INK }}>No shared files</Typography>
         <Typography sx={{ fontSize: 12, color: MIST, maxWidth: 320, textAlign: 'center', lineHeight: 1.5 }}>
           Upload documents, plans, and minutes for the team.
         </Typography>
@@ -52,7 +52,7 @@ export default function SharedFiles({ files, loading, onUpload, onDelete, onOpen
       {/* Toolbar */}
       <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: 13, color: INK }}>Files</Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: 13, color: INK }}>Files</Typography>
           <Typography variant="caption" sx={{ fontSize: 11, color: MIST }}>{files.length}</Typography>
           <IconButton size="small" onClick={() => setViewMode('list')} sx={{ color: viewMode === 'list' ? NAVY : MIST, width: 28, height: 28 }}>
             <ViewListIcon sx={{ fontSize: 16 }} />
@@ -103,10 +103,10 @@ export default function SharedFiles({ files, loading, onUpload, onDelete, onOpen
             <Table size="small">
               <TableHead sx={{ bgcolor: BONE }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, color: INK }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, color: INK }}>Size</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, color: INK }}>Date</TableCell>
-                  <TableCell sx={{ width: 80, fontWeight: 700, fontSize: 12, color: INK }}></TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12, color: INK }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12, color: INK }}>Size</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12, color: INK }}>Date</TableCell>
+                  <TableCell sx={{ width: 80, fontWeight: 600, fontSize: 12, color: INK }}></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

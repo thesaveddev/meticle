@@ -109,7 +109,7 @@ export default function FamilyPortalPage() {
           <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: isRevoked ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
             <WarningIcon sx={{ fontSize: 36, color: isRevoked ? '#EF4444' : '#F59E0B' }} />
           </Box>
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
+          <Typography variant="h5" fontWeight={600} sx={{ mb: 1 }}>
             {isRevoked ? 'Access Revoked' : isExpired ? 'Link Expired' : 'Link Invalid'}
           </Typography>
           <Typography color="#667085" sx={{ mb: 3, lineHeight: 1.6 }}>
@@ -140,7 +140,7 @@ export default function FamilyPortalPage() {
               {su.first_name?.[0]}{su.last_name?.[0]}
             </Avatar>
             <Box>
-              <Typography variant="h4" fontWeight={800}>{su.first_name} {su.last_name}</Typography>
+              <Typography variant="h4" fontWeight={600}>{su.first_name} {su.last_name}</Typography>
               <Stack direction="row" spacing={2} sx={{ mt: 0.5, opacity: 0.85 }}>
                 <Typography variant="body2">{info.organization.name}</Typography>
                 {su.date_of_birth && <Typography variant="body2">DOB: {formatDate(su.date_of_birth)}</Typography>}
@@ -177,7 +177,7 @@ export default function FamilyPortalPage() {
                   <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
-                        <Typography fontWeight={700}>{v.label}</Typography>
+                        <Typography fontWeight={600}>{v.label}</Typography>
                         <Typography variant="body2" color="#475467">
                           {new Date(v.scheduled_start).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           {' — '}
@@ -200,11 +200,11 @@ export default function FamilyPortalPage() {
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Shift</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Content</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Shift</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Content</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
                   </TableRow></TableHead>
                   <TableBody>
                     {careNotes.map((n: any) => (
@@ -228,7 +228,7 @@ export default function FamilyPortalPage() {
               <Stack spacing={2}>
                 {carePlans.map((p: any) => (
                   <Paper key={p.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-                    <Typography fontWeight={700}>{p.title}</Typography>
+                    <Typography fontWeight={600}>{p.title}</Typography>
                     <Chip label={p.category} size="small" sx={{ mt: 0.5 }} />
                     {p.description && <Typography variant="body2" color="#475467" sx={{ mt: 1 }}>{p.description}</Typography>}
                     {p.mobility_level && <Typography variant="caption" color="#667085" sx={{ display: 'block', mt: 0.5 }}>Mobility: {p.mobility_level}</Typography>}
@@ -247,10 +247,10 @@ export default function FamilyPortalPage() {
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Goal</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Target Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Progress</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Goal</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Target Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Progress</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   </TableRow></TableHead>
                   <TableBody>
                     {goals.map((g: any) => (
@@ -280,10 +280,10 @@ export default function FamilyPortalPage() {
               <TableContainer>
                 <Table size="small">
                   <TableHead><TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Severity</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
                   </TableRow></TableHead>
                   <TableBody>
                     {observations.map((o: any) => (
@@ -306,7 +306,7 @@ export default function FamilyPortalPage() {
               <Stack spacing={2}>
                 {allergies.length > 0 && (
                   <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #FCA5A5', bgcolor: 'notice.error.bg' }}>
-                    <Typography fontWeight={700} color='notice.error.fg' sx={{ mb: 0.5 }}>Allergies</Typography>
+                    <Typography fontWeight={600} color='notice.error.fg' sx={{ mb: 0.5 }}>Allergies</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
                       {allergies.map((a: string, i: number) => (
                         <Chip key={i} label={a} size="small" sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />
@@ -318,7 +318,7 @@ export default function FamilyPortalPage() {
                   <Paper key={m.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
-                        <Typography fontWeight={700}>{m.medication_name}</Typography>
+                        <Typography fontWeight={600}>{m.medication_name}</Typography>
                         <Typography variant="body2" color="#475467">
                           {m.dosage} — {m.frequency} ({m.route})
                         </Typography>
@@ -334,7 +334,7 @@ export default function FamilyPortalPage() {
             {/* Contact Care Team */}
             {portalTab === 6 && (
               <Box>
-                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Send a Message to the Care Team</Typography>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>Send a Message to the Care Team</Typography>
                 <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>Your message will be sent to the care team managing {su.first_name}'s care. They will respond as soon as possible.</Typography>
                 {contactSuccess && <Alert severity="success" sx={{ mb: 2 }}>{contactSuccess}</Alert>}
                 {contactError && <Alert severity="error" sx={{ mb: 2 }}>{contactError}</Alert>}

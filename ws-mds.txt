@@ -1,0 +1,11 @@
+skills/asking-with-evidence/SKILL.md
+skills/configuring-vision/SKILL.md
+skills/extracting-structure/SKILL.md
+skills/learning-from-mistakes/SKILL.md
+skills/recovering-from-errors/SKILL.md
+skills/sharing-results/SKILL.md
+skills/the-loop/SKILL.md
+skills/video-memory/SKILL.md
+skills/watch/SKILL.md
+skills/watching-videos/SKILL.md
+--- total: 10

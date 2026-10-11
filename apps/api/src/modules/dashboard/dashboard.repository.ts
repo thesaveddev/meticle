@@ -303,4 +303,161 @@ export class DashboardRepository {
       active_packages: Number(packagesResult.rows[0]?.active_count ?? 0),
     };
   }
+
+  /**
+   * One aggregate for the redesigned dashboard (brief phases 7–8):
+   * people-you're-supporting, today's tasks, care-notes activity,
+   * medication overview and today's appointments. Four queries instead of the
+   * frontend fanning out to five endpoints; each section degrades independently
+   * on the client, but the server keeps them consistent to the same instant.
+   */
+  static async getDailyOverview(orgId: string) {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0];
+
+    const [peopleResult, tasksResult, notesResult, medsResult, apptsResult] = await Promise.all([
+      // People you're supporting: active people with room, flags and the next
+      // scheduled event (appointment or medication) that drives the "next task".
+      query(`
+        SELECT p.id, p.first_name, p.last_name, p.room_number, p.photo_url, p.flags,
+          (SELECT COUNT(*)::int FROM risk_assessments ra WHERE ra.person_id = p.id AND ra.risk_level IN ('high','critical')) AS open_risks,
+          (SELECT COUNT(*)::int FROM daily_notes dn WHERE dn.person_id = p.id AND dn.note_date = $2) AS notes_today,
+          (SELECT a.title FROM appointments a WHERE a.person_id = p.id AND a.start_time >= NOW() AND a.status = 'scheduled' ORDER BY a.start_time LIMIT 1) AS next_event,
+          (SELECT a.start_time FROM appointments a WHERE a.person_id = p.id AND a.start_time >= NOW() AND a.status = 'scheduled' ORDER BY a.start_time LIMIT 1) AS next_event_time,
+          (SELECT mi2.name FROM emedication_administrations a2
+             JOIN emedication_items mi2 ON mi2.id = a2.emedication_item_id
+             JOIN emedication_records r2 ON r2.id = mi2.emedication_record_id
+           WHERE r2.person_id = p.id AND r2.status = 'active' AND mi2.is_active = TRUE
+             AND a2.status = 'pending' AND a2.scheduled_time >= NOW()
+           ORDER BY a2.scheduled_time LIMIT 1) AS next_medication
+        FROM people p
+        WHERE p.organization_id = $1 AND p.status = 'active'
+        ORDER BY p.last_name, p.first_name
+        LIMIT 8
+      `, [orgId, today]),
+      // Today's tasks: open tasks due today (or overdue), completing flag included.
+      query(`
+        SELECT t.id, t.title, t.status, t.priority, t.due_date, t.completed_at,
+               p.first_name || ' ' || p.last_name AS person_name
+        FROM tasks t
+        LEFT JOIN people p ON p.id = t.person_id
+        WHERE t.organization_id = $1
+          AND (t.status != 'completed')
+          AND (t.due_date IS NULL OR t.due_date < $2)
+        ORDER BY CASE t.priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END, t.due_date ASC NULLS LAST
+        LIMIT 8
+      `, [orgId, tomorrow]),
+      // Care-notes activity: today's daily notes and medication administrations
+      // in one timeline, newest first.
+      query(`
+        (
+          SELECT dn.id, dn.created_at, 'care_note' AS kind, dn.category AS summary_title,
+                 LEFT(dn.content, 90) AS summary, pe.first_name || ' ' || pe.last_name AS person_name, pe.photo_url
+          FROM daily_notes dn
+          JOIN people pe ON pe.id = dn.person_id
+          WHERE pe.organization_id = $1 AND dn.note_date = $2
+          ORDER BY dn.created_at DESC
+          LIMIT 12
+        )
+        UNION ALL
+        (
+          SELECT a.id, COALESCE(a.administered_time, a.created_at) AS created_at, 'medication' AS kind,
+                 mi.name AS summary_title, a.status AS summary,
+                 pe.first_name || ' ' || pe.last_name AS person_name, pe.photo_url
+          FROM emedication_administrations a
+          JOIN emedication_items mi ON mi.id = a.emedication_item_id
+          JOIN emedication_records r ON r.id = mi.emedication_record_id
+          JOIN people pe ON pe.id = r.person_id
+          WHERE r.organization_id = $1 AND r.status = 'active'
+            AND COALESCE(a.administered_time, a.created_at) >= $2
+            AND a.status != 'pending'
+          ORDER BY created_at DESC
+          LIMIT 12
+        )
+        ORDER BY created_at DESC
+        LIMIT 10
+      `, [orgId, today]),
+      // Medication overview: today's due counts for the donut.
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE a.status = 'pending' AND a.scheduled_time < NOW())::int AS due_now,
+          COUNT(*) FILTER (WHERE a.status = 'pending' AND a.scheduled_time >= NOW())::int AS upcoming,
+          COUNT(*) FILTER (WHERE a.status IN ('given'))::int AS completed
+        FROM emedication_administrations a
+        JOIN emedication_items mi ON mi.id = a.emedication_item_id
+        JOIN emedication_records r ON r.id = mi.emedication_record_id
+        WHERE r.organization_id = $1 AND r.status = 'active' AND mi.is_active = TRUE
+          AND a.scheduled_time >= $2 AND a.scheduled_time < $3
+      `, [orgId, today, tomorrow]),
+      // Today's upcoming appointments.
+      query(`
+        SELECT a.id, a.title, a.start_time, a.status,
+               pe.first_name || ' ' || pe.last_name AS person_name, pe.room_number, pe.photo_url
+        FROM appointments a
+        JOIN people pe ON pe.id = a.person_id
+        WHERE a.organization_id = $1 AND a.start_time >= $2 AND a.start_time < $3
+          AND a.status = 'scheduled'
+        ORDER BY a.start_time
+        LIMIT 6
+      `, [orgId, today, tomorrow]),
+    ]);
+
+    const people = peopleResult.rows.map((row: any) => {
+      const nextMedication = row.next_medication || null;
+      const nextEvent = row.next_event || null;
+      const nextEventTime = row.next_event_time || null;
+      const nextTask = nextEvent
+        ? { label: nextEvent, time: nextEventTime }
+        : nextMedication
+          ? { label: 'Medication', time: null }
+          : null;
+      // Status derives from real signals: high/critical risks -> under review,
+      // flags -> needs support, otherwise stable.
+      const status = (row.open_risks ?? 0) > 0 ? 'under_review' : ((row.flags?.length ?? 0) > 0 ? 'needs_support' : 'stable');
+      return {
+        id: row.id,
+        name: `${row.first_name} ${row.last_name}`.trim(),
+        room: row.room_number || null,
+        photo_url: row.photo_url || null,
+        status,
+        notes_today: row.notes_today ?? 0,
+        next_task: nextTask,
+      };
+    });
+
+    return {
+      people,
+      tasks: tasksResult.rows.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        due_date: t.due_date,
+        person_name: t.person_name || null,
+      })),
+      activity: notesResult.rows.map((n: any) => ({
+        id: n.id,
+        kind: n.kind,
+        time: n.created_at,
+        title: n.summary_title,
+        summary: n.summary,
+        person_name: n.person_name,
+        photo_url: n.photo_url || null,
+      })),
+      medication: {
+        due_now: Number(medsResult.rows[0]?.due_now ?? 0),
+        upcoming: Number(medsResult.rows[0]?.upcoming ?? 0),
+        completed: Number(medsResult.rows[0]?.completed ?? 0),
+      },
+      appointments: apptsResult.rows.map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        start_time: a.start_time,
+        status: a.status,
+        person_name: a.person_name,
+        room: a.room_number || null,
+        photo_url: a.photo_url || null,
+      })),
+    };
+  }
 }

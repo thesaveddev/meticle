@@ -117,17 +117,17 @@ export default function PoliciesPage() {
       <Box sx={{ mb: 4 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2}>
           <Box>
-            <Typography sx={{ color: NAVY, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase', mb: 1 }}>
+            <Typography sx={{ color: NAVY, fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.13em', textTransform: 'none', mb: 1 }}>
               Compliance library
             </Typography>
-            <Typography variant="h4" sx={{ color: INK, fontWeight: 900, letterSpacing: '-0.03em', mb: 0.75 }}>
+            <Typography variant="h4" sx={{ color: INK, fontWeight: 600, letterSpacing: '-0.03em', mb: 0.75 }}>
               Policies & procedures
             </Typography>
             <Typography sx={{ color: MUTED, maxWidth: 660 }}>
               Keep the team aligned on the policies that protect people, staff, and your service. Open any policy to read the full guidance and its review history.
             </Typography>
           </Box>
-          {canManagePolicies && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0B3A63' }, borderRadius: 1.5, px: 2.5, py: 1.25, fontWeight: 800, flexShrink: 0 }}>
+          {canManagePolicies && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, px: 2.5, py: 1.25, fontWeight: 600, flexShrink: 0 }}>
             Add policy
           </Button>}
         </Stack>
@@ -144,8 +144,8 @@ export default function PoliciesPage() {
             <Paper variant="outlined" sx={{ p: 2, borderColor: HAIRLINE, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{ width: 38, height: 38, borderRadius: 1.5, display: 'grid', placeItems: 'center', color: stat.color, bgcolor: `${stat.color}12` }}>{stat.icon}</Box>
               <Box>
-                <Typography sx={{ color: MUTED, fontSize: '0.75rem', fontWeight: 700 }}>{stat.label}</Typography>
-                <Typography sx={{ color: INK, fontSize: '1.45rem', lineHeight: 1.15, fontWeight: 900 }}>{stat.value}</Typography>
+                <Typography sx={{ color: MUTED, fontSize: '0.75rem', fontWeight: 600 }}>{stat.label}</Typography>
+                <Typography sx={{ color: INK, fontSize: '1.45rem', lineHeight: 1.15, fontWeight: 600 }}>{stat.value}</Typography>
               </Box>
             </Paper>
           </Grid>
@@ -185,7 +185,7 @@ export default function PoliciesPage() {
       {visiblePolicies.length === 0 ? (
         <Paper variant="outlined" sx={{ p: { xs: 5, md: 8 }, borderRadius: 2, borderColor: HAIRLINE, textAlign: 'center' }}>
           <ArticleIcon sx={{ fontSize: 44, color: '#CBD5E1', mb: 1 }} />
-          <Typography sx={{ color: INK, fontWeight: 800, mb: 0.75 }}>No policies match those filters</Typography>
+          <Typography sx={{ color: INK, fontWeight: 600, mb: 0.75 }}>No policies match those filters</Typography>
           <Typography sx={{ color: MUTED, mb: 2 }}>Try a different search or clear one of the filters.</Typography>
           <Button variant="outlined" onClick={() => { setSearch(''); setCategoryFilter(''); setStatusFilter('') }} sx={{ borderColor: NAVY, color: NAVY }}>Clear filters</Button>
         </Paper>
@@ -205,8 +205,8 @@ export default function PoliciesPage() {
                 >
                   <Box sx={{ p: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} sx={{ mb: 2 }}>
-                      <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 800, fontSize: '0.68rem', maxWidth: '80%' }} />
-                      <Chip label={`v${policy.version}`} size="small" sx={{ color: MUTED, bgcolor: 'notice.muted.bg', fontWeight: 800, fontSize: '0.68rem' }} />
+                      <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 600, fontSize: '0.68rem', maxWidth: '80%' }} />
+                      <Chip label={`v${policy.version}`} size="small" sx={{ color: MUTED, bgcolor: 'notice.muted.bg', fontWeight: 600, fontSize: '0.68rem' }} />
                     </Stack>
                     <Typography sx={{ color: INK, fontWeight: 850, fontSize: '1.05rem', lineHeight: 1.3, minHeight: 54, mb: 1.25 }}>{policy.title}</Typography>
                     <Typography sx={{ color: MUTED, fontSize: '0.86rem', lineHeight: 1.6, minHeight: 66, mb: 2 }}>{policy.content.slice(0, 160)}{policy.content.length > 160 ? '…' : ''}</Typography>
@@ -214,7 +214,7 @@ export default function PoliciesPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         {due ? <WarningIcon sx={{ fontSize: 16, color: '#B42318' }} /> : <ReviewIcon sx={{ fontSize: 16, color: MUTED }} />}
-                        <Typography sx={{ color: due ? '#B42318' : MUTED, fontSize: '0.75rem', fontWeight: 700 }}>{due ? 'Review overdue' : `Review ${formatDate(policy.review_due_at)}`}</Typography>
+                        <Typography sx={{ color: due ? '#B42318' : MUTED, fontSize: '0.75rem', fontWeight: 600 }}>{due ? 'Review overdue' : `Review ${formatDate(policy.review_due_at)}`}</Typography>
                       </Stack>
                       <ArrowRightIcon sx={{ color: NAVY }} />
                     </Stack>
@@ -234,13 +234,13 @@ export default function PoliciesPage() {
                 <Box sx={{ width: 8, alignSelf: 'stretch', minHeight: 42, borderRadius: 1, bgcolor: color, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 1 }} alignItems={{ sm: 'center' }}>
-                    <Typography sx={{ color: INK, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{policy.title}</Typography>
-                    <Chip label={policy.category} size="small" sx={{ width: 'fit-content', color, bgcolor: `${color}14`, fontWeight: 700, fontSize: '0.66rem' }} />
+                    <Typography sx={{ color: INK, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{policy.title}</Typography>
+                    <Chip label={policy.category} size="small" sx={{ width: 'fit-content', color, bgcolor: `${color}14`, fontWeight: 600, fontSize: '0.66rem' }} />
                   </Stack>
                   <Typography sx={{ color: MUTED, fontSize: '0.8rem', mt: 0.5 }}>{statusLabel(policy.status)} · v{policy.version} · Updated {formatDate(policy.updated_at || policy.created_at)}</Typography>
                 </Box>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: 'none', sm: 'flex' } }}>
-                  <Typography sx={{ color: due ? '#B42318' : MUTED, fontSize: '0.78rem', fontWeight: 700 }}>{due ? 'Review overdue' : `Review ${formatDate(policy.review_due_at)}`}</Typography>
+                  <Typography sx={{ color: due ? '#B42318' : MUTED, fontSize: '0.78rem', fontWeight: 600 }}>{due ? 'Review overdue' : `Review ${formatDate(policy.review_due_at)}`}</Typography>
                   <ArrowRightIcon sx={{ color: NAVY }} />
                 </Stack>
               </Box>

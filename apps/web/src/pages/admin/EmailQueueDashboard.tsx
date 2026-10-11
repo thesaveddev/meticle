@@ -56,10 +56,10 @@ function StatCard({ title, value, icon, color, subtitle }: {
     <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
         <Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>
             {title}
           </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
+          <Typography variant="h3" sx={{ fontWeight: 600, mt: 0.5, color: 'text.primary' }}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </Typography>
           {subtitle && (
@@ -144,7 +144,7 @@ export default function EmailQueueDashboard() {
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Email Queue</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>Email Queue</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             Delivery stats, failure tracking, and queue management
           </Typography>
@@ -217,7 +217,7 @@ export default function EmailQueueDashboard() {
                     sx={{ height: 8, borderRadius: 4 }}
                   />
                 </Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 50, textAlign: 'right' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
                   {successRate}%
                 </Typography>
               </Stack>
@@ -231,7 +231,7 @@ export default function EmailQueueDashboard() {
             <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                 <ErrorIcon sx={{ color: 'error.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>Why deliveries failed</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Why deliveries failed</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary', ml: 'auto' }}>
                   Grouped by cause, not by raw error text
                 </Typography>
@@ -239,7 +239,7 @@ export default function EmailQueueDashboard() {
 
               {stats.failureSummary && stats.failureSummary.ours > 0 && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {stats.failureSummary.ours} of these are ours to fix
                   </Typography>
                   <Typography variant="body2">
@@ -260,7 +260,7 @@ export default function EmailQueueDashboard() {
                       gap={1.5}
                       sx={{ p: 1.5, borderRadius: 2, bgcolor: tone.bg, color: tone.fg }}
                     >
-                      <Typography sx={{ fontWeight: 800, minWidth: 44, fontVariantNumeric: 'tabular-nums' }}>
+                      <Typography sx={{ fontWeight: 600, minWidth: 44, fontVariantNumeric: 'tabular-nums' }}>
                         {b.count}
                       </Typography>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -291,7 +291,7 @@ export default function EmailQueueDashboard() {
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
               <ErrorIcon sx={{ color: failed > 0 ? 'error.main' : 'text.secondary' }} />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Failure Trend (7d)</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Failure Trend (7d)</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', ml: 'auto' }}>Hourly failed deliveries</Typography>
             </Stack>
             {(() => {
@@ -318,7 +318,7 @@ export default function EmailQueueDashboard() {
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
                 <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                   <PeopleIcon sx={{ color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Top Recipients (7d)</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Top Recipients (7d)</Typography>
                 </Stack>
                 {stats.topRecipients.length === 0 ? (
                   <Typography variant="body2" sx={{ color: 'text.secondary', py: 2, textAlign: 'center' }}>No recent email activity</Typography>
@@ -327,10 +327,10 @@ export default function EmailQueueDashboard() {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Sent</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Failed</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Rate</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Sent</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Failed</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Rate</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -362,7 +362,7 @@ export default function EmailQueueDashboard() {
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
                 <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                   <ErrorIcon sx={{ color: 'error.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Recent Failures</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Recent Failures</Typography>
                   {failed > 0 && (
                     <Chip label={failed} size="small" color="error" sx={{ ml: 'auto' }} />
                   )}
@@ -376,11 +376,11 @@ export default function EmailQueueDashboard() {
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Recipient</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Subject</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Cause</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Error</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Time</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Recipient</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Subject</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Cause</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Error</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Time</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -410,7 +410,7 @@ export default function EmailQueueDashboard() {
                                   sx={{
                                     bgcolor: (OWNER_TONE[f.owner] ?? OWNER_TONE.unattributed).bg,
                                     color: (OWNER_TONE[f.owner] ?? OWNER_TONE.unattributed).fg,
-                                    fontSize: 11, fontWeight: 700,
+                                    fontSize: 11, fontWeight: 600,
                                   }}
                                 />
                               ) : (

@@ -71,16 +71,16 @@ function GridView() {
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 2 }}>Staff</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Profile</TableCell>
+              <TableCell sx={{ fontWeight: 600, position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 2 }}>Staff</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Profile</TableCell>
               {data?.modules?.map((m: any) => (
-                <TableCell key={m.id} sx={{ fontWeight: 700, minWidth: 100, writingMode: 'vertical-lr', textAlign: 'center', p: 1 }}>
+                <TableCell key={m.id} sx={{ fontWeight: 600, minWidth: 100, writingMode: 'vertical-lr', textAlign: 'center', p: 1 }}>
                   <Tooltip title={`${m.name}${m.cqc_mandated ? ' (CQC Mandated)' : ''}`}>
                     <span>{m.cqc_mandated ? '⚑ ' : ''}{m.name}</span>
                   </Tooltip>
                 </TableCell>
               ))}
-              <TableCell sx={{ fontWeight: 700 }}>%</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>%</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -384,25 +384,25 @@ function DashboardView() {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={6} sm={3}>
           <Card><CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" fontWeight={700} color="primary">{data.overall?.percentage || 0}%</Typography>
+            <Typography variant="h4" fontWeight={600} color="primary">{data.overall?.percentage || 0}%</Typography>
             <Typography variant="caption" color="text.secondary">Overall Completion</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card><CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" fontWeight={700} color="primary">{data.totalStaff || 0}</Typography>
+            <Typography variant="h4" fontWeight={600} color="primary">{data.totalStaff || 0}</Typography>
             <Typography variant="caption" color="text.secondary">Active Staff</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card><CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" fontWeight={700} color="primary">{data.totalModules || 0}</Typography>
+            <Typography variant="h4" fontWeight={600} color="primary">{data.totalModules || 0}</Typography>
             <Typography variant="caption" color="text.secondary">Training Modules</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card><CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" fontWeight={700} color={data.overall?.completed === data.overall?.total ? 'success.main' : 'warning.main'}>
+            <Typography variant="h4" fontWeight={600} color={data.overall?.completed === data.overall?.total ? 'success.main' : 'warning.main'}>
               {data.overall?.completed || 0}/{data.overall?.total || 0}
             </Typography>
             <Typography variant="caption" color="text.secondary">Completed Records</Typography>
@@ -413,7 +413,7 @@ function DashboardView() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Completion by Role</Typography>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Completion by Role</Typography>
             {data.byRole?.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={data.byRole} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -424,7 +424,7 @@ function DashboardView() {
                     {data.byRole.map((_: any, i: number) => (
                       <Cell key={i} fill={chartColors[i % chartColors.length]} />
                     ))}
-                    <LabelList dataKey="percentage" position="top" formatter={(v: any) => `${v}%`} style={{ fontSize: 11, fontWeight: 700 }} />
+                    <LabelList dataKey="percentage" position="top" formatter={(v: any) => `${v}%`} style={{ fontSize: 11, fontWeight: 600 }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -436,16 +436,16 @@ function DashboardView() {
 
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Completion by Module</Typography>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Completion by Module</Typography>
             {data.byModule?.length > 0 ? (
               <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                      <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Completed</TableCell>
-                      <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Rate</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>Completed</TableCell>
+                      <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>Rate</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

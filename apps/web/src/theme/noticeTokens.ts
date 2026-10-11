@@ -83,3 +83,6 @@ const DARK: NoticeTokens = {
 export function noticeTokens(mode: 'light' | 'dark'): NoticeTokens {
   return mode === 'dark' ? DARK : LIGHT
 }
+
+/** Static light-theme aliases for components that render outside ThemeProvider. */
+export const NOTICE_COLORS = LIGHT

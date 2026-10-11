@@ -149,7 +149,7 @@ export default function PlatformAdminPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <AdminIcon sx={{ fontSize: 32, color: '#2F80ED' }} />
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Platform Admin</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>Platform Admin</Typography>
         </Stack>
         <Tooltip title="Refresh">
           <IconButton onClick={() => { loadData(); if (tab === 2) loadUsers(); if (tab === 3) loadFinance(); if (tab === 4) loadAuditLog(); if (tab === 5) loadHealth(); }} sx={{ bgcolor: 'notice.subtle.bg' }}><RefreshIcon /></IconButton>
@@ -171,7 +171,7 @@ export default function PlatformAdminPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography variant="body2" color="#667085">{card.label}</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800 }}>{card.value}</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>{card.value}</Typography>
                       </Box>
                       <Box sx={{ color: card.color }}>{card.icon}</Box>
                     </Stack>
@@ -198,7 +198,7 @@ export default function PlatformAdminPage() {
           {/* Recent orgs preview */}
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Recent Organizations</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Recent Organizations</Typography>
               <Button size="small" onClick={() => setTab(1)}>View all</Button>
             </Stack>
             <TableContainer>
@@ -319,32 +319,32 @@ export default function PlatformAdminPage() {
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#667085">MRR</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#087A55' }}>£{Number(finance.mrr).toLocaleString()}</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#087A55' }}>£{Number(finance.mrr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#667085">ARR</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800 }}>£{Number(finance.arr).toLocaleString()}</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>£{Number(finance.arr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#667085">Revenue (30d)</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#F59E0B' }}>£{Number(finance.revenue30d).toLocaleString()}</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#F59E0B' }}>£{Number(finance.revenue30d).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#667085">Churn Rate (30d)</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#EF4444' }}>{finance.churnRate}%</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#EF4444' }}>{finance.churnRate}%</Typography>
                   </Paper>
                 </Grid>
               </Grid>
 
               {/* Revenue by plan */}
               <Paper sx={{ p: 3, borderRadius: 2.5, mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Revenue by Plan</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Revenue by Plan</Typography>
                 <TableContainer>
                   <Table size="small">
                     <TableHead><TableRow><TableCell>Plan</TableCell><TableCell>Organizations</TableCell><TableCell>MRR</TableCell></TableRow></TableHead>
@@ -364,7 +364,7 @@ export default function PlatformAdminPage() {
               {/* Revenue trend */}
               {finance.revenueTrend?.length > 0 && (
                 <Paper sx={{ p: 3, borderRadius: 2.5, mb: 3 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Revenue Trend (6 months)</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Revenue Trend (6 months)</Typography>
                   <TableContainer>
                     <Table size="small">
                       <TableHead><TableRow><TableCell>Month</TableCell><TableCell>Revenue</TableCell><TableCell>Invoices</TableCell></TableRow></TableHead>
@@ -386,7 +386,7 @@ export default function PlatformAdminPage() {
               <Paper sx={{ p: 3, borderRadius: 2.5, mb: 3, border: finance.failedPayments?.length > 0 ? '1px solid #FEF0F0' : 'none', bgcolor: finance.failedPayments?.length > 0 ? '#FEF0F0' : 'transparent' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                   <WarningIcon sx={{ color: '#EF4444' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#B42318' }}>Failed Payments</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#B42318' }}>Failed Payments</Typography>
                 </Stack>
                 {finance.failedPayments?.length > 0 ? (
                   <TableContainer>
@@ -412,9 +412,9 @@ export default function PlatformAdminPage() {
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                   <PaymentsIcon sx={{ color: '#2F80ED' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>Open Invoices</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Open Invoices</Typography>
                 </Stack>
-                <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {finance.openInvoices?.count || 0} invoices · £{Number(finance.openInvoices?.total || 0).toLocaleString()} outstanding
                 </Typography>
               </Paper>
@@ -428,7 +428,7 @@ export default function PlatformAdminPage() {
         <Paper sx={{ p: 3, borderRadius: 2.5 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <HistoryIcon sx={{ color: 'text.secondary' }} />
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Recent Activity</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Recent Activity</Typography>
           </Stack>
           {auditLog.length > 0 ? (
             <TableContainer>
@@ -461,7 +461,7 @@ export default function PlatformAdminPage() {
       {tab === 6 && (
         <Stack spacing={3}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Trial follow-up</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Trial follow-up</Typography>
             <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
               Organisations whose trial ended without a recorded paid invoice. This list is for account-related follow-up, not bulk marketing.
             </Typography>
@@ -500,7 +500,7 @@ export default function PlatformAdminPage() {
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>Sales pipeline</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Sales pipeline</Typography>
                 <Typography variant="body2" color="#667085">Review demo enquiries and move them through the commercial lifecycle.</Typography>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
@@ -526,7 +526,7 @@ export default function PlatformAdminPage() {
                 <TableBody>
                   {leads.map((lead: any) => (
                     <TableRow key={lead.id} hover>
-                      <TableCell sx={{ minWidth: 210 }}><Typography variant="body2" fontWeight={700}>{lead.name}</Typography><Typography variant="caption" color="#667085">{lead.company} · {lead.email}</Typography><Typography variant="caption" display="block" color="#98A2B3">{lead.role || 'Role not provided'}</Typography></TableCell>
+                      <TableCell sx={{ minWidth: 210 }}><Typography variant="body2" fontWeight={600}>{lead.name}</Typography><Typography variant="caption" color="#667085">{lead.company} · {lead.email}</Typography><Typography variant="caption" display="block" color="#98A2B3">{lead.role || 'Role not provided'}</Typography></TableCell>
                       <TableCell>{lead.care_type || '—'}</TableCell>
                       <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lead.message}</Typography></TableCell>
                       <TableCell><Chip size="small" label={lead.marketing_consent ? 'Updates opted in' : 'Demo only'} color={lead.marketing_consent ? 'success' : 'default'} variant="outlined" /></TableCell>
@@ -552,7 +552,7 @@ export default function PlatformAdminPage() {
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                   <HealthIcon sx={{ color: '#087A55' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>Database</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Database</Typography>
                 </Stack>
                 <Stack spacing={1.5}>
                   <Stack direction="row" justifyContent="space-between"><Typography variant="body2" color="#667085">Version</Typography><Typography variant="body2" fontWeight={600}>{health.database?.version?.split(' ').slice(0, 2).join(' ') || '—'}</Typography></Stack>
@@ -564,7 +564,7 @@ export default function PlatformAdminPage() {
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>Email Queue</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Email Queue</Typography>
                   <Button size="small" variant="outlined" onClick={() => navigate('/platform-admin/email-queue')}>Full Dashboard</Button>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -574,18 +574,18 @@ export default function PlatformAdminPage() {
                 </Stack>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="body2" color="#667085" sx={{ mb: 1 }}>Stripe Webhooks (24h)</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800 }}>{health.webhookEvents?.last_24h || 0} <Typography component="span" variant="body2" color="#98A2B3">/ {health.webhookEvents?.total || 0} total</Typography></Typography>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>{health.webhookEvents?.last_24h || 0} <Typography component="span" variant="body2" color="#98A2B3">/ {health.webhookEvents?.total || 0} total</Typography></Typography>
               </Paper>
             </Grid>
             <Grid item xs={12}>
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Table Counts</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Table Counts</Typography>
                 <Grid container spacing={2}>
                   {health.tableCounts?.map((t: any) => (
                     <Grid item xs={6} sm={4} md={3} key={t.tbl}>
                       <Box sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1.5 }}>
                         <Typography variant="caption" color="#667085">{t.tbl}</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>{Number(t.cnt).toLocaleString()}</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>{Number(t.cnt).toLocaleString()}</Typography>
                       </Box>
                     </Grid>
                   ))}

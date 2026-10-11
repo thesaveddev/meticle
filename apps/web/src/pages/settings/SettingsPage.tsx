@@ -25,6 +25,7 @@ import {
   TextFields as TextFieldsIcon,
   CalendarMonth as CalendarIcon,
   Phone as PhoneIcon,
+  VolumeUp as VolumeUpIcon,
 } from '@mui/icons-material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -116,12 +117,59 @@ export default function SettingsPage() {
   // AI state
   const [aiConfig, setAIConfig] = useState<any>(null)
   const [aiSaving, setAISaving] = useState(false)
+  // Voice preview: plays a short sample through the org's current TTS voice so
+  // the settings editor can hear the choice before saving it. The draft
+  // selector value is what gets previewed, not the last-saved one.
+  const [voicePreviewLoading, setVoicePreviewLoading] = useState(false)
+  const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null)
   // How much clinical narrative may cross the LLM boundary. Kept separate from
   // aiConfig because it is stored on the organisation, not in the provider
   // config blob — it governs what is SENT, not which provider is used.
   const [minimisationMode, setMinimisationMode] = useState<'full' | 'minimal'>('full')
   const [minimisationInfo, setMinimisationInfo] = useState<any>(null)
   const [minimisationSaving, setMinimisationSaving] = useState(false)
+
+  // Sample sentence for the Mica voice preview. Chosen to exercise the kinds
+  // of words Mica actually says — a person's name, a number, a question — and
+  // short enough to stay a cheap single gpt-4o-mini-tts call.
+  const VOICE_PREVIEW_SAMPLE = 'Hello, I am Mica. Grace Roberts had her morning medication at eight, and her well-being score is four out of five. How can I help with care today?'
+
+  /**
+   * Plays the preview through the same endpoint Mica speaks replies with
+   * (POST /ai/tts), passing the draft voice from the selector. Web Audio is
+   * required rather than <audio> because every Mica tap is a user gesture
+   * that resumes the AudioContext — same playback path, so the preview
+   * sounds exactly like the real assistant will.
+   */
+  const previewMicaVoice = async () => {
+    if (voicePreviewLoading) return
+    setVoicePreviewLoading(true)
+    setVoicePreviewError(null)
+    try {
+      const res = await api.post(
+        '/ai/tts',
+        { text: VOICE_PREVIEW_SAMPLE, voice: aiConfig?.ttsVoice || 'coral' },
+        { responseType: 'arraybuffer' },
+      )
+      const AudioCtor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const ctx = new AudioCtor()
+      if (ctx.state === 'suspended') await ctx.resume()
+      const decoded = await ctx.decodeAudioData(res.data.slice(0))
+      const source = ctx.createBufferSource()
+      source.buffer = decoded
+      source.connect(ctx.destination)
+      source.onended = () => { ctx.close().catch(() => undefined) }
+      source.start()
+    } catch (e: any) {
+      const msg = e?.response?.data?.error?.message
+        ?? e?.response?.data?.message
+        ?? (e?.response?.status === 402 ? 'AI budget exceeded — preview unavailable.' : null)
+        ?? 'Could not play the preview. Check that AI is enabled with an OpenAI provider in Settings.'
+      setVoicePreviewError(msg)
+    } finally {
+      setVoicePreviewLoading(false)
+    }
+  }
 
   const saveMinimisation = async (mode: 'full' | 'minimal') => {
     const previous = minimisationMode
@@ -141,6 +189,13 @@ export default function SettingsPage() {
   const [aiUsageStats, setAIUsageStats] = useState<any>(null)
   const [aiAnalysisResult, setAIAnalysisResult] = useState<any>(null)
   const [aiAnalyzing, setAIAnalyzing] = useState(false)
+  // Per-capability data-class disclosure, fetched from /ai/data-classes and
+  // keyed by capability id. The disclosure describes exactly what the
+  // provider receives for each toggle; it comes from ai.capabilities on the
+  // API so the two never drift — this page does not hard-code any data list.
+  const [aiDataClasses, setAIDataClasses] = useState<Record<string, { data_classes: Array<{ type: string; label: string }>; identifier_fields: string[] }>>({})
+  // Which toggle's disclosure is expanded right now.
+  const [aiDisclosureOpen, setAIDisclosureOpen] = useState<string | null>(null)
 
   const AI_FEATURES = [
     { key: 'compliance_gap_analysis', label: 'Compliance Gap Analysis', desc: 'Analyze compliance data and generate prioritized recommendations' },
@@ -155,7 +210,7 @@ export default function SettingsPage() {
     { key: 'change_detection', label: 'Change Detection', desc: 'Identify meaningful changes across authorised care and operational records' },
     { key: 'risk_signals', label: 'Risk Signals', desc: 'Surface potential missed, overdue and incident patterns for human review' },
     { key: 'compliance_copilot', label: 'Compliance Copilot', desc: 'Highlight authorised evidence and training records that may need attention' },
-    { key: 'natural_language_assistant', label: 'Natural-language Assistant', desc: 'Answer operational questions using only authorised records' },
+    { key: 'natural_language_assistant', label: 'Natural-language Assistant (Mica)', desc: 'Answer operational questions using only authorised records — staff on shift, who supports a person, appointments, incidents, the medication round (including overdue doses and medicines running low), expiring training and leave balances', },
     { key: 'end_of_day_intelligence', label: 'End-of-day Intelligence', desc: 'Create a transparent source-linked review of the day' },
     { key: 'domiciliary_operations_copilot', label: 'Domiciliary Operations Copilot', desc: 'Review missed calls, conflicts and unresolved follow-ups' },
     { key: 'operational_anomaly_detection', label: 'Operational Anomaly Detection', desc: 'Use rules-first signals to identify unusual operational patterns' },
@@ -550,7 +605,7 @@ export default function SettingsPage() {
   const renderProfileTab = () => (
     <Stack spacing={4}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Profile Picture</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Profile Picture</Typography>
         <Stack direction="row" alignItems="center" spacing={3}>
           <Avatar src={profile?.profile_picture_url || user?.profile_picture_url || ''} sx={{ width: 100, height: 100, bgcolor: '#2F80ED', fontSize: '2.5rem' }}>
             {(profile?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()}
@@ -560,7 +615,7 @@ export default function SettingsPage() {
         </Stack>
       </Paper>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Personal Information</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Personal Information</Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <TextField label="First Name" fullWidth size="small" autoFocus value={profile?.first_name || ''} onChange={(e) => handleFieldChange('first_name', e.target.value)} />
@@ -598,14 +653,14 @@ export default function SettingsPage() {
         </Button>
       </Paper>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Account</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Account</Typography>
         <Stack spacing={2}>
           <Box>
-            <Typography variant="body2" fontWeight={700}>Role</Typography>
+            <Typography variant="body2" fontWeight={600}>Role</Typography>
             <Typography variant="body2" color="text.secondary">{user?.role || 'â€”'}</Typography>
           </Box>
           <Box>
-            <Typography variant="body2" fontWeight={700}>Member Since</Typography>
+            <Typography variant="body2" fontWeight={600}>Member Since</Typography>
             <Typography variant="body2" color="text.secondary">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'â€”'}</Typography>
           </Box>
         </Stack>
@@ -622,7 +677,7 @@ export default function SettingsPage() {
       */}
       <LocationDecisionControl />
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#EF4444' }}>Danger Zone</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#EF4444' }}>Danger Zone</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
         <Button variant="outlined" color="error" onClick={() => setDeactDialogOpen(true)}>Deactivate Account</Button>
         {deactError && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setDeactError('')}>{deactError}</Alert>}
@@ -645,7 +700,7 @@ export default function SettingsPage() {
   const renderSecurityTab = () => (
     <Stack spacing={4}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Multi-Factor Authentication</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Multi-Factor Authentication</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
           {mfaEnabled
             ? 'MFA is currently enabled on your account. Each time you sign in, you will be prompted for an authentication code.'
@@ -660,7 +715,7 @@ export default function SettingsPage() {
         )}
       </Paper>
       <Dialog open={mfaSetupDialog} onClose={() => setMfaSetupDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Set Up MFA</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Set Up MFA</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 2 }}>
             <Typography variant="body2" color="#667085">
@@ -691,7 +746,7 @@ export default function SettingsPage() {
         </DialogActions>
       </Dialog>
       <Dialog open={mfaDisableDialog} onClose={() => { setMfaDisableDialog(false); setMfaDisableToken('') }} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ color: '#EF4444', fontWeight: 700 }}>Disable MFA</DialogTitle>
+        <DialogTitle sx={{ color: '#EF4444', fontWeight: 600 }}>Disable MFA</DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
             <Typography variant="body2" color="#667085">Enter your authenticator code or a backup code to confirm.</Typography>
@@ -709,7 +764,7 @@ export default function SettingsPage() {
         </DialogActions>
       </Dialog>
       <Dialog open={mfaBackupDialog} onClose={() => setMfaBackupDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Save Your Backup Codes</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Save Your Backup Codes</DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
             <Alert severity="warning" sx={{ fontWeight: 600 }}>
@@ -718,7 +773,7 @@ export default function SettingsPage() {
             <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
               <Stack spacing={1}>
                 {mfaBackupCodes.map((code, i) => (
-                  <Typography key={i} variant="body2" sx={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.1rem', fontWeight: 700 }}>
+                  <Typography key={i} variant="body2" sx={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.1rem', fontWeight: 600 }}>
                     {code}
                   </Typography>
                 ))}
@@ -737,7 +792,7 @@ export default function SettingsPage() {
   const renderAppearanceTab = () => (
     <Stack spacing={4}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Theme
         </Typography>
         <Stack direction="row" spacing={3} alignItems="center">
@@ -761,7 +816,7 @@ export default function SettingsPage() {
         </Stack>
       </Paper>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <TextFieldsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Text Size & Zoom
         </Typography>
         <Stack spacing={2} sx={{ maxWidth: 480 }}>
@@ -837,7 +892,7 @@ export default function SettingsPage() {
         changes what is written to every care record from that moment on.
       */}
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}><LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Carer location</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}><LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Carer location</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Where a carer's position is recorded when they check in and out of a call, and whether
           managers can see it on the visit check-in map.
@@ -937,7 +992,7 @@ export default function SettingsPage() {
               sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
               data-testid="history-keep">
               <Box>
-                <Typography variant="body2" fontWeight={700}>Keep them</Typography>
+                <Typography variant="body2" fontWeight={600}>Keep them</Typography>
                 <Typography variant="caption" color="text.secondary">
                   Nothing is deleted. You keep the visit record and the positions on it, and can
                   delete them later from the retention card. Reversible.
@@ -950,7 +1005,7 @@ export default function SettingsPage() {
               sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
               data-testid="history-apply-retention">
               <Box>
-                <Typography variant="body2" fontWeight={700}>
+                <Typography variant="body2" fontWeight={600}>
                   Apply my retention period{retentionSummary?.retention_days ? ` (${retentionSummary.retention_days} days)` : ''}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -965,7 +1020,7 @@ export default function SettingsPage() {
               sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 1.5, px: 2, textTransform: 'none' }}
               data-testid="history-purge">
               <Box>
-                <Typography variant="body2" fontWeight={700}>Delete all of them now</Typography>
+                <Typography variant="body2" fontWeight={600}>Delete all of them now</Typography>
                 <Typography variant="caption" color="text.secondary">
                   Removes every position held, across the visit record, the audit log and SecureVisit
                   check-ins. Visits, timesheets and pay are not affected. This cannot be undone.
@@ -988,7 +1043,7 @@ export default function SettingsPage() {
       {/* Organization Details */}
       {orgDetails && (
         <Paper sx={{ p: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Organization Details</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Organization Details</Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <TextField label="Organization Name" fullWidth size="small" disabled={!isOrgAdmin}
@@ -1067,7 +1122,7 @@ export default function SettingsPage() {
 
       {!((['domiciliary', 'live_in'] as string[]).includes(orgSettings.primary_service_type) || (orgSettings.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))) && (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}><MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Care capabilities</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}><MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Care capabilities</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Choose which optional workflows your organisation actually provides. Supported-living medication workflows include MAR charts, stock, competency checks, overdue alerts and audit history.
         </Typography>
@@ -1098,7 +1153,7 @@ export default function SettingsPage() {
 
       {/* Branding — admin-only */}
       {isOrgAdmin && <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Branding</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Branding</Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Logo</Typography>
@@ -1150,7 +1205,7 @@ export default function SettingsPage() {
       </Paper>}
 
       {isOrgAdmin && <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Security Policies
         </Typography>
         <Stack spacing={3}>
@@ -1169,7 +1224,7 @@ export default function SettingsPage() {
       </Paper>}
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Staffing Rules for Rota Planner
         </Typography>
         <Grid container spacing={3}>
@@ -1198,7 +1253,7 @@ export default function SettingsPage() {
       </Paper>
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Notifications
         </Typography>
         <FormControlLabel
@@ -1242,7 +1297,7 @@ export default function SettingsPage() {
       </Paper>
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Shift Audit
         </Typography>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
@@ -1266,7 +1321,7 @@ export default function SettingsPage() {
       </Paper>
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Medication Alerts
         </Typography>
         <FormControlLabel
@@ -1279,6 +1334,13 @@ export default function SettingsPage() {
           When enabled, the location manager is emailed the moment a medication's stock drops to or below its reorder level
           after an administration. Low-stock items are also included in the daily shift audit email.
         </Typography>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 2 }}>
+          <TextField label="In-app run-out alert (days)" type="number" size="small" sx={{ width: 240 }}
+            value={orgSettings.stock_low_alert_days_threshold ?? 7}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, stock_low_alert_days_threshold: Math.max(1, Math.min(90, Number(e.target.value))) }))}
+            InputProps={{ inputProps: { min: 1, max: 90 } }} />
+          <Typography variant="caption" color="#667085">Notify managers/admins when estimated stock falls within this many days.</Typography>
+        </Stack>
         <FormControlLabel
           control={<Switch checked={orgSettings.late_med_alert_enabled !== false}
             onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_enabled: e.target.checked }))} />}
@@ -1295,13 +1357,13 @@ export default function SettingsPage() {
             onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_delay_minutes: Math.max(1, Math.min(1440, Number(e.target.value))) }))}
             InputProps={{ inputProps: { min: 1, max: 1440 } }} />
         </Stack>
-        <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, stock_low_alert_days_threshold: orgSettings.stock_low_alert_days_threshold, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
         </Button>
       </Paper>
 
       {isOrgAdmin && <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <PhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Emergency Contacts
         </Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
@@ -1351,7 +1413,7 @@ export default function SettingsPage() {
       </Paper>}
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Call Alert Frequency
         </Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
@@ -1391,7 +1453,7 @@ export default function SettingsPage() {
       </Paper>
 
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           <MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Medication Counts
         </Typography>
         <TextField
@@ -1422,7 +1484,7 @@ export default function SettingsPage() {
       <Stack spacing={4}>
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}><ComplianceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Configuration</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}><ComplianceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Configuration</Typography>
             <Stack direction="row" spacing={1}>
               {isOrgAdmin && <Button variant="outlined" startIcon={<HistoryIcon />} onClick={seedComplianceRecords}
                 disabled={complianceConfigs.length === 0 || actionLoading === 'seed-records'}>
@@ -1436,11 +1498,11 @@ export default function SettingsPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Mandatory</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warning (days)</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Mandatory</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Warning (days)</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1471,7 +1533,7 @@ export default function SettingsPage() {
 
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Compliance Profiles</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Compliance Profiles</Typography>
             <Stack direction="row" spacing={1}>
               <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setEditCompProfile({ name: '', description: '', role_name: '', requirement_ids: [] }); setCompProfileDialog(true) }}>
                 Add Profile
@@ -1486,10 +1548,10 @@ export default function SettingsPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Requirements</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Requirements</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1516,7 +1578,7 @@ export default function SettingsPage() {
       </Stack>
 
       <Dialog open={compDialog} onClose={() => setCompDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editComp.id ? 'Edit Requirement' : 'Add Compliance Requirement'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editComp.id ? 'Edit Requirement' : 'Add Compliance Requirement'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Name" fullWidth size="small" value={editComp.name} onChange={e => setEditComp((p: any) => ({ ...p, name: e.target.value }))} />
@@ -1542,7 +1604,7 @@ export default function SettingsPage() {
       </Dialog>
 
       <Dialog open={compProfileDialog} onClose={() => setCompProfileDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editCompProfile.id ? 'Edit Profile' : 'Add Compliance Profile'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editCompProfile.id ? 'Edit Profile' : 'Add Compliance Profile'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Profile Name" fullWidth size="small" value={editCompProfile.name}
@@ -1559,7 +1621,7 @@ export default function SettingsPage() {
                 <MenuItem value="COMPLIANCE_OFFICER">Compliance Officer</MenuItem>
               </Select>
             </FormControl>
-            <Typography variant="body2" sx={{ fontWeight: 700, mt: 1 }}>Requirements</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>Requirements</Typography>
             {complianceConfigs.length === 0 ? (
               <EmptyState title="No compliance requirements" description="Configure requirements to track staff compliance" variant="default" />
             ) : (
@@ -1591,12 +1653,16 @@ export default function SettingsPage() {
 
   const loadAIConfig = async () => {
     try {
-      const [configRes, statsRes] = await Promise.all([
+      const [configRes, statsRes, dcRes] = await Promise.all([
         api.get('/ai/config'),
         api.get('/ai/usage-stats'),
+        api.get('/ai/data-classes').catch(() => null),
       ])
       setAIConfig(configRes.data.config)
       setAIUsageStats(statsRes.data.stats)
+      if (dcRes?.data?.capabilities) {
+        setAIDataClasses(Object.fromEntries(dcRes.data.capabilities.map((c: any) => [c.id, c])))
+      }
     } catch { /* ignore */ }
   }
 
@@ -1606,12 +1672,17 @@ export default function SettingsPage() {
     try {
       const body: Record<string, any> = {}
       if (aiConfig.enabled !== undefined) body.enabled = aiConfig.enabled
-      if (aiConfig.provider !== undefined) body.provider = aiConfig.provider
+      // The select displays a default provider even when state has none
+      // (`aiConfig?.provider || 'openai'`), so save the same value the user
+      // is looking at — otherwise the UI shows OpenAI while the org saves
+      // provider: null and every AI call fails its config gate.
+      body.provider = aiConfig.provider || 'openai'
       if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('â€¢â€¢')) {
         body.apiKey = aiConfig.apiKey
       }
       if (aiConfig.model !== undefined) body.model = aiConfig.model
       if (aiConfig.enabledFeatures !== undefined) body.enabledFeatures = aiConfig.enabledFeatures
+      if (aiConfig.ttsVoice !== undefined) body.ttsVoice = aiConfig.ttsVoice
       if (aiConfig.monthlyBudgetCents !== undefined) body.monthlyBudgetCents = aiConfig.monthlyBudgetCents
       if (aiConfig.fallbackProvider !== undefined) body.fallbackProvider = aiConfig.fallbackProvider
       if (aiConfig.fallbackApiKey !== undefined && !aiConfig.fallbackApiKey.startsWith('••')) {
@@ -1668,7 +1739,7 @@ export default function SettingsPage() {
   const renderAITab = () => (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}><SmartToyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />AI Integration</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}><SmartToyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />AI Integration</Typography>
         <Button variant="contained" onClick={saveAIConfig} disabled={aiSaving}
           startIcon={aiSaving ? undefined : <SaveIcon />}
           sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
@@ -1680,7 +1751,7 @@ export default function SettingsPage() {
         {/* Left: Configuration */}
         <Grid item xs={12} md={7}>
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>What is sent to the AI provider</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>What is sent to the AI provider</Typography>
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
                 {minimisationInfo?.description || 'Names are always replaced with stable pseudonyms before anything is sent.'}
@@ -1707,7 +1778,7 @@ export default function SettingsPage() {
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Provider Configuration</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Provider Configuration</Typography>
             <Stack spacing={2.5}>
               <FormControlLabel control={<Switch checked={aiConfig?.enabled || false} onChange={e => setAIConfig((p: any) => ({ ...p, enabled: e.target.checked }))} />} label="Enable AI Features" />
               <FormControl fullWidth size="small">
@@ -1725,11 +1796,52 @@ export default function SettingsPage() {
                 value={aiConfig?.model || ''}
                 onChange={e => setAIConfig((p: any) => ({ ...p, model: e.target.value }))}
                 helperText="e.g. gpt-4o-mini, claude-sonnet-4-20250514" />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Mica Voice</InputLabel>
+                  <Select
+                    value={aiConfig?.ttsVoice || 'coral'}
+                    label="Mica Voice"
+                    onChange={e => setAIConfig((p: any) => ({ ...p, ttsVoice: e.target.value }))}
+                  >
+                    {[
+                      { v: 'alloy', d: 'Neutral and balanced' },
+                      { v: 'ash', d: 'Even and composed' },
+                      { v: 'ballad', d: 'Theatrical and expressive' },
+                      { v: 'coral', d: 'Warm and conversational (default)' },
+                      { v: 'echo', d: 'Calm and measured' },
+                      { v: 'fable', d: 'Expressive storyteller' },
+                      { v: 'nova', d: 'Bright and animated' },
+                      { v: 'sage', d: 'Soft and thoughtful' },
+                      { v: 'shimmer', d: 'Airy and gentle' },
+                      { v: 'verse', d: 'Confident and versatile' },
+                    ].map(o => (
+                      <MenuItem key={o.v} value={o.v}>{o.v.charAt(0).toUpperCase() + o.v.slice(1)} — {o.d}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={voicePreviewLoading ? <CircularProgress size={16} /> : <VolumeUpIcon />}
+                  onClick={previewMicaVoice}
+                  disabled={voicePreviewLoading}
+                  sx={{ mt: { sm: 0 }, flexShrink: 0, whiteSpace: 'nowrap' }}
+                >
+                  {voicePreviewLoading ? 'Playing…' : 'Preview voice'}
+                </Button>
+              </Stack>
+              {voicePreviewError && (
+                <Typography variant="caption" sx={{ color: 'error.main' }}>{voicePreviewError}</Typography>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                The voice Mica speaks replies with. Applies to everyone in your organisation; takes effect on the next spoken reply.
+              </Typography>
             </Stack>
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Budget & Limits</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Budget & Limits</Typography>
             <Stack spacing={2.5}>
               <TextField
                 label="Monthly Budget Limit (GBP)"
@@ -1767,7 +1879,7 @@ export default function SettingsPage() {
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Fallback Provider</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Fallback Provider</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               If the primary provider is unavailable, requests will automatically fall back to this provider.
             </Typography>
@@ -1791,26 +1903,83 @@ export default function SettingsPage() {
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Enabled Features</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Enabled Features</Typography>
             <Stack spacing={1.5}>
-              {AI_FEATURES.map(f => (
-                <Box key={f.key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Switch
-                    size="small"
-                    checked={aiConfig?.enabledFeatures?.includes(f.key) || false}
-                    onChange={() => toggleAIFeature(f.key)}
-                  />
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{f.label}</Typography>
-                    <Typography variant="caption" color="text.secondary">{f.desc}</Typography>
+              {AI_FEATURES.map(f => {
+                // The per-feature disclosure, sourced server-side so it can
+                // never disagree with what the controller actually sends.
+                // Looked up by the toggle's own feature key — the same key
+                // enabledFeatures stores — so both capability ids and the
+                // single-purpose generator flags resolve from one endpoint.
+                const dc = aiDataClasses[f.key]
+                const expanded = aiDisclosureOpen === f.key
+                return (
+                  <Box key={f.key}>
+                    <Box sx={{
+                      display: 'flex', alignItems: 'flex-start', gap: 1.5,
+                      cursor: dc ? 'pointer' : 'default',
+                      borderRadius: 1,
+                      p: 0.5,
+                      // Clickable identity + hover feedback apart from the switch.
+                      '&:hover': dc ? { bgcolor: 'rgba(47,128,237,0.04)' } : undefined,
+                    }}
+                      onClick={() => dc && setAIDisclosureOpen(expanded ? null : f.key)}
+                      role={dc ? 'button' : undefined}
+                      tabIndex={dc ? 0 : undefined}
+                      aria-expanded={dc ? expanded : undefined}
+                      onKeyDown={e => { if (dc && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setAIDisclosureOpen(expanded ? null : f.key) } }}
+                    >
+                      <Switch
+                        size="small"
+                        checked={aiConfig?.enabledFeatures?.includes(f.key) || false}
+                        onChange={() => toggleAIFeature(f.key)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{f.label}</Typography>
+                          {dc && (
+                            <Typography variant="caption" sx={{ color: 'primary.main', ml: 'auto', flexShrink: 0 }}>
+                              {expanded ? 'hide' : 'what is sent'}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">{f.desc}</Typography>
+                        {dc && expanded && (
+                          <Box sx={{
+                            mt: 1, p: 1.5,
+                            bgcolor: 'rgba(47,128,237,0.04)',
+                            border: '1px solid rgba(47,128,237,0.15)',
+                            borderRadius: 1,
+                          }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                              Sent to the AI provider:
+                            </Typography>
+                            {dc.data_classes.map((d: any) => (
+                              <Typography key={d.type} variant="caption" display="block" color="text.secondary" sx={{ pl: 1 }}>
+                                • {d.label}
+                              </Typography>
+                            ))}
+                            {dc.identifier_fields.length > 0 && (
+                              <Typography variant="caption" display="block" sx={{ mt: 0.5, color: 'warning.dark' }}>
+                                Real names in: {dc.identifier_fields.join(' · ')}
+                              </Typography>
+                            )}
+                            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                              Names outside these fields are pseudonymised before sending.
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
                   </Box>
-                </Box>
-              ))}
+                )
+              })}
             </Stack>
           </Paper>
 
           <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Compliance Gap Analysis</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Compliance Gap Analysis</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Run an AI-powered analysis of your compliance data to identify gaps and get prioritized recommendations.
             </Typography>
@@ -1842,7 +2011,7 @@ export default function SettingsPage() {
         {/* Right: Usage Stats & Audit Logs */}
         <Grid item xs={12} md={5}>
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Usage</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Usage</Typography>
             {aiUsageStats ? (
               <Stack spacing={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1868,7 +2037,7 @@ export default function SettingsPage() {
                 {aiUsageStats.estimated_cost_cents !== undefined && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #E6EAF0', mt: 0.5 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>Est. Cost</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#2F80ED' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#2F80ED' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
                   </Box>
                 )}
               </Stack>
@@ -1879,7 +2048,7 @@ export default function SettingsPage() {
 
           {aiConfig?.enabled && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>How It Works</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>How It Works</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 1. Bring your own API key from <strong>OpenAI</strong> or <strong>Anthropic</strong>
               </Typography>
@@ -1905,7 +2074,7 @@ export default function SettingsPage() {
   const renderDelegationsTab = () => (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}><DelegateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Manager Delegations</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}><DelegateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Manager Delegations</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditDel({ id: '', primary_manager_id: '', delegate_manager_id: '', ends_at: '' }); setDelDialog(true) }}
           sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Delegation</Button>
       </Stack>
@@ -1914,11 +2083,11 @@ export default function SettingsPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Primary Manager</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Delegate</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Primary Manager</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Delegate</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Expires</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1949,7 +2118,7 @@ export default function SettingsPage() {
         )}
       </Paper>
       <Dialog open={delDialog} onClose={() => setDelDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editDel.id ? 'Edit Delegation' : 'Add Delegation'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editDel.id ? 'Edit Delegation' : 'Add Delegation'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth size="small">
@@ -1978,7 +2147,7 @@ export default function SettingsPage() {
         </DialogActions>
       </Dialog>
       <Dialog open={delAuditDialog} onClose={() => setDelAuditDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Delegation Audit Log</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Delegation Audit Log</DialogTitle>
         <DialogContent>
           {delAuditLoading ? (
             <Typography sx={{ py: 2 }}>Loading...</Typography>
@@ -1989,10 +2158,10 @@ export default function SettingsPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Performed By</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date & Time</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Performed By</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2018,11 +2187,11 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 3 }}>Settings</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>Settings</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
-          sx={{ '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 48 } }}>
+          sx={{ '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', minHeight: 48 } }}>
           <Tab value="profile" icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
           {user && <Tab value="security" icon={<SecurityIcon />} iconPosition="start" label="Security" />}
           <Tab value="appearance" icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
@@ -2138,7 +2307,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
 
       {/* Leave Calendar Settings */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Calendar Settings</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Calendar Settings</Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
@@ -2177,7 +2346,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
 
       {/* Leave Entitlements Summary */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 3 }}>
           Staff leave entitlements are calculated proportionally based on their contracted weekly hours.
           For example, a staff member working 20h/week will receive half the leave of a 40h/week full-time employee.
@@ -2187,14 +2356,14 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
             <CardContent>
               <Typography variant="caption" color="#667085">Base Leave Hours</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{leaveOrg.base_leave_hours ?? 240}h</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>{leaveOrg.base_leave_hours ?? 240}h</Typography>
               <Typography variant="caption" color="#98A2B3">For {leaveOrg.base_contracted_hours ?? 40}h/week</Typography>
             </CardContent>
           </Card>
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
             <CardContent>
               <Typography variant="caption" color="#667085">Staff Count</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{staffCount}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>{staffCount}</Typography>
               <Typography variant="caption" color="#98A2B3">Active staff to calculate</Typography>
             </CardContent>
           </Card>
@@ -2208,14 +2377,14 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
       {/* Leave Types */}
       <Paper sx={{ p: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700}>Leave Types</Typography>
+          <Typography variant="h6" fontWeight={600}>Leave Types</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
             onClick={() => { setEditingType({ name: '', color: '#2F80ED', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); setSaveError(''); setTypeDialog(true) }}
             sx={{ bgcolor: '#2F80ED' }}>Add Leave Type</Button>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <Typography variant="body2" color="#667085">Type allowances total</Typography>
-          <Typography variant="body2" fontWeight={700} color={savedMismatch ? 'error.main' : 'success.main'}>{fmt(savedTotal)}h</Typography>
+          <Typography variant="body2" fontWeight={600} color={savedMismatch ? 'error.main' : 'success.main'}>{fmt(savedTotal)}h</Typography>
           <Typography variant="body2" color="#667085">of {fmt(base)}h allowed</Typography>
           {savedMismatch && <Typography variant="body2" color="error.main" fontWeight={600}>
             ({fmt(base - savedTotal) >= 0 ? `${fmt(base - savedTotal)}h remaining` : `${fmt(savedTotal - base)}h over`})
@@ -2230,19 +2399,19 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
           <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Color</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Allowance</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Paid</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Approval</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Color</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Allowance</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Paid</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Approval</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {types.slice(typePage * 10, typePage * 10 + 10).map(t => (
                     <TableRow key={t.id}>
                       <TableCell><Typography fontWeight={600}>{t.name}</Typography></TableCell>
-                      <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#FFFFFF', fontWeight: 700 }} /></TableCell>
+                      <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#FFFFFF', fontWeight: 600 }} /></TableCell>
                       <TableCell>{fmt(toHours(t))}h</TableCell>
                       <TableCell><Chip label={t.is_paid ? 'Paid' : 'Unpaid'} size="small" color={t.is_paid ? 'success' : 'default'} variant="outlined" /></TableCell>
                       <TableCell><Chip label={t.requires_approval ? 'Approval' : 'Auto'} size="small" color={t.requires_approval ? 'warning' : 'info'} variant="outlined" /></TableCell>
@@ -2290,7 +2459,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
             )}
             <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1 }}>
               <Typography variant="body2" color="#475467">
-                Type allowances total <Typography component="span" fontWeight={700} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
+                Type allowances total <Typography component="span" fontWeight={600} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
                 <Typography component="span" color="#667085"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>
               </Typography>
               {mismatch && (
@@ -2313,7 +2482,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         <DialogTitle>Delete leave type?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="#475467">
-            Are you sure you want to delete <Typography component="span" fontWeight={700}>{confirmDelete?.name}</Typography>? This will permanently remove the type and its staff balances.
+            Are you sure you want to delete <Typography component="span" fontWeight={600}>{confirmDelete?.name}</Typography>? This will permanently remove the type and its staff balances.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -2366,7 +2535,7 @@ function IncidentCategoriesSettings() {
       {icError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setIcError('')}>{icError}</Alert>}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700}>Incident Categories</Typography>
+          <Typography variant="h6" fontWeight={600}>Incident Categories</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
             onClick={() => { setEditingCat({ name: '', severity: 'medium', is_cqc_reportable: false }); setCatDialog(true) }}
             sx={{ bgcolor: '#2F80ED' }}>Add Category</Button>
@@ -2375,10 +2544,10 @@ function IncidentCategoriesSettings() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>CQC Reportable</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Severity</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>CQC Reportable</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -2457,7 +2626,7 @@ function PushNotificationsSection() {
   }
 
   return <Paper sx={{ p: 4 }}>
-    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}><NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Browser visit reminders</Typography>
+    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}><NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Browser visit reminders</Typography>
     <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
       Get a browser alert before an assigned domiciliary visit enters its travel window. Location permission is not required for notifications, and tracking is not continuous.
     </Typography>
@@ -2520,7 +2689,7 @@ function NotificationPreferencesSection() {
 
   return (
     <Paper sx={{ p: 4 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
         <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />My Notification Preferences
       </Typography>
       <Typography variant="caption" color="#667085" sx={{ display: 'block', mb: 2 }}>
@@ -2545,7 +2714,7 @@ function NotificationPreferencesSection() {
         )}
       </Grid>
       <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E6EAF0' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Domiciliary care summary emails</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Domiciliary care summary emails</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>
           Receive one summary for your own calls or organisation each day instead of an email for every call. Each summary can be switched on or off independently. Times use your selected timezone; UK users should use Europe/London.
         </Typography>

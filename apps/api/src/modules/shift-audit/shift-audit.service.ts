@@ -52,6 +52,8 @@ export interface LocationAudit {
     reorder_level: number;
     quantity_unit: string;
     person_name: string;
+    /** Projected run-out in days from the 28-day given-dose rate; null when no recent usage. */
+    days_until_empty: number | null;
   }[];
 }
 
@@ -102,6 +104,7 @@ export class ShiftAuditService {
         reorder_level: Number(s.reorder_level),
         quantity_unit: s.quantity_unit,
         person_name: s.person_name,
+        days_until_empty: s.days_until_empty != null ? Number(s.days_until_empty) : null,
       });
       lowStockByLocation.set(s.location_id, list);
     }

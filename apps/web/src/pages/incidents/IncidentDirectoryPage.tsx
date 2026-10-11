@@ -90,7 +90,7 @@ export default function IncidentDirectoryPage() {
         subtitle={`${stats?.total ?? 0} total · ${stats?.open_actions ?? 0} open actions`}
         actions={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-            sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Report Incident</Button>
+            sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Report Incident</Button>
         }
       />
 
@@ -98,9 +98,9 @@ export default function IncidentDirectoryPage() {
       {stats && (
         <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Open</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{(stats.reported || 0) + (stats.investigating || 0)}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{(stats.reported || 0) + (stats.investigating || 0)}</Typography>
               <Typography variant="caption" color="text.secondary">{stats.total || 0} total</Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
@@ -116,33 +116,33 @@ export default function IncidentDirectoryPage() {
           </Paper>
 
           <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Critical &amp; High</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Critical &amp; High</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1, color: '#EF4444' }}>{(stats.critical || 0)}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1, color: '#EF4444' }}>{(stats.critical || 0)}</Typography>
               {stats.high > 0 && <Typography variant="caption" color="text.secondary">{stats.high} high</Typography>}
             </Stack>
           </Paper>
 
           <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Actions</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{stats.open_actions || 0}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{stats.open_actions || 0}</Typography>
               <Typography variant="caption" color="text.secondary">open</Typography>
             </Stack>
             {stats.overdue_actions > 0 && (
               <Chip label={`${stats.overdue_actions} overdue`} size="small"
-                sx={{ mt: 1, bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 700, fontSize: 11, height: 22 }} />
+                sx={{ mt: 1, bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 600, fontSize: 11, height: 22 }} />
             )}
           </Paper>
 
           <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Near Misses</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Near Misses</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{stats.near_misses || 0}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{stats.near_misses || 0}</Typography>
             </Stack>
             {stats.pending_cqc > 0 && (
               <Chip label={`${stats.pending_cqc} pending CQC`} size="small"
-                sx={{ mt: 1, bgcolor: 'notice.muted.bg', color: NAVY, fontWeight: 700, fontSize: 11, height: 22 }} />
+                sx={{ mt: 1, bgcolor: 'notice.muted.bg', color: NAVY, fontWeight: 600, fontSize: 11, height: 22 }} />
             )}
           </Paper>
         </Stack>
@@ -213,13 +213,13 @@ export default function IncidentDirectoryPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Incident</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Severity</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CQC</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Incident</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Severity</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Location</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>CQC</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -231,8 +231,8 @@ export default function IncidentDirectoryPage() {
                     <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
                       {i.category_name && <Typography variant="caption" color="text.secondary">{i.category_name}</Typography>}
-                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, fontSize: 10, height: 20 }} />}
-                      {i.is_confidential && <Chip icon={<LockIcon sx={{ fontSize: 12 }} />} label="Confidential" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.primary', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600, fontSize: 10, height: 20 }} />}
+                      {i.is_confidential && <Chip icon={<LockIcon sx={{ fontSize: 12 }} />} label="Confidential" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.primary', fontWeight: 600, fontSize: 10, height: 20 }} />}
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -250,7 +250,7 @@ export default function IncidentDirectoryPage() {
                   <TableCell align="right">
                     {(i.open_actions || 0) > 0 ? (
                       <Chip icon={<TaskIcon sx={{ fontSize: 14 }} />} label={i.open_actions} size="small"
-                        sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700, fontSize: 11, height: 22 }} />
+                        sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600, fontSize: 11, height: 22 }} />
                     ) : (
                       <Typography variant="caption" color="text.secondary">—</Typography>
                     )}
@@ -284,7 +284,7 @@ export default function IncidentDirectoryPage() {
       {/* Report Incident Dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Report Incident</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Report Incident</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -339,7 +339,7 @@ export default function IncidentDirectoryPage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>
+              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
               {createMutation.isPending ? <CircularProgress size={20} /> : 'Report Incident'}
             </Button>
           </DialogActions>

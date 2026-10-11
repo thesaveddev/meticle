@@ -175,12 +175,12 @@ export function ProgressCard({ value, max, color = METICLE_COLORS.success, label
             position: 'relative',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 800, color }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color }}>
             {percent}%
           </Typography>
         </Box>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
             {value} of {max}
           </Typography>
           <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>

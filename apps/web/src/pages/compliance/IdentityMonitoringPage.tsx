@@ -202,9 +202,9 @@ export default function IdentityMonitoringPage() {
           <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
-                <Typography variant="h5" color="white" fontWeight={800}>{counts.compliant}</Typography>
+                <Typography variant="h5" color="white" fontWeight={600}>{counts.compliant}</Typography>
               </Box>
-              <Typography variant="body2" fontWeight={700} color='notice.success.fg'>Compliant</Typography>
+              <Typography variant="body2" fontWeight={600} color='notice.success.fg'>Compliant</Typography>
               <Typography variant="caption" color='notice.success.fg'>All documents valid</Typography>
             </CardContent>
           </Card>
@@ -213,9 +213,9 @@ export default function IdentityMonitoringPage() {
           <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
-                <Typography variant="h5" color="white" fontWeight={800}>{counts.incomplete}</Typography>
+                <Typography variant="h5" color="white" fontWeight={600}>{counts.incomplete}</Typography>
               </Box>
-              <Typography variant="body2" fontWeight={700} color='notice.warning.fg'>Missing Docs</Typography>
+              <Typography variant="body2" fontWeight={600} color='notice.warning.fg'>Missing Docs</Typography>
               <Typography variant="caption" color='notice.warning.fg'>Not uploaded yet</Typography>
             </CardContent>
           </Card>
@@ -224,9 +224,9 @@ export default function IdentityMonitoringPage() {
           <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
-                <Typography variant="h5" color="white" fontWeight={800}>{counts.expiring}</Typography>
+                <Typography variant="h5" color="white" fontWeight={600}>{counts.expiring}</Typography>
               </Box>
-              <Typography variant="body2" fontWeight={700} color='notice.warning.fg'>Expiring Soon</Typography>
+              <Typography variant="body2" fontWeight={600} color='notice.warning.fg'>Expiring Soon</Typography>
               <Typography variant="caption" color='notice.warning.fg'>Due within 30 days</Typography>
             </CardContent>
           </Card>
@@ -235,9 +235,9 @@ export default function IdentityMonitoringPage() {
           <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
-                <Typography variant="h5" color="white" fontWeight={800}>{counts.expired}</Typography>
+                <Typography variant="h5" color="white" fontWeight={600}>{counts.expired}</Typography>
               </Box>
-              <Typography variant="body2" fontWeight={700} color='notice.error.fg'>Expired</Typography>
+              <Typography variant="body2" fontWeight={600} color='notice.error.fg'>Expired</Typography>
               <Typography variant="caption" color='notice.error.fg'>Needs renewal</Typography>
             </CardContent>
           </Card>
@@ -248,14 +248,14 @@ export default function IdentityMonitoringPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
-              {showNations && <TableCell sx={{ fontWeight: 700 }}>Nation</TableCell>}
+              <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+              {showNations && <TableCell sx={{ fontWeight: 600 }}>Nation</TableCell>}
               {columns.map(t => (
-                <TableCell key={t} sx={{ fontWeight: 700, textAlign: 'center' }}>{identityTypeLabel(t)}</TableCell>
+                <TableCell key={t} sx={{ fontWeight: 600, textAlign: 'center' }}>{identityTypeLabel(t)}</TableCell>
               ))}
-              <TableCell sx={{ fontWeight: 700 }}>Overall</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Overall</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           {downloadError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDownloadError(null)}>{downloadError}</Alert>}

@@ -27,7 +27,7 @@ export default function ReportLineChart({ title, data, height = 350, showLegend 
 
   return (
     <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>{title}</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>{title}</Typography>
       {data.length === 0 ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height - 80, color: 'text.secondary' }}>
           <Typography variant="body2">No data available</Typography>

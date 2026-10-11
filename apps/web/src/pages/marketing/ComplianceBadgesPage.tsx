@@ -230,8 +230,8 @@ export default function ComplianceBadgesPage() {
       {/* Hero */}
       <Box sx={{ bgcolor: NAVY, pt: { xs: 12, md: 16 }, pb: { xs: 8, md: 10 } }}>
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
-          <Chip label="Compliance & Standards" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 700, mb: 3 }} />
-          <Typography variant="h1" sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, mb: 3 }}>
+          <Chip label="Compliance & Standards" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 600, mb: 3 }} />
+          <Typography variant="h1" sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 600, color: 'white', lineHeight: 1.1, mb: 3 }}>
             Built for the regulators that matter
           </Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '1.1rem', maxWidth: 600, mx: 'auto', lineHeight: 1.7 }}>
@@ -254,7 +254,7 @@ export default function ComplianceBadgesPage() {
                 sx={{
                   bgcolor: b.color + '10',
                   color: b.color,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '0.8rem',
                   px: 1,
                   cursor: 'pointer',
@@ -289,12 +289,12 @@ export default function ComplianceBadgesPage() {
                       {badge.logo
                         ? <img src={badge.logo} alt={badge.name} style={{ height: '100%', width: 'auto' }} />
                         : <Box sx={{ height: 56, width: 56, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: badge.color }}>
-                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#FFFFFF' }}>{badge.acronym}</Typography>
+                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF' }}>{badge.acronym}</Typography>
                           </Box>}
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                        <Typography variant="h3" sx={{ fontSize: { xs: '1.3rem', md: '1.5rem' }, fontWeight: 800, color: INK }}>
+                        <Typography variant="h3" sx={{ fontSize: { xs: '1.3rem', md: '1.5rem' }, fontWeight: 600, color: INK }}>
                           {badge.name}
                         </Typography>
                         <Chip
@@ -329,7 +329,7 @@ export default function ComplianceBadgesPage() {
                   <Grid container>
                     {/* What it does */}
                     <Grid item xs={12} md={4} sx={{ px: { xs: 3, md: 4 }, py: 3, borderRight: { md: `1px solid ${HAIRLINE}` }, borderBottom: { xs: `1px solid ${HAIRLINE}`, md: 'none' } }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: badge.color, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
                         What it does
                       </Typography>
                       <Typography variant="body2" color={MIST} sx={{ lineHeight: 1.7, fontSize: '0.85rem' }}>
@@ -339,7 +339,7 @@ export default function ComplianceBadgesPage() {
 
                     {/* How Meticle Care helps */}
                     <Grid item xs={12} md={4} sx={{ px: { xs: 3, md: 4 }, py: 3, borderRight: { md: `1px solid ${HAIRLINE}` }, borderBottom: { xs: `1px solid ${HAIRLINE}`, md: 'none' } }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: badge.color, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
                         How Meticle Care helps
                       </Typography>
                       <Stack spacing={0.75}>
@@ -353,7 +353,7 @@ export default function ComplianceBadgesPage() {
                         ))}
                         {badge.caveat && (
                           <Box sx={{ mt: 1.5, p: 1.5, borderLeft: `3px solid ${badge.color}`, bgcolor: badge.color + '08' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem', display: 'block', mb: 0.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: badge.color, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.62rem', display: 'block', mb: 0.5 }}>
                               What we do not claim
                             </Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.primary', lineHeight: 1.55 }}>
@@ -366,7 +366,7 @@ export default function ComplianceBadgesPage() {
 
                     {/* Key Requirements */}
                     <Grid item xs={12} md={4} sx={{ px: { xs: 3, md: 4 }, py: 3 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: badge.color, textTransform: 'none', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
                         Key requirements
                       </Typography>
                       <Stack spacing={0.75}>
@@ -391,7 +391,7 @@ export default function ComplianceBadgesPage() {
       {/* CTA */}
       <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
-          <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.4rem' }, fontWeight: 800, color: INK, mb: 2 }}>
+          <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.4rem' }, fontWeight: 600, color: INK, mb: 2 }}>
             Ready to simplify compliance?
           </Typography>
           <Typography color={MIST} sx={{ mb: 4, lineHeight: 1.7 }}>
@@ -401,7 +401,7 @@ export default function ComplianceBadgesPage() {
             <Button
               variant="contained"
               size="large"
-              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, fontWeight: 700, px: 5, borderRadius: 2 }}
+              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, fontWeight: 600, px: 5, borderRadius: 2 }}
               onClick={() => navigate('/contact')}
             >
               Book a demo
@@ -409,7 +409,7 @@ export default function ComplianceBadgesPage() {
             <Button
               variant="outlined"
               size="large"
-              sx={{ borderColor: NAVY, color: NAVY, fontWeight: 700, px: 5, borderRadius: 2 }}
+              sx={{ borderColor: NAVY, color: NAVY, fontWeight: 600, px: 5, borderRadius: 2 }}
               onClick={() => navigate('/features')}
             >
               Explore features

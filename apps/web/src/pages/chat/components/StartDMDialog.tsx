@@ -14,7 +14,7 @@ interface Props {
 export default function StartDMDialog({ open, onClose, orgMembers, currentUserId, onlineUsers, onStartDM }: Props) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>
+      <DialogTitle sx={{ fontWeight: 600, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>
         New message
       </DialogTitle>
       <DialogContent sx={{ pt: 2.5 }}>
@@ -38,7 +38,7 @@ export default function StartDMDialog({ open, onClose, orgMembers, currentUserId
                   </Box>
                   {onlineUsers.has(option.id) && (
                     <Chip label="Online" size="small"
-                      sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(16,185,129,0.1)', color: '#087A55', fontWeight: 700 }} />
+                      sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(16,185,129,0.1)', color: '#087A55', fontWeight: 600 }} />
                   )}
                 </Stack>
               </li>
@@ -48,7 +48,7 @@ export default function StartDMDialog({ open, onClose, orgMembers, currentUserId
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+        <Button onClick={onClose} sx={{ color: MIST, fontWeight: 600 }}>Cancel</Button>
       </DialogActions>
     </Dialog>
   )

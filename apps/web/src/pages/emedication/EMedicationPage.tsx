@@ -2,9 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { formatDateOnly, parseDateOnly } from '../../utils/dateFormat'
+import { P } from '../../styles/tokens'
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
+import { EX } from '../../styles/export-tokens'
 
 const ROUTES = ['oral', 'topical', 'injection', 'inhalation', 'rectal', 'sublingual', 'other']
 const FREQUENCIES = ['once daily', 'twice daily', 'three times daily', 'four times daily', 'as required (PRN)', 'weekly', 'monthly']
@@ -98,6 +101,11 @@ interface StockItem {
   batch_number: string; expiry_date: string; quantity: number; quantity_unit: string
   reorder_level: number; location: string; person_id?: string; person_name?: string; status?: string
   is_controlled_drug?: boolean
+  days_until_empty?: number | null
+  given_28d?: number
+  daily_usage?: number | null
+  /** When the reorder sweep or transaction email last chased this line; null = never warned. */
+  last_reorder_alerted_at?: string | null
 }
 
 interface Delivery {
@@ -142,6 +150,12 @@ function formatMonthLabel(ym: string) {
 
 export default function EMedicationPage() {
   const navigate = useNavigate()
+  // Deep links (Mission Control alerts, notification inbox) open the stock tab
+  // with `?tab=1`; honour whichever the URL carries. Anything that isn't a
+  // known in-range tab index falls back to the MAR chart.
+  const [searchParams] = useSearchParams()
+  const requestedTab = Number(searchParams.get('tab') ?? '')
+  const [tab, setTab] = useState(Number.isInteger(requestedTab) && requestedTab >= 0 && requestedTab <= 4 ? requestedTab : 0)
   const queryClient = useQueryClient()
   const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const userRole = currentUser.role
@@ -149,7 +163,6 @@ export default function EMedicationPage() {
   const apiErrorMsg = (err: any, fallback: string) =>
     err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || fallback
 
-  const [tab, setTab] = useState(0)
   const [selectedPerson, setSelectedPerson] = useState<any>(null)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [month, setMonth] = useState(() => {
@@ -2180,7 +2193,7 @@ export default function EMedicationPage() {
     <Box sx={{ py: { xs: 2, md: 3 }, bgcolor: EMR.bone, border: `1px solid ${EMR.hairline}`, borderRadius: 3 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 3 }} className="no-print">
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: EMR.ink, letterSpacing: '-0.01em' }}>Medication (eMAR)</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: EMR.ink, letterSpacing: '-0.01em' }}>Medication (eMAR)</Typography>
           <Typography variant="body2" sx={{ color: EMR.mist, mt: 0.25 }}>
             Administration record, stock, deliveries and controlled-drug counts.
           </Typography>
@@ -2213,7 +2226,7 @@ export default function EMedicationPage() {
 
       {/* Tabs */}
       <Paper sx={{ mb: 2.5, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ '& .MuiTab-root': { fontWeight: 700 } }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ '& .MuiTab-root': { fontWeight: 600 } }}>
           <Tab label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
           <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />
           <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
@@ -2242,7 +2255,7 @@ export default function EMedicationPage() {
               <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Box>
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ color: EMR.ink }}>MAR Charts</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: EMR.ink }}>MAR Charts</Typography>
                     <Typography variant="caption" color="text.secondary">One month at a time</Typography>
                   </Box>
                   {selectedPerson && (
@@ -2306,7 +2319,7 @@ export default function EMedicationPage() {
                             animation: 'emrPulse 2s ease-in-out infinite',
                             '@media (prefers-reduced-motion: reduce)': { animation: 'none' }
                           }} />
-                          <Typography variant="body2" fontWeight={700} sx={{ color: EMR.ink }}>{activeRecord.title}</Typography>
+                          <Typography variant="body2" fontWeight={600} sx={{ color: EMR.ink }}>{activeRecord.title}</Typography>
                         </Stack>
                         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                           {new Date(activeRecord.start_date).toLocaleDateString()} – {new Date(activeRecord.end_date).toLocaleDateString()}
@@ -2336,14 +2349,14 @@ export default function EMedicationPage() {
                   </Box>
                   {!selectedPerson ? (
                     <>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>Select a person to view their MAR</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Select a person to view their MAR</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Choose a person above to open their medication administration record and log administrations.
                       </Typography>
                     </>
                   ) : (
                     <>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>No chart for this month</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>No chart for this month</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Use the arrows in the sidebar to browse months, or select another person.
                       </Typography>
@@ -2362,7 +2375,7 @@ export default function EMedicationPage() {
                     <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={1.5} sx={{ p: 2, bgcolor: EMR.chrome, borderBottom: `1px solid ${EMR.windowBorder}` }}>
                       <Box>
                         <Stack direction="row" spacing={0.75} alignItems="center">
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink, letterSpacing: '-0.01em' }}>{chartData.record.title}</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink, letterSpacing: '-0.01em' }}>{chartData.record.title}</Typography>
                           <Box sx={{
                             width: 8, height: 8, borderRadius: '50%', bgcolor: EMR.emerald,
                             '@keyframes emrPulse': {
@@ -2441,15 +2454,15 @@ export default function EMedicationPage() {
                         <Table size="small" stickyHeader>
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: EMR.bone, position: 'sticky', left: 0, zIndex: 3, borderRight: `2px solid ${EMR.windowBorder}`, color: EMR.ink }}>
+                              <TableCell sx={{ fontWeight: 600, minWidth: 200, bgcolor: EMR.bone, position: 'sticky', left: 0, zIndex: 3, borderRight: `2px solid ${EMR.windowBorder}`, color: EMR.ink }}>
                                 Medication
                               </TableCell>
-                              <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: EMR.rowAlt, position: 'sticky', left: 200, zIndex: 3, borderRight: `1px solid ${EMR.windowBorder}`, color: EMR.ink }}>
+                              <TableCell sx={{ fontWeight: 600, minWidth: 80, bgcolor: EMR.rowAlt, position: 'sticky', left: 200, zIndex: 3, borderRight: `1px solid ${EMR.windowBorder}`, color: EMR.ink }}>
                                 Time
                               </TableCell>
                               {chartData.days.map((day, i) => (
                                 <TableCell key={day} align="center" sx={{
-                                  fontWeight: 700, fontSize: '0.7rem', p: 0.3, minWidth: 42,
+                                  fontWeight: 600, fontSize: '0.7rem', p: 0.3, minWidth: 42,
                                   bgcolor: day === todayStr() ? EMR.today : EMR.rowAlt,
                                   color: day === todayStr() ? EMR.navy : EMR.ink,
                                   borderLeft: i > 0 ? `1px solid ${EMR.hairline}` : 'none',
@@ -2556,7 +2569,7 @@ export default function EMedicationPage() {
                                                 width: 26, minHeight: 30, mx: 'auto', py: 0.5,
                                                 lineHeight: 1
                                               }}>
-                                                <Box sx={{ fontSize: '0.66rem', fontWeight: 800, lineHeight: 1.1 }}>
+                                                <Box sx={{ fontSize: '0.66rem', fontWeight: 600, lineHeight: 1.1 }}>
                                                   {MAR_STATUS_CODES[existingAdmin.status as AdminStatus] || '?'}
                                                 </Box>
                                                 <Box sx={{ fontSize: '0.48rem', fontWeight: 500, opacity: 0.92, lineHeight: 1.1, mt: 0.25, letterSpacing: '0.02em' }}>
@@ -2589,13 +2602,13 @@ export default function EMedicationPage() {
                         px: 2, py: 1.5, bgcolor: EMR.rowAlt, borderTop: `1px solid ${EMR.hairline}`,
                         display: 'flex', flexWrap: 'wrap', gap: '12px 20px', alignItems: 'center'
                       }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: EMR.ink, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.62rem' }}>Key</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: EMR.ink, textTransform: 'none', letterSpacing: '0.08em', fontSize: '0.62rem' }}>Key</Typography>
                         {MAR_LEGEND.map(l => (
                           <Stack key={l.code} direction="row" spacing={0.75} alignItems="center">
                             <Box sx={{
                               width: 18, height: 18, borderRadius: '4px', bgcolor: l.color,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: 'white', fontSize: '0.6rem', fontWeight: 800, lineHeight: 1
+                              color: 'white', fontSize: '0.6rem', fontWeight: 600, lineHeight: 1
                             }}>{l.code}</Box>
                             <Typography variant="caption" sx={{ color: EMR.mist, fontSize: '0.7rem' }}>{l.label}</Typography>
                           </Stack>
@@ -2608,7 +2621,7 @@ export default function EMedicationPage() {
                   {/* PRN Section */}
                   {prnItems.length > 0 && (
                     <Paper sx={{ p: 2, mt: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: EMR.ink }}>PRN (As Required) Medications</Typography>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: EMR.ink }}>PRN (As Required) Medications</Typography>
                       <Stack spacing={1}>
                         {prnItems.map((item: MedicationItem) => (
                           <Paper key={item.id} variant="outlined" sx={{ p: 1.5 }}>
@@ -2616,7 +2629,7 @@ export default function EMedicationPage() {
                               <Box>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                   <MedIcon sx={{ fontSize: 16, color: item.is_active ? '#2F80ED' : '#98A2B3' }} />
-                                  <Typography variant="body2" fontWeight={700} sx={{ textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</Typography>
+                                  <Typography variant="body2" fontWeight={600} sx={{ textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</Typography>
                                   <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
                                   <Chip label={item.route} size="small" variant="outlined" />
                                   <Chip label="PRN" size="small" color="warning" />
@@ -2682,7 +2695,7 @@ export default function EMedicationPage() {
                   {showArchivedItems && archivedItems.length > 0 && (
                     <Paper sx={{ p: 2, mt: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: EMR.ink }}>Archived Medications ({archivedItems.length})</Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: EMR.ink }}>Archived Medications ({archivedItems.length})</Typography>
                         <Button size="small" color="inherit" onClick={() => setShowArchivedItems(false)}>Hide</Button>
                       </Stack>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
@@ -2695,7 +2708,7 @@ export default function EMedicationPage() {
                               <Box>
                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                   <MedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                  <Typography variant="body2" fontWeight={700} sx={{ textDecoration: 'line-through' }}>{item.name}</Typography>
+                                  <Typography variant="body2" fontWeight={600} sx={{ textDecoration: 'line-through' }}>{item.name}</Typography>
                                   <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
                                   <Chip label={item.route} size="small" variant="outlined" />
                                   {item.is_prn && <Chip label="PRN" size="small" color="warning" />}
@@ -2741,7 +2754,7 @@ export default function EMedicationPage() {
       {tab === 1 && (
         <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink }}>Stock Inventory</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Stock Inventory</Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <Chip
                 size="small"
@@ -2835,16 +2848,18 @@ export default function EMedicationPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Dosage</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Batch</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Expiry</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Qty</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reorder Level</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Dosage</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Batch</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Expiry</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Qty</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Unit</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Run-out</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Reorder Level</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Last Chased</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2862,10 +2877,35 @@ export default function EMedicationPage() {
                             color={item.expiry_date && new Date(item.expiry_date) < new Date() ? 'error' : 'default'} />
                         </TableCell>
                         <TableCell align="right">
-                          <Typography variant="body2" fontWeight={700} color={isLow ? '#9A6700' : 'text.primary'}>{item.quantity}</Typography>
+                          <Typography variant="body2" fontWeight={600} color={isLow ? '#9A6700' : 'text.primary'}>{item.quantity}</Typography>
                         </TableCell>
                         <TableCell>{item.quantity_unit}</TableCell>
+                        <TableCell>
+                          {Number(item.quantity) <= 0 ? (
+                            <Chip label="Out of stock" size="small" sx={{ bgcolor: NOTICE_COLORS.error.bg, color: NOTICE_COLORS.error.fg, fontWeight: 600 }} />
+                          ) : item.days_until_empty == null ? (
+                            <Tooltip title="No doses recorded in the last 28 days; run-out time cannot be estimated.">
+                              <Chip label="No usage data" size="small" variant="outlined" sx={{ color: P.slateLight, borderColor: P.subtle }} />
+                            </Tooltip>
+                          ) : Number(item.days_until_empty) <= 3 ? (
+                            <Chip label={`~${item.days_until_empty} day${Number(item.days_until_empty) === 1 ? '' : 's'}`} size="small" sx={{ bgcolor: NOTICE_COLORS.error.bg, color: NOTICE_COLORS.error.fg, fontWeight: 600 }} />
+                          ) : Number(item.days_until_empty) <= 7 ? (
+                            <Chip label={`~${item.days_until_empty} days`} size="small" sx={{ bgcolor: NOTICE_COLORS.warning.bg, color: NOTICE_COLORS.warning.fg, fontWeight: 600 }} />
+                          ) : (
+                            <Chip label={`~${item.days_until_empty} days`} size="small" sx={{ bgcolor: EX.neutralBg, color: EX.ink, fontWeight: 600 }} />
+                          )}
+                        </TableCell>
                         <TableCell>{item.reorder_level}</TableCell>
+                        {/* When the reorder alert last went out for this line —
+                            tells a manager whether a low row has already been
+                            chased (and how long ago) or is still un-warned. */}
+                        <TableCell>
+                          <Typography variant="caption" color={item.last_reorder_alerted_at ? 'text.primary' : 'text.secondary'}>
+                            {item.last_reorder_alerted_at
+                              ? new Date(item.last_reorder_alerted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                              : 'Not yet warned'}
+                          </Typography>
+                        </TableCell>
                         <TableCell>{item.location || '\u2014'}</TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
@@ -2895,7 +2935,7 @@ export default function EMedicationPage() {
       {tab === 2 && (
         <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink }}>Delivery Tracking</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Delivery Tracking</Typography>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)}>
               Log Delivery
             </Button>
@@ -2915,13 +2955,13 @@ export default function EMedicationPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Supplier</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Delivery Note</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Received By</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Items</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Delivery Note</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Received By</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Items</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2953,7 +2993,7 @@ export default function EMedicationPage() {
         <>
           {/* Person selector + log controls */}
           <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 800, color: EMR.ink }}>Daily Medication Counts</Typography>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Daily Medication Counts</Typography>
             <Autocomplete
               options={people || []}
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
@@ -3010,7 +3050,7 @@ export default function EMedicationPage() {
 
           {/* History table */}
           <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, color: EMR.ink }}>Count History</Typography>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: EMR.ink }}>Count History</Typography>
             {dailyCountsError ? (
               <Alert severity="error" sx={{ py: 3 }}>
                 Could not load count history. {apiErrorMsg(dailyCountsError, '')}
@@ -3024,14 +3064,14 @@ export default function EMedicationPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Count Type</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Counted By</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Counted At</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Medications Checked</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Overall Match</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Review</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Count Type</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Counted By</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Counted At</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Medications Checked</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Overall Match</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Review</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -3083,7 +3123,7 @@ export default function EMedicationPage() {
       {/* ═══ TAB 4: Audit Log ═══ */}
       {tab === 4 && (
         <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 800, color: EMR.ink }}>Medication Audit Trail</Typography>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Medication Audit Trail</Typography>
           {!auditLogsData || auditLogsData.length === 0 ? (
             <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No audit log entries yet — actions on this page will appear here.</Typography>
           ) : (
@@ -3091,12 +3131,12 @@ export default function EMedicationPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date/Time</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>IP</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date/Time</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>IP</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -3487,7 +3527,7 @@ export default function EMedicationPage() {
 
       {/* Stock Detail Dialog */}
       <Dialog open={!!stockDetail} onClose={() => setStockDetail(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Stock Item</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Stock Item</DialogTitle>
         <DialogContent dividers>
           {stockDetail && (
             <Stack spacing={2}>
@@ -3502,7 +3542,7 @@ export default function EMedicationPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Quantity</Typography>
-                  <Typography variant="body1" fontWeight={800}
+                  <Typography variant="body1" fontWeight={600}
                     color={stockDetail.quantity <= stockDetail.reorder_level ? '#9A6700' : 'text.primary'}>
                     {stockDetail.quantity} {stockDetail.quantity_unit}
                   </Typography>
@@ -3699,7 +3739,7 @@ export default function EMedicationPage() {
 
       {/* Delivery Detail Dialog */}
       <Dialog open={!!deliveryDetail} onClose={() => setDeliveryDetail(null)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Delivery Details</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Delivery Details</DialogTitle>
         <DialogContent dividers>
           {deliveryDetailLoading ? (
             <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
@@ -3741,16 +3781,16 @@ export default function EMedicationPage() {
                   </Box>
                 )}
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Items ({deliveryDetail.items?.length || 0})</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Items ({deliveryDetail.items?.length || 0})</Typography>
                   {deliveryDetail.items && deliveryDetail.items.length > 0 ? (
                     <TableContainer component={Paper} variant="outlined">
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Batch #</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Expiry</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>Quantity</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Batch #</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Expiry</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>Quantity</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -3770,7 +3810,7 @@ export default function EMedicationPage() {
                   )}
                 </Box>
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Audit Trail</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Audit Trail</Typography>
                   {deliveryAuditLoading ? (
                     <CircularProgress size={20} />
                   ) : deliveryAuditLogs && deliveryAuditLogs.length > 0 ? (
@@ -3822,7 +3862,7 @@ export default function EMedicationPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={!!confirmDialog} onClose={() => setConfirmDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ color: 'error.main', fontWeight: 800 }}>Confirm</DialogTitle>
+        <DialogTitle sx={{ color: 'error.main', fontWeight: 600 }}>Confirm</DialogTitle>
         <DialogContent>
           <Typography>{confirmDialog?.message}</Typography>
         </DialogContent>
@@ -3839,7 +3879,7 @@ export default function EMedicationPage() {
       <Dialog open={countDialog} onClose={() => { setCountDialog(false); setCountReadOnly(false); setErrorMsg('') }} maxWidth="md" fullWidth>
         {countPerson && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, color: EMR.ink }}>
+            <DialogTitle sx={{ fontWeight: 600, color: EMR.ink }}>
               {countReadOnly ? 'Daily Count Details' : editingCount ? 'Update Daily Count' : 'Log Daily Count'}
               <Typography variant="caption" display="block" color="text.secondary" fontWeight={500}>
                 {countPerson.first_name} {countPerson.last_name} · {countDate ? new Date(`${countDate}T00:00:00`).toLocaleDateString() : ''} · {countSessionLabel(COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession)}
@@ -3880,11 +3920,11 @@ export default function EMedicationPage() {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Expected</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Actual</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Mismatch Reason</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Escalate</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Expected</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Actual</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Mismatch Reason</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Escalate</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -3994,11 +4034,11 @@ export default function EMedicationPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Notes / Wastage / PRN</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Notes / Wastage / PRN</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

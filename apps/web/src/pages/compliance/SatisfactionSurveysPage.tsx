@@ -132,7 +132,7 @@ export default function SatisfactionSurveysPage() {
             <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <HeartIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
-                <Typography variant="h4" fontWeight={800}>{aggregate.average_rating?.toFixed(1) || '—'}</Typography>
+                <Typography variant="h4" fontWeight={600}>{aggregate.average_rating?.toFixed(1) || '—'}</Typography>
                 <Typography variant="body2" color="text.secondary">Average / 5</Typography>
               </CardContent>
             </Card>
@@ -140,7 +140,7 @@ export default function SatisfactionSurveysPage() {
           <Grid item xs={12} sm={3}>
             <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={800} color='notice.info.fg'>{aggregate.total}</Typography>
+                <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{aggregate.total}</Typography>
                 <Typography variant="body2" color="text.secondary">Responses</Typography>
               </CardContent>
             </Card>
@@ -148,7 +148,7 @@ export default function SatisfactionSurveysPage() {
           <Grid item xs={12} sm={3}>
             <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={800} color='notice.warning.fg'>{aggregate.positive_count}</Typography>
+                <Typography variant="h4" fontWeight={600} color='notice.warning.fg'>{aggregate.positive_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Positive (4-5★)</Typography>
               </CardContent>
             </Card>
@@ -156,7 +156,7 @@ export default function SatisfactionSurveysPage() {
           <Grid item xs={12} sm={3}>
             <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={800} color='notice.error.fg'>{aggregate.negative_count}</Typography>
+                <Typography variant="h4" fontWeight={600} color='notice.error.fg'>{aggregate.negative_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Negative (1-2★)</Typography>
               </CardContent>
             </Card>
@@ -179,13 +179,13 @@ export default function SatisfactionSurveysPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Respondent</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Relationship</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Rating</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Comments</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Source</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Respondent</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Relationship</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Rating</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Comments</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Source</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -299,7 +299,7 @@ export default function SatisfactionSurveysPage() {
       <Dialog open={!!viewSurvey} onClose={() => setViewSurvey(null)} maxWidth="sm" fullWidth>
         {viewSurvey && (
           <>
-            <DialogTitle sx={{ fontWeight: 800 }}>Feedback Details</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 600 }}>Feedback Details</DialogTitle>
             <DialogContent>
               <Stack spacing={2} sx={{ mt: 1 }}>
                 <Stack direction="row" justifyContent="space-between">
@@ -328,12 +328,12 @@ export default function SatisfactionSurveysPage() {
                 </Stack>
                 {viewSurvey.comments && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid', borderColor: '#E6EAF0' }}>
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Comments</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Comments</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{viewSurvey.comments}</Typography>
                   </Box>
                 )}
                 <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Manager Notes</Typography>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Manager Notes</Typography>
                   <TextField multiline rows={3} fullWidth size="small" placeholder="Add internal notes about this feedback..."
                     value={managerNote} onChange={e => setManagerNote(e.target.value)} />
                   <Button size="small" variant="outlined" disabled={savingNote} onClick={async () => {

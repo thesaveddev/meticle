@@ -192,15 +192,15 @@ export default function ArchivedMarPage() {
                           <Table size="small" stickyHeader>
                             <TableHead>
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E6EAF0' }}>
+                                <TableCell sx={{ fontWeight: 600, minWidth: 200, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E6EAF0' }}>
                                   Medication
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E6EAF0' }}>
+                                <TableCell sx={{ fontWeight: 600, minWidth: 80, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E6EAF0' }}>
                                   Time
                                 </TableCell>
                                 {chartData.days.map((day, i) => (
                                   <TableCell key={day} align="center" sx={{
-                                    fontWeight: 700, fontSize: '0.7rem', p: 0.5, minWidth: 36,
+                                    fontWeight: 600, fontSize: '0.7rem', p: 0.5, minWidth: 36,
                                     bgcolor: 'notice.subtle.bg', borderLeft: i > 0 ? '1px solid #F7F9FC' : 'none'
                                   }}>
                                     {new Date(day + 'T12:00:00').getDate()}

@@ -57,7 +57,7 @@ export default function MessageBubble({
           )
           if (part.type === 'mention') return (
             <Box key={i} component="span"
-              sx={{ color: isMine ? WHITE : NAVY, bgcolor: isMine ? 'rgba(255,255,255,0.15)' : 'rgba(15,76,129,0.08)', borderRadius: 0.5, px: 0.25, fontWeight: 700 }}>
+              sx={{ color: isMine ? WHITE : NAVY, bgcolor: isMine ? 'rgba(255,255,255,0.15)' : 'rgba(15,76,129,0.08)', borderRadius: 0.5, px: 0.25, fontWeight: 600 }}>
               {part.value}
             </Box>
           )
@@ -85,7 +85,7 @@ export default function MessageBubble({
             }}>
               <FileIcon sx={{ fontSize: 22, color: isMine ? WHITE : NAVY }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: isMine ? WHITE : INK }} noWrap>{msg.file_name || 'File'}</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', color: isMine ? WHITE : INK }} noWrap>{msg.file_name || 'File'}</Typography>
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <OpenInNewIcon sx={{ fontSize: 11, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }} />
                   <Typography variant="caption" sx={{ fontSize: 10, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }}>Preview</Typography>
@@ -133,7 +133,7 @@ export default function MessageBubble({
 
         <Box sx={{ maxWidth: '100%' }}>
           {showAvatar && (
-            <Typography variant="caption" sx={{ display: 'block', mb: 0.25, textAlign: isMine ? 'right' : 'left', fontWeight: 700, fontSize: 11.5, color: isMine ? NAVY : INK }}>
+            <Typography variant="caption" sx={{ display: 'block', mb: 0.25, textAlign: isMine ? 'right' : 'left', fontWeight: 600, fontSize: 11.5, color: isMine ? NAVY : INK }}>
               {isMine ? 'You' : getMemberName(msg)}
             </Typography>
           )}
@@ -148,7 +148,7 @@ export default function MessageBubble({
                   <CheckIcon sx={{ fontSize: 16 }} />
                 </IconButton>
                 <IconButton size="small" onClick={onCancelEdit} sx={{ bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, width: 28, height: 28 }}>
-                  <Box component="span" sx={{ fontSize: 14, fontWeight: 700, color: MIST }}>×</Box>
+                  <Box component="span" sx={{ fontSize: 14, fontWeight: 600, color: MIST }}>×</Box>
                 </IconButton>
               </Stack>
             </Stack>
@@ -170,7 +170,7 @@ export default function MessageBubble({
                   borderRadius: '4px',
                   bgcolor: isMine ? 'rgba(255,255,255,0.08)' : 'rgba(15,76,129,0.04)',
                 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, display: 'block', opacity: 0.8 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 11, display: 'block', opacity: 0.8 }}>
                     {msg.parent_sender_id === msg.sender_id ? 'You' : (msg.parent_first_name ? `${msg.parent_first_name} ${msg.parent_last_name || ''}`.trim() : msg.parent_email?.split('@')[0] || 'Unknown')}
                   </Typography>
                   <Typography variant="caption" sx={{ fontSize: 11, opacity: 0.65, display: 'block' }} noWrap>

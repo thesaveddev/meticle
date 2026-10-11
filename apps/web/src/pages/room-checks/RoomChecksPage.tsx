@@ -90,7 +90,7 @@ export default function RoomChecksPage() {
     <PageContainer>
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={800}>Room Checks</Typography>
+        <Typography variant="h5" fontWeight={600}>Room Checks</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { close(); setDialog(true) }} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
           New Room Check
         </Button>
@@ -111,14 +111,14 @@ export default function RoomChecksPage() {
       <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Table size="small">
           <TableHead><TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Cleanliness</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Safety</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Checked By</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Room</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Cleanliness</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Safety</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Checked By</TableCell>
+            <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {checks.slice(page * rows, page * rows + rows).map((c: any) => (
@@ -147,7 +147,7 @@ export default function RoomChecksPage() {
       <Dialog open={!!view} onClose={() => setView(null)} maxWidth="sm" fullWidth>
         {view && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 Room Check — {view.room_number}
                 <Typography variant="caption" color="#98A2B3" sx={{ display: 'block', fontWeight: 500 }}>
@@ -159,32 +159,32 @@ export default function RoomChecksPage() {
             <DialogContent>
               <Stack spacing={2.5}>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip label={STATUS_CONFIG[view.status]?.label || view.status} size="small" color={STATUS_CONFIG[view.status]?.color || 'default'} sx={{ fontWeight: 700 }} />
+                  <Chip label={STATUS_CONFIG[view.status]?.label || view.status} size="small" color={STATUS_CONFIG[view.status]?.color || 'default'} sx={{ fontWeight: 600 }} />
                   {view.created_at && <Chip label={`Recorded ${new Date(view.created_at).toLocaleString('en-GB')}`} size="small" variant="outlined" />}
                 </Stack>
                 <Stack direction="row" spacing={3} flexWrap="wrap">
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cleanliness</Typography>
+                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Cleanliness</Typography>
                     <Rating value={view.cleanliness_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Safety</Typography>
+                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Safety</Typography>
                     <Rating value={view.safety_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
                   </Box>
                 </Stack>
                 <Box>
-                  <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Notes</Typography>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{view.notes || '—'}</Typography>
                 </Box>
                 {view.checked_by_name && (
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Checked by</Typography>
+                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Checked by</Typography>
                     <Typography variant="body2" sx={{ mt: 0.25 }}>{view.checked_by_name}</Typography>
                   </Box>
                 )}
                 {view.photo_url && photoBlob && (
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
+                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
                       <Box component="img" src={photoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'notice.muted.bg' }} />
                       <IconButton size="small" onClick={() => openFileInNewTab(view.photo_url)}
@@ -206,7 +206,7 @@ export default function RoomChecksPage() {
 
       <Dialog open={dialog} onClose={close} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editingId ? 'Edit Room Check' : 'New Room Check'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editingId ? 'Edit Room Check' : 'New Room Check'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>

@@ -45,8 +45,8 @@ export class OrgRepository {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     try {
       const result = await qFn(
-        `INSERT INTO organizations (name, plan, subscription_status, trial_ends_at, onboarding_step, onboarding_completed)
-         VALUES ($1, 'starter', 'trial', $2, 0, false) RETURNING *`,
+        `INSERT INTO organizations (name, plan, subscription_status, trial_ends_at, onboarding_step, onboarding_completed, service_types, primary_service_type)
+         VALUES ($1, 'starter', 'trial', $2, 0, false, ARRAY[]::TEXT[], NULL) RETURNING *`,
         [name, trialEndsAt]
       );
       const orgId = result.rows[0].id;

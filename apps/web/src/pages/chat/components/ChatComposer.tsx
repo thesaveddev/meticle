@@ -56,7 +56,7 @@ export default function ChatComposer({
             bgcolor: BONE, borderLeft: `3px solid ${NAVY}`,
           }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, color: NAVY, display: 'block' }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 11, color: NAVY, display: 'block' }}>
                 Replying to {replyTo.sender_id === currentUserId ? 'yourself' : (replyTo.first_name ? `${replyTo.first_name} ${replyTo.last_name || ''}`.trim() : replyTo.email?.split('@')[0] || 'Unknown')}
               </Typography>
               <Typography variant="caption" sx={{ fontSize: 11, color: MIST, display: 'block' }} noWrap>
@@ -74,7 +74,7 @@ export default function ChatComposer({
         <Box sx={{ px: 2.5, pt: 1.5 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1.25, py: 0.75, borderRadius: 2, bgcolor: BONE, borderLeft: `3px solid ${NAVY}` }}>
             <AttachFileIcon sx={{ fontSize: 18, color: NAVY }} />
-            <Typography variant="caption" sx={{ flex: 1, color: INK, fontWeight: 700 }} noWrap>{pendingFile.name}</Typography>
+            <Typography variant="caption" sx={{ flex: 1, color: INK, fontWeight: 600 }} noWrap>{pendingFile.name}</Typography>
             <Typography variant="caption" sx={{ color: MIST }}>{Math.ceil(pendingFile.size / 1024)} KB</Typography>
             <IconButton size="small" onClick={onCancelFile} sx={{ width: 24, height: 24 }}><CloseIcon sx={{ fontSize: 15, color: MIST }} /></IconButton>
           </Stack>
@@ -94,7 +94,7 @@ export default function ChatComposer({
               </Box>
             )}
             <Box sx={{ p: 0.75, flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" fontWeight={700} sx={{ display: 'block', fontSize: 11, color: INK }} noWrap>{inputLinkPreview.title}</Typography>
+              <Typography variant="caption" fontWeight={600} sx={{ display: 'block', fontSize: 11, color: INK }} noWrap>{inputLinkPreview.title}</Typography>
               {inputLinkPreview.description && (
                 <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color: MIST, mt: 0.25 }} noWrap>{inputLinkPreview.description}</Typography>
               )}
@@ -178,7 +178,7 @@ export default function ChatComposer({
             sx={{
               bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, '&:disabled': { bgcolor: OUTLINE },
               minWidth: 44, px: 2, height: 36, borderRadius: 2,
-              textTransform: 'none', fontWeight: 700, fontSize: 13,
+              textTransform: 'none', fontWeight: 600, fontSize: 13,
               boxShadow: '0 1px 3px rgba(15,76,129,0.2)',
             }}>
             Send

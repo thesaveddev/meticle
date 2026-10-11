@@ -112,12 +112,12 @@ export default function MyWeekPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700} mb={0.5}>My week</Typography>
+          <Typography variant="h4" fontWeight={600} mb={0.5}>My week</Typography>
           <Typography variant="body2" color="text.secondary">{visits.length} calls · {completed} completed</Typography>
         </Box>
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <IconButton aria-label="Previous week" onClick={() => setWeekOffset(o => o - 1)}><ChevronLeftIcon /></IconButton>
-          <Typography fontWeight={700} sx={{ minWidth: 170, textAlign: 'center' }}>{weekLabel}</Typography>
+          <Typography fontWeight={600} sx={{ minWidth: 170, textAlign: 'center' }}>{weekLabel}</Typography>
           <IconButton aria-label="Next week" onClick={() => setWeekOffset(o => o + 1)}><ChevronRightIcon /></IconButton>
           {weekOffset !== 0 && <AppButton variant="quiet" size="small" onClick={() => setWeekOffset(0)}>This week</AppButton>}
         </Stack>
@@ -157,7 +157,7 @@ export default function MyWeekPage() {
               <Box>
                 <Stack direction="row" alignItems="center" spacing={0.75}>
                   {day.isToday && <Box sx={{ width: 8, height: 8, borderRadius: 4, bgcolor: 'primary.main' }} />}
-                  <Typography fontWeight={700} color={day.isToday ? 'primary.main' : 'text.primary'}>{day.label}</Typography>
+                  <Typography fontWeight={600} color={day.isToday ? 'primary.main' : 'text.primary'}>{day.label}</Typography>
                 </Stack>
                 <Typography variant="caption" color="text.secondary">{day.dateLabel}</Typography>
               </Box>
@@ -176,7 +176,7 @@ export default function MyWeekPage() {
                         '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' },
                       }}
                     >
-                      <Typography variant="caption" fontWeight={700} color="primary.main" display="block">
+                      <Typography variant="caption" fontWeight={600} color="primary.main" display="block">
                         {time(v.scheduled_start)}–{time(v.scheduled_end)}
                       </Typography>
                       <Typography variant="body2" fontWeight={600}>{v.label}</Typography>
@@ -196,7 +196,7 @@ export default function MyWeekPage() {
         {detail && (
           <>
             <DialogTitle>
-              <Typography variant="subtitle1" fontWeight={700}>{detail.label}</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>{detail.label}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {new Date(detail.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
               </Typography>

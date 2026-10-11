@@ -121,7 +121,7 @@ export default function LandingPage() {
                 variant="h1"
                 sx={{
                   fontSize: { xs: '2.4rem', sm: '3rem', md: '3.4rem' },
-                  fontWeight: 900,
+                  fontWeight: 600,
                   lineHeight: 1.06,
                   letterSpacing: '-0.03em',
                   color: INK,
@@ -141,7 +141,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                   variant="contained"
                   size="large"
                   onClick={() => navigate('/register')}
-                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 800, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'background-color 0.15s ease' }}
+                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 600, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'background-color 0.15s ease' }}
                 >
                   Start your free trial
                 </Button>
@@ -149,7 +149,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                   variant="outlined"
                   size="large"
                   onClick={() => navigate('/how-it-works')}
-                  sx={{ borderColor: '#C9C2B4', color: INK, '&:hover': { borderColor: INK, bgcolor: 'rgba(27,36,48,0.04)' }, fontWeight: 700, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease' }}
+                  sx={{ borderColor: '#C9C2B4', color: INK, '&:hover': { borderColor: INK, bgcolor: 'rgba(27,36,48,0.04)' }, fontWeight: 600, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease' }}
                 >
                   See how it works
                 </Button>
@@ -192,9 +192,9 @@ A clear working record for the people you support — and a calmer day for the t
             sx={{
               color: MIST,
               fontSize: '0.72rem',
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: '0.1em',
-              textTransform: 'uppercase',
+              textTransform: 'none',
               mb: { xs: 3, md: 3.5 },
             }}
           >
@@ -263,7 +263,7 @@ A clear working record for the people you support — and a calmer day for the t
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={5}>
-              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK, mb: 3 }}>
+              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK, mb: 3 }}>
   The work is connected. Your records should be too.
               </Typography>
               <Typography sx={{ color: MIST, lineHeight: 1.75 }}>
@@ -280,7 +280,7 @@ A medication round, a care note, a staffing decision and an incident review belo
                 ].map((item) => (
                   <Grid item xs={12} sm={6} key={item.t}>
                     <Box sx={{ borderTop: `2px solid ${EMERALD}`, pt: 2.5 }}>
-                      <Typography sx={{ fontWeight: 800, color: INK, mb: 0.75, fontSize: '1rem' }}>{item.t}</Typography>
+                      <Typography sx={{ fontWeight: 600, color: INK, mb: 0.75, fontSize: '1rem' }}>{item.t}</Typography>
                       <Typography sx={{ color: MIST, fontSize: '0.9rem', lineHeight: 1.6 }}>{item.d}</Typography>
                     </Box>
                   </Grid>
@@ -296,7 +296,7 @@ A medication round, a care note, a staffing decision and an incident review belo
       <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: BONE }}>
         <Container maxWidth="lg">
           <FadeSection>
-            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 720 }}>
+            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 600, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 720 }}>
 The essentials, in one working set.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1.05rem', mb: { xs: 7, md: 9 }, maxWidth: 560 }}>
@@ -337,7 +337,7 @@ The tools your team uses every day, connected around the person and the service.
                   <Box sx={{ position: { md: 'sticky' }, top: 96 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
                       <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: EMERALD, flexShrink: 0 }} />
-                      <Typography sx={{ fontWeight: 800, color: NAVY, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.8rem' }}>
+                      <Typography sx={{ fontWeight: 600, color: NAVY, letterSpacing: '0.08em', textTransform: 'none', fontSize: '0.8rem' }}>
                         {group.label}
                       </Typography>
                     </Stack>
@@ -363,7 +363,7 @@ The tools your team uses every day, connected around the person and the service.
         <Container maxWidth="lg">
           <FadeSection>
             <Box sx={{ maxWidth: 680, mb: { xs: 7, md: 9 } }}>
-            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2 }}>
+            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 600, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2 }}>
               The shift, connected end to end.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1.05rem' }}>
@@ -413,14 +413,14 @@ The tools your team uses every day, connected around the person and the service.
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '1.1rem',
-                      fontWeight: 800,
+                      fontWeight: 600,
                       mb: 2,
                       mx: { xs: 'auto', md: 0 },
                     }}
                   >
                     {i + 1}
                   </Box>
-                  <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.95rem', lineHeight: 1.2, mb: 0.5, textAlign: { xs: 'center', md: 'left' } }}>{step.t}</Typography>
+                  <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.95rem', lineHeight: 1.2, mb: 0.5, textAlign: { xs: 'center', md: 'left' } }}>{step.t}</Typography>
                   <Typography sx={{ color: MIST, fontSize: '0.82rem', lineHeight: 1.55, textAlign: { xs: 'center', md: 'left' } }}>{step.d}</Typography>
                 </Box>
               ))}
@@ -429,13 +429,13 @@ The tools your team uses every day, connected around the person and the service.
 
           <FadeSection delay={250}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mt: { xs: 8, md: 9 }, pt: 5, borderTop: `1px solid ${HAIRLINE}` }}>
-            <Typography sx={{ color: INK, fontWeight: 700, fontSize: '1.05rem' }}>
+            <Typography sx={{ color: INK, fontWeight: 600, fontSize: '1.05rem' }}>
               From one action to a complete, connected record — automatically.
             </Typography>
             <Button
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/how-it-works')}
-              sx={{ color: NAVY, fontWeight: 800, textTransform: 'none', px: 0, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
+              sx={{ color: NAVY, fontWeight: 600, textTransform: 'none', px: 0, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
             >
               See how it works
             </Button>
@@ -448,7 +448,7 @@ The tools your team uses every day, connected around the person and the service.
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: BONE }}>
         <Container maxWidth="lg">
           <FadeSection>
-            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 640 }}>
+            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 600, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 640 }}>
 A useful view for every role.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1.05rem', mb: { xs: 7, md: 9 }, maxWidth: 560 }}>
@@ -470,10 +470,10 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
                   '&:hover': { borderColor: NAVY },
                 }}
               >
-                <Typography sx={{ color: NAVY, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.06em', textTransform: 'uppercase', mb: 1.5 }}>
+                <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.78rem', letterSpacing: '0.06em', textTransform: 'none', mb: 1.5 }}>
                   Registered managers
                 </Typography>
-                <Typography sx={{ fontWeight: 800, color: INK, fontSize: '1.35rem', lineHeight: 1.15, mb: 1, letterSpacing: '-0.01em' }}>
+                <Typography sx={{ fontWeight: 600, color: INK, fontSize: '1.35rem', lineHeight: 1.15, mb: 1, letterSpacing: '-0.01em' }}>
                   See readiness before the inspector does.
                 </Typography>
                 <Typography sx={{ color: MIST, fontSize: '0.95rem', lineHeight: 1.65, mb: 3, maxWidth: 480 }}>
@@ -521,7 +521,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
                       '&:hover': { borderColor: NAVY },
                     }}
                   >
-                    <Typography sx={{ fontWeight: 800, color: INK, fontSize: '1.05rem', lineHeight: 1.2, mb: 0.5 }}>
+                    <Typography sx={{ fontWeight: 600, color: INK, fontSize: '1.05rem', lineHeight: 1.2, mb: 0.5 }}>
                       {r.role}
                     </Typography>
                     <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.82rem', mb: 2 }}>
@@ -551,13 +551,13 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
               <Grid item xs={12} md={7}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E6EAF0`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'notice.subtle.bg' }}>
-                  <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
+                  <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
                 </Stack>
                 <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in Meticle Care with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
               </Box>
             </Grid>
             <Grid item xs={12} md={5}>
-              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 3 }}>
+              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 600, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 3 }}>
                 Care that puts people first.
               </Typography>
               <Stack spacing={0} sx={{ mb: 4 }}>
@@ -569,7 +569,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
                   <Stack key={c.t} direction="row" spacing={2} alignItems="flex-start" sx={{ borderTop: `1px solid ${HAIRLINE}`, py: 2 }}>
                     <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: EMERALD, mt: 0.6, flexShrink: 0 }} />
                     <Box>
-                      <Typography sx={{ fontWeight: 800, color: INK, mb: 0.5 }}>{c.t}</Typography>
+                      <Typography sx={{ fontWeight: 600, color: INK, mb: 0.5 }}>{c.t}</Typography>
                       <Typography sx={{ color: MIST, fontSize: '0.9rem', lineHeight: 1.55 }}>{c.d}</Typography>
                     </Box>
                   </Stack>
@@ -590,7 +590,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={5}>
-              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.02em', mb: 3 }}>
+              <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 600, lineHeight: 1.12, letterSpacing: '-0.02em', mb: 3 }}>
   Inspection readiness should come from good care records.
               </Typography>
               <Typography sx={{ opacity: 0.88, lineHeight: 1.75, mb: 4 }}>
@@ -601,7 +601,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   variant="contained"
                   size="large"
                   onClick={() => navigate('/features#compliance')}
-                  sx={{ bgcolor: 'background.paper', color: NAVY, '&:hover': { bgcolor: 'notice.subtle.bg' }, fontWeight: 800, px: 4, transition: 'background-color 0.15s ease' }}
+                  sx={{ bgcolor: 'background.paper', color: NAVY, '&:hover': { bgcolor: 'notice.subtle.bg' }, fontWeight: 600, px: 4, transition: 'background-color 0.15s ease' }}
                 >
                   See the compliance module
                 </Button>
@@ -609,7 +609,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   variant="text"
                   size="large"
                   onClick={() => navigate('/features#audit')}
-                  sx={{ color: '#FFFFFF', fontWeight: 800, px: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }, transition: 'background-color 0.15s ease' }}
+                  sx={{ color: '#FFFFFF', fontWeight: 600, px: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }, transition: 'background-color 0.15s ease' }}
                 >
                   Explore reporting →
                 </Button>
@@ -627,7 +627,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   <Stack key={item.t} direction="row" spacing={2.25} alignItems="flex-start" sx={{ borderBottom: '1px solid rgba(255,255,255,0.24)', py: 2.5 }}>
                     <Box sx={{ width: 5, height: 5, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.5)', mt: 0.7, flexShrink: 0 }} />
                     <Box>
-                      <Typography sx={{ fontWeight: 800, mb: 0.5, fontSize: '1rem' }}>{item.t}</Typography>
+                      <Typography sx={{ fontWeight: 600, mb: 0.5, fontSize: '1rem' }}>{item.t}</Typography>
                       <Typography sx={{ opacity: 0.82, fontSize: '0.9rem', lineHeight: 1.6 }}>{item.d}</Typography>
                     </Box>
                   </Stack>
@@ -643,7 +643,7 @@ When records are complete and current, compliance work becomes easier to evidenc
       <Box sx={{ py: { xs: 11, md: 15 }, bgcolor: INK_DARK, color: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <FadeSection delay={200}>
-            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}>
+            <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}>
 Make the working day easier to see.
             </Typography>
             <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
@@ -654,7 +654,7 @@ Give your team one place for the records, decisions and follow-through that keep
                 variant="contained"
                 size="large"
                 onClick={() => navigate('/register')}
-                sx={{ bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' }, fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem', transition: 'background-color 0.15s ease' }}
+                sx={{ bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' }, fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem', transition: 'background-color 0.15s ease' }}
               >
                 Start your free trial
               </Button>
@@ -662,7 +662,7 @@ Give your team one place for the records, decisions and follow-through that keep
                 variant="outlined"
                 size="large"
                 onClick={() => navigate('/contact')}
-                sx={{ borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF', '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' }, fontWeight: 700, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem', transition: 'border-color 0.15s ease, background-color 0.15s ease' }}
+                sx={{ borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF', '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' }, fontWeight: 600, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem', transition: 'border-color 0.15s ease, background-color 0.15s ease' }}
               >
                 Talk to our team
               </Button>
@@ -722,7 +722,7 @@ function CapRow({ item, onNavigate }: { item: CapItem; onNavigate: (to: string) 
           </Box>
         )}
         <Box sx={{ minWidth: 0 }}>
-          <Typography className="cap-name" sx={{ fontWeight: 700, color: INK, mb: 0.5, fontSize: '0.98rem', transition: 'color 0.15s ease' }}>
+          <Typography className="cap-name" sx={{ fontWeight: 600, color: INK, mb: 0.5, fontSize: '0.98rem', transition: 'color 0.15s ease' }}>
             {item.name}
           </Typography>
           <Typography sx={{ color: MIST, fontSize: '0.88rem', lineHeight: 1.55 }}>{item.desc}</Typography>

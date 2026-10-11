@@ -2,6 +2,8 @@ import { registerConsumer } from '../events.consumers';
 import { IncidentTriageConsumer } from './incident-triage.consumer';
 import { MedicationMissedReviewsConsumer } from './medication-missed-reviews.consumer';
 import { MissionControlAlertConsumer } from './mission-control-alert.consumer';
+import { MicaAssignmentNotificationConsumer } from './mica-assignment-notification.consumer';
+import { MedicationStockLowNotificationConsumer } from './medication-stock-low-notification.consumer';
 
 /**
  * Register the production event consumers the outbox worker should deliver to.
@@ -26,4 +28,13 @@ export function registerProductionConsumers(): void {
   registerConsumer('fluid.intake_below_target', MissionControlAlertConsumer);
   registerConsumer('nutrition.appetite_decline', MissionControlAlertConsumer);
   registerConsumer('nutrition.refused_meal', MissionControlAlertConsumer);
+
+  // Mica voice-created writes: the assignee learns about them the same way
+  // they learn about every other assignment — through their notification bell.
+  // Reorder warnings reach the managers who can action them through the bell
+  // icon — Mission Control aggregates them, this puts one in each inbox.
+  registerConsumer('medication.stock_low', MedicationStockLowNotificationConsumer);
+
+  registerConsumer('mica.task_confirmed', MicaAssignmentNotificationConsumer);
+  registerConsumer('mica.appointment_confirmed', MicaAssignmentNotificationConsumer);
 }

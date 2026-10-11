@@ -143,7 +143,7 @@ export default function HowItWorksPage() {
               }}
             >
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-              <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
+              <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
                 GET STARTED IN MINUTES
               </Typography>
             </Box>
@@ -151,7 +151,7 @@ export default function HowItWorksPage() {
               variant="h1"
               sx={{
                 fontSize: { xs: '2.4rem', md: '3.2rem' },
-                fontWeight: 900, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
+                fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
               }}
             >
               Three steps. Then the platform runs itself.
@@ -184,17 +184,17 @@ export default function HowItWorksPage() {
                         sx={{
                           width: 56, height: 56, borderRadius: '50%', bgcolor: NAVY,
                           color: '#FFFFFF', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: '1.6rem', fontWeight: 900,
+                          justifyContent: 'center', fontSize: '1.6rem', fontWeight: 600,
                           flexShrink: 0,
                         }}
                       >
                         {step.number}
                       </Box>
                       <Box>
-                        <Typography sx={{ fontWeight: 800, color: MIST, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                        <Typography sx={{ fontWeight: 600, color: MIST, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none' }}>
                           STEP {step.number}
                         </Typography>
-                        <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.78rem' }}>
+                        <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.78rem' }}>
                           {step.timeEstimate}
                         </Typography>
                       </Box>
@@ -204,7 +204,7 @@ export default function HowItWorksPage() {
                       {step.icon}
                     </Box>
 
-                    <Typography variant="h3" sx={{ fontWeight: 900, color: INK, fontSize: { xs: '1.6rem', md: '1.9rem' }, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+                    <Typography variant="h3" sx={{ fontWeight: 600, color: INK, fontSize: { xs: '1.6rem', md: '1.9rem' }, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
                       {step.title}
                     </Typography>
 
@@ -236,7 +236,7 @@ export default function HowItWorksPage() {
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
-                      <Typography sx={{ fontWeight: 900, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                      <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none' }}>
                         {step.panelTitle}
                       </Typography>
                     </Stack>
@@ -252,10 +252,10 @@ export default function HowItWorksPage() {
                               height: '100%',
                             }}
                           >
-                            <Typography sx={{ color: MIST, fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                            <Typography sx={{ color: MIST, fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'none' }}>
                               {item.label}
                             </Typography>
-                            <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.95rem', mt: 0.5 }}>
+                            <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.95rem', mt: 0.5 }}>
                               {item.val}
                             </Typography>
                           </Box>
@@ -276,7 +276,7 @@ export default function HowItWorksPage() {
           <Stack spacing={2} sx={{ maxWidth: 760, mb: { xs: 5, md: 7 } }}>
             <Typography
               variant="h2"
-              sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
+              sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
             >
               From one action to a complete record.
             </Typography>
@@ -309,7 +309,7 @@ export default function HowItWorksPage() {
           <Stack spacing={2} sx={{ maxWidth: 720, mb: { xs: 5, md: 7 } }}>
             <Typography
               variant="h2"
-              sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
+              sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
             >
               Why care providers pick us.
             </Typography>
@@ -338,7 +338,7 @@ export default function HowItWorksPage() {
                   >
                     {item.icon}
                   </Box>
-                  <Typography variant="h4" sx={{ fontWeight: 800, color: INK, fontSize: '1.1rem', mb: 1.25, lineHeight: 1.3 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 600, color: INK, fontSize: '1.1rem', mb: 1.25, lineHeight: 1.3 }}>
                     {item.title}
                   </Typography>
                   <Typography sx={{ color: MIST, fontSize: '0.9rem', lineHeight: 1.6 }}>
@@ -356,7 +356,7 @@ export default function HowItWorksPage() {
         <Container maxWidth="md">
           <Typography
             variant="h2"
-            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
+            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
           >
             Ready to set up in minutes?
           </Typography>
@@ -371,7 +371,7 @@ export default function HowItWorksPage() {
               onClick={() => navigate('/contact')}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
-                fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               Book a demo
@@ -383,7 +383,7 @@ export default function HowItWorksPage() {
               sx={{
                 borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
                 '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' },
-                fontWeight: 700, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               Talk to our team

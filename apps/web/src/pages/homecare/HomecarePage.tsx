@@ -168,7 +168,7 @@ function CallPatternDialog({ pkg, staff, onClose }: { pkg: any; staff: any[]; on
         <Stack direction="row" justifyContent="flex-end"><AppButton disabled={!draftValid || createPlan.isPending} loading={createPlan.isPending} onClick={() => createPlan.mutate()}>Add pattern</AppButton></Stack>
       </Stack>
 
-      <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 3, mb: 1 }}>Patterns for this package</Typography>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>Patterns for this package</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 1.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>Create calls from</Typography>
         <TextField type="date" size="small" label="From" InputLabelProps={{ shrink: true }} value={genFrom} onChange={e => setGenFrom(e.target.value)} sx={{ minWidth: 150 }} />
@@ -181,7 +181,7 @@ function CallPatternDialog({ pkg, staff, onClose }: { pkg: any; staff: any[]; on
             const carer = staff.find((s: any) => s.id === plan.default_staff_id)
             return <Paper key={plan.id} variant="outlined" sx={{ p: 1.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>{plan.label}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{plan.label}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {String(plan.visit_type || '').replace(/_/g, ' ')} · {dayLabel(plan.days_of_week)} · {String(plan.start_time).slice(0, 5)} · {plan.duration_minutes} min · {carer ? `${carer.first_name} ${carer.last_name}` : 'No default carer'}
                 </Typography>

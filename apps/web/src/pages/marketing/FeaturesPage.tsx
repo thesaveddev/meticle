@@ -374,7 +374,7 @@ export default function FeaturesPage() {
               }}
             >
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-              <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
+              <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
                 ALL FOUR UK REGULATORS · CQC, CIW, CIS, RQIA
               </Typography>
             </Box>
@@ -382,7 +382,7 @@ export default function FeaturesPage() {
               variant="h1"
               sx={{
                 fontSize: { xs: '2.4rem', md: '3.2rem' },
-                fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.03em', color: INK, mb: 3,
+                fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.03em', color: INK, mb: 3,
               }}
             >
               Everything you need to run your service.
@@ -390,7 +390,7 @@ export default function FeaturesPage() {
             <Typography sx={{ color: MIST, fontSize: { xs: '1rem', md: '1.12rem' }, lineHeight: 1.7, mb: 4 }}>
               Meticle Care brings together care management, staff operations, and compliance reporting in one platform. Every feature is designed so inspection-ready evidence is a byproduct of daily work — not a separate paper exercise.
             </Typography>
-            <Typography sx={{ color: MIST, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <Typography sx={{ color: MIST, fontWeight: 600, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'none' }}>
               {TOTAL_SECTIONS} features across {featureGroups.length} modules
             </Typography>
           </Box>
@@ -412,8 +412,8 @@ export default function FeaturesPage() {
                 <Box>
                   <Typography
                     sx={{
-                      fontWeight: 900, color: NAVY, fontSize: '0.78rem',
-                      letterSpacing: '0.12em', textTransform: 'uppercase', mb: 0.5,
+                      fontWeight: 600, color: NAVY, fontSize: '0.78rem',
+                      letterSpacing: '0.12em', textTransform: 'none', mb: 0.5,
                     }}
                   >
                     Module {gi + 1}
@@ -421,7 +421,7 @@ export default function FeaturesPage() {
                   <Typography
                     variant="h2"
                     sx={{
-                      fontWeight: 900, color: INK,
+                      fontWeight: 600, color: INK,
                       fontSize: { xs: '1.6rem', md: '2.1rem' },
                       lineHeight: 1.15, letterSpacing: '-0.02em',
                     }}
@@ -430,7 +430,7 @@ export default function FeaturesPage() {
                   </Typography>
                 </Box>
                 <Box sx={{ ml: 'auto !important' }}>
-                  <Typography sx={{ fontWeight: 700, color: MIST, fontSize: '0.85rem' }}>
+                  <Typography sx={{ fontWeight: 600, color: MIST, fontSize: '0.85rem' }}>
                     {group.sections.length} features
                   </Typography>
                 </Box>
@@ -468,7 +468,7 @@ export default function FeaturesPage() {
                           <Typography
                             id={`${section.id}-title`}
                             variant="h3"
-                            sx={{ fontWeight: 900, color: INK, fontSize: '1.4rem', lineHeight: 1.2 }}
+                            sx={{ fontWeight: 600, color: INK, fontSize: '1.4rem', lineHeight: 1.2 }}
                           >
                             {section.category}
                           </Typography>
@@ -477,8 +477,8 @@ export default function FeaturesPage() {
                               sx={{
                                 bgcolor: 'notice.warning.bg', color: 'notice.warning.fg',
                                 px: 1.25, py: 0.25, borderRadius: 1,
-                                fontSize: '0.65rem', fontWeight: 800,
-                                textTransform: 'uppercase', letterSpacing: '0.06em',
+                                fontSize: '0.65rem', fontWeight: 600,
+                                textTransform: 'none', letterSpacing: '0.06em',
                               }}
                             >
                               {section.tag}
@@ -512,7 +512,7 @@ export default function FeaturesPage() {
                             <Typography
                               variant="h6"
                               sx={{
-                                fontWeight: 800, color: INK, mb: 1,
+                                fontWeight: 600, color: INK, mb: 1,
                                 display: 'flex', alignItems: 'center', gap: 1.25, fontSize: '1rem',
                               }}
                             >
@@ -541,7 +541,7 @@ export default function FeaturesPage() {
             variant="h2"
             sx={{
               fontSize: { xs: '2.1rem', md: '2.8rem' },
-              fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.03em',
+              fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.03em',
               color: INK, mb: 3,
             }}
           >
@@ -557,7 +557,7 @@ export default function FeaturesPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/contact')}
               sx={{
-                bgcolor: NAVY, fontWeight: 800,
+                bgcolor: NAVY, fontWeight: 600,
                 '&:hover': { bgcolor: NAVY_DEEP },
                 px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.02rem',
               }}
@@ -569,7 +569,7 @@ export default function FeaturesPage() {
               size="large"
               onClick={() => navigate('/contact')}
               sx={{
-                borderColor: HAIRLINE, color: INK, fontWeight: 700,
+                borderColor: HAIRLINE, color: INK, fontWeight: 600,
                 '&:hover': { borderColor: INK, bgcolor: 'rgba(15,76,129,0.04)' },
                 px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.02rem',
               }}
@@ -592,7 +592,7 @@ export default function FeaturesPage() {
                     bgcolor: EMERALD,
                   }}
                 />
-                <Typography sx={{ fontWeight: 700, color: INK, fontSize: '0.82rem' }}>
+                <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.82rem' }}>
                   {t.label}
                 </Typography>
               </Stack>

@@ -221,7 +221,7 @@ export default function MissionControlPage() {
       <PageContainer>
 
         <PageMeta title="Mission Control" description="Operational overview of everything that needs attention across medication, staffing, compliance, and care reviews." />
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Mission Control</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>Mission Control</Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>Operational overview of everything that needs attention.</Typography>
         <Grid container spacing={3} sx={{ mb: 4 }}>{[1,2,3,4].map(i => (<Grid item xs={6} md={3} key={i}><Skeleton variant="rectangular" height={96} sx={{ borderRadius: 2 }} /></Grid>))}</Grid>
         {[1,2,3].map(i => (<Skeleton key={i} variant="rectangular" height={72} sx={{ mb: 2, borderRadius: 2 }} />))}
@@ -234,7 +234,7 @@ export default function MissionControlPage() {
       <PageMeta title="Mission Control" description="Operational overview of everything that needs attention across medication, staffing, compliance, and care reviews." />
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Mission Control</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>Mission Control</Typography>
           <Typography variant="body1" color="text.secondary">Everything that needs attention, in one place.</Typography>
         </Box>
         <IconButton onClick={fetchAlerts} size="small" sx={{ bgcolor: 'action.hover' }}><RefreshIcon fontSize="small" /></IconButton>
@@ -257,9 +257,9 @@ export default function MissionControlPage() {
                 <Grid item xs={6} md={3} key={s.label}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: s.val > 0 ? s.color : '#E6EAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.val > 0 ? '#FFFFFF' : '#667085' }}>{s.val}</Typography>
+                      <Typography sx={{ fontSize: '1.1rem', fontWeight: 600, color: s.val > 0 ? '#FFFFFF' : '#667085' }}>{s.val}</Typography>
                     </Box>
-                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</Typography>
+                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', textTransform: 'none', letterSpacing: 1 }}>{s.label}</Typography>
                   </Stack>
                 </Grid>
               ))}
@@ -279,8 +279,8 @@ export default function MissionControlPage() {
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <Box sx={{ color: cat.color, mt: 0.25 }}>{cat.icon}</Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1 }}>{cat.count}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', mt: 0.25 }}>{cat.label}</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, lineHeight: 1 }}>{cat.count}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mt: 0.25 }}>{cat.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{cat.detail}</Typography>
                       </Box>
                     </Stack>
@@ -334,14 +334,14 @@ export default function MissionControlPage() {
           <Divider sx={{ mb: 3 }} />
 
           {/* Alert Feed */}
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             {alerts.length === 0 ? 'All clear - nothing needs attention' : `${alerts.length} open alert${alerts.length > 1 ? 's' : ''}`}
           </Typography>
 
           {alerts.length === 0 ? (
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <LowIcon sx={{ fontSize: 48, color: '#10B981', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#10B981' }}>All clear</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#10B981' }}>All clear</Typography>
               <Typography variant="body2" color="text.secondary">No alerts require attention right now.</Typography>
             </Paper>
           ) : (
@@ -355,11 +355,11 @@ export default function MissionControlPage() {
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: `${c.border}18`, color: c.text, '& .MuiChip-label': { px: 1 } }} />
-                          {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#EF444410', color: '#EF4444' }} />}
+                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 600, height: 20, bgcolor: `${c.border}18`, color: c.text, '& .MuiChip-label': { px: 1 } }} />
+                          {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 600, height: 20, bgcolor: '#EF444410', color: '#EF4444' }} />}
                           {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.muted.bg', color: '#475467' }} />}
                         </Stack>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{alert.title}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, fontSize: '0.65rem' }}>
                           {new Date(alert.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -375,7 +375,7 @@ export default function MissionControlPage() {
                     {/* Assign Dropdown */}
                     {assignDialog === alert.id && (
                       <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E6EAF0' }} onClick={e => e.stopPropagation()}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>Assign to staff member:</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>Assign to staff member:</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           {staff.slice(0, 8).map((s: any) => (
                             <Chip key={s.id} label={`${s.first_name || ''} ${s.last_name || ''}`} size="small" onClick={() => handleAssign(alert.id, s.user_id || s.id, `${s.first_name || ''} ${s.last_name || ''}`)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'notice.info.bg' } }} />
@@ -399,7 +399,7 @@ export default function MissionControlPage() {
           {history.length === 0 ? (
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <HistoryIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>No history yet</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>No history yet</Typography>
               <Typography variant="body2" color="text.secondary">Dismissed alerts will appear here.</Typography>
             </Paper>
           ) : (
@@ -411,7 +411,7 @@ export default function MissionControlPage() {
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: 'notice.muted.bg', color: 'text.secondary', '& .MuiChip-label': { px: 1 } }} />
+                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 600, height: 20, bgcolor: 'notice.muted.bg', color: 'text.secondary', '& .MuiChip-label': { px: 1 } }} />
                           <Chip label="Dismissed" size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.success.bg', color: 'notice.success.fg' }} />
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{alert.title}</Typography>
@@ -440,12 +440,12 @@ export default function MissionControlPage() {
                 {[{ label: 'This Week', data: trends.this_week, color: '#2F80ED' }, { label: 'Last Week', data: trends.last_week, color: 'text.secondary' }].map(w => (
                   <Grid item xs={12} md={6} key={w.label}>
                     <Paper elevation={0} sx={{ p: 3, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: w.color, mb: 2 }}>{w.label}</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: w.color, mb: 2 }}>{w.label}</Typography>
                       <Grid container spacing={2}>
                         {[{ l: 'Total', v: w.data.total, c: w.color }, { l: 'Critical', v: w.data.critical, c: '#EF4444' }, { l: 'High', v: w.data.high, c: '#F59E0B' }, { l: 'Medium', v: w.data.medium, c: '#2F80ED' }].map(s => (
                           <Grid item xs={6} sm={3} key={s.l}>
                             <Box sx={{ textAlign: 'center' }}>
-                              <Typography variant="h5" sx={{ fontWeight: 800, color: s.c }}>{s.v}</Typography>
+                              <Typography variant="h5" sx={{ fontWeight: 600, color: s.c }}>{s.v}</Typography>
                               <Typography variant="caption" color="text.secondary">{s.l}</Typography>
                             </Box>
                           </Grid>
@@ -458,7 +458,7 @@ export default function MissionControlPage() {
 
               {/* Delta Row */}
               <Paper elevation={0} sx={{ p: 3, mb: 4, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Change vs Last Week</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Change vs Last Week</Typography>
                 <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
                   {[{ l: 'Total', f: 'total' }, { l: 'Critical', f: 'critical' }, { l: 'High', f: 'high' }, { l: 'Medium', f: 'medium' }].map(d => {
                     const delta = trendDelta(d.f)
@@ -467,7 +467,7 @@ export default function MissionControlPage() {
                     return (
                       <Box key={d.f}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{d.l}</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: isUp ? '#EF4444' : isDown ? '#10B981' : '#667085' }}>{delta}</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: isUp ? '#EF4444' : isDown ? '#10B981' : '#667085' }}>{delta}</Typography>
                       </Box>
                     )
                   })}
@@ -477,7 +477,7 @@ export default function MissionControlPage() {
               {/* Daily Breakdown */}
               {trends.daily.length > 0 && (
                 <Paper elevation={0} sx={{ p: 3, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Daily Alert Count (14 days)</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Daily Alert Count (14 days)</Typography>
                   <Stack spacing={0.5}>
                     {trends.daily.map(day => {
                       const maxVal = Math.max(...trends.daily.map(d => d.total), 1)
@@ -492,7 +492,7 @@ export default function MissionControlPage() {
                             {day.medium > 0 && <Box sx={{ width: `${(day.medium / maxVal) * 100}%`, bgcolor: '#2F80ED' }} />}
                             {day.low > 0 && <Box sx={{ width: `${(day.low / maxVal) * 100}%`, bgcolor: 'text.secondary' }} />}
                           </Box>
-                          <Typography variant="caption" sx={{ width: 30, textAlign: 'right', fontWeight: 700 }}>{day.total}</Typography>
+                          <Typography variant="caption" sx={{ width: 30, textAlign: 'right', fontWeight: 600 }}>{day.total}</Typography>
                         </Stack>
                       )
                     })}

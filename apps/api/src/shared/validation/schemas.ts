@@ -70,6 +70,8 @@ export const updateAIConfigSchema = z.object({
   apiKey: z.string().optional(),
   model: z.string().optional(),
   enabledFeatures: z.array(z.string()).optional(),
+  /** Mica's spoken voice — gpt-4o-mini-tts voice names. */
+  ttsVoice: z.enum(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'sage', 'shimmer', 'verse']).optional(),
 });
 
 export const aiAnalysisRequestSchema = z.object({
@@ -85,6 +87,58 @@ const aiDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'
 export const aiManagerBriefingSchema = z.object({
   from: aiDate,
   to: aiDate,
+});
+
+/** Text-to-speech for Mica's spoken replies. Text only — nothing user-supplied
+ * beyond the words to speak, so the schema stays tight. */
+export const aiTtsSchema = z.object({
+  text: z.string().min(1).max(1500),
+  voice: z.enum(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'sage', 'shimmer', 'verse']).optional(),
+});
+
+/** Mica's platform-wide question ("who is on shift today"). Question text
+ * only — tool selection and org scoping happen server-side. `sessionId` is
+ * the opaque follow-up-memory handle the server issued on the previous ask;
+ * omit it (or send an unknown one) to start a fresh conversation. */
+export const aiMicaAskSchema = z.object({
+  question: z.string().min(1).max(500),
+  sessionId: z.string().min(8).max(64).optional(),
+  /** Prepends the current person to the reply context ("what about her?").
+   * Optional: only the client sends it, and only when a person is selected. */
+  personName: z.string().max(120).optional(),
+});
+
+/** Person intent (book/schedule/reschedule/cancel) — one sentence, no session. */
+export const aiMicaIntentSchema = z.object({
+  utterance: z.string().min(1).max(500),
+});
+
+/** Mica action gateway (create task, book appointment, prepare handover,
+ * summarise changes). Draft phase: the server resolves/disambiguates and
+ * returns a reviewable draft — nothing is persisted until
+ * /ai/mica/actions/confirm receives the approved draft. The two read-only
+ * actions are validated the same way, but their drafts are refused at
+ * confirm (see aiMicaActionConfirmSchema). */
+export const aiMicaActionSchema = z.object({
+  action: z.enum(['CREATE_TASK', 'CREATE_APPOINTMENT', 'PREPARE_HANDOVER', 'SUMMARISE_CHANGES']),
+  clarify: z.boolean().optional(),
+  utterance: z.string().max(1000).optional(),
+  input: z.record(z.any()).default({}),
+});
+
+/** Confirm: only the two write actions may be confirmed. The read-only
+ * actions' ids sit in the invoke schema but are excluded here, so a
+
+ * read-only draft cannot be laundered into a write through the confirm
+ * endpoint — the gateway also refuses defensively (ai.gateway.ts). */
+export const aiMicaActionConfirmSchema = z.object({
+  draft: z.object({
+    draft: z.literal(true),
+    action: z.enum(['CREATE_TASK', 'CREATE_APPOINTMENT']),
+    output: z.record(z.any()),
+    summary: z.string().max(1000).optional(),
+    context: z.record(z.any()).optional(),
+  }),
 });
 
 export const aiIntelligenceSchema = z.object({
@@ -777,6 +831,7 @@ export const updateOrgSettingsSchema = z.object({
   daily_shift_audit_enabled: z.boolean().optional(),
   daily_shift_audit_time: z.string().optional(),
   reorder_alert_enabled: z.boolean().optional(),
+  stock_low_alert_days_threshold: z.number().int().min(1).max(90).optional(),
   late_med_alert_enabled: z.boolean().optional(),
   late_med_alert_delay_minutes: z.number().int().min(1).max(1440).optional(),
   overdue_alert_frequency_minutes: z.union([z.literal(30), z.literal(60), z.literal(120), z.literal(240)]).optional(),

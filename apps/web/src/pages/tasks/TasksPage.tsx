@@ -88,13 +88,13 @@ export default function TasksPage() {
     <PageContainer>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
-        <Box><Typography variant="h5" fontWeight={800}>Tasks</Typography><Typography variant="body2" color="text.secondary">Keep recurring and one-off work visible, owned, and closed.</Typography></Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add task</Button>
+        <Box><Typography variant="h5" fontWeight={600}>Tasks</Typography><Typography variant="body2" color="text.secondary">Keep recurring and one-off work visible, owned, and closed.</Typography></Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add task</Button>
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
         {[['Pending', pending], ['In progress', inProgress], ['Completed', completed]].map(([label, value]) => (
-          <Paper key={String(label)} sx={{ px: 2, py: 1.5, flex: 1, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{value}</Typography></Paper>
+          <Paper key={String(label)} sx={{ px: 2, py: 1.5, flex: 1, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={600}>{value}</Typography></Paper>
         ))}
       </Stack>
 
@@ -109,17 +109,17 @@ export default function TasksPage() {
         </Stack>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, borderColor: '#E6EAF0' }}>
-        <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>Daily task calendar</Typography>
-        {calendarTasks.length === 0 ? <Typography variant="body2" color="text.secondary">Nothing is scheduled for this day.</Typography> : <Stack spacing={1}>{calendarTasks.map((task: any) => <Paper key={task.id} variant="outlined" onClick={() => openView(task)} sx={{ p: 1.25, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { borderColor: NAVY } }}><Box sx={{ flex: 1 }}><Typography fontWeight={700}>{task.title}</Typography><Typography variant="caption" color="text.secondary">{task.assigned_name || 'Unassigned'} · {RECURRENCE_LABELS[task.recurrence] || 'Once'}</Typography></Box><Chip size="small" label={task.status === 'completed' ? 'Completed' : 'Mark complete'} color={task.status === 'completed' ? 'success' : 'default'} onClick={e => { e.stopPropagation(); if (task.status !== 'completed') openCompletion(task) }} /></Paper>)}</Stack>}
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Daily task calendar</Typography>
+        {calendarTasks.length === 0 ? <Typography variant="body2" color="text.secondary">Nothing is scheduled for this day.</Typography> : <Stack spacing={1}>{calendarTasks.map((task: any) => <Paper key={task.id} variant="outlined" onClick={() => openView(task)} sx={{ p: 1.25, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { borderColor: NAVY } }}><Box sx={{ flex: 1 }}><Typography fontWeight={600}>{task.title}</Typography><Typography variant="caption" color="text.secondary">{task.assigned_name || 'Unassigned'} · {RECURRENCE_LABELS[task.recurrence] || 'Once'}</Typography></Box><Chip size="small" label={task.status === 'completed' ? 'Completed' : 'Mark complete'} color={task.status === 'completed' ? 'success' : 'default'} onClick={e => { e.stopPropagation(); if (task.status !== 'completed') openCompletion(task) }} /></Paper>)}</Stack>}
       </Paper>
 
       <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
         <Table size="small">
-          <TableHead><TableRow>{['Task', 'For', 'Owner', 'Cadence', 'Due', 'Status', ''].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableHead><TableRow>{['Task', 'For', 'Owner', 'Cadence', 'Due', 'Status', ''].map(h => <TableCell key={h} sx={{ fontWeight: 600, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>
             {tasks.slice(page * rows, page * rows + rows).map((task: any) => (
               <TableRow key={task.id} hover onClick={() => openView(task)} sx={{ cursor: 'pointer' }}>
-                <TableCell><Typography fontWeight={700}>{task.title}</Typography>{task.description && <Typography variant="caption" color="text.secondary" noWrap>{task.description}</Typography>}</TableCell>
+                <TableCell><Typography fontWeight={600}>{task.title}</Typography>{task.description && <Typography variant="caption" color="text.secondary" noWrap>{task.description}</Typography>}</TableCell>
                 <TableCell>{task.person_name || 'House / team'}</TableCell><TableCell>{task.assigned_name || 'Unassigned'}</TableCell>
                 <TableCell><Chip size="small" label={RECURRENCE_LABELS[task.recurrence] || task.recurrence || 'Once'} variant="outlined" /></TableCell>
                 <TableCell>{task.due_date ? new Date(task.due_date).toLocaleDateString('en-GB') : '—'}</TableCell>
@@ -134,7 +134,7 @@ export default function TasksPage() {
       </TableContainer>
 
       <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>{viewing?.title}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{viewing?.title}</DialogTitle>
         <DialogContent>
           {viewing && <Stack spacing={2} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={1} flexWrap="wrap"><Chip label={viewing.status?.replace(/_/g, ' ')} color={STATUS_COLORS[viewing.status] || 'default'} sx={{ textTransform: 'capitalize' }} /><Chip label={viewing.priority} color={PRIORITY_COLORS[viewing.priority] || 'default'} /><Chip label={RECURRENCE_LABELS[viewing.recurrence] || 'Once'} variant="outlined" /></Stack>
@@ -148,13 +148,13 @@ export default function TasksPage() {
       </Dialog>
 
       <Dialog open={completionDialog} onClose={() => setCompletionDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Complete task</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Complete task</DialogTitle>
         <DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Record what was done for {viewing?.title || 'this task'}.</Typography><TextField label="Completion details" multiline rows={4} fullWidth placeholder="What was completed, observed, or handed over?" value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} /></DialogContent>
         <DialogActions><Button onClick={() => setCompletionDialog(false)}>Cancel</Button><Button variant="contained" disabled={statusMutation.isPending} onClick={() => { statusMutation.mutate({ id: viewing.id, status: 'completed' }); setCompletionDialog(false); setViewDialog(false) }} sx={{ bgcolor: '#087A55' }}>Save completion</Button></DialogActions>
       </Dialog>
 
       <Dialog open={dialog} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}><DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit task' : 'New task'}</DialogTitle><DialogContent>
+        <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}><DialogTitle sx={{ fontWeight: 600 }}>{editing ? 'Edit task' : 'New task'}</DialogTitle><DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Title" required fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />

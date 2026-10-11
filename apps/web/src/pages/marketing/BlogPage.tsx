@@ -119,7 +119,7 @@ export default function BlogPage() {
               }}
             >
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-              <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
+              <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
                 UPDATES · SECTOR COMMENTARY · HOW-TO
               </Typography>
             </Box>
@@ -127,7 +127,7 @@ export default function BlogPage() {
               variant="h1"
               sx={{
                 fontSize: { xs: '2.4rem', md: '3.2rem' },
-                fontWeight: 900, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
+                fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.03em', color: INK, mb: 3,
               }}
             >
               Compliance blog and guides.
@@ -144,7 +144,7 @@ export default function BlogPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: NAVY, letterSpacing: '0.14em', textTransform: 'none' }}>
                 Focused on the UK's four regulators
               </Typography>
             </Grid>
@@ -164,14 +164,14 @@ export default function BlogPage() {
                           width: 36, height: 36, borderRadius: 1.5,
                           bgcolor: t.mark === 'CIW' || t.mark === 'GDPR' ? EMERALD : NAVY,
                           color: '#FFFFFF', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontWeight: 900, fontSize: '0.7rem',
+                          justifyContent: 'center', fontWeight: 600, fontSize: '0.7rem',
                           flexShrink: 0,
                         }}
                       >
                         {t.mark}
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>{t.label}</Typography>
+                        <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>{t.label}</Typography>
                         <Typography sx={{ color: MIST, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>{t.detail}</Typography>
                       </Box>
                     </Stack>
@@ -207,7 +207,7 @@ export default function BlogPage() {
                       label="Featured"
                       size="small"
                       sx={{
-                        fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.06em',
+                        fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.06em',
                         bgcolor: EMERALD, color: '#FFFFFF', borderRadius: 999,
                       }}
                     />
@@ -215,7 +215,7 @@ export default function BlogPage() {
                       label={featured.category}
                       size="small"
                       sx={{
-                        fontWeight: 800, fontSize: '0.7rem',
+                        fontWeight: 600, fontSize: '0.7rem',
                         bgcolor: 'rgba(15,76,129,0.08)', color: NAVY,
                         border: 'none', borderRadius: 999, letterSpacing: '0.04em',
                       }}
@@ -224,7 +224,7 @@ export default function BlogPage() {
                   <Typography
                     variant="h2"
                     sx={{
-                      fontWeight: 900, color: INK,
+                      fontWeight: 600, color: INK,
                       fontSize: { xs: '1.6rem', md: '2.05rem' }, lineHeight: 1.15,
                       letterSpacing: '-0.02em', mb: 2,
                     }}
@@ -251,7 +251,7 @@ export default function BlogPage() {
                         label={t}
                         size="small"
                         sx={{
-                          fontWeight: 700, fontSize: '0.7rem',
+                          fontWeight: 600, fontSize: '0.7rem',
                           bgcolor: BONE, color: NAVY,
                           border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                         }}
@@ -266,7 +266,7 @@ export default function BlogPage() {
                       textAlign: 'center',
                     }}
                   >
-                    <Typography sx={{ fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1.5, opacity: 0.78 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none', mb: 1.5, opacity: 0.78 }}>
                       READ THE FULL GUIDE
                     </Typography>
                     <Box
@@ -278,7 +278,7 @@ export default function BlogPage() {
                     >
                       <ArrowForwardIcon sx={{ fontSize: 28 }} />
                     </Box>
-                    <Typography sx={{ fontWeight: 800, fontSize: '0.95rem' }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
                       Opens the article →
                     </Typography>
                   </Box>
@@ -300,7 +300,7 @@ export default function BlogPage() {
           >
             <Typography
               variant="h2"
-              sx={{ fontSize: { xs: '1.6rem', md: '2rem' }, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
+              sx={{ fontSize: { xs: '1.6rem', md: '2rem' }, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK }}
             >
               Latest guides
             </Typography>
@@ -334,13 +334,13 @@ export default function BlogPage() {
                     label={post.category}
                     size="small"
                     sx={{
-                      fontWeight: 800, fontSize: '0.7rem', alignSelf: 'flex-start',
+                      fontWeight: 600, fontSize: '0.7rem', alignSelf: 'flex-start',
                       bgcolor: 'rgba(15,76,129,0.08)', color: NAVY,
                       border: 'none', borderRadius: 999, letterSpacing: '0.04em',
                       mb: 1.75,
                     }}
                   />
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: INK, fontSize: '1rem', mb: 1.25, lineHeight: 1.3, flex: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: INK, fontSize: '1rem', mb: 1.25, lineHeight: 1.3, flex: 1 }}>
                     {post.title}
                   </Typography>
                   <Typography sx={{ color: MIST, fontSize: '0.86rem', lineHeight: 1.6, mb: 2.5 }}>
@@ -357,7 +357,7 @@ export default function BlogPage() {
                         label={t}
                         size="small"
                         sx={{
-                          fontWeight: 700, fontSize: '0.68rem',
+                          fontWeight: 600, fontSize: '0.68rem',
                           bgcolor: BONE, color: MIST,
                           border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                         }}
@@ -376,7 +376,7 @@ export default function BlogPage() {
         <Container maxWidth="md">
           <Typography
             variant="h2"
-            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
+            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
           >
             See it on your service, not a demo dataset.
           </Typography>
@@ -391,7 +391,7 @@ export default function BlogPage() {
               onClick={() => navigate('/contact')}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
-                fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               Book a demo
@@ -403,7 +403,7 @@ export default function BlogPage() {
               sx={{
                 borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
                 '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' },
-                fontWeight: 700, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
+                fontWeight: 600, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
               Talk to our team

@@ -107,7 +107,7 @@ export default function ChannelSidebar({
           )}
           {unread && (
             <Box sx={{ minWidth: 18, height: 18, borderRadius: '50%', bgcolor: EMERALD, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.5 }}>
-              <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1 }}>{ch.unread_count! > 99 ? '99+' : ch.unread_count}</Typography>
+              <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>{ch.unread_count! > 99 ? '99+' : ch.unread_count}</Typography>
             </Box>
           )}
         </Stack>
@@ -119,7 +119,7 @@ export default function ChannelSidebar({
     <ListItemButton dense sx={{ px: 2, py: 0.5 }} onClick={() => toggle(sectionKey)}>
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ width: '100%' }}>
         {icon}
-        <Typography variant="caption" fontWeight={800} sx={{ flex: 1, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: MIST }}>
+        <Typography variant="caption" fontWeight={600} sx={{ flex: 1, fontSize: 11, textTransform: 'none', letterSpacing: '0.06em', color: MIST }}>
           {label}
         </Typography>
         {count > 0 && <Typography variant="caption" sx={{ fontSize: 10, color: MIST }}>{count}</Typography>}
@@ -133,10 +133,10 @@ export default function ChannelSidebar({
       <Box sx={{ px: 2.5, pt: 2, pb: 1.5, borderBottom: `1px solid ${HAIRLINE}` }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h6" fontWeight={900} sx={{ fontSize: 17, color: INK, letterSpacing: '-0.02em' }}>Chat</Typography>
+            <Typography variant="h6" fontWeight={600} sx={{ fontSize: 17, color: INK, letterSpacing: '-0.02em' }}>Chat</Typography>
             {totalUnread > 0 && (
               <Box sx={{ minWidth: 20, height: 20, borderRadius: '50%', bgcolor: EMERALD, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.5 }}>
-                <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 800, lineHeight: 1 }}>{totalUnread > 99 ? '99+' : totalUnread}</Typography>
+                <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600, lineHeight: 1 }}>{totalUnread > 99 ? '99+' : totalUnread}</Typography>
               </Box>
             )}
           </Stack>
@@ -208,7 +208,7 @@ export default function ChannelSidebar({
             )}
             {channels.length === 0 && (
               <Box sx={{ px: 3, py: 5, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: INK }}>No conversations yet</Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: INK }}>No conversations yet</Typography>
                 <Typography sx={{ fontSize: 12, color: MIST, mt: 0.5 }}>Start a message or create a group.</Typography>
               </Box>
             )}

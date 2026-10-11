@@ -273,7 +273,7 @@ export default function LiveMapPage() {
     return (
       <PageContainer>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Visit Check-In Map</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Visit Check-In Map</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading today's check-in data…</Typography>
         </Box>
         <Skeleton variant="rounded" height={480} sx={{ borderRadius: 2 }} />
@@ -291,7 +291,7 @@ export default function LiveMapPage() {
       <PageContainer>
         <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', px: 2 }}>
           <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Check-in map switched off</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Check-in map switched off</Typography>
             <Typography color="text.secondary">
               Your organisation has turned off carer location, so positions are not recorded at
               check-in and this map is not available. Visits, care records, timesheets and payroll
@@ -311,7 +311,7 @@ export default function LiveMapPage() {
       <PageContainer>
         <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', px: 2 }}>
           <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Map unavailable</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Map unavailable</Typography>
             <Typography color="text.secondary">{loadTimedOut && !error ? 'The visit map is taking too long to respond.' : (error as any)?.response?.data?.message || 'We could not load the check-in map.'}</Typography>
             <AppButton loading={isFetching && !loadTimedOut} onClick={() => refetch()}>Try again</AppButton>
           </Stack>
@@ -324,7 +324,7 @@ export default function LiveMapPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Visit Check-In Map</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Visit Check-In Map</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             Where each carer checked in for today's calls
           </Typography>
@@ -351,19 +351,19 @@ export default function LiveMapPage() {
       {/* Summary bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#2F80ED' }}>{areaStats.total}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#2F80ED' }}>{areaStats.total}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total calls today</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#087A55' }}>{activeVisits.length}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#087A55' }}>{activeVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Active now</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>{scheduledVisits.length}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary' }}>{scheduledVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Upcoming</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#10B981' }}>{areaStats.completed}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#10B981' }}>{areaStats.completed}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Completed</Typography>
         </Paper>
       </Stack>
@@ -384,7 +384,7 @@ export default function LiveMapPage() {
       {/* Active visits list */}
       {activeVisits.length > 0 && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Active carers</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Active carers</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
             Each pin is a position captured when a carer checked in or checked out, not a live fix — the time shown is when it was taken.
           </Typography>
@@ -448,7 +448,7 @@ export default function LiveMapPage() {
       {/* Upcoming visits */}
       {scheduledVisits.length > 0 && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Upcoming calls</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Upcoming calls</Typography>
           <Stack spacing={1}>
             {scheduledVisits.slice(upcomingPageSafe * 10, upcomingPageSafe * 10 + 10).map(v => (
               <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F7F9FC' }}>

@@ -49,7 +49,7 @@ export default function LinkPreview({ url, isMine }: Props) {
         </Box>
       )}
       <Box sx={{ p: 0.75, flex: 1, minWidth: 0 }}>
-        <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.3, fontSize: 12, color: isMine ? WHITE : INK }} noWrap>{title}</Typography>
+        <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.3, fontSize: 12, color: isMine ? WHITE : INK }} noWrap>{title}</Typography>
         {description && (
           <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.3, mt: 0.25, fontSize: 11, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }} noWrap>{description}</Typography>
         )}

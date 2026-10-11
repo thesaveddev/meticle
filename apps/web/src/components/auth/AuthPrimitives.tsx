@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 export function AuthHeader({ title, supporting }: { title: string; supporting: string }) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography component="h2" sx={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--mc-text-primary)' }}>
+      <Typography component="h2" sx={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.5px', color: 'var(--mc-text-primary)' }}>
         {title}
       </Typography>
       <Typography sx={{ mt: 0.5, fontSize: 15, color: 'var(--mc-text-secondary)' }}>{supporting}</Typography>
@@ -252,7 +252,7 @@ export function AuthSuccess({ title, children }: { title: string; children?: Rea
         mb: 3,
       }}
     >
-      <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--mc-success-text)' }}>{title}</Typography>
+      <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'var(--mc-success-text)' }}>{title}</Typography>
       {children && (
         <Typography sx={{ fontSize: 13.5, color: 'var(--mc-success-text)', mt: 0.5, lineHeight: 1.55 }}>{children}</Typography>
       )}

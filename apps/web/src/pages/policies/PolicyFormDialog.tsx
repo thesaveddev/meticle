@@ -71,7 +71,7 @@ export default function PolicyFormDialog({ open, editing, onClose, onSaved }: {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: 900 }}>{editing ? 'Edit policy' : 'Add policy'}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 600 }}>{editing ? 'Edit policy' : 'Add policy'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label="Policy title" fullWidth value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />

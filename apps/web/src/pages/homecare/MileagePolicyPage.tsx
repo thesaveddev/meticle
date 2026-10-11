@@ -124,7 +124,7 @@ export default function MileagePolicyPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage Policies</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Mileage Policies</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Manage HMRC-approved mileage rates by vehicle type and fuel category</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ textTransform: 'none', bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
@@ -137,15 +137,15 @@ export default function MileagePolicyPage() {
       {/* Summary */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
         <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#2F80ED' }}>{policies.length}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: '#2F80ED' }}>{policies.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total policies</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#10B981' }}>{activePolicies.length}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: '#10B981' }}>{activePolicies.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Active</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.secondary' }}>{inactivePolicies.length}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.secondary' }}>{inactivePolicies.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Inactive</Typography>
         </Paper>
       </Stack>
@@ -165,15 +165,15 @@ export default function MileagePolicyPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Tax year</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Vehicle</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Fuel</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Rate</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Effective from</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Effective to</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Source</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Tax year</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Vehicle</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Fuel</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Rate</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Effective from</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Effective to</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Source</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -186,7 +186,7 @@ export default function MileagePolicyPage() {
                   <TableCell>
                     <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'notice.muted.bg' }} />
                   </TableCell>
-                  <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#2F80ED' }}>{money(p.rate_pence)}</Typography></TableCell>
+                  <TableCell align="right"><Typography sx={{ fontWeight: 600, color: '#2F80ED' }}>{money(p.rate_pence)}</Typography></TableCell>
                   <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{p.effective_to ? new Date(p.effective_to).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{p.source_label || '—'}</Typography></TableCell>

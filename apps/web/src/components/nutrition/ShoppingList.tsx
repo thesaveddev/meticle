@@ -182,7 +182,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
         <Stack direction="row" alignItems="center" spacing={1}>
           <CartIcon sx={{ color: '#087A55', fontSize: 24 }} />
           <Box>
-            <Typography variant="subtitle2" fontWeight={700}>Weekly Shopping List</Typography>
+            <Typography variant="subtitle2" fontWeight={600}>Weekly Shopping List</Typography>
             <Typography variant="caption" color="text.secondary">
               {totalItems > 0
                 ? `${totalItems} items across ${categories.length} categories`
@@ -197,7 +197,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
             variant="outlined" size="small"
             startIcon={loading ? <CircularProgress size={14} /> : <CartIcon />}
             onClick={generateList} disabled={loading}
-            sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#087A55', color: '#087A55' }}
+            sx={{ textTransform: 'none', borderColor: '#087A55', color: '#087A55' }}
           >
             {shoppingList ? 'Regenerate' : 'Generate Shopping List'}
           </Button>
@@ -206,7 +206,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
               variant="contained" size="small"
               startIcon={<PrintIcon />}
               onClick={handlePrint}
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#087A55' }}
+              sx={{ textTransform: 'none', bgcolor: '#087A55' }}
             >
               Print
             </Button>
@@ -229,7 +229,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           className="no-print"
         >
           <CartIcon sx={{ fontSize: 48, color: '#087A55', mb: 1 }} />
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
             Generate Shopping List
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -238,7 +238,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           <Button
             variant="contained" startIcon={<CartIcon />}
             onClick={generateList}
-            sx={{ bgcolor: '#087A55', '&:hover': { bgcolor: '#087A55' }, borderRadius: 2, textTransform: 'none' }}
+            sx={{ bgcolor: '#087A55', '&:hover': { bgcolor: '#087A55' }, textTransform: 'none' }}
           >
             Generate Shopping List
           </Button>
@@ -262,7 +262,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           <Paper variant="outlined" sx={{ p: 2.5, mb: 2 }} className="no-print">
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Box>
-                <Typography variant="h6" fontWeight={800} color="#087A55">
+                <Typography variant="h6" fontWeight={600} color="#087A55">
                   Shopping List
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -307,7 +307,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
 
           {/* Print Header */}
           <Box sx={{ mb: 2, pb: 1, borderBottom: '2px solid #087A55' }} className="no-print" style={{ display: 'none' }}>
-            <Typography variant="h5" fontWeight={800} color="#087A55">
+            <Typography variant="h5" fontWeight={600} color="#087A55">
               Shopping List
             </Typography>
             <Typography variant="subtitle1" color="#344054">
@@ -344,7 +344,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
                 >
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Typography fontSize="18px">{categoryIcon}</Typography>
-                    <Typography variant="subtitle2" fontWeight={700}>
+                    <Typography variant="subtitle2" fontWeight={600}>
                       {catKey}
                     </Typography>
                     <Chip
@@ -448,7 +448,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           {/* Storage Notes */}
           {shoppingList.storage_notes && shoppingList.storage_notes.length > 0 && (
             <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#FFF7E6', border: '1px solid #FFF7E6' }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#9A6700' }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#9A6700' }}>
                 🧊 Storage Notes
               </Typography>
               {shoppingList.storage_notes.map((note, i) => (
@@ -460,7 +460,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
           {/* Tips */}
           {shoppingList.tips && shoppingList.tips.length > 0 && (
             <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: '#EAFBF5', border: '1px solid #EAFBF5' }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#087A55' }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#087A55' }}>
                 💡 Kitchen Tips
               </Typography>
               {shoppingList.tips.map((tip, i) => (

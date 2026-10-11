@@ -36,7 +36,7 @@ export default function CheckInPage() {
 
   return (
     <Box sx={{ p: 2.5 }}>
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, color: '#2F80ED' }}>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 3, color: '#2F80ED' }}>
         <GpsIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> SecureVisit Check-In
       </Typography>
 
@@ -48,7 +48,7 @@ export default function CheckInPage() {
             Your GPS location will be recorded to verify you are at the service location.
           </Typography>
           <Button variant="contained" size="large" startIcon={<GpsIcon />} onClick={doCheckIn}
-            sx={{ bgcolor: '#10B981', textTransform: 'none', borderRadius: 3, px: 4, py: 1.5 }}>
+            sx={{ bgcolor: '#10B981', textTransform: 'none', px: 4, py: 1.5 }}>
             Check In Now
           </Button>
         </Paper>
@@ -64,7 +64,7 @@ export default function CheckInPage() {
       {status === 'success' && (
         <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'notice.success.bg', border: '1px solid #EAFBF5' }}>
           <CheckIcon sx={{ fontSize: 64, color: 'notice.success.fg', mb: 1 }} />
-          <Typography variant="h6" fontWeight={800} color='notice.success.fg'>Checked In!</Typography>
+          <Typography variant="h6" fontWeight={600} color='notice.success.fg'>Checked In!</Typography>
           {coords && (
             <Typography variant="caption" color='notice.success.fg' sx={{ mt: 1, display: 'block' }}>
               GPS: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
@@ -82,7 +82,7 @@ export default function CheckInPage() {
         }>{error}</Alert>
       )}
 
-      <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 4, mb: 1.5 }}>Recent Check-Ins</Typography>
+      <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 4, mb: 1.5 }}>Recent Check-Ins</Typography>
       <Stack spacing={1}>
         {(recentCheckins || []).slice(0, 10).map((c: any) => (
           <Paper key={c.id} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>

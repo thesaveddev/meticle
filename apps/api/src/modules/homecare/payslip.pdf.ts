@@ -1,4 +1,5 @@
 import { generatePdf } from '../../shared/pdf/pdf.service'
+import { PDF_TEXT as T } from '../../shared/utils/email.template'
 
 export interface PayslipVisitLine {
   scheduled_start: string
@@ -116,33 +117,33 @@ export function buildPayslipHtml(data: PayslipData): string {
   <title>Payslip ${esc(data.periodLabel)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #1A2332; font-size: 12px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 2px solid #1A2332; }
+    body { font-family: Arial, Helvetica, sans-serif; color: ${T.heading}; font-size: 12px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 2px solid ${T.heading}; }
     .brand { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
-    .org { font-size: 12px; color: #6B7280; margin-top: 3px; }
+    .org { font-size: 12px; color: ${T.secondary}; margin-top: 3px; }
     .title { text-align: right; }
     .title h1 { font-size: 17px; font-weight: 700; }
-    .title p { font-size: 11px; color: #6B7280; margin-top: 2px; }
+    .title p { font-size: 11px; color: ${T.secondary}; margin-top: 2px; }
     .summary { display: flex; gap: 10px; margin: 18px 0; }
-    .summary-box { flex: 1; padding: 12px; border-radius: 8px; text-align: center; background: #F7F9F7; }
-    .summary-box.hero { background: #1A2332; color: #fff; }
-    .summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #6B7280; }
+    .summary-box { flex: 1; padding: 12px; border-radius: 8px; text-align: center; background: ${T.panelBg}; }
+    .summary-box.hero { background: ${T.heading}; color: #fff; }
+    .summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: ${T.secondary}; }
     .summary-box.hero .summary-label { color: rgba(255,255,255,0.65); }
     .summary-value { font-size: 17px; font-weight: 800; margin-top: 3px; }
-    .summary-sub { font-size: 10px; color: #6B7280; }
+    .summary-sub { font-size: 10px; color: ${T.secondary}; }
     .summary-box.hero .summary-sub { color: rgba(255,255,255,0.5); }
-    h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #9CA3AF; margin: 18px 0 8px; }
+    h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: ${T.muted}; margin: 18px 0 8px; }
     table { width: 100%; border-collapse: collapse; }
-    th { background: #F7F9F7; padding: 7px 9px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #6B7280; text-align: left; }
-    td { padding: 7px 9px; border-bottom: 1px solid #E5E7EB; font-size: 11px; }
+    th { background: ${T.panelBg}; padding: 7px 9px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: ${T.secondary}; text-align: left; }
+    td { padding: 7px 9px; border-bottom: 1px solid ${T.line}; font-size: 11px; }
     .num { text-align: right; }
     .strong { font-weight: 700; }
-    .breakdown td.label { color: #6B7280; }
-    .breakdown .total td { border-top: 2px solid #1A2332; border-bottom: none; font-weight: 700; font-size: 13px; padding-top: 10px; }
-    .ytd .total td { border-top: 2px solid #1A2332; border-bottom: none; font-weight: 700; }
-    .muted { color: #9CA3AF; }
-    .footer { margin-top: 22px; padding-top: 10px; border-top: 1px solid #E5E7EB; text-align: center; }
-    .footer p { font-size: 10px; color: #9CA3AF; margin-top: 3px; }
+    .breakdown td.label { color: ${T.secondary}; }
+    .breakdown .total td { border-top: 2px solid ${T.heading}; border-bottom: none; font-weight: 700; font-size: 13px; padding-top: 10px; }
+    .ytd .total td { border-top: 2px solid ${T.heading}; border-bottom: none; font-weight: 700; }
+    .muted { color: ${T.muted}; }
+    .footer { margin-top: 22px; padding-top: 10px; border-top: 1px solid ${T.line}; text-align: center; }
+    .footer p { font-size: 10px; color: ${T.muted}; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -253,6 +254,6 @@ export function buildPayslipHtml(data: PayslipData): string {
 export async function buildPayslipPdf(data: PayslipData): Promise<Buffer> {
   return generatePdf(buildPayslipHtml(data), {
     headerTemplate: '<div></div>',
-    footerTemplate: '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">Meticle Care payslip · <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
+    footerTemplate: `<div style="font-size:9px;color:${T.muted};width:100%;text-align:center;padding:5px 15mm">Meticle Care payslip · <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
   })
 }

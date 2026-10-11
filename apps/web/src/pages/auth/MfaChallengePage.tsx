@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../../services/api'
+import BrandWordmark from '../../components/BrandWordmark'
 
 export default function MfaChallengePage() {
   const location = useLocation()
@@ -51,8 +52,8 @@ export default function MfaChallengePage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', mb: 1 }}>Meticle Care</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#17202A' }}>Two-Factor Authentication</Typography>
+          <BrandWordmark size={22} />
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#17202A' }}>Two-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Enter the code from your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
@@ -74,7 +75,7 @@ export default function MfaChallengePage() {
               }}
             />
             <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-              sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, textTransform: 'none' }}>
+              sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify'}
             </Button>
 

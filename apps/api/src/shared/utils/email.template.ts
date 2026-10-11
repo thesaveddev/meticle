@@ -19,7 +19,7 @@ function emailLayout(title: string, body: string) {
 ${body}
 </td></tr>
 <tr><td style="padding:24px 4px 0;text-align:left;font-size:12px;color:${EMAIL_BRAND.textMuted};line-height:1.7">
-<span style="font-weight:700;color:${EMAIL_BRAND.textSecondary}">MeticleCare</span> · Care operations, unified.<br>
+<span style="font-weight:600;color:${EMAIL_BRAND.textSecondary}">MeticleCare</span> · Care operations, unified.<br>
 <a href="${escapeUrl(process.env.FRONTEND_URL || `https://${domain}`)}" style="color:${EMAIL_BRAND.primary};text-decoration:underline">${domain}</a>
 </td></tr>
 </table>
@@ -82,10 +82,47 @@ export const EMAIL_TEXT = {
   toneBad: '#B91C1C',
 } as const;
 
+/**
+ * Print/PDF tokens — the same vocabulary as EMAIL_TEXT, extended for printed
+ * documents (evidence packs, reports, invoices, payslips) rendered by the
+ * headless browser. Print needs a handful of values email never uses: the
+ * near-black body ink, table rules, the brand navy used on covers, and the
+ * status chip fills. Keeping them beside EMAIL_TEXT means one file owns every
+ * colour a generated document can print.
+ */
+export const PDF_TEXT = {
+  /** Body ink on paper — darker than the email body value because print. */
+  ink: '#111111',
+  /** Strongest ink on paper — invoice numbers, payslip totals. */
+  heading: '#1F2937',
+  /** Secondary copy, table cells. */
+  body: '#374151',
+  /** Same role as EMAIL_TEXT.secondary — captions, labels, footers. */
+  secondary: '#6B7280',
+  /** Same role as EMAIL_TEXT.muted — meta, legal lines. */
+  muted: '#9CA3AF',
+  /** Table rules and dividers. */
+  line: '#E5E7EB',
+  /** Table row rules (finer than `line`). */
+  lineSoft: '#F3F4F6',
+  /** Row striping, table header fill, soft panels. */
+  panelBg: '#F9FAFB',
+  /** Table header fill (slightly stronger than panelBg). */
+  headerBg: '#F3F4F6',
+  /** Brand navy — covers, headings, badges on generated documents. */
+  navy: '#0F4C81',
+  /** Status chip fills (same values as the web app's notice tokens). */
+  toneOkBg: '#DCFCE7',
+  toneWarnBg: '#FEF3C7',
+  toneBadBg: '#FEE2E2',
+  toneNeutralBg: '#F3F4F6',
+  toneBad: '#DC2626',
+} as const;
+
 /** Text wordmark — never an image, so dark mode and Outlook cannot break it. */
 export function EmailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:21px;font-weight:700;color:${EMAIL_BRAND.primary};letter-spacing:-0.4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">Meticle<span style="font-weight:400">Care</span></td>
+<td style="font-size:21px;font-weight:600;color:${EMAIL_BRAND.primary};letter-spacing:-0.4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">Meticle<span style="font-weight:400">Care</span></td>
 </tr></table>`;
 }
 
@@ -103,7 +140,7 @@ export function EmailFooter(): string {
   const domain = 'meticlecare.com';
   const base = process.env.FRONTEND_URL || `https://${domain}`;
   return `<tr><td style="padding:28px 8px 0;text-align:center;font-size:12px;color:${EMAIL_BRAND.footerMuted};line-height:1.8">
-<span style="font-weight:700;color:${EMAIL_BRAND.textSecondary}">MeticleCare</span><br>
+<span style="font-weight:600;color:${EMAIL_BRAND.textSecondary}">MeticleCare</span><br>
 Care operations, unified.<br>
 <a href="${escapeUrl(base)}/privacy" style="color:${EMAIL_BRAND.footerMuted};text-decoration:underline">Privacy Policy</a>
 &nbsp;|&nbsp;
@@ -142,7 +179,7 @@ export function buildTransactionalEmailHtml({
 <tr><td style="padding:0 0 24px 0">${EmailLogo()}</td></tr>
 <tr><td style="background:${EMAIL_BRAND.surface};border:1px solid ${EMAIL_BRAND.border};border-radius:20px;padding:40px 36px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:26px;font-weight:700;color:${EMAIL_BRAND.textPrimary};letter-spacing:-0.4px;padding:0 0 14px 0">${escapeHtml(heading)}</td></tr>
+<tr><td style="font-size:26px;font-weight:600;color:${EMAIL_BRAND.textPrimary};letter-spacing:-0.4px;padding:0 0 14px 0">${escapeHtml(heading)}</td></tr>
 <tr><td style="font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.7">${bodyHtml}</td></tr>
 ${ctaHtml}
 </table>
@@ -160,13 +197,17 @@ export function buildEmailHtml(title: string, heading: string, content: string, 
   title = escapeHtml(title);
   heading = escapeHtml(heading);
   const ctaHtml = cta
-    ? `<tr><td style="padding:24px 0 4px 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${EMAIL_BRAND.primary};border-radius:6px;text-align:center;padding:0"><a href="${escapeUrl(cta.url)}" style="display:inline-block;padding:13px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:6px">${escapeHtml(cta.label)}</a></td></tr></table></td></tr>`
+    /* Single CTA radius: 12px, same as EmailButton and the status template —
+       the digest/shift/notification emails all carry their CTA through this
+       builder, so any other value here is exactly the mixed rounding the
+       product avoids everywhere else. */
+    ? `<tr><td style="padding:24px 0 4px 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${EMAIL_BRAND.primary};border-radius:12px;text-align:center;padding:0"><a href="${escapeUrl(cta.url)}" style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:12px">${escapeHtml(cta.label)}</a></td></tr></table></td></tr>`
     : ''
 
   return emailLayout(
     title,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:21px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
+<tr><td style="font-size:21px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
 <tr><td style="font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.65">${content}</td></tr>
 ${ctaHtml}
 <tr><td style="padding:20px 0 0 0;border-top:1px solid ${EMAIL_TEXT.line};margin-top:20px;font-size:12px;color:${EMAIL_TEXT.secondary};line-height:1.5">
@@ -180,12 +221,12 @@ export function buildCodeEmailHtml(code: string) {
   return emailLayout(
     'Your Verification Code',
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:22px;font-weight:800;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.3px">Verify your email address</td></tr>
+<tr><td style="font-size:22px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.3px">Verify your email address</td></tr>
 <tr><td style="font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.7">Use the code below to verify your email and complete your Meticle Care registration. This code expires in 10 minutes.</td></tr>
 <tr><td style="padding:28px 0;text-align:center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr>
 <td style="background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:18px 40px;text-align:center">
-<span style="font-size:34px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};letter-spacing:10px;font-family:'Courier New',monospace">${code}</span>
+<span style="font-size:34px;font-weight:600;color:${EMAIL_BRAND.primaryDeep};letter-spacing:10px;font-family:'Courier New',monospace">${code}</span>
 </td>
 </tr></table>
 </td></tr>
@@ -214,7 +255,7 @@ export function buildStatusEmailHtml(
   const detailsHtml = details.map(d => `<tr><td style="padding:6px 0;font-size:15px;color:${EMAIL_TEXT.paragraph};line-height:1.6">${d}</td></tr>`).join('')
 
   const ctaHtml = cta
-    ? `<tr><td style="padding:24px 0 0 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${EMAIL_BRAND.primary};border-radius:12px;text-align:center;padding:0"><a href="${cta.url}" style="display:inline-block;padding:15px 36px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;letter-spacing:0.2px">${cta.label}</a></td></tr></table></td></tr>`
+    ? `<tr><td style="padding:24px 0 0 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${EMAIL_BRAND.primary};border-radius:12px;text-align:center;padding:0"><a href="${cta.url}" style="display:inline-block;padding:15px 36px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:12px;letter-spacing:0.2px">${cta.label}</a></td></tr></table></td></tr>`
     : ''
 
   return emailLayout(
@@ -222,10 +263,10 @@ export function buildStatusEmailHtml(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="padding:0 0 18px 0">
 <table role="presentation" cellpadding="0" cellspacing="0">
-<tr><td style="background:${bgColor};color:${color};font-size:11px;font-weight:700;padding:5px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:0.3px">${escapeHtml(statusLabel)}</td></tr>
+<tr><td style="background:${bgColor};color:${color};font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;letter-spacing:0.3px">${escapeHtml(statusLabel)}</td></tr>
 </table>
 </td></tr>
-<tr><td style="font-size:21px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
+<tr><td style="font-size:21px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 16px 0;letter-spacing:-0.2px">${heading}</td></tr>
 ${detailsHtml}
 ${ctaHtml}
 </table>`

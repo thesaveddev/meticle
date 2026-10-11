@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
+import BrandWordmark from '../BrandWordmark'
 import NotesIcon from '@mui/icons-material/Notes'
 import PersonIcon from '@mui/icons-material/Person'
 import MedicationIcon from '@mui/icons-material/Medication'
@@ -54,20 +55,17 @@ export default function AuthBrandPanel({
         bgcolor: 'var(--mc-background)',
       }}
     >
-      {/* Soft MeticleCare shapes, bottom of the panel. Purely decorative. */}
-      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 340, height: 340, left: -120, bottom: -140, bgcolor: 'var(--mc-info-soft)' }} />
-      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 220, height: 220, left: 140, bottom: -90, bgcolor: 'var(--mc-shape-cyan)', opacity: 0.85 }} />
-      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 150, height: 150, right: -40, bottom: 60, bgcolor: 'var(--mc-success-soft)' }} />
+      {/* Soft MeticleCare shapes, bottom of the panel. Purely decorative.
+          Anchored to show at common laptop heights: bottom offsets leave
+          enough of each circle above the fold so the background reads as
+          designed rather than clipping to slivers when a shorter form card
+          (signup, verify-email) takes more vertical room than login's. */}
+      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 340, height: 340, left: -120, bottom: -60, bgcolor: 'var(--mc-info-soft)' }} />
+      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 220, height: 220, left: 140, bottom: 10, bgcolor: 'var(--mc-shape-cyan)', opacity: 0.85 }} />
+      <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 150, height: 150, right: -40, bottom: 80, bgcolor: 'var(--mc-success-soft)' }} />
 
-      {/* Wordmark */}
-      <Box
-        sx={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px', color: 'var(--mc-primary)', cursor: 'pointer', width: 'fit-content' }}
-        onClick={() => navigate('/')}
-        role="link"
-        aria-label="MeticleCare home"
-      >
-        Meticle<span style={{ fontWeight: 400 }}>Care</span>
-      </Box>
+      {/* Wordmark — shared BrandWordmark so weight matches every other surface */}
+      <BrandWordmark size={22} onClick={() => navigate('/')} />
       <Typography variant="body2" sx={{ color: 'var(--mc-text-muted)', mt: 0.5, fontWeight: 500 }}>
         Care operations, unified.
       </Typography>
@@ -79,7 +77,7 @@ export default function AuthBrandPanel({
           component="h1"
           sx={{
             fontSize: { md: '44px', lg: '52px' },
-            fontWeight: 700,
+            fontWeight: 600,
             lineHeight: 1.05,
             letterSpacing: '-1.5px',
             color: 'var(--mc-text-primary)',

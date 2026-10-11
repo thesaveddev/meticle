@@ -335,7 +335,7 @@ export default function CallAssignmentBoard() {
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Assignment</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Call Assignment</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             Drag calls to carers or click to assign. Conflicts are checked automatically.
           </Typography>
@@ -355,7 +355,7 @@ export default function CallAssignmentBoard() {
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
-          <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#2F80ED', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
+          <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 600, bgcolor: '#2F80ED', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>→</Button>
           {unassigned.length > 0 && (
             <Button
@@ -397,7 +397,7 @@ export default function CallAssignmentBoard() {
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <AutoAwesome sx={{ fontSize: 18, color: autoAssignResult.assigned_count > 0 ? '#087A55' : '#EF4444' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Auto-assign complete</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Auto-assign complete</Typography>
             </Stack>
             <Button size="small" onClick={() => setAutoAssignResult(null)} sx={{ textTransform: 'none' }}>Dismiss</Button>
           </Stack>
@@ -426,7 +426,7 @@ export default function CallAssignmentBoard() {
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <AutoAwesome sx={{ fontSize: 18, color: '#10BFA5' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#4338CA' }}>AI suggested carers</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#4338CA' }}>AI suggested carers</Typography>
             </Stack>
             <Button size="small" onClick={() => setShowSuggestions(null)} sx={{ textTransform: 'none' }}>Close</Button>
           </Stack>
@@ -448,7 +448,7 @@ export default function CallAssignmentBoard() {
                     setShowSuggestions(null)
                   }}
                 >
-                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: s.score >= 70 ? '#EAFBF5' : s.score >= 40 ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem', color: s.score >= 70 ? '#087A55' : s.score >= 70 ? '#087A55' : '#9A6700', flexShrink: 0 }}>{s.score}</Box>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: s.score >= 70 ? '#EAFBF5' : s.score >= 40 ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.7rem', color: s.score >= 70 ? '#087A55' : s.score >= 70 ? '#087A55' : '#9A6700', flexShrink: 0 }}>{s.score}</Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.first_name} {s.last_name}</Typography>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -457,9 +457,9 @@ export default function CallAssignmentBoard() {
                       ))}
                     </Stack>
                   </Box>
-                  {s.has_conflict && <Chip label="Conflict" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
-                  {s.on_leave && !s.has_conflict && <Chip label="On leave" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
-                  {!s.has_conflict && !s.on_leave && s.available && <Chip label="Assign" size="small" sx={{ bgcolor: '#2F80ED', color: 'white', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {s.has_conflict && <Chip label="Conflict" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 600, height: 20, fontSize: '0.6rem' }} />}
+                  {s.on_leave && !s.has_conflict && <Chip label="On leave" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 600, height: 20, fontSize: '0.6rem' }} />}
+                  {!s.has_conflict && !s.on_leave && s.available && <Chip label="Assign" size="small" sx={{ bgcolor: '#2F80ED', color: 'white', fontWeight: 600, height: 20, fontSize: '0.6rem' }} />}
                 </Stack>
               ))}
             </Stack>
@@ -504,13 +504,13 @@ export default function CallAssignmentBoard() {
             onDrop={handleDropUnassigned}
           >
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F59E0B' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#F59E0B' }}>
                 Unassigned calls · drop here to unassign
               </Typography>
               <Chip
                 label={unassigned.length}
                 size="small"
-                sx={{ bgcolor: unassigned.length > 0 ? '#FFF7E6' : '#F7F9FC', color: unassigned.length > 0 ? '#F59E0B' : '#98A2B3', fontWeight: 700 }}
+                sx={{ bgcolor: unassigned.length > 0 ? '#FFF7E6' : '#F7F9FC', color: unassigned.length > 0 ? '#F59E0B' : '#98A2B3', fontWeight: 600 }}
               />
             </Stack>
 
@@ -547,7 +547,7 @@ export default function CallAssignmentBoard() {
 
           {/* ─── RIGHT: Carer Workload ─────────────────── */}
           <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto', maxHeight: 'calc(100vh - 160px)' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
               Carers ({carerEntries.filter(([, c]) => c.visits.length > 0).length} active / {carerEntries.length} total)
             </Typography>
 
@@ -583,7 +583,7 @@ export default function CallAssignmentBoard() {
       )}
       {/* Auto-assign confirmation dialog */}
       <Dialog open={autoAssignDialog} onClose={() => setAutoAssignDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Auto-assign {unassigned.length} unassigned calls</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Auto-assign {unassigned.length} unassigned calls</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             This will distribute unassigned calls to the most suitable carers based on their availability, proximity to clients, and current workload. Calls are assigned in chronological order.
@@ -640,7 +640,7 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                 const h = START_HOUR + i
                 return (
                   <Box key={h} sx={{ width: 60, flexShrink: 0, textAlign: 'center', py: 1, borderRight: '1px solid #F7F9FC' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.65rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.65rem' }}>
                       {String(h).padStart(2, '0')}:00
                     </Typography>
                   </Box>
@@ -698,7 +698,7 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                 )}
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>{row.visits.length} call{row.visits.length !== 1 ? 's' : ''}</Typography>
               </Box>
             </Box>
@@ -757,7 +757,7 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                         },
                       }}
                     >
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.6rem', color: cfg.color, display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6rem', color: cfg.color, display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {time(v.scheduled_start)}
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: '0.55rem', display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'text.secondary' }}>
@@ -811,7 +811,7 @@ function DraggableVisitCard({
         <DragIcon sx={{ fontSize: 16, color: '#98A2B3', mt: 0.25, flexShrink: 0 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.85rem' }} noWrap>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }} noWrap>
               {visit.person_name}
             </Typography>
             <Chip
@@ -960,7 +960,7 @@ function CarerDropZone({
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <PersonIcon sx={{ fontSize: 18, color: '#2F80ED' }} />
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>{name}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>{name}</Typography>
         </Stack>
         <Stack direction="row" spacing={0.5} alignItems="center">
           {visits.length > 0 && (
@@ -1027,7 +1027,7 @@ function CarerDropZone({
                   <TimeIcon sx={{ fontSize: 13, color: '#2F80ED', flexShrink: 0 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" alignItems="center" gap={0.5}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#2F80ED' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#2F80ED' }}>
                         {time(v.scheduled_start)}
                       </Typography>
                       <Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>

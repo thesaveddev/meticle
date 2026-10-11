@@ -124,7 +124,7 @@ export default function CompliancePage() {
   }
 
   if (isError) {
-    return <Alert severity="error" sx={{ m: 2, borderRadius: '12px' }}>Failed to load compliance data. Please try again.</Alert>
+    return <Alert severity="error" sx={{ m: 2, borderRadius: 2 }}>Failed to load compliance data. Please try again.</Alert>
   }
 
   return (
@@ -140,7 +140,7 @@ export default function CompliancePage() {
         <Stack direction="row" spacing={1}>
           <PortalAccessManager orgId="" />
           <Button variant="outlined" startIcon={<AuditIcon />} onClick={() => setAuditOpen(true)} size="small"
-            sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, borderColor: theme.palette.divider, color: theme.palette.text.primary }}>
+            sx={{ textTransform: 'none', fontWeight: 600, borderColor: theme.palette.divider, color: theme.palette.text.primary }}>
             Audit Trail
           </Button>
         </Stack>
@@ -243,7 +243,7 @@ export default function CompliancePage() {
             {overallCompliance < 80 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ErrorIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -252,13 +252,13 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="contained" onClick={() => navigate('/compliance/readiness')}
-                  sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
+                  sx={{ textTransform: 'none', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
               </Stack>
             )}
             {pendingDocs > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <DocIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -267,13 +267,13 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => navigate('/compliance/identity')}
-                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
               </Stack>
             )}
             {incompleteRequirements > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <WarningIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -289,13 +289,13 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => { setExpandedSection('requirements'); navigate('/compliance/records') }}
-                  sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
               </Stack>
             )}
             {nutritionConcerns > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: nutritionRating.color === '#EF4444' ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: nutritionRating.color === '#EF4444' ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FavoriteIcon sx={{ color: nutritionRating.color, fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -320,7 +320,7 @@ export default function CompliancePage() {
         </PremiumCard>
       ) : (
         <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CheckCircle sx={{ color: 'notice.success.fg', fontSize: 18 }} />
           </Box>
           <Typography sx={{ fontWeight: 700, color: 'notice.success.fg' }}>All compliance areas are on track, including nutrition.</Typography>
@@ -349,8 +349,7 @@ export default function CompliancePage() {
                   onClick={() => navigate(a.path)}
                   sx={{
                     px: 2.5, py: 1.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.25,
-                    borderRadius: '12px',
-                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 2, border: `1px solid ${theme.palette.divider}`,
                     transition: 'all 0.15s',
                     '&:hover': {
                       borderColor: color,
@@ -552,7 +551,7 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setSelectedReq(null)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Close</Button>
+          <Button onClick={() => setSelectedReq(null)} sx={{ textTransform: 'none', color: theme.palette.text.secondary }}>Close</Button>
         </DialogActions>
       </Dialog>
     </PremiumCard>
@@ -629,11 +628,11 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
       <Collapse in={expanded}>
         <Box sx={{ px: 3, pb: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Alert severity="info" sx={{ flex: 1, mr: 2, borderRadius: '12px' }}>
+            <Alert severity="info" sx={{ flex: 1, mr: 2, borderRadius: 2 }}>
               Uploaded documents start as <strong>Pending</strong> until reviewed. Enable <strong>Auto-approve</strong> in Settings &gt; Organization to skip manual review.
             </Alert>
             <Button variant="contained" size="small" onClick={() => setOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, fontWeight: 600, whiteSpace: 'nowrap' }}>Upload</Button>
+              sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, fontWeight: 600, whiteSpace: 'nowrap' }}>Upload</Button>
           </Stack>
           <TableContainer>
             <Table>
@@ -666,11 +665,11 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'approved' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#087A55', '&:hover': { bgcolor: 'success.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
+                              sx={{ textTransform: 'none', bgcolor: '#087A55', '&:hover': { bgcolor: 'success.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'rejected' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
+                              sx={{ textTransform: 'none', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
                           </Stack>
                         )}
                       </TableCell>
@@ -707,9 +706,9 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 3, pt: 0 }}>
-              <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
+              <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button onClick={handleFormSubmit} variant="contained" disabled={uploadMutation.isPending}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
                 {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
               </Button>
             </DialogActions>
@@ -792,8 +791,8 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
       </Box>
       <Collapse in={expanded}>
         <Box sx={{ px: 3, pb: 3 }}>
-          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }} onClose={() => setError('')}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 2, borderRadius: '12px' }} onClose={() => setSuccess('')}>{success}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
           <Stack direction="row" spacing={1.5} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap alignItems="center">
             {[
@@ -807,7 +806,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
             ))}
             <Box sx={{ flex: 1 }} />
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, fontWeight: 600 }}>
+              sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, fontWeight: 600 }}>
               New DBS Check
             </Button>
           </Stack>
@@ -892,9 +891,9 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 3, pt: 0 }}>
-              <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
+              <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button variant="contained" onClick={handleCreate} disabled={createMutation.isPending}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
                 {createMutation.isPending ? 'Creating...' : 'Create Check'}
               </Button>
             </DialogActions>
@@ -973,7 +972,7 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
             </TableHead>
             <TableBody>
               {auditError ? (
-                <TableRow><TableCell colSpan={4} sx={{ borderBottom: 'none' }}><Alert severity="warning" sx={{ borderRadius: '12px', m: 1 }}>Audit trail requires ORG_ADMIN or SUPER_ADMIN access.</Alert></TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} sx={{ borderBottom: 'none' }}><Alert severity="warning" sx={{ borderRadius: 2, m: 1 }}>Audit trail requires ORG_ADMIN or SUPER_ADMIN access.</Alert></TableCell></TableRow>
               ) : logs?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((log: any) => (
                 <TableRow key={log.id} sx={{ '&:last-child td': { borderBottom: 'none' } }}>
                   <TableCell sx={{ borderBottom: `1px solid ${theme.palette.divider}`, fontWeight: 600 }}>{log.action}</TableCell>
@@ -997,7 +996,7 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
         />
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Close</Button>
+        <Button onClick={onClose} sx={{ textTransform: 'none', color: theme.palette.text.secondary }}>Close</Button>
       </DialogActions>
     </Dialog>
   )

@@ -55,19 +55,19 @@ export const M = {
     // 1.0, not 1.05. A display line that tightens to the cap height reads as
     // confident and contemporary; 1.05 leaves a visible seam between lines.
     lineHeight: 1,
-    fontWeight: 800 as const,
+    fontWeight: 600 as const,
     letterSpacing: '-0.035em',
   },
   h1: {
     fontSize: 'clamp(1.75rem, 3.5vw + 0.5rem, 2.75rem)',
     lineHeight: 1.1,
-    fontWeight: 700 as const,
+    fontWeight: 600 as const,
     letterSpacing: '-0.025em',
   },
   h2: {
     fontSize: 'clamp(1.375rem, 2.5vw + 0.5rem, 1.875rem)',
     lineHeight: 1.2,
-    fontWeight: 700 as const,
+    fontWeight: 600 as const,
     letterSpacing: '-0.02em',
   },
   h3: {
@@ -81,8 +81,8 @@ export const M = {
   small:  { fontSize: '0.875rem', lineHeight: 1.5, fontWeight: 400 as const },
 
   label:    { fontSize: '0.8125rem', lineHeight: 1.4, fontWeight: 600 as const, letterSpacing: '0.02em' },
-  caption:  { fontSize: '0.6875rem', lineHeight: 1.3, fontWeight: 700 as const, letterSpacing: '0.1em' },
-  overline: { fontSize: '0.75rem',   lineHeight: 1.3, fontWeight: 700 as const, letterSpacing: '0.08em' },
+  caption:  { fontSize: '0.6875rem', lineHeight: 1.3, fontWeight: 600 as const, letterSpacing: '0.1em' },
+  overline: { fontSize: '0.75rem',   lineHeight: 1.3, fontWeight: 600 as const, letterSpacing: '0.08em' },
 
   /* ── Spacing ─────────────────────────────────────── */
   section:   { py: { xs: 8, md: 14 }, px: 0 },

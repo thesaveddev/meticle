@@ -101,7 +101,7 @@ export default function DomiciliaryDashboard() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
             {greeting}
           </Typography>
           <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -140,12 +140,12 @@ export default function DomiciliaryDashboard() {
               flexShrink: 0,
             }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 800, color: data.coverage_percent >= 90 ? '#10B981' : data.coverage_percent >= 70 ? '#F59E0B' : '#EF4444' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: data.coverage_percent >= 90 ? '#10B981' : data.coverage_percent >= 70 ? '#F59E0B' : '#EF4444' }}>
               {data.coverage_percent}%
             </Typography>
           </Box>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Today's Coverage</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Today's Coverage</Typography>
             <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 2 }}>
               {data.calls_today - data.calls_unassigned} of {data.calls_today} calls have a carer assigned
               {data.calls_unassigned > 0 && ` (${data.calls_unassigned} unassigned)`}
@@ -168,7 +168,7 @@ export default function DomiciliaryDashboard() {
             <Chip
               icon={<CompletedIcon sx={{ fontSize: 16, color: '#FFFFFF' }} />}
               label="All covered!"
-              sx={{ bgcolor: '#087A55', color: '#FFFFFF', fontWeight: 700, borderRadius: '12px', px: 1 }}
+              sx={{ bgcolor: '#087A55', color: '#FFFFFF', fontWeight: 600, borderRadius: '12px', px: 1 }}
             />
           ) : (
             <Chip
@@ -177,7 +177,7 @@ export default function DomiciliaryDashboard() {
               sx={{
                 bgcolor: data.coverage_percent >= 70 ? '#FFF7E6' : '#FEF0F0',
                 color: data.coverage_percent >= 70 ? '#9A6700' : '#EF4444',
-                fontWeight: 700,
+                fontWeight: 600,
                 borderRadius: '12px',
                 px: 1,
               }}
@@ -191,13 +191,13 @@ export default function DomiciliaryDashboard() {
         <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.65rem' }}>Operational pulse</Typography>
+              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.12em', fontSize: '0.65rem' }}>Operational pulse</Typography>
               <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
                 {overview.cards.map(card => (
                   <Grid item xs={6} sm={4} key={card.label}>
                     <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 900, color: card.color }}>{card.value}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{card.label}</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 600, color: card.color }}>{card.value}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{card.label}</Typography>
                       <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.65rem' }}>{card.subtitle}</Typography>
                     </Box>
                   </Grid>
@@ -208,7 +208,7 @@ export default function DomiciliaryDashboard() {
               <>
                 <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
                 <Box sx={{ width: { xs: '100%', lg: 260 } }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, fontSize: '0.85rem' }}>Quick actions</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, fontSize: '0.85rem' }}>Quick actions</Typography>
                   <Stack spacing={0.5}>
                     {overview.attention.map(item => (
                       <Button key={item.label} size="small" endIcon={<ArrowIcon />} onClick={() => navigate(item.target === 'locations' ? '/care-areas' : `/homecare`)} sx={{ justifyContent: 'space-between', textTransform: 'none', color: item.value > 0 ? '#EF4444' : 'text.primary', fontSize: '0.8rem' }}>
@@ -255,7 +255,7 @@ export default function DomiciliaryDashboard() {
               <TimeIcon sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#2F80ED' }} />
             </Box>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>Next call: {time(data.next_call.scheduled_start)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Next call: {time(data.next_call.scheduled_start)}</Typography>
               <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                 {data.next_call.label} — {data.next_call.person_name}
                 {data.next_call.carer_name ? ` (Carer: ${data.next_call.carer_name})` : ' (No carer assigned)'}
@@ -265,7 +265,7 @@ export default function DomiciliaryDashboard() {
               size="small"
               endIcon={<ArrowIcon sx={{ fontSize: 16 }} />}
               onClick={() => navigate('/homecare')}
-              sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#2F80ED', fontWeight: 700, textTransform: 'none', fontSize: '0.8rem' }}
+              sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#2F80ED', fontWeight: 600, textTransform: 'none', fontSize: '0.8rem' }}
             >
               View calls
             </Button>
@@ -307,7 +307,7 @@ export default function DomiciliaryDashboard() {
                       }}
                     >
                       <Box sx={{ width: 64, flexShrink: 0, textAlign: 'right' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#2F80ED' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#2F80ED' }}>
                           {time(call.scheduled_start)}
                         </Typography>
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
@@ -324,7 +324,7 @@ export default function DomiciliaryDashboard() {
                       />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.3 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{call.label}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{call.label}</Typography>
                           <StatusBadge variant={call.status as any} label={cfg.label} />
                         </Stack>
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
@@ -354,7 +354,7 @@ export default function DomiciliaryDashboard() {
                   size="small"
                   endIcon={<ArrowIcon sx={{ fontSize: 16, transform: showAllCalls ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />}
                   onClick={() => setShowAllCalls(!showAllCalls)}
-                  sx={{ mt: 2, color: '#2F80ED', fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', justifyContent: 'flex-start' }}
+                  sx={{ mt: 2, color: '#2F80ED', fontWeight: 600, textTransform: 'none', fontSize: '0.85rem', justifyContent: 'flex-start' }}
                 >
                   {showAllCalls ? 'Show less' : `View all ${data.call_timeline.length} calls`}
                 </Button>
@@ -371,7 +371,7 @@ export default function DomiciliaryDashboard() {
               <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: '#EAFBF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CarerIcon sx={{ color: '#087A55', fontSize: 18 }} />
               </Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Carer Coverage</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Carer Coverage</Typography>
             </Stack>
             {data.carer_breakdown.length === 0 ? (
               <EmptyState
@@ -418,7 +418,7 @@ export default function DomiciliaryDashboard() {
                 <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
                 </Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#EF4444' }}>Exceptions</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#EF4444' }}>Exceptions</Typography>
               </Stack>
               <Stack spacing={1.5}>
                 {data.exceptions.map(ex => (

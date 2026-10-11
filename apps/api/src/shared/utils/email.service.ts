@@ -234,18 +234,18 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
   };
 
   const header = isManager
-    ? `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Carer</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`
-    : `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`;
+    ? `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Carer</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">State</th></tr>`
+    : `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">State</th></tr>`;
 
   const attentionBlock = attention.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Needs attention (${attention.length}${summary.attentionTruncated ? '+' : ''})</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};">Needs attention (${attention.length}${summary.attentionTruncated ? '+' : ''})</p>
        <p style="margin:0 0 8px 0;font-size:12px;color:${EMAIL_TEXT.secondary};">${summary.attentionTruncated ? `Showing the ${attention.length} most pressing of ${attention.length + summary.attentionTruncated}. ` : ''}Missed calls first, then overdue, unassigned and late.</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${attention.map(line).join('')}</table>`
-    : `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.toneOk};">Nothing needs attention</p>
+    : `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneOk};">Nothing needs attention</p>
        <p style="margin:0;font-size:13px;color:${EMAIL_TEXT.secondary};">No missed, overdue, unassigned or late calls.</p>`;
 
   const fullBlock = visits.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">${isWeekly ? 'All calls in the week' : 'All calls today'} (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};">${isWeekly ? 'All calls in the week' : 'All calls today'} (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${visits.map(line).join('')}</table>
        ${summary.visitsTruncated ? `<p style="margin:6px 0 0 0;font-size:12px;color:${EMAIL_TEXT.secondary};">${summary.visitsTruncated} further call${summary.visitsTruncated === 1 ? '' : 's'} not shown. Open the app for the full list.</p>` : ''}`
     : `<p style="margin:20px 0 0 0;font-size:13px;color:${EMAIL_TEXT.secondary};">${isWeekly ? 'No calls were scheduled in this week.' : 'No calls are scheduled for today.'}</p>`;
@@ -253,7 +253,7 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
   const incidents = (summary.incidents || []).map((incident: any) =>
     `<li style="margin:0 0 6px 0;font-size:13px;">${e(incident.title)} · ${e(incident.severity)} · ${e(incident.status)}</li>`).join('');
   const incidentBlock = incidents
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Incidents recorded today (${summary.incidents.length})</p><ul style="margin:0;padding-left:18px;">${incidents}</ul>`
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};">Incidents recorded today (${summary.incidents.length})</p><ul style="margin:0;padding-left:18px;">${incidents}</ul>`
     : '';
 
   const missed = Number(totals.missed || 0);
@@ -287,9 +287,9 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
    */
   const weekDays: any[] = summary.week?.days || [];
   const weekBlock = weekDays.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:${EMAIL_TEXT.heading};">Day by day</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};">Day by day</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-         <tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Day</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Due</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Completed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Missed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Late</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};text-transform:uppercase;letter-spacing:.4px;">Completion</th></tr>
+         <tr><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Day</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Due</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Completed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Missed</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Late</th><th align="left" style="padding:4px 10px;font-size:11px;color:${EMAIL_TEXT.muted};letter-spacing:.4px;">Completion</th></tr>
          ${weekDays.map(d => `<tr>
             <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${EMAIL_TEXT.body};">${e(d.label)} ${e(d.date)}</td>
             <td style="padding:5px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;">${e(d.scheduled)}</td>
@@ -368,14 +368,14 @@ export class EmailService {
           'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
           `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle Care</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
-          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:${EMAIL_TEXT.heading}">What you can do with Meticle Care:</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:600;font-size:15px;color:${EMAIL_TEXT.heading}">What you can do with Meticle Care:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0">You're on a <strong>14-day free trial</strong> with full access to every feature. Here's how to get started:</p>` +
           `<p style="margin:0 0 4px 0;font-size:14px;color:${EMAIL_TEXT.heading}"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
@@ -392,13 +392,13 @@ export class EmailService {
           'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
           `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle Care. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
-          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:${EMAIL_TEXT.heading}">Here's what you can do right away:</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:600;font-size:15px;color:${EMAIL_TEXT.heading}">Here's what you can do right away:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">View your shifts and rota</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Complete your compliance and training requirements</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Log care notes, observations, and eMAR administrations</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Request leave and swap shifts with your team</td></tr>` +
-          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Chat with colleagues in real-time</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">View your shifts and rota</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Complete your compliance and training requirements</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Log care notes, observations, and eMAR administrations</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Request leave and swap shifts with your team</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:${EMAIL_BRAND.primaryDeep};font-weight:600;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Chat with colleagues in real-time</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:${EMAIL_TEXT.paragraph}">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
           `<p style="margin:0;font-size:13px;color:${EMAIL_TEXT.muted}">The Meticle Care Team</p>`,
@@ -644,10 +644,10 @@ export class EmailService {
         `<p>Here are the details for your shift on <strong>${fmtDate(date)}</strong>.</p>
          <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid ${EMAIL_TEXT.line};border-radius:8px;margin-top:12px">
            <tr style="background:${EMAIL_TEXT.panelBg}">
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Time</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Location</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Type</th>
-             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Person</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Time</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Location</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Type</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;letter-spacing:0.04em;color:${EMAIL_TEXT.secondary}">Person</th>
            </tr>${shiftRows}
          </table>
          ${peopleRows ? `<p style="margin-top:20px;font-weight:600">People requiring attention</p><table border="0" cellpadding="0" cellspacing="0" style="width:100%">${peopleRows}</table>` : ''}
@@ -928,7 +928,7 @@ export class EmailService {
         `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:16px;width:100%">` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Plan</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${opts.planName}</td></tr>` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Invoice</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${opts.invoiceNumber}</td></tr>` +
-        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:600;color:${EMAIL_BRAND.primaryDeep};text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${next}</td></tr>` +
         `</table>` +
         `<p style="font-size:13px;color:${EMAIL_TEXT.muted}">Your invoice is attached to this email. Questions about this charge? Reply and we'll help.</p>`,
@@ -1031,7 +1031,7 @@ export class EmailService {
       `<p>A new invoice has been generated for your Meticle Care subscription:</p>` +
       `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:${EMAIL_TEXT.panelBg};border-radius:12px;padding:16px;width:100%">` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.heading};text-align:right">${description}</td></tr>` +
-      `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:${EMAIL_BRAND.primaryDeep};text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:600;color:${EMAIL_BRAND.primaryDeep};text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:${EMAIL_TEXT.secondary}">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad};text-align:right">${dueDateStr}</td></tr>` +
       `</table>` +
       `<p>If a payment method is on file, it will be charged automatically on the due date. Review the invoice and payment method in Billing.</p>`,
@@ -1110,12 +1110,13 @@ export class EmailService {
         reorder_level: number;
         quantity_unit: string;
         person_name: string;
+        days_until_empty?: number | null;
       }[];
     }
   ) {
     const staffingBadge = loc.staffing_ok
-      ? `<span style="color:${EMAIL_TEXT.toneOk};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">STAFFED</span>`
-      : `<span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">UNDERSTAFFED</span>`;
+      ? `<span style="color:${EMAIL_TEXT.toneOk};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">Staffed</span>`
+      : `<span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">Understaffed</span>`;
 
     const shiftRows = loc.shifts.map(s => {
       const staffNames = s.staff.map(st =>
@@ -1156,14 +1157,14 @@ export class EmailService {
     const emarSection = loc.emar.length > 0
       ? `<tr><td style="padding:20px 0 0 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">eMAR Medication Status</td></tr>
+<tr><td style="font-size:16px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">eMAR Medication Status</td></tr>
 <tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
 <tr style="background:${EMAIL_TEXT.panelBg}">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Required</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Given</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Missed/Refused</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Required</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Given</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Missed/Refused</td>
 </tr>
 ${emarRows}
 </table>
@@ -1171,28 +1172,40 @@ ${emarRows}
 </td></tr>`
       : '';
 
-    const lowStockRows = loc.low_stock.map(s =>
-      `<tr>
+    // Urgency rides on each low-stock row: a reorder-level flag alone says
+    // "order sometime"; the days-until-empty projection (same 28-day rate as
+    // the reorder sweep email) says how long the order can wait. No recent
+    // usage honestly reports no estimate rather than a guess.
+    const lowStockRows = loc.low_stock.map(s => {
+      const urgency = s.quantity <= 0
+        ? `<span style="color:${EMAIL_TEXT.toneBad};font-weight:600">Already out</span>`
+        : s.days_until_empty != null
+          ? `<span style="color:${s.days_until_empty <= 3 ? EMAIL_TEXT.toneBad : EMAIL_TEXT.toneWarn};font-weight:${s.days_until_empty <= 7 ? 600 : 400}">~${s.days_until_empty} day${s.days_until_empty === 1 ? '' : 's'}</span>`
+          : `<span style="color:${EMAIL_TEXT.muted || EMAIL_TEXT.secondary}">No estimate</span>`;
+      return `<tr>
         <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${s.medication_name} ${s.dosage}${s.unit}</td>
         <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px">${s.person_name || 'Shared stock'}</td>
         <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">
           <span style="color:${EMAIL_TEXT.toneBad};background:${EMAIL_TEXT.panelBg};padding:2px 8px;border-radius:10px;font-weight:600">${s.quantity} ${s.quantity_unit || s.unit || ''}</span>
         </td>
         <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">${s.reorder_level}</td>
-      </tr>`).join('');
+        <td style="padding:6px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;text-align:center">${urgency}</td>
+      </tr>`;
+    }).join('');
 
     const lowStockSection = loc.low_stock.length > 0
       ? `<tr><td style="padding:20px 0 0 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 4px 0">Stock Reorder Alerts</td></tr>
+<tr><td style="font-size:16px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 4px 0">Stock Reorder Alerts</td></tr>
 <tr><td style="font-size:13px;color:${EMAIL_TEXT.secondary};padding:0 0 12px 0">${loc.low_stock.length} item(s) at or below reorder level — please arrange delivery.</td></tr>
 <tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
 <tr style="background:${EMAIL_TEXT.panelBg}">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Medication</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Remaining</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Reorder At</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Remaining</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Reorder At</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Runs Out In</td>
 </tr>
 ${lowStockRows}
 </table>
@@ -1215,16 +1228,16 @@ ${lowStockRows}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
 <tr>
   <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:${EMAIL_BRAND.primaryDeep}">${loc.total_shifts}</div>
-    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Shifts</div>
+    <div style="font-size:24px;font-weight:600;color:${EMAIL_BRAND.primaryDeep}">${loc.total_shifts}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};letter-spacing:0.3px">Shifts</div>
   </td>
   <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:${EMAIL_BRAND.primaryDeep}">${loc.staff_deployed}</div>
-    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Staff Deployed</div>
+    <div style="font-size:24px;font-weight:600;color:${EMAIL_BRAND.primaryDeep}">${loc.staff_deployed}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};letter-spacing:0.3px">Staff Deployed</div>
   </td>
   <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
-    <div style="font-size:24px;font-weight:800;color:${loc.staffing_ok ? EMAIL_TEXT.toneOk : EMAIL_TEXT.toneBad}">${loc.minimum_staff}</div>
-    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};text-transform:uppercase;letter-spacing:0.3px">Min Required</div>
+    <div style="font-size:24px;font-weight:600;color:${loc.staffing_ok ? EMAIL_TEXT.toneOk : EMAIL_TEXT.toneBad}">${loc.minimum_staff}</div>
+    <div style="font-size:12px;color:${EMAIL_TEXT.secondary};letter-spacing:0.3px">Min Required</div>
   </td>
   <td style="padding:12px 16px;background:${EMAIL_TEXT.panelBg};border-radius:8px;text-align:center">
     ${staffingBadge}
@@ -1233,14 +1246,14 @@ ${lowStockRows}
 </table>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-size:16px;font-weight:700;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">Shifts Today</td></tr>
+<tr><td style="font-size:16px;font-weight:600;color:${EMAIL_TEXT.heading};padding:0 0 12px 0">Shifts Today</td></tr>
 <tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
 <tr style="background:${EMAIL_TEXT.panelBg}">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Shift</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Staff</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Status</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Shift</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Staff</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Status</td>
 </tr>
 ${shiftRows}
 </table>
@@ -1265,9 +1278,51 @@ ${lowStockSection}`,
       quantity_unit: string;
       location_name: string;
       person_name: string;
+      /** True when the line is at zero — the most urgent case. */
+      out_of_stock?: boolean;
+      /** Given doses over the last 28 days; 0/undefined when no recent usage. */
+      given_28d?: number;
+      /** Given doses per day (28-day window); null when no recent usage. */
+      daily_usage?: number | null;
+      /** Projected run-out in days from the recent consumption rate. */
+      days_until_empty?: number | null;
+      /** Units already in the delivery pipeline for this line. */
+      incoming_quantity?: number | null;
+      /** Earliest future delivery date; null when no delivery is booked. */
+      next_delivery_date?: string | null;
+      /** Days until the currently recorded stock batch expires; null if undated. */
+      days_until_expiry?: number | null;
+      /** True when that expiry precedes the projected run-out date. */
+      expired_first?: boolean | null;
     }
   ) {
     const remainingLabel = `${item.quantity} ${item.quantity_unit || item.unit || ''}`;
+    // Urgency: a reorder-level flag says "order sometime"; the run-out
+    // projection says how long the manager actually has. Same arithmetic as
+    // Mica's stock tool (28-day given-dose rate), so the email and an ask-to-
+    // Mica answer about the same line agree. No recent usage → no estimate,
+    // stated honestly rather than guessed.
+    const hasRate = typeof item.daily_usage === 'number' && item.daily_usage > 0
+      && typeof item.days_until_empty === 'number';
+    const hasIncoming = typeof item.incoming_quantity === 'number' && item.incoming_quantity > 0;
+    const deliveryDate = item.next_delivery_date
+      ? new Date(`${item.next_delivery_date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null;
+    const unitWord = (item.quantity_unit || item.unit || 'unit').replace(/\(s\)$/, '');
+    const urgencyHtml = item.out_of_stock
+      ? `<p style="font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad}">⚠ Already out of stock — doses cannot be recorded as given until a delivery is logged.</p>`
+      : hasRate && item.days_until_empty! <= 3
+        ? `<p style="font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad}">⚠ Runs out in about ${item.days_until_empty} day${item.days_until_empty === 1 ? '' : 's'} (at ~${item.given_28d} doses in the last 28 days)${hasIncoming ? ` — ${item.incoming_quantity} ${unitWord}s already in the delivery pipeline${deliveryDate ? `, due ${deliveryDate}` : ''}` : ''}. ${hasIncoming ? 'Check the delivery will arrive in time and is sufficient.' : 'Order today.'}</p>`
+        : hasRate && item.days_until_empty! <= 7
+          ? `<p style="font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneWarn}">Runs out in about ${item.days_until_empty} days (at ~${item.given_28d} doses in the last 28 days)${hasIncoming ? ` — ${item.incoming_quantity} ${unitWord}s already in the delivery pipeline${deliveryDate ? `, due ${deliveryDate}` : ''}` : ''}. ${hasIncoming ? 'Check the delivery will arrive in time and is sufficient.' : 'Order this week.'}</p>`
+          : hasRate
+            ? `<p style="font-size:14px;color:${EMAIL_TEXT.body}">At the current rate (~${item.given_28d} doses in the last 28 days) this line lasts about <strong>${item.days_until_empty} days</strong>${hasIncoming ? ` — ${item.incoming_quantity} ${unitWord}s already in the delivery pipeline${deliveryDate ? `, due ${deliveryDate}` : ''}; check it arrives before run-out and is sufficient` : ''}.</p>`
+            : `<p style="font-size:14px;color:${EMAIL_TEXT.body}">No doses given in the last 28 days, so no run-out estimate can be made${hasIncoming ? `; ${item.incoming_quantity} ${unitWord}s are in the delivery pipeline${deliveryDate ? `, due ${deliveryDate}` : ''}, but timing and sufficiency cannot be compared without a usage estimate` : ''} — order based on your care schedule instead.</p>`;
+    const expiryHtml = item.expired_first === true
+      ? `<p style="font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad}">⚠ Current stock expires in ${item.days_until_expiry} day${item.days_until_expiry === 1 ? '' : 's'}, before the projected run-out; do not rely on it to cover the full period. Replacement stock is still needed.</p>`
+      : item.days_until_expiry != null && item.days_until_expiry <= 7
+        ? `<p style="font-size:14px;color:${EMAIL_TEXT.toneWarn}">Expiry warning: current stock expires in ${item.days_until_expiry} day${item.days_until_expiry === 1 ? '' : 's'}. Check it remains usable and follow local medicines procedures.</p>`
+        : '';
     await sendMail(email,
       `Stock Reorder Alert — ${item.medication_name} — ${item.location_name}`,
       buildEmailHtml(
@@ -1278,16 +1333,19 @@ ${lowStockSection}`,
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
 <tr style="background:${EMAIL_TEXT.panelBg}">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Remaining Stock</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Reorder Level</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Location</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Remaining Stock</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Reorder Level</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Location</td>
 </tr>
 <tr>
-  <td style="padding:8px 12px;font-size:14px;font-weight:700;color:${EMAIL_TEXT.toneBad}">${remainingLabel}</td>
+  <td style="padding:8px 12px;font-size:14px;font-weight:600;color:${EMAIL_TEXT.toneBad}">${remainingLabel}</td>
   <td style="padding:8px 12px;font-size:14px;text-align:center">${item.reorder_level}</td>
   <td style="padding:8px 12px;font-size:13px">${item.location_name || '—'}</td>
 </tr>
 </table>
+
+${urgencyHtml}
+${expiryHtml}
 
 <p style="font-size:13px;color:${EMAIL_TEXT.secondary}">Once stock is below the reorder level, administrations cannot be recorded as given until a delivery is logged. Please arrange a delivery as soon as possible.</p>`,
         { label: 'View Stock', url: `${baseUrl()}/emedication` }
@@ -1330,9 +1388,9 @@ ${lowStockSection}`,
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${EMAIL_TEXT.line};border-radius:8px;overflow:hidden">
 <tr style="background:${EMAIL_TEXT.panelBg}">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Person</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase">Medication</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${EMAIL_TEXT.secondary};text-transform:uppercase;text-align:center">Scheduled</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:600;color:${EMAIL_TEXT.secondary};text-align:center">Scheduled</td>
 </tr>
 ${rows}
 </table>

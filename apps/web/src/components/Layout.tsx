@@ -487,13 +487,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               aria-expanded={!isCollapsed}
               onClick={toggleGroup}
               sx={{
-                borderRadius: 1.5, py: 0.5, px: 1, mb: 0.5, minHeight: 32,
+                borderRadius: '9px', py: 0.5, px: 1, mb: 0.5, minHeight: 32,
                 '&:hover': { bgcolor: theme.palette.action.hover },
               }}
             >
               <ListItemText
                 primary={group.label}
-                primaryTypographyProps={{ fontSize: '0.6875rem', fontWeight: 600, color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                primaryTypographyProps={{ fontSize: '0.6875rem', fontWeight: 600, color: theme.palette.text.secondary, textTransform: 'none', letterSpacing: '0.08em' }}
               />
               {isCollapsed ? <ExpandMoreIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} /> : <ExpandLessIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} />}
             </ListItemButton>
@@ -507,7 +507,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}
                   disabled={disabled}
                   sx={{ 
-                    borderRadius: 1.5,
+                    borderRadius: '9px',
                     minHeight: 40,
                     px: 1.25,
                     position: 'relative',
@@ -568,7 +568,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           const disabled = sidebarDisabled && item.text !== 'Billing' && item.text !== 'Learn'
           return (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton disabled={disabled} sx={{ borderRadius: 1.5, minHeight: 40, px: 1.25, '&.Mui-selected': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF', color: METICLE_PRIMARY, '& .MuiListItemIcon-root': { color: METICLE_PRIMARY } }, '&.Mui-disabled': { opacity: 0.45 }, '&:hover': { bgcolor: theme.palette.action.hover } }}
+            <ListItemButton disabled={disabled} sx={{ borderRadius: '9px', minHeight: 40, px: 1.25, '&.Mui-selected': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF', color: METICLE_PRIMARY, '& .MuiListItemIcon-root': { color: METICLE_PRIMARY } }, '&.Mui-disabled': { opacity: 0.45 }, '&:hover': { bgcolor: theme.palette.action.hover } }}
               onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}>
               <ListItemIcon sx={{ minWidth: 36, color: !disabled && location.pathname === item.path ? METICLE_PRIMARY : theme.palette.text.secondary, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{item.icon}</ListItemIcon>
               <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }} />
@@ -650,7 +650,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 <NotificationsIcon fontSize="small" />
               </Badge>
             </IconButton>
-            <Box component="button" type="button" aria-label={`Account menu for ${userName}`} aria-haspopup="menu" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ appearance: 'none', border: 0, bgcolor: 'transparent', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer', p: 0.5, borderRadius: 2, '&:hover': { bgcolor: theme.palette.action.hover } }}>
+            <Box component="button" type="button" aria-label={`Account menu for ${userName}`} aria-haspopup="menu" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ appearance: 'none', border: 0, bgcolor: 'transparent', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer', p: 0.5, borderRadius: '10px', '&:hover': { bgcolor: theme.palette.action.hover } }}>
               <Avatar src={profilePic || undefined} sx={{ width: 34, height: 34, bgcolor: theme.palette.mode === 'dark' ? '#243B5A' : '#EAF3FF', color: METICLE_PRIMARY, fontSize: '0.8rem', fontWeight: 600 }}>
                 {profilePic ? '' : userInitial.toUpperCase()}
               </Avatar>
@@ -716,7 +716,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             }}
           >
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.error.dark }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.error.dark }}>
                 Subscription {subStatus === 'past_due' ? 'Past Due' : subStatus === 'canceled' ? 'Canceled' : subStatus === 'expired' ? 'Expired' : 'Inactive'}
               </Typography>
               <Typography variant="body2" sx={{ color: theme.palette.error.main, mt: 0.5 }}>
@@ -753,7 +753,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             }}
           >
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#9A6700' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#9A6700' }}>
                 Payment Past Due
               </Typography>
               <Typography variant="body2" sx={{ color: '#F59E0B', mt: 0.5 }}>
@@ -820,7 +820,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
               <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{notifications.length} recent {notifications.length === 1 ? 'update' : 'updates'}</Typography>
               {notifications.some(n => !n.read) && (
-                <Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: 'none', fontWeight: 700, minWidth: 0 }}>Mark all read</Button>
+                <Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: 'none', fontWeight: 600, minWidth: 0 }}>Mark all read</Button>
               )}
             </Stack>
           </Box>

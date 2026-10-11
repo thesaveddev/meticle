@@ -191,10 +191,10 @@ export default function AgenciesPage() {
 
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <BusinessIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Agency Management</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>Agency Management</Typography>
         {savings && (
           <Chip label={`Net ${Number(savings.net_savings) >= 0 ? 'Saved' : 'Cost'}: ${formatCurrency(Math.abs(savings.net_savings))}`}
-            color={Number(savings.net_savings) >= 0 ? 'success' : 'error'} size="small" sx={{ ml: 1, fontWeight: 700 }} />
+            color={Number(savings.net_savings) >= 0 ? 'success' : 'error'} size="small" sx={{ ml: 1, fontWeight: 600 }} />
         )}
       </Stack>
 
@@ -223,14 +223,14 @@ export default function AgenciesPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Contact</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Phone</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Active Workers</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Total Shifts</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Contract</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Active Workers</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Total Shifts</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Contract</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -263,11 +263,11 @@ export default function AgenciesPage() {
             </TableContainer>
           )}
           {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #EAF3FF', borderRadius: 2, bgcolor: 'notice.subtle.bg' }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}><Box><Typography variant="overline" color="primary">Agency workspace</Typography><Typography variant="h5" fontWeight={800}>{selectedAgency.name}</Typography><Typography variant="body2" color="text.secondary">{selectedAgency.address || 'No address recorded'} · {selectedAgency.contact_name || 'No contact person'}</Typography></Box><Button onClick={() => setSelectedAgency(null)}>Close workspace</Button></Stack>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}><Box><Typography variant="overline" color="primary">Agency workspace</Typography><Typography variant="h5" fontWeight={600}>{selectedAgency.name}</Typography><Typography variant="body2" color="text.secondary">{selectedAgency.address || 'No address recorded'} · {selectedAgency.contact_name || 'No contact person'}</Typography></Box><Button onClick={() => setSelectedAgency(null)}>Close workspace</Button></Stack>
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}><Chip label={selectedAgency.status || 'Active'} color="success" /><Chip icon={<StarIcon />} label={`${selectedAgency.rating || '—'} agency rating`} variant="outlined" /><Chip label={`${selectedAgency.active_workers || selectedAgencyWorkers.length} workers`} variant="outlined" /></Stack>
             <Tabs value={agencyView} onChange={(_, v) => setAgencyView(v)}><Tab value="overview" label="Details" /><Tab value="workers" label={`Workers (${selectedAgencyWorkers.length})`} /><Tab value="rates" label={`Rates (${selectedAgencyRates.length})`} /></Tabs>
             {agencyView === 'overview' && <Grid container spacing={2} sx={{ mt: 1 }}><Grid item xs={12} md={6}><Typography variant="caption" color="text.secondary">Contact</Typography><Typography>{selectedAgency.contact_name || '—'} · {selectedAgency.contact_phone || '—'} · {selectedAgency.contact_email || '—'}</Typography></Grid><Grid item xs={12} md={6}><Typography variant="caption" color="text.secondary">Contract</Typography><Typography>{selectedAgency.contract_start_date || '—'} to {selectedAgency.contract_end_date || 'Open'}</Typography></Grid><Grid item xs={12}><Typography variant="caption" color="text.secondary">Notes</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{selectedAgency.notes || 'No notes recorded.'}</Typography></Grid></Grid>}
-            {agencyView === 'workers' && <Stack spacing={1} sx={{ mt: 2 }}>{selectedAgencyWorkers.map(w => <Paper key={w.id} variant="outlined" sx={{ p: 1.5, display: 'flex', justifyContent: 'space-between' }}><Box><Typography fontWeight={700}>{w.first_name} {w.last_name}</Typography><Typography variant="caption" color="text.secondary">{w.role || 'Worker'} · {w.phone || 'No phone'}</Typography></Box><Typography><StarIcon sx={{ fontSize: 16, color: '#F59E0B', verticalAlign: 'middle' }} /> {w.rating || '—'}</Typography></Paper>)}</Stack>}
+            {agencyView === 'workers' && <Stack spacing={1} sx={{ mt: 2 }}>{selectedAgencyWorkers.map(w => <Paper key={w.id} variant="outlined" sx={{ p: 1.5, display: 'flex', justifyContent: 'space-between' }}><Box><Typography fontWeight={600}>{w.first_name} {w.last_name}</Typography><Typography variant="caption" color="text.secondary">{w.role || 'Worker'} · {w.phone || 'No phone'}</Typography></Box><Typography><StarIcon sx={{ fontSize: 16, color: '#F59E0B', verticalAlign: 'middle' }} /> {w.rating || '—'}</Typography></Paper>)}</Stack>}
             {agencyView === 'rates' && <Table size="small" sx={{ mt: 2 }}><TableHead><TableRow><TableCell>Shift type</TableCell><TableCell>Rate/hour</TableCell><TableCell>Effective from</TableCell><TableCell>Effective to</TableCell></TableRow></TableHead><TableBody>{selectedAgencyRates.map(r => <TableRow key={r.id}><TableCell>{r.shift_type}</TableCell><TableCell>{formatCurrency(r.rate_per_hour)}</TableCell><TableCell>{formatDate(r.effective_from)}</TableCell><TableCell>{formatDate(r.effective_to)}</TableCell></TableRow>)}</TableBody></Table>}
           </Paper>}
           <Dialog open={agencyDialog} onClose={() => setAgencyDialog(false)} maxWidth="sm" fullWidth>
@@ -315,15 +315,15 @@ export default function AgenciesPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Agency</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Phone</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>DBS Expiry</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Training</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Rating</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Agency</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>DBS Expiry</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Training</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Rating</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -419,12 +419,12 @@ export default function AgenciesPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Agency</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Shift Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Rate / Hour</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Effective From</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Effective To</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Agency</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Shift Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Rate / Hour</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Effective From</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Effective To</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -519,14 +519,14 @@ export default function AgenciesPage() {
               <Table size="small">
                 <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Agency</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Worker</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Hours</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Cost</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Coverage</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Agency</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Worker</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Hours</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Cost</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Coverage</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -547,7 +547,7 @@ export default function AgenciesPage() {
                         <ToggleButtonGroup size="small" value={h.agency_covered ? 'covered' : 'uncovered'} exclusive
                           onChange={() => handleToggleCoverage(h.id, h.agency_covered)}
                           disabled={updatingCoverage === h.id}
-                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 700, border: '1px solid #D8DEE7' } }}>
+                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 600, border: '1px solid #D8DEE7' } }}>
                           <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#EAFBF5' : 'transparent', color: h.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                             Covered
                           </ToggleButton>
@@ -585,7 +585,7 @@ export default function AgenciesPage() {
                       <Card variant="outlined" sx={{ borderRadius: 1 }}>
                         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                           <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{card.label}</Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>{card.value}</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5 }}>{card.value}</Typography>
                         </CardContent>
                       </Card>
                     </Grid>
@@ -596,14 +596,14 @@ export default function AgenciesPage() {
               {/* Monthly breakdown */}
               {savingsByMonth.length > 0 && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Monthly Agency Savings</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Monthly Agency Savings</Typography>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Month</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Shifts</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Total Cost</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Net Savings</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Month</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Shifts</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Total Cost</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Net Savings</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -612,7 +612,7 @@ export default function AgenciesPage() {
                           <TableCell>{new Date(m.month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</TableCell>
                           <TableCell align="right">{m.shifts}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(m.total_cost)}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700, color: Number(m.net_savings) >= 0 ? '#10B981' : '#EF4444' }}>{formatCurrency(m.net_savings)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, color: Number(m.net_savings) >= 0 ? '#10B981' : '#EF4444' }}>{formatCurrency(m.net_savings)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -623,15 +623,15 @@ export default function AgenciesPage() {
               {/* Per-agency breakdown */}
               {savingsByAgency.length > 0 && (
                 <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Agency Breakdown</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Agency Breakdown</Typography>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Agency</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Shifts</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Total Cost</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Avg Rate/hr</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Internal Rate</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Agency</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Shifts</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Total Cost</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Avg Rate/hr</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Internal Rate</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

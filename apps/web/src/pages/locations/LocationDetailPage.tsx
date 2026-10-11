@@ -356,11 +356,11 @@ export default function LocationDetailPage() {
           <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#2F80ED10', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BuildingIcon sx={{ fontSize: 36 }} />
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
               {isDomiciliary ? 'Area' : 'Location'}
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 0.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 {location.name}
               </Typography>
               {noManager && <StatusBadge label={isDomiciliary ? 'No area manager' : 'No manager'} tone="warning" />}
@@ -385,15 +385,15 @@ export default function LocationDetailPage() {
         <Divider sx={{ borderColor: '#F5F7FA' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? carerCount : staffCount}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? carerCount : staffCount}</Typography>
             <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Carers in area' : 'Staff assigned'}</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? (areaSummary?.workload_hours_next_7_days ?? '—') : (certificates?.length ?? 0)}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? (areaSummary?.workload_hours_next_7_days ?? '—') : (certificates?.length ?? 0)}</Typography>
             <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Workload hours / 7 days' : 'Certificates'}</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: isDomiciliary ? NAVY : (noManager ? '#F59E0B' : '#10B981'), lineHeight: 1.1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: isDomiciliary ? NAVY : (noManager ? '#F59E0B' : '#10B981'), lineHeight: 1.1 }}>
               {isDomiciliary ? (areaSummary ? `£${(areaSummary.estimated_revenue_pence_this_month / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}` : '—') : (noManager ? '—' : 'Assigned')}
             </Typography>
             <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Est. revenue this month' : 'Manager'}</Typography>
@@ -410,7 +410,7 @@ export default function LocationDetailPage() {
           TabIndicatorProps={{ sx: { bgcolor: NAVY, height: 3 } }}
         >
           {tabs.map(t => (
-            <Tab key={t.id} value={t.id} label={t.label} icon={t.icon} iconPosition="start" sx={{ fontWeight: 700, textTransform: 'none', color: 'text.secondary', '&.Mui-selected': { color: NAVY } }} />
+            <Tab key={t.id} value={t.id} label={t.label} icon={t.icon} iconPosition="start" sx={{ fontWeight: 600, textTransform: 'none', color: 'text.secondary', '&.Mui-selected': { color: NAVY } }} />
           ))}
         </Tabs>
       </Paper>
@@ -424,7 +424,7 @@ export default function LocationDetailPage() {
       {isDomiciliary && tab === TAB_OVERVIEW && (
         <Stack spacing={3}>
           <Paper sx={{ p: 3.5, borderRadius: 2 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
               Area operations
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
@@ -441,8 +441,8 @@ export default function LocationDetailPage() {
               ].map(metric => (
                 <Grid item xs={12} sm={6} md={4} key={metric.label}>
                   <Box sx={{ p: 2.25, border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
-                    <Typography variant="h5" sx={{ fontWeight: 900 }}>{metric.value}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>{metric.label}</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 600 }}>{metric.value}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>{metric.label}</Typography>
                     <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
                   </Box>
                 </Grid>
@@ -451,7 +451,7 @@ export default function LocationDetailPage() {
           </Paper>
           <Paper sx={{ p: 3.5, borderRadius: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Today’s delivery</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Today’s delivery</Typography>
               <Chip label={areaSummary?.completion_rate_today == null ? 'No visits yet' : `${areaSummary.completion_rate_today}% complete`} color={areaSummary?.completion_rate_today != null && areaSummary.completion_rate_today >= 90 ? 'success' : 'default'} size="small" />
             </Stack>
             <Typography variant="body2" color="text.secondary">Use Open Calls to fill gaps in coverage and keep workload balanced across Cardiff, Cathays and other service areas.</Typography>
@@ -462,7 +462,7 @@ export default function LocationDetailPage() {
       {tab === TAB_OVERVIEW && !isDomiciliary && (
         <Paper sx={{ p: 3.5, borderRadius: 2 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none' }}>
               Location details
             </Typography>
             {isOrgAdmin && (
@@ -563,7 +563,7 @@ export default function LocationDetailPage() {
             {fileError && <Alert severity="error" sx={{ mb: 0 }} onClose={() => setFileError('')}>{fileError}</Alert>}
             <Paper sx={{ p: 3.5, borderRadius: 2 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none' }}>
                   Regulator & hygiene
                 </Typography>
                 {isOrgAdmin && (
@@ -599,16 +599,16 @@ export default function LocationDetailPage() {
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Expired</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: expired.length > 0 ? '#EF4444' : '#10B981' }}>{expired.length}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: expired.length > 0 ? '#EF4444' : '#10B981' }}>{expired.length}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Expiring (30 days)</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: expiring.length > 0 ? '#F59E0B' : 'inherit' }}>{expiring.length}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: expiring.length > 0 ? '#F59E0B' : 'inherit' }}>{expiring.length}</Typography>
                 </Grid>
               </Grid>
             </Paper>
             {certs.length > 0 && (
-              <Button size="small" startIcon={<VerifiedIcon />} onClick={() => setTab(TAB_CERTIFICATES)} sx={{ color: NAVY, fontWeight: 700, alignSelf: 'flex-start', textTransform: 'none' }}>
+              <Button size="small" startIcon={<VerifiedIcon />} onClick={() => setTab(TAB_CERTIFICATES)} sx={{ color: NAVY, fontWeight: 600, alignSelf: 'flex-start', textTransform: 'none' }}>
                 View all {certs.length} certificates
               </Button>
             )}
@@ -636,13 +636,13 @@ export default function LocationDetailPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                      {!isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>}
-                      <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Employment</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Contracted Hours</TableCell>
-                      {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Area link</TableCell>}
-                      {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Calls · 30 days</TableCell>}
+                      <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                      {!isDomiciliary && <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>}
+                      <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Employment</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Contracted Hours</TableCell>
+                      {isDomiciliary && <TableCell sx={{ fontWeight: 600 }}>Area link</TableCell>}
+                      {isDomiciliary && <TableCell sx={{ fontWeight: 600 }}>Calls · 30 days</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -679,7 +679,7 @@ export default function LocationDetailPage() {
       {showResidentialTabs && tab === TAB_CERTIFICATES && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, pb: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Location Certificates</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Location Certificates</Typography>
             {canEdit && (
               <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openAddCert} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
                 Add Certificate
@@ -698,14 +698,14 @@ export default function LocationDetailPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Issuing Body</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Certificate #</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Expiry Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>File</TableCell>
-                    {canEdit && <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>}
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Issuing Body</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Certificate #</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Expiry Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>File</TableCell>
+                    {canEdit && <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -755,7 +755,7 @@ export default function LocationDetailPage() {
       )}
 
       <Dialog open={certDialogOpen} onClose={() => setCertDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editCert ? 'Edit Certificate' : 'Add Certificate'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editCert ? 'Edit Certificate' : 'Add Certificate'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {certError && <Alert severity="error">{certError}</Alert>}
@@ -793,7 +793,7 @@ export default function LocationDetailPage() {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <input type="file" ref={certFileInputRef} hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt" onChange={uploadCertFile} />
               <Button variant="outlined" size="small" startIcon={certUploading ? <CircularProgress size={16} /> : <UploadFileIcon />}
-                onClick={() => certFileInputRef.current?.click()} disabled={certUploading} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                onClick={() => certFileInputRef.current?.click()} disabled={certUploading} sx={{ textTransform: 'none',}}>
                 {certUploading ? 'Uploading…' : certForm.file_url ? 'Replace Document' : 'Upload Document'}
               </Button>
               {certForm.file_url && (
@@ -823,7 +823,7 @@ export default function LocationDetailPage() {
       />
 
       <Dialog open={locDialogOpen} onClose={() => setLocDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Edit Area' : 'Edit Location'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Edit Area' : 'Edit Location'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {locError && <Alert severity="error">{locError}</Alert>}
@@ -902,7 +902,7 @@ export default function LocationDetailPage() {
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {filePreview?.name || 'File Preview'}
           </Typography>
           <Stack direction="row" spacing={0.5}>

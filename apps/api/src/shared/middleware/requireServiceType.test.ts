@@ -33,10 +33,28 @@ describe('requireServiceType', () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
   });
 
-  it('fails closed when the organisation is missing or has no service types', async () => {
+  it('fails closed when the organisation row is missing (stale token)', async () => {
     vi.mocked(database.query).mockResolvedValueOnce({ rows: [] } as any);
     const next = vi.fn();
     await requireServiceType('supported_living')({ user: { organizationId: 'org-1' } } as any, {} as any, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
+  });
+
+  it('fails closed for an existing but unprovisioned organisation', async () => {
+    // Onboarding has not selected a model; missing configuration must not grant
+    // access to care data simply because the organization row exists.
+    vi.mocked(database.query).mockResolvedValueOnce({ rows: [{ service_types: [], primary_service_type: null }] } as any);
+    const next = vi.fn();
+    await requireServiceType('supported_living', 'residential')({ user: { organizationId: 'org-1' } } as any, {} as any, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
+  });
+
+  it('unprovisioned organisation is still denied on domiciliary-only routes', async () => {
+    // Fail-open covers the shared care models only — it must not open the
+    // strictly domiciliary blocks to an org whose model is simply unknown.
+    vi.mocked(database.query).mockResolvedValueOnce({ rows: [{ service_types: [], primary_service_type: null }] } as any);
+    const next = vi.fn();
+    await requireServiceType('domiciliary', 'live_in')({ user: { organizationId: 'org-1' } } as any, {} as any, next);
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
   });
 });

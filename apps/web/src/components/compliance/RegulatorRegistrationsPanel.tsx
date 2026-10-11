@@ -109,7 +109,7 @@ export default function RegulatorRegistrationsPanel() {
                 >
                   <Box sx={{ flex: 1 }}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                      <Typography fontWeight={700}>{row.regulator_name}</Typography>
+                      <Typography fontWeight={600}>{row.regulator_name}</Typography>
                       {row.recorded ? (
                         <Chip
                           size="small"

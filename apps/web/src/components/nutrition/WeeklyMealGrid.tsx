@@ -135,7 +135,7 @@ export default function WeeklyMealGrid({ people }: Props) {
       <Paper variant="outlined" sx={{ p: 2.5, mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
         <AIIcon sx={{ color: '#8B7CF6', fontSize: 28 }} />
         <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography variant="subtitle2" fontWeight={700}>AI Weekly Meal Planner</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>AI Weekly Meal Planner</Typography>
           <Typography variant="caption" color="text.secondary">Generate a complete 7-day plan tailored to a person's dietary needs</Typography>
         </Box>
         <TextField
@@ -150,7 +150,7 @@ export default function WeeklyMealGrid({ people }: Props) {
         <Button
           variant="contained" startIcon={loading ? <CircularProgress size={16} /> : <AIIcon />}
           onClick={generateWeek} disabled={!personId || loading}
-          sx={{ bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' }, borderRadius: 2 }}
+          sx={{ bgcolor: '#8B7CF6', '&:hover': { bgcolor: '#8B7CF6' },}}
         >
           {loading ? 'Generating...' : 'Generate Weekly Plan'}
         </Button>
@@ -175,7 +175,7 @@ export default function WeeklyMealGrid({ people }: Props) {
           {/* Plan Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={700}>{weeklyPlan.plan_name}</Typography>
+              <Typography variant="h6" fontWeight={600}>{weeklyPlan.plan_name}</Typography>
               <Typography variant="body2" color="text.secondary">{weeklyPlan.description}</Typography>
             </Box>
             <Stack direction="row" spacing={1}>
@@ -237,7 +237,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                         borderRadius: 2,
                       }}
                     >
-                      <Typography variant="subtitle2" fontWeight={700} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#2F80ED' : 'inherit' }}>
+                      <Typography variant="subtitle2" fontWeight={600} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#2F80ED' : 'inherit' }}>
                         {DAY_LABELS[day]}
                       </Typography>
                     </Paper>
@@ -252,7 +252,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                     <Paper sx={{ py: 1.5, px: 1, bgcolor: mt.color + '10', border: `1px solid ${mt.color}55`, borderRadius: 2, height: '100%' }}>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <Typography fontSize="14px">{mt.icon}</Typography>
-                        <Typography variant="caption" fontWeight={700} sx={{ color: mt.color, lineHeight: 1.2 }}>
+                        <Typography variant="caption" fontWeight={600} sx={{ color: mt.color, lineHeight: 1.2 }}>
                           {mt.label}
                         </Typography>
                       </Stack>
@@ -283,7 +283,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                             <>
                               <Stack direction="row" alignItems="center" spacing={0.5}>
                                 <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: mt.color, flexShrink: 0 }} />
-                                <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.7rem' }}>
+                                <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.7rem' }}>
                                   {primary.name}
                                 </Typography>
                               </Stack>
@@ -306,7 +306,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                               )}
                               {isExpanded && (
                                 <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E6EAF0' }}>
-                                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
+                                  <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
                                   {primary.items?.slice(0, 4).map((item, i) => (
                                     <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#667085', lineHeight: 1.4 }}>
                                       • {item.name} ({item.portion})
@@ -319,7 +319,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                                   )}
                                   {secondary && (
                                     <>
-                                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
+                                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
                                       {secondary.items?.slice(0, 4).map((item, i) => (
                                         <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#98A2B3', lineHeight: 1.4 }}>
                                           • {item.name} ({item.portion})
@@ -352,7 +352,7 @@ export default function WeeklyMealGrid({ people }: Props) {
           {/* Nutritional Notes */}
           {weeklyPlan.nutritional_notes?.length > 0 && (
             <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Nutritional Notes</Typography>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Nutritional Notes</Typography>
               {weeklyPlan.nutritional_notes.map((n, i) => (
                 <Typography key={i} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>• {n}</Typography>
               ))}
@@ -363,7 +363,7 @@ export default function WeeklyMealGrid({ people }: Props) {
 
       {/* Save Template Dialog */}
       <Dialog open={saveDlg.open} onClose={() => setSaveDlg({ open: false, day: '', mealType: '', meal: null })} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Save as Meal Plan Template</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Save as Meal Plan Template</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Save "{saveDlg.meal?.name}" as a reusable template for {DAY_LABELS[saveDlg.day]} {MEAL_TYPES.find(m => m.value === saveDlg.mealType)?.label}.

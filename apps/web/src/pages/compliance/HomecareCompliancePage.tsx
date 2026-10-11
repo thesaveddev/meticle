@@ -45,7 +45,7 @@ function ScoreRing({ value, size = 80, strokeWidth = 6, color }: { value: number
           style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
       </svg>
       <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-        <Typography sx={{ fontSize: size * 0.22, fontWeight: 800, color }}>{value}%</Typography>
+        <Typography sx={{ fontSize: size * 0.22, fontWeight: 600, color }}>{value}%</Typography>
       </Box>
     </Box>
   )
@@ -85,8 +85,8 @@ function StatCard({ icon, label, value, sub, color, onClick }: {
             {icon}
           </Box>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.25, lineHeight: 1.2 }}>{value}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>{label}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, mt: 0.25, lineHeight: 1.2 }}>{value}</Typography>
             {sub && <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{sub}</Typography>}
           </Box>
         </Stack>
@@ -107,11 +107,11 @@ function KloeSection({ domain, expanded, onToggle }: { domain: any; expanded: bo
       >
         <Box sx={{ width: 8, height: 32, borderRadius: 4, bgcolor: domain.color, flexShrink: 0 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700 }}>{domain.label}</Typography>
+          <Typography sx={{ fontWeight: 600 }}>{domain.label}</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>{domain.statements?.length || 0} Quality Statements</Typography>
         </Box>
         <ScoreRing value={domain.score} size={52} strokeWidth={4} color={scoreColor} />
-        <Chip label={getScoreLabel(domain.score)} size="small" sx={{ bgcolor: `${scoreColor}15`, color: scoreColor, fontWeight: 700 }} />
+        <Chip label={getScoreLabel(domain.score)} size="small" sx={{ bgcolor: `${scoreColor}15`, color: scoreColor, fontWeight: 600 }} />
         <IconButton size="small" sx={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'none' }}>
           <ExpandIcon fontSize="small" />
         </IconButton>
@@ -123,7 +123,7 @@ function KloeSection({ domain, expanded, onToggle }: { domain: any; expanded: bo
             {(domain.statements || []).map((s: any) => (
               <Grid item xs={12} sm={6} md={4} key={s.id}>
                 <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="caption" sx={{ color: domain.color, fontWeight: 700 }}>{s.id}</Typography>
+                  <Typography variant="caption" sx={{ color: domain.color, fontWeight: 600 }}>{s.id}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.25 }}>{s.label}</Typography>
                 </Box>
               </Grid>
@@ -170,7 +170,7 @@ export default function HomecareCompliancePage() {
       <PageContainer>
         <Box role="alert" sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', textAlign: 'center', px: 2 }}>
           <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Compliance overview unavailable</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Compliance overview unavailable</Typography>
             <Typography color="text.secondary">
               {status === 403
                 ? 'Your organisation does not have access to this compliance view.'
@@ -210,9 +210,9 @@ export default function HomecareCompliancePage() {
         actions={
           <>
             <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isFetching}
-              sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>Refresh</Button>
+              sx={{ textTransform: 'none', fontWeight: 600 }}>Refresh</Button>
             <Button variant="contained" size="small" onClick={() => navigate('/compliance/readiness')}
-              sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>CQC Readiness</Button>
+              sx={{ textTransform: 'none', fontWeight: 600 }}>CQC Readiness</Button>
           </>
         }
       />
@@ -223,7 +223,7 @@ export default function HomecareCompliancePage() {
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
               <ScoreRing value={d.overallScore} size={120} strokeWidth={8} color={kloeColor} />
-              <Typography sx={{ fontWeight: 700, mt: 1 }}>{getScoreLabel(d.overallScore)}</Typography>
+              <Typography sx={{ fontWeight: 600, mt: 1 }}>{getScoreLabel(d.overallScore)}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Overall compliance score</Typography>
             </Grid>
             <Grid item xs={12} md={8}>
@@ -304,7 +304,7 @@ export default function HomecareCompliancePage() {
         <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 3 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'baseline' }} sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Priority Actions</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Priority Actions</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Select an action to go straight to the area that needs attention</Typography>
             </Stack>
             <Stack spacing={1}>
@@ -328,8 +328,8 @@ export default function HomecareCompliancePage() {
                     <Box sx={{ width: 5, flexShrink: 0, bgcolor: accent }} />
                     <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, minWidth: 0, px: 2, py: 1.5 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="overline" sx={{ color: accent, fontWeight: 800, letterSpacing: 1 }}>{a.priority}</Typography>
-                        <Typography sx={{ fontWeight: 700 }}>{a.action}</Typography>
+                        <Typography variant="overline" sx={{ color: accent, fontWeight: 600, letterSpacing: 1 }}>{a.priority}</Typography>
+                        <Typography sx={{ fontWeight: 600 }}>{a.action}</Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>{a.detail}</Typography>
                       </Box>
                       <Chip label={a.area} size="small" variant="outlined" sx={{ fontWeight: 600, flexShrink: 0 }} />
@@ -346,7 +346,7 @@ export default function HomecareCompliancePage() {
       {/* KLOE Domains */}
       <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>CQC Quality Statements by Domain</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>CQC Quality Statements by Domain</Typography>
           <Stack spacing={1.5}>
             {d.kloeScores.map((domain) => (
               <KloeSection
@@ -363,7 +363,7 @@ export default function HomecareCompliancePage() {
       {/* Quick Links */}
       <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Compliance Evidence</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Compliance Evidence</Typography>
           <Grid container spacing={2}>
             {[
               { label: 'Documents & Identity', path: '/compliance/identity', desc: 'DBS, right-to-work, identity documents' },

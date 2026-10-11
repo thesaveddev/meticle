@@ -27,7 +27,7 @@
 
 .homecare-title {
   font-size: clamp(1.9rem, 3vw, 2.7rem) !important;
-  font-weight: 800 !important;
+  font-weight: 600 !important;
   letter-spacing: -0.045em !important;
   overflow-wrap: anywhere;
 }
@@ -54,7 +54,7 @@
 .homecare-tabs .MuiTab-root {
   min-height: 50px;
   color: var(--homecare-muted);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: none;
 }
 
@@ -83,24 +83,24 @@
 
 .homecare-visit--checked_in { background: color-mix(in srgb, var(--homecare-green) 5%, var(--homecare-surface)); }
 .homecare-visit--completed { opacity: 0.7; }
-.homecare-visit__date { color: var(--homecare-navy); font-size: 0.87rem !important; font-weight: 700 !important; }
+.homecare-visit__date { color: var(--homecare-navy); font-size: 0.87rem !important; font-weight: 600 !important; }
 .homecare-visit__time .MuiChip-root { margin-top: 7px; text-transform: capitalize; }
 .homecare-visit__name,
-.homecare-package__name { font-weight: 700 !important; letter-spacing: -0.02em; }
+.homecare-package__name { font-weight: 600 !important; letter-spacing: -0.02em; }
 .homecare-visit__person { margin-top: 4px !important; font-weight: 600 !important; }
 .homecare-visit__address { margin-top: 4px !important; color: var(--homecare-muted); font-size: 0.82rem !important; }
 .homecare-visit__carer { margin-top: 6px !important; color: var(--homecare-navy); font-size: 0.82rem !important; font-weight: 650 !important; }
 .homecare-visit__meta { color: var(--homecare-muted); font-size: 0.78rem; line-height: 1.8; }
 .homecare-visit__meta strong { color: var(--homecare-ink); }
 .homecare-visit__meta svg { vertical-align: -3px; margin-right: 4px; color: var(--homecare-navy); }
-.homecare-action { min-width: 90px; background: var(--homecare-navy) !important; text-transform: none !important; font-weight: 700 !important; white-space: nowrap; }
+.homecare-action { min-width: 90px; background: var(--homecare-navy) !important; text-transform: none !important; font-weight: 600 !important; white-space: nowrap; }
 .homecare-package,
 .homecare-timesheet,
 .homecare-exception,
 .homecare-export,
 .homecare-ops { display: grid; gap: 16px; padding: 20px; }
 .homecare-empty { padding: 48px 24px; text-align: center; }
-.homecare-empty h6 { font-weight: 700; }
+.homecare-empty h6 { font-weight: 600; }
 .homecare-empty p { margin-top: 8px; }
 .homecare-exception { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--homecare-rule) !important; }
 .homecare-exception__detail { margin-top: 6px !important; color: #9A6700; font-size: 0.84rem !important; text-transform: capitalize; }

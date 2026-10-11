@@ -96,7 +96,7 @@ export default function LearningCenterPage() {
       <Box sx={{ flex: 1, overflow: 'auto', pb: 12 }}>
         {Object.entries(groupedByCategory).map(([category, cats]) => (
           <Box key={category}>
-            <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem' }}>
+            <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 1, fontSize: '0.65rem' }}>
               {category}
             </Typography>
             {cats.map(section => {
@@ -178,7 +178,7 @@ export default function LearningCenterPage() {
           <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E6EAF0' }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <LearnIcon sx={{ color: '#2F80ED' }} />
-              <Typography fontWeight={800} fontSize="0.95rem">Learning Center</Typography>
+              <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
             </Stack>
             <IconButton size="small" onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
           </Box>
@@ -188,7 +188,7 @@ export default function LearningCenterPage() {
         <Paper sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRadius: 0, borderRight: '1px solid #E6EAF0', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
           <Box sx={{ p: 2, borderBottom: '1px solid #E6EAF0', display: 'flex', alignItems: 'center', gap: 1 }}>
             <LearnIcon sx={{ color: '#2F80ED' }} />
-            <Typography fontWeight={800} fontSize="0.95rem">Learning Center</Typography>
+            <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
           </Box>
           {sidebar}
         </Paper>
@@ -203,7 +203,7 @@ export default function LearningCenterPage() {
               <Chip label={currentSection.title} size="small" color="primary" variant="outlined" />
             </Stack>
 
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: '#2F80ED' }}>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#2F80ED' }}>
               {currentSubsection.title}
             </Typography>
 
@@ -214,8 +214,8 @@ export default function LearningCenterPage() {
                 className="learn-content"
                 dangerouslySetInnerHTML={{ __html: currentSubsection.content }}
                 sx={{
-                  '& h2': { fontSize: '1.3rem', fontWeight: 700, color: '#2F80ED', mt: 4, mb: 1.5 },
-                  '& h3': { fontSize: '1.1rem', fontWeight: 700, mt: 3, mb: 1 },
+                  '& h2': { fontSize: '1.3rem', fontWeight: 600, color: '#2F80ED', mt: 4, mb: 1.5 },
+                  '& h3': { fontSize: '1.1rem', fontWeight: 600, mt: 3, mb: 1 },
                   '& p': { lineHeight: 1.8, mb: 1.5, color: 'text.primary', fontSize: '0.95rem' },
                   '& strong': { color: '#17202A' },
                   '& ul, & ol': { pl: 2.5, mb: 2 },
@@ -261,7 +261,7 @@ export default function LearningCenterPage() {
         ) : (
           <Box sx={{ textAlign: 'center', py: 10 }}>
             <LearnIcon sx={{ fontSize: 64, color: '#D8DEE7', mb: 2 }} />
-            <Typography variant="h5" fontWeight={700} color="#2F80ED" sx={{ mb: 1 }}>
+            <Typography variant="h5" fontWeight={600} color="#2F80ED" sx={{ mb: 1 }}>
               Welcome to the Meticle Care Learning Center
             </Typography>
             <Typography color="#667085" sx={{ maxWidth: 500, mx: 'auto' }}>

@@ -181,7 +181,7 @@ const MICA_ACTIONS_INTERNAL: Record<Exclude<MicaActionId, '_UNIMPLEMENTED'>, Mic
   CREATE_TASK: {
     id: 'CREATE_TASK',
     label: 'Create a task',
-    description: 'Create a follow-up task for a person or staff member. Not yet implemented.',
+    description: 'Create a follow-up task for a person or staff member.',
     inputSchema: 'MicaCreateTaskInput',
     outputSchema: 'MicaCreateTaskOutput',
     allowedRoles: ['ORG_ADMIN', 'MANAGER', 'CARE_WORKER'],
@@ -203,7 +203,7 @@ const MICA_ACTIONS_INTERNAL: Record<Exclude<MicaActionId, '_UNIMPLEMENTED'>, Mic
   PREPARE_HANDOVER: {
     id: 'PREPARE_HANDOVER',
     label: 'Prepare a handover',
-    description: 'Prepare a shift handover summary for a person or team. Not yet implemented.',
+    description: 'Prepare a shift handover summary for a person or team over a recent window, as a read-only draft.',
     inputSchema: 'MicaPrepareHandoverInput',
     outputSchema: 'MicaPrepareHandoverOutput',
     allowedRoles: ['ORG_ADMIN', 'MANAGER', 'CARE_WORKER'],
@@ -215,7 +215,7 @@ const MICA_ACTIONS_INTERNAL: Record<Exclude<MicaActionId, '_UNIMPLEMENTED'>, Mic
   SUMMARISE_CHANGES: {
     id: 'SUMMARISE_CHANGES',
     label: 'Summarise what has changed',
-    description: 'Summarise changes for a person against recent records. Not yet implemented.',
+    description: 'Summarise changes for a person or the organisation across a recent window, as a read-only draft.',
     inputSchema: 'MicaSummariseChangesInput',
     outputSchema: 'MicaSummariseChangesOutput',
     allowedRoles: ['ORG_ADMIN', 'MANAGER', 'CARE_WORKER'],

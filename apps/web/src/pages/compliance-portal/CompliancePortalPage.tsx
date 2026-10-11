@@ -115,10 +115,10 @@ export function PortalLoginPage() {
         <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
           {getErrorIcon()}
         </Box>
-        <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>{getErrorTitle()}</Typography>
+        <Typography variant="h5" fontWeight={600} sx={{ mb: 1 }}>{getErrorTitle()}</Typography>
         <Typography variant="body2" color="#667085" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
         <Stack spacing={1.5} alignItems="center">
-          <Button variant="contained" href="/login" sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 2, px: 4 }}>
+          <Button variant="contained" href="/login" sx={{ bgcolor: '#2F80ED', textTransform: 'none', px: 4 }}>
             Go to Login
           </Button>
           <Typography variant="caption" color="#98A2B3">
@@ -193,10 +193,10 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
   return (
     <>
       <Stack direction="row" spacing={1}>
-        <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
+        <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => setOpen(true)} sx={{}}>
           Generate Portal Link
         </Button>
-        <Button variant="outlined" startIcon={<ClockIcon />} onClick={() => { setShowTokens(!showTokens); if (!showTokens) loadTokens() }} sx={{ borderRadius: 2 }}>
+        <Button variant="outlined" startIcon={<ClockIcon />} onClick={() => { setShowTokens(!showTokens); if (!showTokens) loadTokens() }} sx={{}}>
           Active Links
         </Button>
       </Stack>
@@ -205,7 +205,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
       {showTokens && (
         <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E6EAF0', bgcolor: 'notice.subtle.bg' }}>
-            <Typography variant="subtitle2" fontWeight={800}>Compliance Portal Links</Typography>
+            <Typography variant="subtitle2" fontWeight={600}>Compliance Portal Links</Typography>
             <Typography variant="caption" color="#667085">Manage and revoke access tokens for compliance officers</Typography>
           </Box>
           {tokensLoading ? (
@@ -217,12 +217,12 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Officer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Link</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Expires</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="right">Action</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Officer</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Link</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Expires</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12 }} align="right">Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -249,7 +249,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                           </Stack>
                         </TableCell>
                         <TableCell><Typography variant="caption" color="#667085">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
-                        <TableCell><Chip label={status} size="small" sx={{ bgcolor: statusColor, color: 'white', fontWeight: 700, fontSize: 11 }} /></TableCell>
+                        <TableCell><Chip label={status} size="small" sx={{ bgcolor: statusColor, color: 'white', fontWeight: 600, fontSize: 11 }} /></TableCell>
                         <TableCell align="right">
                           {!isRevoked && !isExpired && (
                             <Button size="small" color="error" onClick={() => handleRevoke(t.id)} sx={{ textTransform: 'none', fontSize: 12 }}>
@@ -268,14 +268,14 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
       )}
 
       <Dialog open={open} onClose={() => { setOpen(false); setResult(null) }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
           <LinkIcon /> Generate Compliance Portal Access
         </DialogTitle>
         <DialogContent>
           {result ? (
             <Box sx={{ textAlign: 'center', py: 2 }}>
               <CheckIcon sx={{ fontSize: 48, color: '#10B981', mb: 2 }} />
-              <Typography variant="h6" fontWeight={700} gutterBottom>Access Link Created</Typography>
+              <Typography variant="h6" fontWeight={600} gutterBottom>Access Link Created</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Share this link with {result.officerName} for access to {result.locationName}.
                 <br />Access expires: {new Date(result.expiresAt).toLocaleString('en-GB')}
@@ -371,7 +371,7 @@ export default function CompliancePortalPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
         <WarningIcon sx={{ fontSize: 48, color: '#EF4444', mb: 2 }} />
-        <Typography variant="h6" fontWeight={700}>{error}</Typography>
+        <Typography variant="h6" fontWeight={600}>{error}</Typography>
         <Button onClick={logout} sx={{ mt: 2 }}>Return to Login</Button>
       </Paper>
     </Box>
@@ -391,7 +391,7 @@ export default function CompliancePortalPage() {
           <Stack direction="row" spacing={2} alignItems="center">
             <ShieldIcon sx={{ fontSize: 28 }} />
             <Box>
-              <Typography variant="h6" fontWeight={800}>Compliance Portal</Typography>
+              <Typography variant="h6" fontWeight={600}>Compliance Portal</Typography>
               {location && <Typography variant="body2" sx={{ opacity: 0.85 }}>{location.name} — Read-Only Audit View</Typography>}
             </Box>
           </Stack>
@@ -410,7 +410,7 @@ export default function CompliancePortalPage() {
                 <CompIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">COMPLIANCE</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} sx={{ color: overallScore >= 80 ? '#10B981' : '#F59E0B' }}>{overallScore}%</Typography>
+              <Typography variant="h3" fontWeight={600} sx={{ color: overallScore >= 80 ? '#10B981' : '#F59E0B' }}>{overallScore}%</Typography>
               <Typography variant="caption" color="text.secondary">{completeRecords} of {totalRecords} records complete</Typography>
             </Paper>
           </Grid>
@@ -420,7 +420,7 @@ export default function CompliancePortalPage() {
                 <WarningIcon sx={{ fontSize: 20, color: '#EF4444' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">OPEN INCIDENTS</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} sx={{ color: openIncidents?.length > 0 ? '#EF4444' : '#10B981' }}>
+              <Typography variant="h3" fontWeight={600} sx={{ color: openIncidents?.length > 0 ? '#EF4444' : '#10B981' }}>
                 {openIncidents?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">{people?.length || 0} people at location</Typography>
@@ -440,7 +440,7 @@ export default function CompliancePortalPage() {
                 <TrainIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">TRAINING EXPIRING</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} color="#F59E0B">{expiringTraining?.length || 0}</Typography>
+              <Typography variant="h3" fontWeight={600} color="#F59E0B">{expiringTraining?.length || 0}</Typography>
               <Typography variant="caption" color="text.secondary">within 30 days</Typography>
             </Paper>
           </Grid>
@@ -450,7 +450,7 @@ export default function CompliancePortalPage() {
                 <FoodIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">NUTRITION TODAY</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={800} color="#2F80ED">
+              <Typography variant="h3" fontWeight={600} color="#2F80ED">
                 {nutrition?.filter((n: any) => n.meals_today > 0).length || 0}/{nutrition?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">people fed today</Typography>
@@ -462,7 +462,7 @@ export default function CompliancePortalPage() {
         {location && (
           <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
             <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-              <Typography variant="subtitle2" fontWeight={700}>{location.name}</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>{location.name}</Typography>
               {location.address && <Typography variant="body2" color="text.secondary">{location.address}</Typography>}
               {location.cqc_rating && <Chip label={`CQC: ${location.cqc_rating}`} size="small" sx={{ bgcolor: location.cqc_rating === 'good' ? '#EAFBF5' : '#FFF7E6', color: location.cqc_rating === 'good' ? '#087A55' : '#9A6700' }} />}
               {location.food_hygiene_rating != null && <Chip label={`FHRS: ${location.food_hygiene_rating}`} size="small" variant="outlined" />}
@@ -489,7 +489,7 @@ export default function CompliancePortalPage() {
             >
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ color: '#2F80ED' }}>{section.icon}</Box>
-                <Typography fontWeight={700}>{section.label}</Typography>
+                <Typography fontWeight={600}>{section.label}</Typography>
                 {section.count != null && <Chip label={section.count} size="small" />}
               </Stack>
               {expandedSection === section.key ? <CollapseIcon /> : <ExpandIcon />}
@@ -525,11 +525,11 @@ function StaffComplianceTable({ data }: { data: any[] }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Staff Member</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Complete</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Incomplete</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Expiring (30d)</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Staff Member</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Complete</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Incomplete</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Expiring (30d)</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -586,10 +586,10 @@ function TrainingTable({ data }: { data: any[] }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Days Left</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Expires</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Days Left</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -624,11 +624,11 @@ function MedicationTable({ data, onView }: { data: any[]; onView: (id: string) =
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Scheduled</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}></TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Scheduled</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -662,13 +662,13 @@ function NutritionAuditTable({ data }: { data: any[] }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Dietary Type</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Texture</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Meals Today</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Refused</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Fluid</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Appetite</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Dietary Type</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Texture</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Meals Today</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Refused</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Fluid</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Appetite</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -704,13 +704,13 @@ function PeopleList({ data, onView }: { data: any[]; onView: (id: string) => voi
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Care Plans</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Active MAR</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Open Incidents</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Dietary</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}></TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Room</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Care Plans</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Active MAR</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Open Incidents</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Dietary</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -744,11 +744,11 @@ function PoliciesTable({ data }: { data: any[] }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Policy</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Version</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Review Due</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Policy</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Version</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Review Due</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -854,7 +854,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
 
   return (
     <Dialog open={!!person} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+      <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
         {p ? `${p.first_name} ${p.last_name}` : 'Person Details'}
         {p?.room_number && <Chip label={`Room ${p.room_number}`} size="small" sx={{ ml: 1 }} />}
         <Box sx={{ flex: 1 }} />
@@ -866,7 +866,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
             {/* Dietary & Nutrition */}
             {dietaryProfile && (
               <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#087A55' }}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Dietary Profile</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Dietary Profile</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {dietaryProfile.dietary_type && <Chip label={dietaryProfile.dietary_type} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg' }} />}
                   {dietaryProfile.texture_modified && <Chip label={`Texture: ${dietaryProfile.texture_modified}`} size="small" />}
@@ -883,7 +883,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
             {/* Allergies */}
             {p.allergies?.length > 0 && (
               <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#EF4444', bgcolor: 'notice.error.bg' }}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'notice.error.fg', mb: 1 }}>Allergies</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ color: 'notice.error.fg', mb: 1 }}>Allergies</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   {p.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" />)}
                 </Stack>
@@ -893,7 +893,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
             {/* Recent Meals */}
             {meals?.length > 0 && (
               <Box>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Recent Meals</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Recent Meals</Typography>
                 <Stack spacing={1}>
                   {meals.slice(0, 10).map((m: any) => (
                     <Paper key={m.id} variant="outlined" sx={{ p: 1.5 }}>
@@ -920,7 +920,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
             {/* Recent Incidents */}
             {incidents?.length > 0 && (
               <Box>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Incidents</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Incidents</Typography>
                 <Stack spacing={1}>
                   {incidents.map((i: any) => (
                     <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#667085' }}>

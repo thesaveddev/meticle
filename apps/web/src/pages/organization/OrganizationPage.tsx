@@ -79,7 +79,7 @@ function DetailsView() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>NHS DSPT Certification</Typography>
           <Chip icon={<ShieldIcon />} label={DSPT_LABELS[ds] || 'Not Started'}
             onClick={() => navigate('/compliance/dspt')}
-            sx={{ color: DSPT_COLORS[ds] || '#98A2B3', bgcolor: `${DSPT_COLORS[ds] || '#98A2B3'}15`, fontWeight: 700, cursor: 'pointer' }} />
+            sx={{ color: DSPT_COLORS[ds] || '#98A2B3', bgcolor: `${DSPT_COLORS[ds] || '#98A2B3'}15`, fontWeight: 600, cursor: 'pointer' }} />
         </Box>
       </Stack>
     </Paper>
@@ -259,7 +259,7 @@ function TeamsView() {
           {teams?.map((team: any) => (
             <Paper key={team.id} variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography fontWeight={700}>{team.name}</Typography>
+                <Typography fontWeight={600}>{team.name}</Typography>
                 <Typography variant="body2" color="text.secondary">{team.description || 'No description'}</Typography>
               </Box>
               <Stack direction="row" spacing={1}>

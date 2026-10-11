@@ -156,7 +156,7 @@ export default function SurveyFormPage() {
                   <Typography variant="caption">1</Typography>
                   <Slider value={ratings[q.key] || 3} onChange={(_, v) => setRatings(p => ({ ...p, [q.key]: v as number }))} min={1} max={5} step={1} marks sx={{ flex: 1 }} />
                   <Typography variant="caption">5</Typography>
-                  <Typography variant="body2" fontWeight={700} sx={{ minWidth: 24, textAlign: 'center' }}>{ratings[q.key] || 3}</Typography>
+                  <Typography variant="body2" fontWeight={600} sx={{ minWidth: 24, textAlign: 'center' }}>{ratings[q.key] || 3}</Typography>
                 </Stack>
               </Box>
             ))}

@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
+import BrandWordmark from '../../components/BrandWordmark'
 
 const PASSWORD_RULES = [
   { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
@@ -186,7 +187,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default' }}>
+    <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}>
        <Box sx={{ 
         flex: { xs: 0, md: 1 }, 
         display: { xs: 'none', md: 'flex' }, 
@@ -198,7 +199,7 @@ export default function RegisterPage() {
         borderRight: '1px solid', borderColor: 'divider'
       }}>
         <Box sx={{ maxWidth: '500px' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mb: 3 }}>
+          <Typography variant="h3" sx={{ fontWeight: 600, color: 'text.primary', mb: 3 }}>
             {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
           </Typography>
           {invitation ? (
@@ -216,7 +217,7 @@ export default function RegisterPage() {
                 <Stack key={i} direction="row" spacing={2}>
                   <CheckIcon sx={{ color: '#10B981', mt: 0.5 }} />
                   <Box>
-                    <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{v.t}</Typography>
+                    <Typography sx={{ fontWeight: 600, color: 'text.primary' }}>{v.t}</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>{v.d}</Typography>
                   </Box>
                 </Stack>
@@ -226,13 +227,11 @@ export default function RegisterPage() {
         </Box>
       </Box>
 
-      <Box sx={{ flex: { xs: 1, md: 0.8 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
+      <Box sx={{ flex: { xs: 1, md: 0.8 }, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', p: { xs: 2, md: 4 }, overflowY: 'auto', maxHeight: '100%' }}>
+        <Container maxWidth="xs" sx={{ mx: 'auto', my: { xs: 4, md: 5 } }}>
           <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              Meticle Care
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
+            <BrandWordmark size={22} />
+            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
               {invitation ? 'Complete Your Registration' : 'Create Your Account'}
             </Typography>
             <Typography sx={{ color: 'text.secondary' }}>
@@ -417,7 +416,7 @@ export default function RegisterPage() {
 
               {password && (
                 <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', mb: 1, display: 'block' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary', mb: 1, display: 'block' }}>
                     Password requirements:
                   </Typography>
                   <Stack spacing={0.5}>
@@ -448,11 +447,11 @@ export default function RegisterPage() {
                 label={
                   <Typography variant="body2" sx={{ color: 'text.primary' }}>
                     I agree to the{' '}
-                    <Link onClick={() => navigate('/terms')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                    <Link onClick={() => navigate('/terms')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>
                       Terms and Conditions
                     </Link>{' '}
                     and{' '}
-                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>
                       Privacy Policy
                     </Link>
                   </Typography>
@@ -466,14 +465,14 @@ export default function RegisterPage() {
                 variant="contained"
                 size="large"
                 disabled={loading || (!emailVerified && !invitation) || !termsAccepted}
-                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
+                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 600, fontSize: '1rem', textTransform: 'none', mt: 2 }}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Create account')}
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
+                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#2F80ED', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>Sign In</Link>
                 </Typography>
               </Box>
             </Stack>
@@ -483,11 +482,11 @@ export default function RegisterPage() {
             <SecurityIcon sx={{ fontSize: 16 }} />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
               By signing up, you agree to our{' '}
-              <Link onClick={() => navigate('/terms')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link onClick={() => navigate('/terms')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
                 Terms
               </Link>{' '}
               and{' '}
-              <Link onClick={() => navigate('/privacy')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link onClick={() => navigate('/privacy')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
                 Privacy Policy
               </Link>.
             </Typography>

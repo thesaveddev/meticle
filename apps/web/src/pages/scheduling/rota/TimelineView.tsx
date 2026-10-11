@@ -90,7 +90,7 @@ export default function TimelineView(props: RotaViewProps) {
                 size="small"
                 onClick={() => setDayIndex(i)}
                 sx={{
-                  cursor: 'pointer', fontWeight: 700, fontSize: '0.65rem', minWidth: 58, textAlign: 'center',
+                  cursor: 'pointer', fontWeight: 600, fontSize: '0.65rem', minWidth: 58, textAlign: 'center',
                   '& .MuiChip-icon': { ml: '6px', mr: '-4px' },
                   bgcolor: i === dayIndex ? '#2F80ED' : isToday ? '#E6EAF0' : '#F7F9FC',
                   color: i === dayIndex ? '#FFFFFF' : isToday ? '#2F80ED' : '#475467',
@@ -137,7 +137,7 @@ export default function TimelineView(props: RotaViewProps) {
               {/* Location label */}
               <Box sx={{ position: 'absolute', left: -140, top: 2, width: 130, pr: 1 }}>
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#17202A', lineHeight: 1.15 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.72rem', color: '#17202A', lineHeight: 1.15 }}>
                     {loc.name}
                   </Typography>
                   {stats && (
@@ -182,14 +182,14 @@ export default function TimelineView(props: RotaViewProps) {
                             position: 'absolute', top: 0, left: s._startMin / 60 * PIXELS_PER_HOUR, width: w, height: '100%',
                             bgcolor: vis.bar, color: vis.barText, borderRadius: '6px', cursor: 'pointer',
                             px: 0.5, display: 'flex', alignItems: 'center', overflow: 'hidden',
-                            fontSize: '0.58rem', fontWeight: 700, whiteSpace: 'nowrap',
+                            fontSize: '0.58rem', fontWeight: 600, whiteSpace: 'nowrap',
                             boxShadow: '0 1px 2px rgba(15,32,44,0.12)',
                             outlineOffset: -2,
                             '&:hover': { filter: 'brightness(0.97)', boxShadow: '0 2px 6px rgba(15,32,44,0.18)' },
                             '&:focus-visible': { outline: '2px solid #10B981' },
                           }}
                         >
-                          <Typography component="span" sx={{ fontSize: '0.55rem', fontWeight: 700, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          <Typography component="span" sx={{ fontSize: '0.55rem', fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden' }}>
                             {s._startLabel}-{s._endLabel} · {staffLabel}
                           </Typography>
                         </Box>
@@ -218,7 +218,7 @@ export default function TimelineView(props: RotaViewProps) {
                   <Box className="rota-add-pill" sx={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(0.96)',
                     display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, borderRadius: '999px',
-                    bgcolor: '#2F80ED', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 700, pointerEvents: 'none',
+                    bgcolor: '#2F80ED', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 600, pointerEvents: 'none',
                     opacity: 0, transition: 'opacity 0.15s ease, transform 0.15s ease',
                   }}>
                     <AddIcon sx={{ fontSize: 12 }} />Add shift

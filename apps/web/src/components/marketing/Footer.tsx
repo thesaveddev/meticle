@@ -1,6 +1,7 @@
 import { Box, Container, Stack, Typography, Link } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
+import BrandWordmark from '../BrandWordmark'
 
 const cols = {
   Platform: [
@@ -40,9 +41,7 @@ export default function Footer() {
       <Container maxWidth="lg">
         <Box sx={{ py: { xs: 3, md: 3.5 }, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'space-between', gap: 3 }}>
           <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.04em' }}>
-              Meticle<span style={{ color: M.tealDeep }}>Care</span>
-            </Typography>
+            <BrandWordmark size={17} color={M.ink} accent={M.tealDeep} />
             <Typography sx={{ color: M.slate, fontSize: '0.82rem', lineHeight: 1.5, mt: 0.5 }}>
               Care operations for domiciliary and supported living providers.
             </Typography>
@@ -58,8 +57,11 @@ export default function Footer() {
             © {new Date().getFullYear()} 34Orients Ltd. MeticleCare is a product of 34Orients Ltd. All rights reserved.
           </Typography>
           <Stack direction="row" spacing={{ xs: 1.5, sm: 2.5 }} flexWrap="wrap" useFlexGap>
-            {['Privacy Policy', 'Terms of Use', 'Cookie Policy'].map((t) => (
-              <Link key={t} component={RouterLink} to={`/${t.toLowerCase().replace(/ /g, '-')}`} underline="hover" sx={{ color: M.slate, fontSize: '0.76rem', whiteSpace: 'nowrap', '&:hover': { color: M.navy } }}>{t}</Link>
+            {/* Slugs must match the routes: /privacy, /terms, /cookies. The
+                earlier title-derived slugs (/privacy-policy etc.) hit the 404
+                catch-all inside the AuthGuard route and bounced to /login. */}
+            {[['Privacy Policy', '/privacy'], ['Terms of Use', '/terms'], ['Cookie Policy', '/cookies']].map(([t, to]) => (
+              <Link key={t} component={RouterLink} to={to} underline="hover" sx={{ color: M.slate, fontSize: '0.76rem', whiteSpace: 'nowrap', '&:hover': { color: M.navy } }}>{t}</Link>
             ))}
           </Stack>
         </Stack>

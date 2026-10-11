@@ -150,17 +150,17 @@ export default function MealPlanPage() {
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Meal Plans</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>Meal Plans</Typography>
           <Typography variant="body2" color="text.secondary">Create and manage meal templates for your residents.</Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
           <Button variant="outlined" startIcon={<AIIcon />}
             onClick={() => { setAiForm({ personId: '', mealType: 'lunch', dayOfWeek: '', specialRequirements: '' }); setAiResult(null); setAiError(null); setAiDlg(true); }}
-            sx={{ borderRadius: 2 }}>AI Generate</Button>
+            sx={{}}>AI Generate</Button>
           {isAdmin && (
             <Button variant="contained" startIcon={<AddIcon />}
               onClick={() => { setTf({ name: '', description: '', meal_type: 'breakfast', day_of_week: '', is_active: true }); setTmplDlg({ open: true }); }}
-              sx={{ borderRadius: 2 }}>New Meal Plan</Button>
+              sx={{}}>New Meal Plan</Button>
           )}
         </Stack>
       </Stack>
@@ -174,7 +174,7 @@ export default function MealPlanPage() {
         <Button
           variant={viewMode === 'templates' ? 'contained' : 'outlined'}
           onClick={() => setViewMode('templates')}
-          sx={{ borderRadius: 2, fontWeight: 700 }}
+          sx={{ fontWeight: 600 }}
         >
           Templates View
         </Button>
@@ -182,7 +182,7 @@ export default function MealPlanPage() {
           variant={viewMode === 'weekly' ? 'contained' : 'outlined'}
           startIcon={<AIIcon />}
           onClick={() => setViewMode('weekly')}
-          sx={{ borderRadius: 2, fontWeight: 700, bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined, '&:hover': { bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined } }}
+          sx={{ fontWeight: 600, bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined, '&:hover': { bgcolor: viewMode === 'weekly' ? '#8B7CF6' : undefined } }}
         >
           Weekly Planner
         </Button>
@@ -220,7 +220,7 @@ export default function MealPlanPage() {
           {groups.map(g => (
             <Box key={g.value} sx={{ mb: 4 }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{g.icon} {g.label}</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>{g.icon} {g.label}</Typography>
                 <Chip label={g.items.length} size="small" />
               </Stack>
               <Grid container spacing={2}>
@@ -234,10 +234,10 @@ export default function MealPlanPage() {
                     }}>
                       <CardContent sx={{ pb: 1 }}>
                         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{tpl.name}</Typography>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{tpl.name}</Typography>
                           {tpl.generated_by_ai && (
                             <Chip icon={<AIIcon sx={{ fontSize: 12 }} />} label="AI-generated" size="small"
-                              sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
+                              sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
                           )}
                           {!tpl.is_active && <Chip label="Inactive" size="small" />}
                         </Stack>
@@ -308,7 +308,7 @@ export default function MealPlanPage() {
 
       {/* Template Dialog */}
       <Dialog open={tmplDlg.open} onClose={() => setTmplDlg({ open: false })} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{tmplDlg.edit ? 'Edit Meal Plan' : 'New Meal Plan'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{tmplDlg.edit ? 'Edit Meal Plan' : 'New Meal Plan'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--card-gap)', pt: 1 }}>
             <TextField label="Name" value={tf.name} onChange={e => setTf(p => ({ ...p, name: e.target.value }))} fullWidth required placeholder="e.g. Monday Breakfast Menu" />
@@ -331,7 +331,7 @@ export default function MealPlanPage() {
 
       {/* Item Dialog */}
       <Dialog open={itemDlg.open} onClose={() => setItemDlg({ open: false, tplId: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{itemDlg.edit ? 'Edit Food Item' : 'Add Food Item'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{itemDlg.edit ? 'Edit Food Item' : 'Add Food Item'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--card-gap)', pt: 1 }}>
             <TextField label="Food Name" value={itf.food_name} onChange={e => setItf(p => ({ ...p, food_name: e.target.value }))} fullWidth required placeholder="e.g. Chicken Pie" />
@@ -350,7 +350,7 @@ export default function MealPlanPage() {
 
       {/* AI Meal Plan Generator Dialog */}
       <Dialog open={aiDlg} onClose={() => setAiDlg(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
           <AIIcon sx={{ color: '#8B7CF6' }} /> AI Meal Plan Generator
         </DialogTitle>
         <DialogContent>
@@ -400,8 +400,8 @@ export default function MealPlanPage() {
               <Divider sx={{ mb: 2 }} />
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 <AIIcon sx={{ color: '#8B7CF6', fontSize: 20 }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{aiResult.plan_name}</Typography>
-                <Chip label="AI-generated draft" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>{aiResult.plan_name}</Typography>
+                <Chip label="AI-generated draft" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600 }} />
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 A dietitian or manager must review allergen, texture and portion decisions before use.
@@ -409,7 +409,7 @@ export default function MealPlanPage() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{aiResult.description}</Typography>
               {aiResult.person_context && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Person Context</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Person Context</Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
                     <Chip size="small" label={`Diet: ${aiResult.person_context.dietary_summary}`} />
                     {aiResult.person_context.texture_modification !== 'None' && (
@@ -422,7 +422,7 @@ export default function MealPlanPage() {
                   </Stack>
                 </Paper>
               )}
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Daily Plan</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Daily Plan</Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 {Object.entries(aiResult.daily_plan || {}).map(([mealKey, meal]) => {
                   if (!meal) return null;
@@ -432,7 +432,7 @@ export default function MealPlanPage() {
                       <Card variant="outlined" sx={{ height: '100%' }}>
                         <CardContent>
                           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{meta?.icon || '🍽️'} {meta?.label || mealKey}</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{meta?.icon || '🍽️'} {meta?.label || mealKey}</Typography>
                             <Chip label={`${meal.estimated_calories} kcal`} size="small" color="primary" variant="outlined" />
                             <Chip label={`${meal.estimated_fluid_ml}ml`} size="small" color="info" variant="outlined" />
                           </Stack>
@@ -455,7 +455,7 @@ export default function MealPlanPage() {
               </Grid>
               {aiResult.daily_totals && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'notice.success.bg' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Daily Totals</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Daily Totals</Typography>
                   <Stack direction="row" spacing={2}>
                     <Chip label={`${aiResult.daily_totals.total_calories} kcal`} color="primary" />
                     <Chip label={`${aiResult.daily_totals.total_fluid_ml}ml fluid`} color="info" />
@@ -466,7 +466,7 @@ export default function MealPlanPage() {
               )}
               {aiResult.allergen_warnings?.length > 0 && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Allergen Warnings</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Allergen Warnings</Typography>
                   {aiResult.allergen_warnings.map((w: string, i: number) => (
                     <Typography key={i} variant="body2">• {w}</Typography>
                   ))}
@@ -474,7 +474,7 @@ export default function MealPlanPage() {
               )}
               {aiResult.nutritional_notes?.length > 0 && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Nutritional Notes</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Nutritional Notes</Typography>
                   {aiResult.nutritional_notes.map((n: string, i: number) => (
                     <Typography key={i} variant="body2" color="text.secondary">• {n}</Typography>
                   ))}
@@ -482,7 +482,7 @@ export default function MealPlanPage() {
               )}
               {aiResult.suggestions?.length > 0 && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Suggestions</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Suggestions</Typography>
                   {aiResult.suggestions.map((s: string, i: number) => (
                     <Typography key={i} variant="body2" color="text.secondary">• {s}</Typography>
                   ))}

@@ -8,7 +8,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -66,8 +66,8 @@ export default function AboutPage() {
                   p: 3, bgcolor: i === 3 ? M.tealSoft : M.paper, borderRadius: M.r.lg,
                   border: `1px solid ${i === 3 ? M.teal : M.faint}`, height: '100%',
                 }}>
-                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: M.teal, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>{t.year}</Typography>
-                  <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', mb: 1 }}>{t.title}</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.teal, textTransform: 'none', letterSpacing: '0.08em', mb: 1 }}>{t.year}</Typography>
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.05rem', mb: 1 }}>{t.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.88rem', lineHeight: 1.6 }}>{t.desc}</Typography>
                 </Box>
               </Grid>
@@ -95,7 +95,7 @@ export default function AboutPage() {
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2.5 }}>
                     <v.icon sx={{ color: M.tealDeep, fontSize: 24 }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1, fontSize: '1.05rem' }}>{v.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1, fontSize: '1.05rem' }}>{v.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.65 }}>{v.desc}</Typography>
                 </Box>
               </Grid>
@@ -127,7 +127,7 @@ export default function AboutPage() {
           <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4 }}>
             Talk to the team about how MeticleCare can support your service.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>

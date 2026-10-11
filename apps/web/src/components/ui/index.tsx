@@ -144,7 +144,7 @@ export function StatusBadge({ label, tone = 'neutral', size = 'small' }: StatusB
     <Chip
       label={label}
       size={size}
-      sx={{ bgcolor: c.bg, color: c.fg, fontWeight: 700, height: size === 'small' ? 22 : 28, fontSize: size === 'small' ? 11 : 13, textTransform: 'capitalize' }}
+      sx={{ bgcolor: c.bg, color: c.fg, fontWeight: 600, height: size === 'small' ? 22 : 28, fontSize: size === 'small' ? 11 : 13, textTransform: 'capitalize' }}
     />
   )
 }
@@ -191,6 +191,116 @@ export function EmptyRow({ message = 'No records yet', action }: { message?: str
   )
 }
 
+// ── Dashboard card primitives (design brief: Card / CardHeader / Skeleton) ──
+
+interface CardProps {
+  children: ReactNode
+  /** Renders the standard CardHeader (title + optional subtitle + view-all action). */
+  header?: { title: string; subtitle?: string; onViewAll?: () => void }
+  onClick?: () => void
+  sx?: object
+}
+
+/**
+ * The dashboard surface. One radius (16px), one border, one shadow — the brief
+ * pins these so every section reads as the same product. Composition through
+ * the `header` prop keeps the CardHeader pattern from drifting per section.
+ */
+export function Card({ children, header, onClick, sx }: CardProps) {
+  return (
+    <Paper
+      elevation={0}
+      onClick={onClick}
+      sx={{
+        bgcolor: 'var(--mc-surface)',
+        border: '1px solid var(--mc-border)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: '0 2px 8px rgba(16,24,40,0.04)',
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        cursor: onClick ? 'pointer' : 'default',
+        ...sx,
+      }}
+    >
+      {header && <CardHeader title={header.title} subtitle={header.subtitle} onViewAll={header.onViewAll} />}
+      <Box sx={{ px: { xs: 2, md: 2.5 }, pb: { xs: 2, md: 2.5 }, pt: header ? 0 : { xs: 2, md: 2.5 }, flexGrow: 1, minHeight: 0 }}>
+        {children}
+      </Box>
+    </Paper>
+  )
+}
+
+interface CardHeaderProps {
+  title: string
+  subtitle?: string
+  /** Renders the "View all →" link when provided. */
+  onViewAll?: () => void
+  action?: ReactNode
+}
+
+/** One header style for every dashboard section: title, optional subtitle, optional view-all. */
+export function CardHeader({ title, subtitle, onViewAll, action }: CardHeaderProps) {
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ px: { xs: 2, md: 2.5 }, pt: { xs: 2, md: 2.5 }, pb: 1.5 }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontWeight: 600, fontSize: 'var(--font-lg)', lineHeight: 1.3 }}>{title}</Typography>
+        {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>{subtitle}</Typography>}
+      </Box>
+      {onViewAll ? (
+        <Box
+          component="button"
+          type="button"
+          onClick={onViewAll}
+          sx={{
+            border: 0, bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0,
+            color: 'var(--mc-primary)', fontSize: 'var(--font-sm)', fontWeight: 600, font: 'inherit',
+            '&:hover': { textDecoration: 'underline' },
+            '&:focus-visible': { outline: '2px solid var(--mc-primary)', outlineOffset: 2, borderRadius: 'var(--radius-sm)' },
+          }}
+        >
+          View all →
+        </Box>
+      ) : action}
+    </Stack>
+  )
+}
+
+/** Section-level skeleton: header bar plus content rows, for card-sized loading. */
+export function SkeletonCard({ rows = 3 }: { rows?: number }) {
+  return (
+    <Paper
+      elevation={0}
+      aria-label="Loading"
+      role="status"
+      sx={{
+        bgcolor: 'var(--mc-surface)', border: '1px solid var(--mc-border)',
+        borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 2.5 },
+      }}
+    >
+      <Skeleton width="42%" height={22} sx={{ mb: 2 }} />
+      <Stack spacing={1.5}>
+        {Array.from({ length: rows }).map((_, i) => <Skeleton key={i} height={20} width={`${88 - i * 12}%`} />)}
+      </Stack>
+    </Paper>
+  )
+}
+
+interface SectionErrorProps {
+  message?: string
+  onRetry?: () => void
+}
+
+/** Local failure inside one dashboard section — the rest of the page keeps working. */
+export function SectionError({ message = 'Unable to load this section.', onRetry }: SectionErrorProps) {
+  return (
+    <Stack alignItems="center" spacing={1} sx={{ py: 3, textAlign: 'center' }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{message}</Typography>
+      {onRetry && <Button size="small" onClick={onRetry} sx={{ textTransform: 'none', fontWeight: 600 }}>Try again</Button>}
+    </Stack>
+  )
+}
+
 interface MetricCardProps {
   icon?: ReactNode
   value: string | number
@@ -229,10 +339,10 @@ export function MetricCard({ icon, value, label, trend, trendDirection = 'flat',
           </Box>
         )}
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.1, fontSize: 'var(--font-2xl)' }}>{value}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1.1, fontSize: 'var(--font-2xl)' }}>{value}</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }} noWrap>{label}</Typography>
           {trend && (
-            <Typography variant="caption" sx={{ color: trendColor, fontWeight: 700, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" sx={{ color: trendColor, fontWeight: 600, display: 'block', mt: 0.5 }}>
               {trend} vs last week
             </Typography>
           )}

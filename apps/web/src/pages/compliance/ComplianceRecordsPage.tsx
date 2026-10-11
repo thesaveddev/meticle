@@ -49,11 +49,11 @@ export default function ComplianceRecordsPage() {
       <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Table size="small">
           <TableHead><TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Requirement</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Last Checked</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="right">Action</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Requirement</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Last Checked</TableCell>
+            <TableCell sx={{ fontWeight: 600 }} align="right">Action</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {records.slice(page * rows, page * rows + rows).map((r: any) => (

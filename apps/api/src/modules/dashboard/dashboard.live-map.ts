@@ -57,8 +57,14 @@ export interface LiveMapData {
 }
 
 export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  // Date casts in the queries below are interpreted in the PostgreSQL session
+  // timezone. Derive the day bounds in that same timezone; UTC string slicing
+  // can put a visit starting shortly after local midnight outside today's map.
+  const dayBounds = await query(`
+    SELECT current_date::text AS today, (current_date + 1)::text AS tomorrow
+  `);
+  const today = dayBounds.rows[0].today;
+  const tomorrow = dayBounds.rows[0].tomorrow;
 
   const result = await query(`
     SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,

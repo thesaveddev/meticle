@@ -7,6 +7,7 @@ import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-materia
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import { X as DX } from '../../styles/export-tokens'
 
 type Section = 'training' | 'documents' | 'competency'
 
@@ -134,23 +135,23 @@ export default function EvidencePacksPage() {
     const emotionStyles = collectEmotionStyles()
     return `<!DOCTYPE html><html><head><title>Meticle Care Evidence Pack</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #17202A; margin: 0; }
+        body { font-family: ${DX.font}; padding: 40px; color: ${DX.ink}; margin: 0; }
         * { box-sizing: border-box; }
-        h1 { color: #2F80ED; border-bottom: 2px solid #2F80ED; padding-bottom: 8px; }
-        h2 { color: #2F80ED; margin-top: 32px; }
-        h3 { margin-top: 24px; }
+        h1 { color: ${DX.brand}; border-bottom: 2px solid ${DX.brand}; padding-bottom: 8px; font-weight: ${DX.strong}; }
+        h2 { color: ${DX.brand}; margin-top: 32px; font-weight: ${DX.strong}; }
+        h3 { margin-top: 24px; font-weight: ${DX.strong}; }
         table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        th, td { border: 1px solid #D8DEE7; padding: 8px 12px; text-align: left; font-size: 13px; }
-        th { background: #F7F9FC; font-weight: 700; }
-        .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .success { background: #EAFBF5; color: #087A55; }
-        .warning { background: #FFF7E6; color: #9A6700; }
-        .error { background: #FEF0F0; color: #B42318; }
-        .default { background: #F7F9FC; color: #344054; }
+        th, td { border: 1px solid ${DX.line}; padding: 8px 12px; text-align: left; font-size: 13px; }
+        th { background: ${DX.panelBg}; font-weight: ${DX.strong}; }
+        .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: ${DX.strong}; }
+        .success { background: ${DX.okBg}; color: ${DX.okFg}; }
+        .warning { background: ${DX.warnBg}; color: ${DX.warnFg}; }
+        .error { background: ${DX.badBg}; color: ${DX.badFg}; }
+        .default { background: ${DX.panelBg}; color: ${DX.neutralFg}; }
         .summary { display: flex; gap: 16px; margin: 16px 0; }
-        .summary-card { border: 1px solid #D8DEE7; border-radius: 8px; padding: 16px; flex: 1; }
+        .summary-card { border: 1px solid ${DX.line}; border-radius: 8px; padding: 16px; flex: 1; }
         .summary-card h3 { margin: 0 0 4px 0; }
-        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #D8DEE7; font-size: 12px; color: #667085; }
+        .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid ${DX.line}; font-size: 12px; color: ${DX.secondary}; }
         @media print { .page-break { page-break-after: always; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
       </style>
       <style>${emotionStyles}</style>
@@ -248,7 +249,7 @@ export default function EvidencePacksPage() {
             <Box className="summary" sx={{ display: 'flex', gap: 'var(--card-gap)', my: 3, flexWrap: 'wrap' }}>
               {Object.entries(data.summary).map(([k, v]) => (
                 <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #E6EAF0', borderRadius: 2, p: 2, textAlign: 'center' }}>
-                  <Typography variant="h5" fontWeight={800}>{v as number}</Typography>
+                  <Typography variant="h5" fontWeight={600}>{v as number}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {k === 'total_staff' ? 'Staff' : k === 'total_people' ? 'People' : k === 'active_people' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : k === 'people_with_dietary_profiles' ? 'Dietary Profiles' : k === 'people_with_nutrition_concerns' ? 'Nutrition Concerns' : ''}
                   </Typography>
@@ -266,7 +267,7 @@ export default function EvidencePacksPage() {
               {buildDomainEvidence().map(([key, val]) => (
                 <Grid item xs={12} sm={6} key={key}>
                   <Paper variant="outlined" sx={{ p: 2,  }}>
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>{val.label} ({val.evidence.length} items)</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>{val.label} ({val.evidence.length} items)</Typography>
                     {val.evidence.slice(0, 8).map((e, i) => (
                       <Typography key={i} variant="caption" display="block" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>• {e}</Typography>
                     ))}
@@ -285,12 +286,12 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Completed</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Completed</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Expires</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -320,10 +321,10 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Expiry</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Expiry</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -349,12 +350,12 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assessment</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assessor</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Result</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Assessor</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Result</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -383,12 +384,12 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Care Plans</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Open Risks</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Goals</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Room</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Care Plans</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Open Risks</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Goals</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -415,11 +416,11 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Review Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Review Date</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -445,11 +446,11 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Involved People</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Involved People</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Severity</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -473,15 +474,15 @@ export default function EvidencePacksPage() {
             <Typography variant="h6" sx={{ mb: 2 }}>Satisfaction Surveys Overview</Typography>
             <Stack direction="row" spacing={3}>
               <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#2F80ED">{data.satisfaction.avg_rating}/5</Typography>
+                <Typography variant="h5" fontWeight={600} color="#2F80ED">{data.satisfaction.avg_rating}/5</Typography>
                 <Typography variant="caption">Average Rating</Typography>
               </Box>
               <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#10B981">{data.satisfaction.total}</Typography>
+                <Typography variant="h5" fontWeight={600} color="#10B981">{data.satisfaction.total}</Typography>
                 <Typography variant="caption">Total Responses</Typography>
               </Box>
               <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={800} color="#F59E0B">{data.satisfaction.positive}</Typography>
+                <Typography variant="h5" fontWeight={600} color="#F59E0B">{data.satisfaction.positive}</Typography>
                 <Typography variant="caption">Positive (4+ Rating)</Typography>
               </Box>
             </Stack>
@@ -499,15 +500,15 @@ export default function EvidencePacksPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Diet</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Texture</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Appetite</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Meals (7d)</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Refused</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Avg Consumed</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Fluid (7d)</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Flags</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Diet</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Texture</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Appetite</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Meals (7d)</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Refused</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Avg Consumed</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Fluid (7d)</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Flags</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -548,7 +549,7 @@ export default function EvidencePacksPage() {
             )}
             {data.summary?.people_with_nutrition_concerns > 0 && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.error.bg', borderRadius: 1, border: '1px solid #FEF0F0' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'notice.error.fg', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'notice.error.fg', mb: 1 }}>
                   ⚠ {data.summary.people_with_nutrition_concerns} person(s) with nutrition concerns in the last 7 days
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

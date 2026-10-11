@@ -8,7 +8,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -120,10 +120,10 @@ export default function PricingPage() {
               We scope pricing around your service type, people supported, locations and the modules you need. Book a conversation and receive a clear proposal before you commit.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
                 Book a demo
               </Button>
-              <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
+              <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
                 Talk through your needs
               </Button>
             </Stack>
@@ -146,19 +146,19 @@ export default function PricingPage() {
                   '&:hover': { boxShadow: M.shadow.md, transform: 'translateY(-2px)' },
                 }}>
                   {tier.badge && (
-                    <Chip label={tier.badge} size="small" sx={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', bgcolor: tier.color, color: 'white', fontWeight: 700, fontSize: '0.7rem' }} />
+                    <Chip label={tier.badge} size="small" sx={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', bgcolor: tier.color, color: 'white', fontWeight: 600, fontSize: '0.7rem' }} />
                   )}
                   <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                     <Box sx={{ width: 40, height: 40, borderRadius: M.r.md, bgcolor: `${tier.color}12`, display: 'grid', placeItems: 'center' }}>
                       <tier.icon sx={{ color: tier.color, fontSize: 20 }} />
                     </Box>
                     <Box>
-                      <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>{tier.name}</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>{tier.name}</Typography>
                       <Typography sx={{ color: M.muted, fontSize: '0.78rem' }}>{tier.subtitle}</Typography>
                     </Box>
                   </Stack>
                   <Box sx={{ mb: 3 }}>
-                    <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: tier.color }}>{tier.price}</Typography>
+                    <Typography sx={{ fontSize: '2rem', fontWeight: 600, color: tier.color }}>{tier.price}</Typography>
                     <Typography sx={{ color: M.muted, fontSize: '0.82rem' }}>{tier.period}</Typography>
                   </Box>
                   <Divider sx={{ mb: 3 }} />
@@ -176,7 +176,7 @@ export default function PricingPage() {
                     onClick={() => nav('/contact')}
                     fullWidth
                     sx={{
-                      mt: 3, py: 1.5, fontWeight: 700, textTransform: 'none', borderRadius: M.r.md,
+                      mt: 3, py: 1.5, fontWeight: 600, textTransform: 'none', borderRadius: M.r.md,
                       bgcolor: tier.highlight ? tier.color : 'transparent',
                       color: tier.highlight ? 'white' : tier.color,
                       borderColor: tier.color,
@@ -204,9 +204,9 @@ export default function PricingPage() {
             <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
               <Box component="thead">
                 <Box component="tr">
-                  <Box component="th" sx={{ textAlign: 'left', py: 2, px: 2, borderBottom: `2px solid ${M.faint}`, fontWeight: 700, fontSize: '0.85rem' }}>Feature</Box>
+                  <Box component="th" sx={{ textAlign: 'left', py: 2, px: 2, borderBottom: `2px solid ${M.faint}`, fontWeight: 600, fontSize: '0.85rem' }}>Feature</Box>
                   {tiers.map(t => (
-                    <Box key={t.name} component="th" sx={{ textAlign: 'center', py: 2, px: 2, borderBottom: `2px solid ${t.color}`, fontWeight: 700, fontSize: '0.85rem', color: t.color }}>{t.name}</Box>
+                    <Box key={t.name} component="th" sx={{ textAlign: 'center', py: 2, px: 2, borderBottom: `2px solid ${t.color}`, fontWeight: 600, fontSize: '0.85rem', color: t.color }}>{t.name}</Box>
                   ))}
                 </Box>
               </Box>
@@ -260,7 +260,7 @@ export default function PricingPage() {
           <Stack spacing={3}>
             {faqs.map((faq) => (
               <Box key={faq.q} sx={{ p: 3, bgcolor: M.paper, borderRadius: M.r.md, border: `1px solid ${M.faint}` }}>
-                <Typography sx={{ fontWeight: 700, mb: 1 }}>{faq.q}</Typography>
+                <Typography sx={{ fontWeight: 600, mb: 1 }}>{faq.q}</Typography>
                 <Typography sx={{ color: M.slate, lineHeight: 1.7 }}>{faq.a}</Typography>
               </Box>
             ))}
@@ -278,10 +278,10 @@ export default function PricingPage() {
             Talk to the team about your service and receive a proposal built around your needs.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
+            <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
               Book a demo
             </Button>
-            <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
+            <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
               Talk through your needs
             </Button>
           </Stack>

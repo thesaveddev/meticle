@@ -20,6 +20,7 @@ export default function MicaFab() {
         responseMessage={mica.responseMessage}
         person={mica.selectedPerson}
         onPersonChange={mica.setSelectedPerson}
+        onSendText={mica.sendText}
         onCancel={mica.stopListening}
       />
       {/* Voice errors (denied mic, unsupported browser) must be visible: the

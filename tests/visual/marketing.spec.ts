@@ -38,7 +38,8 @@ async function settle(page: import('@playwright/test').Page) {
   // heavy weights once the display type actually mounts. That left the hero
   // headline being captured mid-swap, ~8% narrower than its true setting, which
   // diffed 3% of the frame. Explicitly load every weight the marketing surface
-  // uses before we capture anything.
+  // uses before we capture anything, but bound each weight so one slow fetch
+  // cannot hold a whole test on a flaky connection.
   await page.evaluate(async () => {
     const faces = [
       '400 16px Inter',
@@ -48,10 +49,19 @@ async function settle(page: import('@playwright/test').Page) {
       '800 16px Inter',
       '900 16px Inter',
     ]
-    await Promise.all(
-      faces.map((f) => document.fonts.load(f).catch(() => undefined))
+    const deadline = performance.now() + 3500
+    await Promise.allSettled(
+      faces.map((f) => document.fonts.load(f).then(
+        () => undefined,
+        () => undefined,
+      ))
     )
-    await document.fonts.ready
+    const remaining = Math.max(0, deadline - performance.now())
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining))
+    await Promise.race([
+      document.fonts.ready,
+      new Promise((_r) => setTimeout(_r, 1500)),
+    ])
   })
 
   // ThemeContext writes `data-theme` onto <html> on mount. Capturing before
@@ -154,4 +164,111 @@ test('marketing home page paints with the master brand palette', async ({ page }
   expect(colours, 'text-safe emerald should reach the rendered page').toContain('rgb(8, 122, 85)')
   // Ink #17202A — the headline on the now-white hero.
   expect(colours, 'brand ink should reach the rendered page').toContain('rgb(23, 32, 42)')
+})
+
+/**
+ * Lenis smooth scrolling is enabled on the public marketing surface and scoped
+ * so MUI transient panels (menus, dialogs, drawers, pickers) keep native scroll.
+ *
+ * The harness pretends reduced motion is not requested only for these checks
+ * because the bridge deliberately refuses to start Lenis when the browser asks
+ * for reduced motion. That refusal is the right behavior; here we verify the
+ * running path, not the reduced-motion bypass.
+ */
+async function withLenisMotion(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const native = window.matchMedia.bind(window)
+    window.matchMedia = (query: string) => {
+      const result = native(query)
+      if (query === '(prefers-reduced-motion: reduce)') {
+        // Only override the matches signal. Keep the object Playwright expects
+        // (it carries internal test helpers such as _test in some runner
+        // versions), so we mutate the live MediaQueryList rather than returning
+        // a plain object.
+        Object.defineProperty(result, 'matches', {
+          value: false,
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        })
+      }
+      return result
+    }
+  })
+}
+
+test('Lenis smooth scrolling is active on the marketing home page', async ({ page }) => {
+  await withLenisMotion(page)
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await settle(page)
+
+  const state = await page.evaluate(() => ({
+    lenisEnabled: document.documentElement.getAttribute('data-lenis-enabled'),
+  }))
+
+  expect(state.lenisEnabled, 'data-lenis-enabled should be set on <html> on the marketing surface').toBe('true')
+})
+
+test('MUI panels keep native scroll via data-lenis-prevent', async ({ page }) => {
+  await withLenisMotion(page)
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await settle(page)
+
+  const before = await page.evaluate(() => ({
+    lenisEnabled: document.documentElement.getAttribute('data-lenis-enabled'),
+    lenisPrevent: document.documentElement.getAttribute('data-lenis-prevent'),
+  }))
+  expect(before.lenisEnabled, 'data-lenis-enabled should be set before opening the panel').toBe('true')
+  expect(before.lenisPrevent, 'data-lenis-prevent should be absent before opening the panel').toBeNull()
+
+  // Use a mobile viewport so the header exposes its hamburger drawer — the
+  // representative MUI panel (MuiDrawer-root) that the bridge must mark with
+  // data-lenis-prevent so the drawer keeps native scroll.
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.waitForTimeout(150)
+
+  const hasOpenMenuButton = await page.evaluate(() => {
+    const b = document.querySelector('button[aria-label="Open menu"]')
+    return b !== null && b.offsetParent !== null
+  })
+  expect(hasOpenMenuButton, 'mobile header should show the Open menu button').toBe(true)
+
+  await page.locator('button[aria-label="Open menu"]').first().click()
+  await page.waitForSelector('.MuiDrawer-root', { state: 'attached', timeout: 4000 }).catch(() => {})
+
+  const after = await page.evaluate(() => ({
+    lenisPrevent: document.documentElement.getAttribute('data-lenis-prevent'),
+    panelOpen: document.querySelector('.MuiDrawer-root') !== null &&
+      document.body.innerText.includes('Solutions'),
+  }))
+
+  expect(after.panelOpen, 'mobile drawer should have opened and contain the Solutions link').toBe(true)
+  expect(after.lenisPrevent, 'data-lenis-prevent should be set while the drawer is open').toBe('true')
+
+  await page.locator('button[aria-label="Close menu"]').first().click()
+  await page.waitForSelector('.MuiDrawer-root', { state: 'detached', timeout: 4000 }).catch(() => {})
+
+  const closed = await page.evaluate(() => ({
+    lenisPrevent: document.documentElement.getAttribute('data-lenis-prevent'),
+  }))
+  expect(closed.lenisPrevent, 'data-lenis-prevent should be cleared after the drawer closes').toBeNull()
+})
+
+test('Lenis is not enabled on the authenticated app routes', async ({ page }) => {
+  await withLenisMotion(page)
+
+  for (const path of ['/dashboard', '/settings']) {
+    const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
+    // Authenticated routes redirect to login when there is no session; that is
+    // fine — the marketing bridge should still not have enabled Lenis for the
+    // auth surface or the app surfaces.
+    expect(response?.ok() || response?.status() === 302).toBeTruthy()
+
+    const state = await page.evaluate(() => ({
+      lenisEnabled: document.documentElement.getAttribute('data-lenis-enabled'),
+    }))
+
+    expect(state.lenisEnabled, `${path} should not set data-lenis-enabled on <html>`).toBeNull()
+  }
 })

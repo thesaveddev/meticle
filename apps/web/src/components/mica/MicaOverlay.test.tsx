@@ -34,7 +34,7 @@ describe('MicaOverlay', () => {
     expect(dialog).toBeInTheDocument()
     expect(screen.getByText('“Grace had a good lunch”')).toBeInTheDocument()
     expect(screen.getByLabelText(/who is this note about/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cancel Mica' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Cancel Mica/ })).toBeInTheDocument()
   })
 
   it('cancels cleanly: the cancel button calls onCancel and the unmount is silent', () => {
@@ -49,11 +49,13 @@ describe('MicaOverlay', () => {
       />,
     )
 
-    expect(screen.getByText('Care note drafted.')).toBeInTheDocument()
+    // The visible response card carries the message; the screen-reader live
+    // region duplicates it (a11y), so assert on the visible card only.
+    expect(screen.getAllByText('Care note drafted.').length).toBeGreaterThan(0)
     expect(screen.getByText('Note about Grace Roberts')).toBeInTheDocument()
 
     // The responding-state action doubles as the cancel affordance.
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel Mica' }))
+    fireEvent.click(screen.getByRole('button', { name: /Cancel Mica/ }))
     expect(onCancel).toHaveBeenCalledTimes(1)
 
     // Returning to idle (what stopListening triggers) tears the overlay down
@@ -61,5 +63,51 @@ describe('MicaOverlay', () => {
     active.rerender(<MicaOverlay {...baseProps} state="idle" onCancel={onCancel} />)
     expect(active.container.innerHTML).toBe('')
     expect(() => active.unmount()).not.toThrow()
+  })
+
+  it('offers the typing box only while listening and when a text handler is wired', () => {
+    const onSendText = vi.fn()
+    const { unmount } = render(
+      <MicaOverlay {...baseProps} state="listening" onSendText={onSendText} />,
+    )
+    expect(screen.getByRole('textbox', { name: /type to mica/i })).toBeInTheDocument()
+    unmount()
+
+    // Once thinking/responding the entry window has closed.
+    render(<MicaOverlay {...baseProps} state="thinking" onSendText={onSendText} />)
+    expect(screen.queryByRole('textbox')).toBeNull()
+    unmount()
+
+    // No handler wired (defensive mount paths) → no textbox, no dead input.
+    render(<MicaOverlay {...baseProps} state="listening" />)
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('sends typed text through the text entry point and clears the input', () => {
+    const onSendText = vi.fn()
+    render(
+      <MicaOverlay {...baseProps}
+        state="listening"
+        transcript="Aisha's medication training expires next month"
+        onSendText={onSendText}
+      />,
+    )
+    const box = screen.getByRole('textbox', { name: /type to mica/i }) as HTMLInputElement
+    fireEvent.change(box, { target: { value: "Aisha's medication training expires next month" } })
+    fireEvent.keyDown(box, { key: 'Enter', shiftKey: false })
+    expect(onSendText).toHaveBeenCalledTimes(1)
+    expect(onSendText).toHaveBeenCalledWith("Aisha's medication training expires next month")
+    // The controlled value clears after send so the next sentence starts fresh.
+    expect(box.value).toBe('')
+
+    // Shift+Enter is a newline, not a send.
+    fireEvent.change(box, { target: { value: 'line one' } })
+    fireEvent.keyDown(box, { key: 'Enter', shiftKey: true })
+    expect(onSendText).toHaveBeenCalledTimes(1)
+
+    // Empty input cannot send — Enter on whitespace is a no-op.
+    fireEvent.change(box, { target: { value: '   ' } })
+    fireEvent.keyDown(box, { key: 'Enter', shiftKey: false })
+    expect(onSendText).toHaveBeenCalledTimes(1)
   })
 })

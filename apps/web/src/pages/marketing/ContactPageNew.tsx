@@ -9,7 +9,7 @@ import api from '../../services/api'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? 'center' : 'left' }}>
-      <Typography component="span" sx={{ fontSize: '0.75rem', lineHeight: 1.3, fontWeight: 700, letterSpacing: '0.08em', color: M.tealDeep, borderBottom: `2px solid ${M.teal}`, pb: 0.5, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: '0.75rem', lineHeight: 1.3, fontWeight: 600, letterSpacing: '0.08em', color: M.tealDeep, borderBottom: `2px solid ${M.teal}`, pb: 0.5, textTransform: 'none' }}>{children}</Typography>
     </Box>
   )
 }
@@ -82,7 +82,7 @@ export default function ContactPageNew() {
                 ].map((item) => (
                   <Stack key={item.label} direction="row" spacing={2} alignItems="flex-start">
                     <Box sx={{ width: 40, height: 40, borderRadius: M.r.sm, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', flexShrink: 0 }}><item.icon sx={{ color: M.tealDeep, fontSize: 20 }} /></Box>
-                    <Box><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: M.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</Typography><Typography sx={{ fontWeight: 600, mt: 0.25 }}>{item.value}</Typography></Box>
+                    <Box><Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.muted, textTransform: 'none', letterSpacing: '0.06em' }}>{item.label}</Typography><Typography sx={{ fontWeight: 600, mt: 0.25 }}>{item.value}</Typography></Box>
                   </Stack>
                 ))}
               </Stack>
@@ -92,7 +92,7 @@ export default function ContactPageNew() {
                 {submitted ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <Box sx={{ width: 64, height: 64, borderRadius: M.r.full, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mx: 'auto', mb: 3 }}><Typography sx={{ fontSize: '2rem' }}>✓</Typography></Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: '1.2rem', mb: 1 }}>Thanks — your enquiry is with us.</Typography>
+                    <Typography sx={{ fontWeight: 600, fontSize: '1.2rem', mb: 1 }}>Thanks — your enquiry is with us.</Typography>
                     <Typography sx={{ color: M.slate }}>A member of the MeticleCare team will reply within one business day.</Typography>
                   </Box>
                 ) : (
@@ -112,7 +112,7 @@ export default function ContactPageNew() {
                       <TextField value={form.website} onChange={update('website')} tabIndex={-1} autoComplete="off" aria-hidden="true" sx={{ display: 'none' }} />
                       <FormControlLabel control={<Checkbox checked={form.privacyConsent} onChange={updateConsent('privacyConsent')} required />} label={<Typography variant="body2">I agree to the <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.</Typography>} />
                       <FormControlLabel control={<Checkbox checked={form.marketingConsent} onChange={updateConsent('marketingConsent')} />} label={<Typography variant="body2">Send me occasional product updates and care-technology guidance.</Typography>} />
-                      <Button type="submit" disabled={submitting} variant="contained" endIcon={<ArrowForward />} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>{submitting ? 'Sending…' : 'Book a demo'}</Button>
+                      <Button type="submit" disabled={submitting} variant="contained" endIcon={<ArrowForward />} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>{submitting ? 'Sending…' : 'Book a demo'}</Button>
                       <Typography sx={{ color: M.muted, fontSize: '0.78rem' }}>We use your details to respond to this enquiry. Optional updates are sent only if you opt in. You can unsubscribe at any time.</Typography>
                     </Stack>
                   </form>

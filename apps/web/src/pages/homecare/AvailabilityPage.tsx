@@ -154,7 +154,7 @@ export default function AvailabilityPage() {
         <Stack direction="row" alignItems="center" gap={1.5}>
           <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: 'grid', placeItems: 'center', bgcolor: '#E8FAF6', color: '#087A55' }}><ScheduleIcon /></Box>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600, letterSpacing: '-0.03em' }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
             <Typography variant="body2" color="text.secondary">A clear weekly pattern for planning care visits.</Typography>
             <ContextualLearnLink topic="dom-availability-areas" />
           </Box>
@@ -171,7 +171,7 @@ export default function AvailabilityPage() {
           { value: `${totalHours.toFixed(1)}h`, label: 'Planned each week', color: '#9A6700' },
         ].map(item => (
           <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, borderColor: '#E6EAF0' }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: item.color }}>{item.value}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: item.color }}>{item.value}</Typography>
             <Typography variant="caption" color="text.secondary">{item.label}</Typography>
           </Paper>
         ))}
@@ -185,7 +185,7 @@ export default function AvailabilityPage() {
       )}
 
       <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', borderColor: '#E6EAF0' }}>
-        <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E6EAF0', '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 50 } }}>
+        <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E6EAF0', '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 50 } }}>
           {visibleTabs.map(t => <Tab key={t.key} label={t.label} />)}
         </Tabs>
 
@@ -200,7 +200,7 @@ export default function AvailabilityPage() {
                 <Box key={dayName} sx={{ display: 'grid', gridTemplateColumns: { xs: '78px minmax(0, 1fr)', sm: '120px minmax(0, 1fr)' }, alignItems: 'center', gap: 1.5, minHeight: 52, px: 2, py: 0.75, borderBottom: '1px solid #F5F7FA' }}>
                   <Stack direction="row" alignItems="center" gap={0.75}>
                     {records.length > 0 ? <CheckCircleOutline sx={{ fontSize: 15, color: '#10B981' }} /> : <Box sx={{ width: 15 }} />}
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: records.length ? '#1F2937' : '#98A2B3' }}>{dayName.slice(0, 3)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: records.length ? '#1F2937' : '#98A2B3' }}>{dayName.slice(0, 3)}</Typography>
                   </Stack>
                   <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
                     {records.length === 0 ? <Typography variant="caption" color="text.secondary">Not set</Typography> : records.map(record => (
@@ -215,7 +215,7 @@ export default function AvailabilityPage() {
 
         {activeTab === 'schedule' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Next 7 days</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>Next 7 days</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Availability and booked leave are shown together so the schedule reflects real capacity.</Typography>
             <Stack spacing={1}>
               {Array.from({ length: 7 }, (_, index) => {
@@ -226,9 +226,9 @@ export default function AvailabilityPage() {
                 const leave = leaveForDate(date)
                 return (
                   <Box key={dateKey(date)} sx={{ display: 'grid', gridTemplateColumns: { xs: '82px minmax(0, 1fr)', sm: '150px minmax(0, 1fr)' }, gap: 1.5, alignItems: 'center', p: 1.25, borderRadius: 2, bgcolor: leave.length ? '#FFF7E6' : '#F8FAFC', border: '1px solid', borderColor: leave.length ? '#FFF7E6' : '#E6EAF0' }}>
-                    <Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Typography><Typography variant="caption" color="text.secondary">{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Typography></Box>
+                    <Box><Typography variant="body2" sx={{ fontWeight: 600 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Typography><Typography variant="caption" color="text.secondary">{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Typography></Box>
                     <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
-                      {leave.map(item => <Chip key={`leave-${item.id}`} label={`${item.leave_type_name} · ${item.status}`} size="small" sx={{ bgcolor: item.status === 'approved' ? '#FEF0F0' : '#FFF7E6', color: item.status === 'approved' ? '#B42318' : '#9A6700', fontWeight: 700 }} />)}
+                      {leave.map(item => <Chip key={`leave-${item.id}`} label={`${item.leave_type_name} · ${item.status}`} size="small" sx={{ bgcolor: item.status === 'approved' ? '#FEF0F0' : '#FFF7E6', color: item.status === 'approved' ? '#B42318' : '#9A6700', fontWeight: 600 }} />)}
                       {!leave.length && records.map(record => <Chip key={record.id} label={`${formatTime(record.start_time)} – ${formatTime(record.end_time)}`} size="small" sx={{ bgcolor: '#E8FAF6', color: '#087A55', fontWeight: 600 }} />)}
                       {!leave.length && !records.length && <Typography variant="caption" color="text.secondary">No availability recorded</Typography>}
                       {leave.length > 0 && <Typography variant="caption" sx={{ alignSelf: 'center', color: '#9A6700', fontWeight: 600 }}>Unavailable for visits</Typography>}
@@ -242,7 +242,7 @@ export default function AvailabilityPage() {
 
         {activeTab === 'summary' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Weekly availability summary</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>Weekly availability summary</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Total available hours per carer per day of the week.</Typography>
             {weeklySummary.length === 0 ? (
               <Typography variant="body2" color="text.secondary">No availability submitted yet.</Typography>
@@ -251,11 +251,11 @@ export default function AvailabilityPage() {
                 <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                   <Box component="thead">
                     <Box component="tr">
-                      <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1.5, borderBottom: '2px solid #E6EAF0', fontWeight: 700, fontSize: '0.8rem', color: '#667085' }}>Carer</Box>
+                      <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1.5, borderBottom: '2px solid #E6EAF0', fontWeight: 600, fontSize: '0.8rem', color: '#667085' }}>Carer</Box>
                       {DAYS.map(d => (
-                        <Box key={d} component="th" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '2px solid #E6EAF0', fontWeight: 700, fontSize: '0.75rem', color: '#667085' }}>{d.slice(0, 3)}</Box>
+                        <Box key={d} component="th" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '2px solid #E6EAF0', fontWeight: 600, fontSize: '0.75rem', color: '#667085' }}>{d.slice(0, 3)}</Box>
                       ))}
-                      <Box component="th" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '2px solid #2F80ED', fontWeight: 700, fontSize: '0.8rem', color: '#2F80ED' }}>Weekly</Box>
+                      <Box component="th" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '2px solid #2F80ED', fontWeight: 600, fontSize: '0.8rem', color: '#2F80ED' }}>Weekly</Box>
                     </Box>
                   </Box>
                   <Box component="tbody">
@@ -265,14 +265,14 @@ export default function AvailabilityPage() {
                         {s.daily_hours.map((h: number, i: number) => (
                           <Box key={i} component="td" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '1px solid #F7F9FC' }}>
                             {h > 0 ? (
-                              <Chip label={`${h}h`} size="small" sx={{ bgcolor: h >= 8 ? '#EAFBF5' : h >= 4 ? '#FFF7E6' : '#FEF0F0', color: h >= 8 ? '#087A55' : h >= 4 ? '#9A6700' : '#B42318', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+                              <Chip label={`${h}h`} size="small" sx={{ bgcolor: h >= 8 ? '#EAFBF5' : h >= 4 ? '#FFF7E6' : '#FEF0F0', color: h >= 8 ? '#087A55' : h >= 4 ? '#9A6700' : '#B42318', fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
                             ) : (
                               <Typography sx={{ color: '#D8DEE7', fontSize: '0.75rem' }}>—</Typography>
                             )}
                           </Box>
                         ))}
                         <Box component="td" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '1px solid #F7F9FC' }}>
-                          <Typography sx={{ fontWeight: 800, color: s.weekly_hours >= 30 ? '#087A55' : s.weekly_hours >= 15 ? '#F59E0B' : '#EF4444', fontSize: '0.85rem' }}>{s.weekly_hours}h</Typography>
+                          <Typography sx={{ fontWeight: 600, color: s.weekly_hours >= 30 ? '#087A55' : s.weekly_hours >= 15 ? '#F59E0B' : '#EF4444', fontSize: '0.85rem' }}>{s.weekly_hours}h</Typography>
                         </Box>
                       </Box>
                     ))}
@@ -285,7 +285,7 @@ export default function AvailabilityPage() {
 
         {activeTab === 'add' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Add one availability window</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>Add one availability window</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Choose a day and time. You can add more windows without leaving this page.</Typography>
             <Stack spacing={2}>
               {!isCarer && <TextField select label="Carer" value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)} fullWidth>

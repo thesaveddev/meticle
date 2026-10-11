@@ -490,7 +490,7 @@ export default function StaffDirectoryPage() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setAddDialogOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}
+              sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
             >
               Add staff member
             </Button>
@@ -783,7 +783,7 @@ export default function StaffDirectoryPage() {
                   {locationList.map((l: any) => (<MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>))}
                 </Select>
               </FormControl>
-              <Button variant="contained" onClick={handleAddEntry} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, minWidth: 64, py: 1.05 }}>Add</Button>
+              <Button variant="contained" onClick={handleAddEntry} sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, minWidth: 64, py: 1.05 }}>Add</Button>
             </Stack>
 
             <input
@@ -845,7 +845,7 @@ export default function StaffDirectoryPage() {
             variant="contained"
             onClick={handleSendInvitations}
             disabled={inviteEntries.length === 0 || inviteMutation.isPending}
-            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}
+            sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
           >
             {inviteMutation.isPending ? 'Sending...' : `Send Invitations (${inviteEntries.length})`}
           </Button>
@@ -873,7 +873,7 @@ export default function StaffDirectoryPage() {
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button onClick={() => setChangeRoleOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveRole} disabled={changeRoleMutation.isPending}
-            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
+            sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
             {changeRoleMutation.isPending ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>

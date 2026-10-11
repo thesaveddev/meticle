@@ -64,7 +64,7 @@ export default function MobileNotesPage() {
 
   return (
     <Box sx={{ p: 2.5 }}>
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 2, color: '#2F80ED' }}>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: '#2F80ED' }}>
         <MicIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Voice Notes
       </Typography>
 
@@ -102,18 +102,18 @@ export default function MobileNotesPage() {
         <Stack direction="row" spacing={1}>
           {!recording ? (
             <Button variant="contained" fullWidth startIcon={<MicIcon />} onClick={startRecording}
-              sx={{ bgcolor: '#EF4444', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
+              sx={{ bgcolor: '#EF4444', textTransform: 'none', py: 1.5 }}>
               Start Recording
             </Button>
           ) : (
             <Button variant="contained" fullWidth startIcon={<StopIcon />} onClick={stopRecording}
-              sx={{ bgcolor: 'text.secondary', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
+              sx={{ bgcolor: '#B42318', textTransform: 'none', py: 1.5 }}>
               Stop Recording
             </Button>
           )}
           <Button variant="contained" startIcon={<SendIcon />} onClick={saveNote}
             disabled={!transcript.trim() || !personId || saveNoteMutation.isPending}
-            sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 3, px: 3 }}>
+            sx={{ bgcolor: '#2F80ED', textTransform: 'none', px: 3 }}>
             {saveNoteMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
           </Button>
         </Stack>

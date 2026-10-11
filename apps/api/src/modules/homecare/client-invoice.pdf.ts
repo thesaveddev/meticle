@@ -1,4 +1,5 @@
 import { generatePdf } from '../../shared/pdf/pdf.service'
+import { PDF_TEXT as T, EMAIL_BRAND as B } from '../../shared/utils/email.template'
 
 export interface InvoiceLineItem {
   person_name: string
@@ -72,15 +73,15 @@ export function buildClientInvoiceHtml(data: InvoiceData, supplier: SupplierInfo
 
   // Status badge
   const statusBadge = isVoid
-    ? `<span style="display:inline-block;background:#9CA3AF;color:#fff;padding:4px 14px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase">VOID</span>`
+    ? `<span style="display:inline-block;background:${T.muted};color:#fff;padding:4px 14px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase">VOID</span>`
     : `<span style="display:inline-block;background:#059669;color:#fff;padding:4px 14px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase">ISSUED</span>`
 
   // Line items
   const lineRows = lines.filter(l => l.billing_status === 'billable').map(line => `
     <tr>
       <td>
-        <div style="font-weight:600;color:#1F2937">${line.person_name}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:2px">${line.package_name} — ${line.visit_label || 'Visit'}</div>
+        <div style="font-weight:600;color:${T.heading}">${line.person_name}</div>
+        <div style="font-size:11px;color:${T.muted};margin-top:2px">${line.package_name} — ${line.visit_label || 'Visit'}</div>
       </td>
       <td style="text-align:center">${fmtShortDate(line.scheduled_start)}</td>
       <td style="text-align:center">${line.delivered_minutes} min</td>
@@ -110,36 +111,36 @@ export function buildClientInvoiceHtml(data: InvoiceData, supplier: SupplierInfo
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: #1F2937; font-size: 12px; line-height: 1.5; background: #fff;
+    color: ${T.heading}; font-size: 12px; line-height: 1.5; background: #fff;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .page { padding: 36px 44px; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
   .brand-name { font-size: 24px; font-weight: 800; color: ${primary}; letter-spacing: -0.5px; }
-  .brand-details { font-size: 11px; color: #6B7280; margin-top: 6px; line-height: 1.6; }
+  .brand-details { font-size: 11px; color: ${T.secondary}; margin-top: 6px; line-height: 1.6; }
   .invoice-meta { text-align: right; }
-  .invoice-label { font-size: 10px; color: #9CA3AF; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
-  .invoice-number { font-size: 22px; font-weight: 800; color: #1F2937; letter-spacing: -0.5px; }
-  .invoice-date { font-size: 11px; color: #6B7280; margin-top: 2px; }
+  .invoice-label { font-size: 10px; color: ${T.muted}; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .invoice-number { font-size: 22px; font-weight: 800; color: ${T.heading}; letter-spacing: -0.5px; }
+  .invoice-date { font-size: 11px; color: ${T.secondary}; margin-top: 2px; }
   .accent-bar { height: 3px; background: linear-gradient(90deg, ${primary} 0%, ${primary}CC 100%); border-radius: 2px; margin-bottom: 24px; }
   .info-grid { display: flex; gap: 24px; margin-bottom: 24px; }
   .info-block { flex: 1; }
-  .info-label { font-size: 9px; font-weight: 700; color: #9CA3AF; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
-  .info-value { font-size: 12px; font-weight: 600; color: #1F2937; line-height: 1.5; }
-  .info-sub { font-size: 11px; color: #6B7280; font-weight: 400; }
+  .info-label { font-size: 9px; font-weight: 700; color: ${T.muted}; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .info-value { font-size: 12px; font-weight: 600; color: ${T.heading}; line-height: 1.5; }
+  .info-sub { font-size: 11px; color: ${T.secondary}; font-weight: 400; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  th { text-align: left; font-size: 9px; font-weight: 700; color: #9CA3AF; letter-spacing: 1px; text-transform: uppercase; padding: 10px 12px; border-bottom: 2px solid #E5E7EB; background: #F9FAFB; }
-  td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; font-size: 11px; color: #374151; vertical-align: top; }
-  tr:last-child td { border-bottom: 2px solid #E5E7EB; }
+  th { text-align: left; font-size: 9px; font-weight: 700; color: ${T.muted}; letter-spacing: 1px; text-transform: uppercase; padding: 10px 12px; border-bottom: 2px solid ${T.line}; background: ${T.panelBg}; }
+  td { padding: 10px 12px; border-bottom: 1px solid ${T.lineSoft}; font-size: 11px; color: ${T.body}; vertical-align: top; }
+  tr:last-child td { border-bottom: 2px solid ${T.line}; }
   .totals { display: flex; justify-content: flex-end; margin-bottom: 24px; }
   .totals-table { width: 300px; }
-  .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; color: #6B7280; }
-  .totals-row.total { border-top: 2px solid #1F2937; margin-top: 4px; padding-top: 10px; font-size: 16px; font-weight: 800; color: #1F2937; }
+  .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; color: ${T.secondary}; }
+  .totals-row.total { border-top: 2px solid ${T.heading}; margin-top: 4px; padding-top: 10px; font-size: 16px; font-weight: 800; color: ${T.heading}; }
   .totals-row.total .value { color: ${primary}; }
-  .section-title { font-size: 9px; font-weight: 700; color: #9CA3AF; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
-  .terms { font-size: 10px; color: #9CA3AF; line-height: 1.6; margin-bottom: 20px; }
-  .footer { border-top: 1px solid #E5E7EB; padding-top: 12px; display: flex; justify-content: space-between; font-size: 9px; color: #9CA3AF; }
-  .mtd-badge { display: inline-block; background: #EFF6FF; color: #1D4ED8; padding: 3px 10px; border-radius: 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; }
+  .section-title { font-size: 9px; font-weight: 700; color: ${T.muted}; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
+  .terms { font-size: 10px; color: ${T.muted}; line-height: 1.6; margin-bottom: 20px; }
+  .footer { border-top: 1px solid ${T.line}; padding-top: 12px; display: flex; justify-content: space-between; font-size: 9px; color: ${T.muted}; }
+  .mtd-badge { display: inline-block; background: ${B.infoSoft}; color: ${B.infoText}; padding: 3px 10px; border-radius: 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; }
 </style></head><body>
 <div class="page">
 
@@ -198,7 +199,7 @@ export function buildClientInvoiceHtml(data: InvoiceData, supplier: SupplierInfo
         <th style="text-align:right">Gross</th>
       </tr>
     </thead>
-    <tbody>${lineRows || '<tr><td colspan="8" style="text-align:center;color:#9CA3AF;padding:20px">No billable services in this period</td></tr>'}</tbody>
+    <tbody>${lineRows || `<tr><td colspan="8" style="text-align:center;color:${T.muted};padding:20px">No billable services in this period</td></tr>`}</tbody>
   </table>
 
   <!-- Totals -->
@@ -262,7 +263,7 @@ export async function generateClientInvoicePdf(data: InvoiceData, supplier: Supp
   return generatePdf(html, {
     margin: { top: '10mm', right: '12mm', bottom: '12mm', left: '12mm' },
     headerTemplate: '<div></div>',
-    footerTemplate: `<div style="font-size:8px;color:#9CA3AF;width:100%;text-align:center;padding:0 12mm">${supplier.name} | ${data.invoice_number} | Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
+    footerTemplate: `<div style="font-size:8px;color:${T.muted};width:100%;text-align:center;padding:0 12mm">${supplier.name} | ${data.invoice_number} | Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
   })
 }
 

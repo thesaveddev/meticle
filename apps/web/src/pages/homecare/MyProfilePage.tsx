@@ -94,7 +94,7 @@ export default function MyProfilePage() {
 
       {/* Photo section */}
       <Paper sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#2F80ED', fontSize: 36, fontWeight: 700 }}>
+        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#2F80ED', fontSize: 36, fontWeight: 600 }}>
           {initials}
         </Avatar>
         <Box>
@@ -109,7 +109,7 @@ export default function MyProfilePage() {
 
       {/* Form */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography fontWeight={700} mb={2}>Personal details</Typography>
+        <Typography fontWeight={600} mb={2}>Personal details</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
             <TextField label="First name" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth required />

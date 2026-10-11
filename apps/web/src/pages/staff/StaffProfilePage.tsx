@@ -348,16 +348,16 @@ export default function StaffProfilePage() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ p: 3.5, alignItems: { xs: 'flex-start', sm: 'center' } }}>
           <Avatar
             src={profile?.profile_picture_url || ''}
-            sx={{ width: 72, height: 72, bgcolor: NAVY, fontSize: '1.75rem', fontWeight: 800 }}
+            sx={{ width: 72, height: 72, bgcolor: NAVY, fontSize: '1.75rem', fontWeight: 600 }}
           >
             {(profile?.first_name?.[0] || m.first_name?.[0] || m.email?.[0] || '?').toUpperCase()}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
               Staff profile
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 0.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 {profile?.first_name || m.first_name || ''} {profile?.last_name || m.last_name || ''}
               </Typography>
               <Stack direction="row" spacing={1}>
@@ -386,7 +386,7 @@ export default function StaffProfilePage() {
         <Divider sx={{ borderColor: '#F5F7FA' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: complianceColor, lineHeight: 1.1 }}>{c.compliance_rate}%</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: complianceColor, lineHeight: 1.1 }}>{c.compliance_rate}%</Typography>
             <Typography variant="caption" color="text.secondary">Compliance</Typography>
             <Box sx={{ mt: 0.75, maxWidth: 180 }}>
               <LinearProgress
@@ -397,11 +397,11 @@ export default function StaffProfilePage() {
             </Box>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{c.completed}<Box component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 700 }}>/{c.total_requirements}</Box></Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: NAVY, lineHeight: 1.1 }}>{c.completed}<Box component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 600 }}>/{c.total_requirements}</Box></Typography>
             <Typography variant="caption" color="text.secondary">Requirements met</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{passedCount}<Box component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 700 }}>/{totalAssessments}</Box></Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: NAVY, lineHeight: 1.1 }}>{passedCount}<Box component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 600 }}>/{totalAssessments}</Box></Typography>
             <Typography variant="caption" color="text.secondary">Competency passed</Typography>
           </Box>
         </Stack>
@@ -416,7 +416,7 @@ export default function StaffProfilePage() {
           TabIndicatorProps={{ sx: { bgcolor: NAVY, height: 3 } }}
         >
           {tabs.map(t => (
-            <Tab key={t.id} value={t.id} label={t.label} icon={t.icon} iconPosition="start" sx={{ fontWeight: 700, textTransform: 'none', color: 'text.secondary', '&.Mui-selected': { color: NAVY } }} />
+            <Tab key={t.id} value={t.id} label={t.label} icon={t.icon} iconPosition="start" sx={{ fontWeight: 600, textTransform: 'none', color: 'text.secondary', '&.Mui-selected': { color: NAVY } }} />
           ))}
         </Tabs>
       </Paper>
@@ -424,7 +424,7 @@ export default function StaffProfilePage() {
       {tab === TAB_OVERVIEW && (
         profile ? (
           <Paper sx={{ p: 3.5, borderRadius: 2 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 2.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 2.5 }}>
               Profile details
             </Typography>
             <Grid container spacing={2}>
@@ -477,7 +477,7 @@ export default function StaffProfilePage() {
       {tab === TAB_COMPLIANCE && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
               Compliance
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -497,7 +497,7 @@ export default function StaffProfilePage() {
                 return (
                   <Box key={key}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ pt: 2, pb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                         {meta.label}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">({items.length})</Typography>
@@ -506,7 +506,7 @@ export default function StaffProfilePage() {
                       <Box key={req.id} sx={{ py: 1.75, borderTop: '1px solid #F7F9FC' }}>
                         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5}>
                           <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{req.name}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.name}</Typography>
                             {req.description && (
                               <Typography variant="caption" color="text.secondary">{req.description}</Typography>
                             )}
@@ -517,7 +517,7 @@ export default function StaffProfilePage() {
                                 {req.last_checked_at ? `Checked ${new Date(req.last_checked_at).toLocaleDateString()}` : 'Never checked'}
                               </Typography>
                               {req.expires_at && (
-                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: req.status === 'expired' || (req.status !== 'complete' && isExpiringSoon(req.expires_at)) ? '#EF4444' : 'text.secondary' }}>
+                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, color: req.status === 'expired' || (req.status !== 'complete' && isExpiringSoon(req.expires_at)) ? '#EF4444' : 'text.secondary' }}>
                                   {req.status === 'expired' ? `Expired ${formatDate(req.expires_at)}` : `Expires ${formatDate(req.expires_at)}`}
                                 </Typography>
                               )}
@@ -545,7 +545,7 @@ export default function StaffProfilePage() {
           <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Box>
-                <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
                   Competency
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -571,7 +571,7 @@ export default function StaffProfilePage() {
               <TableContainer>
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ '& th': { bgcolor: 'notice.subtle.bg', fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' } }}>
+                    <TableRow sx={{ '& th': { bgcolor: 'notice.subtle.bg', fontWeight: 600, color: 'text.secondary', fontSize: 12, textTransform: 'none', letterSpacing: '0.04em' } }}>
                       <TableCell>Assessment</TableCell>
                       <TableCell>Assessor</TableCell>
                       <TableCell>Date</TableCell>
@@ -616,7 +616,7 @@ export default function StaffProfilePage() {
         <Box>
           <Paper sx={{ borderRadius: 2, mb: 3 }}>
             <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
                 Role
               </Typography>
               <Typography variant="body2" color="text.secondary">Role changes update default permissions and the compliance profile automatically.</Typography>
@@ -680,7 +680,7 @@ export default function StaffProfilePage() {
             <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Box>
-                  <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
                     Module permissions
                   </Typography>
                   <Typography variant="body2" color="text.secondary">Choose what this member can access in each module.</Typography>
@@ -729,7 +729,7 @@ export default function StaffProfilePage() {
       )}
 
       <Dialog open={editOpen} onClose={() => { setEditOpen(false); setEditError('') }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Edit profile</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Edit profile</DialogTitle>
         <DialogContent>
           {editError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setEditError('')}>{editError}</Alert>}
           <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
@@ -795,7 +795,7 @@ export default function StaffProfilePage() {
       </Dialog>
 
       <Dialog open={assessOpen} onClose={() => { setAssessOpen(false); setAssessError('') }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>New competency assessment</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>New competency assessment</DialogTitle>
         <DialogContent>
           {assessError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setAssessError('')}>{assessError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -945,10 +945,10 @@ function EditRequirementDialog({ open, requirement, onClose, onSaved }: {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800 }}>Update compliance requirement</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 600 }}>Update compliance requirement</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>{requirement?.name}</Typography>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>{requirement?.name}</Typography>
         {requirement?.description && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{requirement.description}</Typography>
         )}
@@ -970,7 +970,7 @@ function EditRequirementDialog({ open, requirement, onClose, onSaved }: {
           <TextField label="Notes" multiline rows={3} fullWidth size="small" value={notes}
             onChange={(e) => setNotes(e.target.value)} />
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Uploaded document</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Uploaded document</Typography>
             {fileUrl ? (
               <Stack direction="row" spacing={1} alignItems="center">
                 <LinkIcon fontSize="small" />

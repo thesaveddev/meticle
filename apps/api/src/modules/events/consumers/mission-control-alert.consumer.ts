@@ -42,7 +42,7 @@ export const MissionControlAlertConsumer: EventConsumer = {
         await upsertAlert(orgId, alertType, aggregateId, 'high',
           `Stock low: ${p.medication_name}`,
           `${p.quantity} remaining of ${p.medication_name} (reorder at ${p.reorder_level})${p.location_name ? ' — ' + p.location_name : ''}`,
-          '/emedication?tab=stock', p.person_id || null, null);
+          '/emedication?tab=1', p.person_id || null, null);
         break;
       }
 
@@ -131,6 +131,24 @@ export const MissionControlAlertConsumer: EventConsumer = {
           `Declining appetite: ${p.person_name}`,
           `${capitalize(p.appetite_level)} appetite for ${p.meal_type} on ${formatDate(p.meal_date)}${consecutiveText}${p.consumed_percent != null ? ` — consumed ${p.consumed_percent}%` : ''}`,
           `/people/${p.person_id}`, p.person_id || null, null);
+        break;
+      }
+
+      case 'mica.task_confirmed': {
+        const p = event.payload as any;
+        await upsertAlert(orgId, alertType, aggregateId, 'low',
+          `Task from Mica: ${p.title || 'Untitled'}`,
+          `${p.priority || 'medium'} priority${p.due_date ? ' — due ' + formatDate(p.due_date) : ''}${p.assigned_user_id ? ' — assigned via Mica voice' : ''}`,
+          `/tasks`, null, null);
+        break;
+      }
+
+      case 'mica.appointment_confirmed': {
+        const p = event.payload as any;
+        await upsertAlert(orgId, alertType, aggregateId, 'low',
+          `Appointment from Mica: ${p.title || 'Untitled'}`,
+          `${formatTime(p.start_time)}${p.person_id ? ' — for a service user' : ''} — booked via Mica voice`,
+          `/appointments`, p.person_id || null, null);
         break;
       }
 

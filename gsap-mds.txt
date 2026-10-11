@@ -1,0 +1,17 @@
+.github/copilot-instructions.md
+.github/instructions/react.instructions.md
+.github/instructions/scrolltrigger.instructions.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+README.md
+examples/README.md
+skills/gsap-core/SKILL.md
+skills/gsap-frameworks/SKILL.md
+skills/gsap-performance/SKILL.md
+skills/gsap-plugins/SKILL.md
+skills/gsap-react/SKILL.md
+skills/gsap-scrolltrigger/SKILL.md
+skills/gsap-timeline/SKILL.md
+skills/gsap-utils/SKILL.md
+--- truncated: False

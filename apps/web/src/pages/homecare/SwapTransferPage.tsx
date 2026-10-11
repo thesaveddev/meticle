@@ -114,7 +114,7 @@ export default function SwapTransferPage() {
     <PageContainer>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" fontWeight={700} mb={0.5}>Swap & Transfer</Typography>
+          <Typography variant="h4" fontWeight={600} mb={0.5}>Swap & Transfer</Typography>
           <Typography variant="body2" color="text.secondary">{pending.length} pending request{pending.length !== 1 ? 's' : ''}</Typography>
         </Box>
         <AppButton startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
@@ -200,7 +200,7 @@ export default function SwapTransferPage() {
 
       {/* New request dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight={700}>New request</DialogTitle>
+        <DialogTitle fontWeight={600}>New request</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} mt={1}>
             <FormControl fullWidth>

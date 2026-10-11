@@ -17,6 +17,7 @@ router.get('/compliance', requireSupportedLivingOnly, requireRole(...dashboardRo
 router.get('/today-rota', requireSupportedLivingOnly, requireRole(...dashboardRoles), asyncHandler(DashboardController.getTodayRota));
 router.get('/widgets', requireSupportedLivingOnly, requireRole(...dashboardRoles), asyncHandler(DashboardController.getWidgets));
 router.get('/review-scheduler', requireSupportedLivingOnly, requireRole(...dashboardRoles), asyncHandler(DashboardController.getReviewScheduler));
+router.get('/daily-overview', requireSupportedLivingOnly, requireRole(...dashboardRoles), asyncHandler(DashboardController.getDailyOverview));
 router.get('/domiciliary', requireDomiciliaryOnly, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(DashboardController.getDomiciliarySummary));
 router.get('/live-map', requireDomiciliaryOnly, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(DashboardController.getLiveMap));
 

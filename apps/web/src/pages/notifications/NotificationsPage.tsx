@@ -75,7 +75,7 @@ export default function NotificationsPage() {
     <Stack spacing={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center">
         <Box>
-          <Typography variant="h5" fontWeight={700}>Notifications</Typography>
+          <Typography variant="h5" fontWeight={600}>Notifications</Typography>
           <Typography variant="body2" color="text.secondary">
             {unread.length > 0 ? `${unread.length} unread` : 'All caught up'}
           </Typography>

@@ -3,6 +3,7 @@ import { Box, AppBar, Toolbar, Container, Stack, Button, Typography, Drawer, Ico
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu as MenuIcon, Close, ExpandMore, ArrowForward } from '@mui/icons-material'
 import { M } from '../../styles/marketing-tokens'
+import BrandWordmark from '../BrandWordmark'
 
 /* ─── Navigation Data ─────────────────────────────── */
 
@@ -97,15 +98,7 @@ export default function Nav() {
                 sx={{ height: { xs: 26, md: 30 }, width: 'auto' }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
-              <Typography sx={{
-                fontSize: { xs: '1.1rem', md: '1.2rem' },
-                fontWeight: 800,
-                color: M.navy,
-                letterSpacing: '-0.04em',
-                display: { xs: 'none', sm: 'block' },
-              }}>
-                Meticle<span style={{ color: M.tealDeep }}>Care</span>
-              </Typography>
+              <BrandWordmark size={{ xs: 18, md: 19 } as any} color={M.navy} accent={M.tealDeep} />
             </Box>
             {/* Desktop nav */}
             <Stack direction="row" spacing={0} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
@@ -203,7 +196,7 @@ export default function Nav() {
                 endIcon={<ArrowForward />}
                 onClick={() => go('/contact')}
                 sx={{
-                  bgcolor: M.navy, color: '#FFFFFF', fontWeight: 700,
+                  bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600,
                   px: 2.5, py: 1, borderRadius: M.r.md, textTransform: 'none', whiteSpace: 'nowrap',
                   fontSize: '0.85rem', boxShadow: 'none',
                   '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' },
@@ -230,9 +223,7 @@ export default function Nav() {
         PaperProps={{ sx: { width: '85vw', maxWidth: 360, bgcolor: M.card } }}
       >
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: M.navy, letterSpacing: '-0.03em' }}>
-            Meticle<span style={{ color: M.tealDeep }}>Care</span>
-          </Typography>
+          <BrandWordmark size={18} color={M.navy} accent={M.tealDeep} />
           <IconButton onClick={() => setMobileOpen(false)} aria-label="Close menu" size="small">
             <Close sx={{ fontSize: 20 }} />
           </IconButton>
@@ -302,7 +293,7 @@ export default function Nav() {
               fullWidth variant="contained"
               endIcon={<ArrowForward />}
               onClick={() => go('/contact')}
-              sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem', '&:hover': { bgcolor: M.navyMid } }}
+              sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem', '&:hover': { bgcolor: M.navyMid } }}
             >Book a demo</Button>
             <Button
               fullWidth variant="outlined"

@@ -35,6 +35,13 @@ export class DashboardController {
     res.json(data);
   }
 
+  static async getDailyOverview(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) throw new AppError(403, 'Organization required');
+    const data = await DashboardRepository.getDailyOverview(orgId);
+    res.json(data);
+  }
+
   static async getReviewScheduler(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
     if (!orgId) throw new AppError(403, 'Organization context required');

@@ -13,17 +13,17 @@ export default function StatCard({ label, value, color = '#2F80ED', subtitle, tr
   return (
     <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
       <Stack spacing={1}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>
           {label}
         </Typography>
         <Stack direction="row" alignItems="baseline" spacing={1}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color, lineHeight: 1.1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, color, lineHeight: 1.1 }}>
             {value}
           </Typography>
           {trend && trend.direction !== 'flat' && (
             <Stack direction="row" alignItems="center" spacing={0.3} sx={{ color: trend.direction === 'up' ? '#10B981' : '#EF4444' }}>
               {trend.direction === 'up' ? <TrendingUp sx={{ fontSize: 16 }} /> : <TrendingDown sx={{ fontSize: 16 }} />}
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>{Math.abs(trend.value)}%</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>{Math.abs(trend.value)}%</Typography>
             </Stack>
           )}
         </Stack>

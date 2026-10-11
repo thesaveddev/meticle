@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../../services/api'
+import BrandWordmark from '../../components/BrandWordmark'
 
 export default function MfaSetupPage() {
   const location = useLocation()
@@ -60,14 +61,14 @@ export default function MfaSetupPage() {
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm">
           <Paper sx={{ p: 4, borderRadius: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: '#2F80ED' }}>MFA Enabled Successfully</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: '#2F80ED' }}>MFA Enabled Successfully</Typography>
             <Alert severity="warning" sx={{ mb: 3 }}>
               Save these 8 backup codes. Each can be used once to log in if you lose access to your authenticator app.
             </Alert>
             <Stack spacing={1} sx={{ mb: 3 }}>
               {backupCodes.map((code, i) => (
                 <Paper key={i} variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'notice.subtle.bg' }}>
-                  <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.1rem', letterSpacing: 2 }}>{code}</Typography>
+                  <Typography sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '1.1rem', letterSpacing: 2 }}>{code}</Typography>
                 </Paper>
               ))}
             </Stack>
@@ -88,7 +89,7 @@ export default function MfaSetupPage() {
                 }).catch(() => navigate('/dashboard'))
               }
             }}
-              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' }, py: 1.5, fontWeight: 700 }}>
+              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' }, py: 1.5, fontWeight: 600 }}>
               {(() => {
                 const raw = localStorage.getItem('user')
                 let isPlatformAdmin = false
@@ -106,8 +107,8 @@ export default function MfaSetupPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#2F80ED', mb: 1 }}>Meticle Care</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#17202A' }}>Set Up Multi-Factor Authentication</Typography>
+          <BrandWordmark size={22} />
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#17202A' }}>Set Up Multi-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Your organisation requires MFA. Scan the QR code with your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
@@ -144,7 +145,7 @@ export default function MfaSetupPage() {
                 inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' } }}
               />
               <Button fullWidth type="submit" variant="contained" size="large" disabled={loading || !qrCode}
-                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 700, borderRadius: 2, textTransform: 'none' }}>
+                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify & Enable MFA'}
               </Button>
             </Stack>

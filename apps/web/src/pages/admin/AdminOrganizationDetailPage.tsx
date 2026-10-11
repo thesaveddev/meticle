@@ -98,7 +98,7 @@ export default function AdminOrganizationDetailPage() {
       <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>{org.name}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>{org.name}</Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip size="small" label={org.plan || 'No plan'} variant="outlined" />
               <Chip size="small" label={org.subscription_status} color={statusColors[org.subscription_status] || 'default'} />
@@ -119,7 +119,7 @@ export default function AdminOrganizationDetailPage() {
 
       {(org.primary_service_type === 'domiciliary' || org.primary_service_type === 'live_in' || org.service_types?.some((type: string) => ['domiciliary', 'live_in'].includes(type))) && (
         <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Domiciliary subscription quote</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Domiciliary subscription quote</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Set the agreed monthly subscription. This is a draft until the organisation admin accepts it in Billing. Changing price or VAT treatment resets that acceptance; it does not immediately change any live Stripe charge.
           </Typography>
@@ -136,9 +136,9 @@ export default function AdminOrganizationDetailPage() {
             </Button>
           </Stack>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Draft quote</Typography><Typography fontWeight={700}>{org.domiciliary_monthly_price_pence ? `£${(org.domiciliary_monthly_price_pence / 100).toFixed(2)} / month` : 'Not set'}</Typography></Grid>
-            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Active Stripe amount</Typography><Typography fontWeight={700}>{org.domiciliary_active_monthly_price_pence ? `£${(org.domiciliary_active_monthly_price_pence / 100).toFixed(2)} / month` : 'No recorded active contract'}</Typography></Grid>
-            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Acceptance</Typography><Typography fontWeight={700}>{org.domiciliary_quote_accepted_at ? `Accepted ${new Date(org.domiciliary_quote_accepted_at).toLocaleDateString('en-GB')}` : 'Awaiting organisation acceptance'}</Typography></Grid>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Draft quote</Typography><Typography fontWeight={600}>{org.domiciliary_monthly_price_pence ? `£${(org.domiciliary_monthly_price_pence / 100).toFixed(2)} / month` : 'Not set'}</Typography></Grid>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Active Stripe amount</Typography><Typography fontWeight={600}>{org.domiciliary_active_monthly_price_pence ? `£${(org.domiciliary_active_monthly_price_pence / 100).toFixed(2)} / month` : 'No recorded active contract'}</Typography></Grid>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Acceptance</Typography><Typography fontWeight={600}>{org.domiciliary_quote_accepted_at ? `Accepted ${new Date(org.domiciliary_quote_accepted_at).toLocaleDateString('en-GB')}` : 'Awaiting organisation acceptance'}</Typography></Grid>
           </Grid>
         </Paper>
       )}
@@ -146,7 +146,7 @@ export default function AdminOrganizationDetailPage() {
       {/* Billing override */}
       <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Billing Controls</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Billing Controls</Typography>
           <Button size="small" startIcon={<EditIcon />} onClick={() => {
             setBillingForm({ subscription_status: org.subscription_status || '', plan: org.plan || '', trial_ends_at: org.trial_ends_at ? new Date(org.trial_ends_at).toISOString().slice(0, 10) : '' })
             setBillingDialog(true)
@@ -163,25 +163,25 @@ export default function AdminOrganizationDetailPage() {
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Typography variant="body2" color="#667085">Total Users</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{org.stats?.totalUsers || 0}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>{org.stats?.totalUsers || 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Typography variant="body2" color="#667085">Active Users</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#087A55' }}>{org.stats?.activeUsers || 0}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600, color: '#087A55' }}>{org.stats?.activeUsers || 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} sm={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5 }}>
             <Typography variant="body2" color="#667085">Shifts (30d)</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#8B7CF6' }}>{org.stats?.recentShifts || 0}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600, color: '#8B7CF6' }}>{org.stats?.recentShifts || 0}</Typography>
           </Paper>
         </Grid>
       </Grid>
 
       <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Users</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Users</Typography>
         {org.users?.length === 0 ? (
           <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No users</Typography>
         ) : (
@@ -217,7 +217,7 @@ export default function AdminOrganizationDetailPage() {
       </Paper>
 
       <Paper sx={{ p: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Billing History</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Billing History</Typography>
         {org.invoices?.length === 0 ? (
           <Typography color="#98A2B3" sx={{ textAlign: 'center', py: 4 }}>No invoices</Typography>
         ) : (

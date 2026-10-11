@@ -8,28 +8,22 @@ import {
   CheckCircle as VerifiedIcon,
   Schedule as ScheduleIcon,
   Schedule as ClockIcon,
-  ArrowForward as ArrowIcon,
   Home as HomeIcon,
   BadgeOutlined as BadgeIcon,
-  SchoolOutlined as SchoolIcon,
-  EventBusy as LeaveIcon,
   WarningAmber as WarningIcon,
   CreditCard as CreditCardIcon,
   LocationOn as LocationIcon,
-  Medication as MedIcon,
-  Checklist as CompetencyIcon,
-  Star as SatisfactionIcon,
-  ReportProblem as IncidentIcon,
-  TrendingDown as ComplianceDownIcon,
 } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
-import { PremiumCard, StatCard, SectionHeader } from '../../components/design/PremiumCard'
+import { PremiumCard, StatCard } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon2 from '@mui/icons-material/Schedule'
 import PageContainer from '../../components/design/PageContainer'
 import MicaAssistant from '../../components/mica/MicaAssistant'
+import { useDailyOverview, PeopleOverviewCard, TodaysTasks, AlertsPanel, UpcomingAppointments, CareNotesActivity, MedicationOverview, QuickActions } from './DailyOverview'
+import { useQuery } from '@tanstack/react-query'
 import Skeleton from '@mui/material/Skeleton'
 import { METICLE_COLORS } from '../../context/ThemeContext'
 
@@ -42,35 +36,6 @@ interface DashboardStats {
   staff_on_duty: number
   open_incidents: number
   locations: number
-}
-
-interface DashboardWidgets {
-  dbs_expiring_soon: number
-  training_expiring_soon: number
-  pending_leave_requests: number
-  unread_notifications: number
-  overdue_medications: number
-  competency_due: number
-  staff_below_threshold: number
-  open_severe_incidents: number
-  satisfaction_avg: number | null
-  satisfaction_total: number
-  compliance_breakdown: { total_active: number; compliant_count: number; below_threshold: number }
-}
-
-interface ComplianceItem {
-  label: string
-  val: number
-  color: string
-}
-
-interface DashboardAttentionItem {
-  label: string
-  description: string
-  value: string
-  path: string
-  icon: React.ReactNode
-  tone: 'success' | 'warning' | 'error' | 'info'
 }
 
 interface RotaItem {
@@ -102,8 +67,6 @@ export default function DashboardPage() {
   const [dashboardError, setDashboardError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [widgets, setWidgets] = useState<DashboardWidgets | null>(null)
-  const [compliance, setCompliance] = useState<ComplianceItem[]>([])
   const [todayRota, setTodayRota] = useState<RotaItem[]>([])
   const [todayAppointments, setTodayAppointments] = useState<AppointmentItem[]>([])
   const userStr = localStorage.getItem('user')
@@ -115,6 +78,17 @@ export default function DashboardPage() {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  // Right-rail + section data (brief phases 7–8). The widgets query feeds the
+  // AlertsPanel with real counts; the daily-overview query feeds people, tasks,
+  // activity, medication and appointments. Each renders its own empty/error
+  // state so one failing section never breaks the dashboard.
+  const overview = useDailyOverview()
+  const widgetsQuery = useQuery({
+    queryKey: ['dashboard', 'widgets'],
+    queryFn: () => api.get('/dashboard/widgets', { timeout: 15000 }).then(r => r.data),
+    refetchInterval: 60_000,
+  })
 
   const [org, setOrg] = useState<any>(null)
   const orgId = rawUser.organization_id || rawUser.organizationId
@@ -162,17 +136,13 @@ export default function DashboardPage() {
           setTodayRota(rotaRes.data)
           setTodayAppointments(aptRes.data)
         } else {
-          const [statsRes, complianceRes, rotaRes, widgetsRes, aptRes] = await Promise.all([
+          const [statsRes, rotaRes, aptRes] = await Promise.all([
             api.get('/dashboard/stats', { timeout: 15000 }),
-            api.get('/dashboard/compliance', { timeout: 15000 }),
             api.get('/dashboard/today-rota', { timeout: 15000 }),
-            api.get('/dashboard/widgets', { timeout: 15000 }),
             api.get(`/appointments?date=${todayStr}`, { timeout: 15000 }),
           ])
           setStats(statsRes.data)
-          setCompliance(complianceRes.data)
           setTodayRota(rotaRes.data)
-          setWidgets(widgetsRes.data)
           setTodayAppointments(aptRes.data)
 
         }
@@ -181,11 +151,6 @@ export default function DashboardPage() {
           ? 'Dashboard data is taking too long to respond.'
           : error.response?.data?.message || 'Could not load dashboard data.')
         setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
-        setCompliance([
-          { label: 'Mandatory Training', val: 0, color: '#10B981' },
-          { label: 'DBS Verifications', val: 0, color: '#10B981' },
-          { label: 'Identity Checks', val: 0, color: '#F59E0B' },
-        ])
         setTodayRota([])
       } finally {
         setLoading(false)
@@ -248,28 +213,6 @@ export default function DashboardPage() {
     setHideOnboarding(true)
     try { if (orgId) localStorage.setItem(ONBOARDING_STEPS_BY_KEY + orgId, 'true') } catch { /* ignore */ }
     if (orgId) api.patch(`/organizations/${orgId}`, { onboarding_dismissed_at: new Date().toISOString() }).catch(() => {})
-  }
-
-  const attentionItems: DashboardAttentionItem[] = [
-    ...(stats && stats.open_shifts > 0 ? [{ label: 'Open shifts', description: 'Shifts still need cover', value: `${stats.open_shifts}`, path: '/shift-marketplace', icon: <ScheduleIcon />, tone: 'warning' as const }] : []),
-    ...(stats && stats.open_incidents > 0 ? [{ label: 'Open incidents', description: 'Incidents are awaiting follow-up', value: `${stats.open_incidents}`, path: '/incidents', icon: <IncidentIcon />, tone: 'error' as const }] : []),
-    ...(widgets ? [
-      { label: 'Expiring staff documents', description: widgets.dbs_expiring_soon > 0 ? 'Staff records need renewal soon' : 'All documents are current', value: `${widgets.dbs_expiring_soon}`, path: '/compliance/identity', icon: <BadgeIcon />, tone: widgets.dbs_expiring_soon > 0 ? 'warning' as const : 'success' as const },
-      { label: 'Training records', description: widgets.training_expiring_soon > 0 ? 'Training is approaching expiry' : 'Training is up to date', value: `${widgets.training_expiring_soon}`, path: '/compliance/training', icon: <SchoolIcon />, tone: widgets.training_expiring_soon > 0 ? 'warning' as const : 'success' as const },
-      { label: 'Competency assessments', description: widgets.competency_due > 0 ? 'Assessments are due for review' : 'Assessments are up to date', value: `${widgets.competency_due}`, path: '/compliance/competency', icon: <CompetencyIcon />, tone: widgets.competency_due > 0 ? 'error' as const : 'success' as const },
-      { label: 'Staff compliance', description: widgets.staff_below_threshold > 0 ? 'Staff below the required threshold' : 'All staff meet the threshold', value: `${widgets.staff_below_threshold}`, path: '/staff', icon: <ComplianceDownIcon />, tone: widgets.staff_below_threshold > 0 ? 'error' as const : 'success' as const },
-      { label: 'Leave requests', description: widgets.pending_leave_requests > 0 ? 'Requests are waiting for review' : 'No requests awaiting review', value: `${widgets.pending_leave_requests}`, path: '/leave', icon: <LeaveIcon />, tone: widgets.pending_leave_requests > 0 ? 'info' as const : 'success' as const },
-      { label: 'Critical incidents', description: widgets.open_severe_incidents > 0 ? 'Incidents need follow-up' : 'No critical incidents to review', value: `${widgets.open_severe_incidents}`, path: '/incidents', icon: <IncidentIcon />, tone: widgets.open_severe_incidents > 0 ? 'error' as const : 'success' as const },
-      ...(!serviceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type)) ? [{ label: 'Medication administration', description: widgets.overdue_medications > 0 ? 'Overdue doses need attention' : 'No overdue doses', value: `${widgets.overdue_medications}`, path: '/emedication', icon: <MedIcon />, tone: widgets.overdue_medications > 0 ? 'error' as const : 'success' as const }] : []),
-      ...(widgets.satisfaction_avg != null ? [{ label: 'Satisfaction', description: `${widgets.satisfaction_total} survey responses`, value: `${widgets.satisfaction_avg}/5`, path: '/compliance/satisfaction', icon: <SatisfactionIcon />, tone: widgets.satisfaction_avg >= 4 ? 'success' as const : widgets.satisfaction_avg >= 3 ? 'warning' as const : 'error' as const }] : []),
-    ] : []),
-  ]
-
-  const attentionTone = {
-    success: { color: METICLE_COLORS.success, bg: METICLE_COLORS.successSoft },
-    warning: { color: '#9A6700', bg: METICLE_COLORS.warningSoft },
-    error: { color: '#B42318', bg: METICLE_COLORS.dangerSoft },
-    info: { color: METICLE_COLORS.primary, bg: METICLE_COLORS.primarySoft },
   }
 
   return (
@@ -340,7 +283,7 @@ export default function DashboardPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '0.8rem',
-                        fontWeight: 800,
+                        fontWeight: 600,
                       }}
                     >
                       {step.done ? <VerifiedIcon sx={{ fontSize: 18 }} /> : i + 1}
@@ -374,90 +317,13 @@ export default function DashboardPage() {
         ))}
       </Grid>
 
-      {/* Priority items: one compact list replaces the scattered compliance widgets */}
-      {!isStaff && (
-        <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, mb: 4 }}>
-          <SectionHeader title="Needs attention" subtitle="Priority items and upcoming reviews" />
-          {attentionItems.filter((item) => item.tone !== 'success').length === 0 ? (
-            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ py: 1.5, color: 'success.dark' }}>
-              <VerifiedIcon sx={{ fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>Everything is up to date. No priority actions right now.</Typography>
-            </Stack>
-          ) : (
-            <Stack divider={<Divider flexItem />}>
-              {attentionItems.filter((item) => item.tone !== 'success').map((item) => {
-                const tone = attentionTone[item.tone]
-                return (
-                  <Box key={item.label} component="button" type="button" onClick={() => navigate(item.path)} sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5, py: 1.5, textAlign: 'left', color: 'inherit', bgcolor: 'transparent', border: 0, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: -2 } }}>
-                    <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: '10px', bgcolor: tone.bg, color: tone.color, flexShrink: 0 }}>{item.icon}</Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{item.description}</Typography>
-                    </Box>
-                    <Chip label={item.value} size="small" sx={{ bgcolor: tone.bg, color: tone.color, minWidth: 38 }} />
-                  </Box>
-                )
-              })}
-            </Stack>
-          )}
-        </PremiumCard>
-      )}
-
-      <Grid container spacing={2}>
-        {/* Compliance Snapshot */}
-        {!isStaff && (
-          <Grid item xs={12} md={4}>
-            <PremiumCard sx={{ p: { xs: 2.5, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <SectionHeader
-                title="Compliance Snapshot"
-                subtitle="Overall readiness for inspection"
-              />
-              <Box sx={{ flexGrow: 1 }}>
-                {compliance.length === 0 ? (
-                  <EmptyState
-                    title="No compliance data"
-                    description="Start by uploading staff documents to track compliance."
-                    action={{ label: 'View Compliance', onClick: () => navigate('/compliance') }}
-                  />
-                ) : (
-                  <Stack spacing={3}>
-                    {compliance.map((item) => (
-                      <Box key={item.label}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.label}</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 800, color: item.val > 0 ? item.color : theme.palette.text.secondary }}>
-                            {item.val}%
-                          </Typography>
-                        </Stack>
-                        <LinearProgress
-                          variant="determinate"
-                          value={item.val}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
-                            '& .MuiLinearProgress-bar': { bgcolor: item.val > 0 ? item.color : '#E6EAF0', borderRadius: 4 },
-                          }}
-                        />
-                      </Box>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ textAlign: 'center' }}>
-                <Button size="small" endIcon={<ArrowIcon fontSize="small" />} sx={{ color: 'text.primary', fontWeight: 700 }} onClick={() => navigate('/compliance')}>
-                  View Full Report
-                </Button>
-              </Box>
-            </PremiumCard>
-          </Grid>
-        )}
-
-        {/* Today's Rota */}
-        <Grid item xs={12} md={isStaff ? 12 : 4}>
-          <PremiumCard sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+      {isStaff ? (
+        <>
+          {/* Staff view keeps the existing rota + appointments cards */}
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <PremiumCard sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>Today's Rota</Typography>
               <Chip
                 label={todayRota.length > 0 ? 'Active Now' : 'No Shifts'}
@@ -465,7 +331,7 @@ export default function DashboardPage() {
                 sx={{
                   bgcolor: todayRota.length > 0 ? METICLE_COLORS.primarySoft : theme.palette.action.hover,
                   color: todayRota.length > 0 ? METICLE_COLORS.primary : theme.palette.text.secondary,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   borderRadius: '10px',
                 }}
               />
@@ -503,7 +369,7 @@ export default function DashboardPage() {
                             sx={{
                               bgcolor: statusBg,
                               color: statusColor,
-                              fontWeight: 700,
+                              fontWeight: 600,
                               fontSize: '0.7rem',
                               textTransform: 'capitalize',
                               borderRadius: '10px',
@@ -532,7 +398,7 @@ export default function DashboardPage() {
                 sx={{
                   bgcolor: todayAppointments.length > 0 ? METICLE_COLORS.successSoft : theme.palette.action.hover,
                   color: todayAppointments.length > 0 ? METICLE_COLORS.success : theme.palette.text.secondary,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   borderRadius: '10px',
                 }}
               />
@@ -573,7 +439,7 @@ export default function DashboardPage() {
                               sx={{
                                 bgcolor: statusBg,
                                 color: statusColor,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 fontSize: '0.7rem',
                                 textTransform: 'capitalize',
                                 borderRadius: '10px',
@@ -586,7 +452,7 @@ export default function DashboardPage() {
                                 sx={{
                                   bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
                                   color: theme.palette.text.secondary,
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   fontSize: '0.7rem',
                                   borderRadius: '10px',
                                 }}
@@ -604,8 +470,83 @@ export default function DashboardPage() {
           </PremiumCard>
         </Grid>
       </Grid>
+        </>
+      ) : (
+        /* Manager/admin view: the redesigned brief grid — main flow plus a
+           right rail (alerts, appointments, quick actions) that collapses into
+           the main flow below lg. Data comes from the daily-overview aggregate
+           and the widgets query; every section owns its empty/error state. */
+        <Grid container spacing={{ xs: 2, md: 3 }}>
+          {/* Main column */}
+          <Grid item xs={12} lg={8}>
+            <Stack spacing={{ xs: 2, md: 3 }}>
+              <PeopleOverviewCard
+                data={overview.data?.people}
+                loading={overview.isLoading}
+                error={overview.isError}
+                onRetry={() => overview.refetch()}
+              />
+              <TodaysTasks
+                data={overview.data?.tasks}
+                loading={overview.isLoading}
+                error={overview.isError}
+                onRetry={() => overview.refetch()}
+              />
+              <CareNotesActivity
+                data={overview.data?.activity}
+                loading={overview.isLoading}
+                error={overview.isError}
+                onRetry={() => overview.refetch()}
+              />
+              <MedicationOverview
+                data={overview.data?.medication}
+                loading={overview.isLoading}
+                error={overview.isError}
+                onRetry={() => overview.refetch()}
+              />
+              {/* Below lg the right-rail content reflows into the main column. */}
+              <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
+                <Stack spacing={{ xs: 2, md: 3 }}>
+                  <AlertsPanel
+                    widgets={widgetsQuery.data ?? null}
+                    loading={widgetsQuery.isLoading}
+                    error={widgetsQuery.isError}
+                    onRetry={() => widgetsQuery.refetch()}
+                  />
+                  <UpcomingAppointments
+                    data={overview.data?.appointments}
+                    loading={overview.isLoading}
+                    error={overview.isError}
+                    onRetry={() => overview.refetch()}
+                  />
+                  <QuickActions />
+                </Stack>
+              </Box>
+            </Stack>
+          </Grid>
 
-      {/* Mica assistant banner (brief §21) — sits at the bottom of the dashboard grid. */}
+          {/* Right rail (lg+) */}
+          <Grid item xs={12} lg={4}>
+            <Stack spacing={{ xs: 2, md: 3 }} sx={{ position: 'sticky', top: 88 }}>
+              <AlertsPanel
+                widgets={widgetsQuery.data ?? null}
+                loading={widgetsQuery.isLoading}
+                error={widgetsQuery.isError}
+                onRetry={() => widgetsQuery.refetch()}
+              />
+              <UpcomingAppointments
+                data={overview.data?.appointments}
+                loading={overview.isLoading}
+                error={overview.isError}
+                onRetry={() => overview.refetch()}
+              />
+              <QuickActions />
+            </Stack>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Mica assistant banner (brief §21/§22) — bottom of the main flow, never overlaying content. */}
       <MicaAssistant />
 
       {/* Overview Section */}

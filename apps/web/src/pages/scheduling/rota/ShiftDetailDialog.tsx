@@ -58,7 +58,7 @@ export default function ShiftDetailDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+      <DialogTitle sx={{ fontWeight: 600, pb: 1 }}>
         Shift Detail
         {isOpen && <Chip label="Open shift" size="small" sx={{ ml: 1, height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
       </DialogTitle>
@@ -67,10 +67,10 @@ export default function ShiftDetailDialog({
           <Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
               <LocationIcon sx={{ fontSize: 16, color: '#2F80ED' }} />
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>{shift.location_name || '—'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{shift.location_name || '—'}</Typography>
               {shift.shift_type && shift.shift_type !== 'day' && (
                 <Chip label={shift.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'} size="small"
-                  sx={{ height: 17, fontSize: '0.58rem', bgcolor: shiftVisual(shift).chipBg, color: shiftVisual(shift).chipFg, fontWeight: 700 }} />
+                  sx={{ height: 17, fontSize: '0.58rem', bgcolor: shiftVisual(shift).chipBg, color: shiftVisual(shift).chipFg, fontWeight: 600 }} />
               )}
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
@@ -84,14 +84,14 @@ export default function ShiftDetailDialog({
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Assigned Staff</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Assigned Staff</Typography>
             {shift.assignments?.length > 0 ? (
               <Stack spacing={0.5}>
                 {shift.assignments.map((a: any) => (
                   <Stack key={a.id} direction="row" spacing={1} alignItems="center">
                     <PersonIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
                     <Typography variant="body2">{a.first_name} {a.last_name}</Typography>
-                    {a.is_overtime && <Chip label="OT" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700 }} />}
+                    {a.is_overtime && <Chip label="OT" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600 }} />}
                     {canEditShift && (
                       <Tooltip title="Unassign staff">
                         <IconButton size="small" sx={{ ml: 'auto', p: 0.4 }} onClick={() => onUnassign(shift.id, a.staff_id)} aria-label={`Unassign ${a.first_name}`}>
@@ -114,7 +114,7 @@ export default function ShiftDetailDialog({
             <>
               <Divider />
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Person</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Person</Typography>
                 <Typography variant="body2">{shift.su_first_name} {shift.su_last_name || ''}</Typography>
               </Box>
             </>
@@ -124,13 +124,13 @@ export default function ShiftDetailDialog({
             <>
               <Divider />
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Agency</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Agency</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label="Agency shift" size="small" sx={{ height: 17, fontSize: '0.58rem', bgcolor: 'notice.info.bg', color: 'notice.info.fg' }} />
                   <Chip label={shift.agency_covered ? 'Covered' : 'Uncovered'} size="small"
                     sx={{ height: 17, fontSize: '0.58rem', bgcolor: shift.agency_covered ? '#EAFBF5' : '#FFF7E6', color: shift.agency_covered ? '#087A55' : '#9A6700' }} />
                   {canEditShift && (
-                    <Button size="small" variant="outlined" sx={{ ml: 'auto', minWidth: 0, py: 0, px: 1, fontSize: '0.68rem', fontWeight: 700, textTransform: 'none' }}
+                    <Button size="small" variant="outlined" sx={{ ml: 'auto', minWidth: 0, py: 0, px: 1, fontSize: '0.68rem', fontWeight: 600, textTransform: 'none' }}
                       onClick={() => onToggleCoverage(shift.id, shift.agency_covered)}>
                       {shift.agency_covered ? 'Mark Uncovered' : 'Mark Covered'}
                     </Button>

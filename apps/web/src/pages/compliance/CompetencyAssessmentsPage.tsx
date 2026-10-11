@@ -149,7 +149,7 @@ function PendingView() {
           <Accordion key={staffId} expanded={expanded === staffId} onChange={(_, isExp) => setExpanded(isExp ? staffId : false)} sx={{ mb: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Stack direction="row" spacing={2} alignItems="center">
-                <Typography fontWeight={700}>{group.staff_name}</Typography>
+                <Typography fontWeight={600}>{group.staff_name}</Typography>
                 <Chip label={`${group.items.length} pending`} size="small" color="warning" />
               </Stack>
             </AccordionSummary>
@@ -158,12 +158,12 @@ function PendingView() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Assessment</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Last Assessed</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Last Result</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Rubric</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Last Assessed</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Last Result</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Rubric</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -245,8 +245,8 @@ function PendingView() {
                   ))}
                   <Box sx={{ mt: 1, p: 1.5, bgcolor: 'notice.info.bg', borderRadius: 1 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" fontWeight={700}>Total Score</Typography>
-                      <Typography variant="body1" fontWeight={800}>
+                      <Typography variant="body2" fontWeight={600}>Total Score</Typography>
+                      <Typography variant="body1" fontWeight={600}>
                         {rubric.reduce((s: number, _: any, i: number) => s + (rubricScores[i] ?? 0), 0)} / {rubric.reduce((s: number, r: any) => s + (r.max_score || 5), 0)}
                       </Typography>
                     </Stack>
@@ -494,14 +494,14 @@ function RecordsView() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Assessment</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Assessor</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Result</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Involved</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Assessor</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Result</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Involved</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

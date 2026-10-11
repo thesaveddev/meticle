@@ -6,8 +6,8 @@ export default function UnauthorizedPage() {
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
-        <Typography variant="h1" sx={{ fontWeight: 900, color: '#2F80ED', fontSize: '6rem', mb: 2 }}>403</Typography>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Access Denied</Typography>
+        <Typography variant="h1" sx={{ fontWeight: 600, color: '#2F80ED', fontSize: '6rem', mb: 2 }}>403</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Access Denied</Typography>
         <Typography sx={{ color: '#667085', mb: 4 }}>You don't have permission to access this page. Contact your organization admin if you need access.</Typography>
         <Button variant="contained" onClick={() => navigate('/dashboard')} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
           Go to Dashboard

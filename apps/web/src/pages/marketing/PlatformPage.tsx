@@ -14,7 +14,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -25,8 +25,8 @@ function DashboardMockup() {
   return (
     <Box sx={{ p: 2.5, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid #E6EAF0' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B' }}>Today's Coverage</Typography>
-        <Chip label="92%" size="small" sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#1E293B' }}>Today's Coverage</Typography>
+        <Chip label="92%" size="small" sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
       </Stack>
       <Box sx={{ height: 6, bgcolor: '#E6EAF0', borderRadius: 3, mb: 2, overflow: 'hidden' }}>
         <Box sx={{ width: '92%', height: '100%', bgcolor: '#10B981', borderRadius: 3 }} />
@@ -40,7 +40,7 @@ function DashboardMockup() {
         ].map(s => (
           <Grid item xs={6} key={s.label}>
             <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #F5F7FA' }}>
-              <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.color }}>{s.value}</Typography>
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 600, color: s.color }}>{s.value}</Typography>
               <Typography sx={{ fontSize: '0.65rem', color: '#94A3B8' }}>{s.label}</Typography>
             </Box>
           </Grid>
@@ -60,8 +60,8 @@ function EMARMockup() {
   return (
     <Box sx={{ p: 2.5, bgcolor: '#FFF7E6', borderRadius: 2, border: '1px solid #FFF7E6' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#9A6700' }}>Medication Record</Typography>
-        <Chip label="MAR" size="small" sx={{ bgcolor: '#FFF7E6', color: '#9A6700', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#9A6700' }}>Medication Record</Typography>
+        <Chip label="MAR" size="small" sx={{ bgcolor: '#FFF7E6', color: '#9A6700', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
       </Stack>
       {meds.map((m, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FFF7E6' : 'none' }}>
@@ -85,7 +85,7 @@ function WorkforceMockup() {
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
       {staff.map((s, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -98,7 +98,7 @@ function WorkforceMockup() {
           <Box sx={{ width: 50, height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${s.compliance}%`, height: '100%', bgcolor: s.color, borderRadius: 2 }} />
           </Box>
-          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.color, minWidth: 30, textAlign: 'right' }}>{s.compliance}%</Typography>
+          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: s.color, minWidth: 30, textAlign: 'right' }}>{s.compliance}%</Typography>
         </Stack>
       ))}
     </Box>
@@ -114,10 +114,10 @@ function ScheduleMockup() {
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: '#EAFBF5', borderRadius: 2, border: '1px solid #EAFBF5' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Call Schedule</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Call Schedule</Typography>
       {calls.map((c, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #EAFBF5' : 'none' }}>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#087A55', minWidth: 40 }}>{c.time}</Typography>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55', minWidth: 40 }}>{c.time}</Typography>
           <Box sx={{ width: 3, height: 24, bgcolor: c.color, borderRadius: 1, flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#087A55' }}>{c.client}</Typography>
@@ -139,8 +139,8 @@ function IncidentMockup() {
   return (
     <Box sx={{ p: 2.5, bgcolor: '#FEF0F0', borderRadius: 2, border: '1px solid #FEF0F0' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#B42318' }}>Open Incidents</Typography>
-        <Chip label="3 active" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#B42318' }}>Open Incidents</Typography>
+        <Chip label="3 active" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
       </Stack>
       {incidents.map((inc, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < incidents.length - 1 ? '1px solid #FEF0F0' : 'none' }}>
@@ -164,12 +164,12 @@ function ComplianceMockup() {
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
       {items.map((item, i) => (
         <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #F4F8FF' : 'none' }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
             <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.tealDeep }}>{item.label}</Typography>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: item.color }}>{item.pct}%</Typography>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: item.color }}>{item.pct}%</Typography>
           </Stack>
           <Box sx={{ height: 4, bgcolor: '#F4F8FF', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${item.pct}%`, height: '100%', bgcolor: item.color, borderRadius: 2 }} />
@@ -188,12 +188,12 @@ function ReportingMockup() {
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: '#F4F8FF', borderRadius: 2, border: '1px solid #EAF3FF' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#175CD3', mb: 1.5 }}>Operational Insights</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#175CD3', mb: 1.5 }}>Operational Insights</Typography>
       <Grid container spacing={1.5}>
         {metrics.map((m, i) => (
           <Grid item xs={4} key={i}>
             <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #EAF3FF' }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: m.color }}>{m.value}</Typography>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: m.color }}>{m.value}</Typography>
               <Typography sx={{ fontSize: '0.55rem', color: '#175CD3' }}>{m.label}</Typography>
               <Typography sx={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
             </Box>
@@ -207,7 +207,7 @@ function ReportingMockup() {
 function FamilyPortalMockup() {
   return (
     <Box sx={{ p: 2.5, bgcolor: '#F3FCFA', borderRadius: 2, border: '1px solid #E8FAF6' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Family View</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Family View</Typography>
       <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E8FAF6', mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <CheckCircle sx={{ fontSize: 14, color: '#10B981' }} />
@@ -231,7 +231,7 @@ function AIMockup() {
     <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <Insights sx={{ fontSize: 14, color: 'M.tealDeep' }} />
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep }}>AI Intelligence</Typography>
+        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep }}>AI Intelligence</Typography>
       </Stack>
       <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid ' + M.tealMuted, mb: 1 }}>
         <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.tealDeep, mb: 0.5 }}>Care Summary</Typography>
@@ -371,8 +371,8 @@ export default function PlatformPage() {
                 A shared operational layer for domiciliary and supported living teams. Capabilities are shaped by organisation type and enabled workflows — so every team sees what matters to them.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/solutions/domiciliary-care')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Domiciliary care</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/solutions/domiciliary-care')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Domiciliary care</Button>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -408,8 +408,8 @@ export default function PlatformPage() {
             {workflows.map((w) => (
               <Grid item xs={12} sm={6} md={3} key={w.step}>
                 <Box sx={{ p: 3, bgcolor: M.paper, borderRadius: M.r.lg, height: '100%', border: `1px solid ${M.faint}` }}>
-                  <Typography sx={{ fontSize: '2.5rem', fontWeight: 800, color: M.teal, opacity: 0.3, mb: 1 }}>{w.step}</Typography>
-                  <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 1 }}>{w.title}</Typography>
+                  <Typography sx={{ fontSize: '2.5rem', fontWeight: 600, color: M.teal, opacity: 0.3, mb: 1 }}>{w.step}</Typography>
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem', mb: 1 }}>{w.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{w.desc}</Typography>
                 </Box>
               </Grid>
@@ -432,8 +432,8 @@ export default function PlatformPage() {
                       <m.icon sx={{ color: m.color, fontSize: 24 }} />
                     </Box>
                     <Box>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: m.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Module {String(i + 1).padStart(2, '0')}</Typography>
-                      <Typography sx={{ fontWeight: 700, fontSize: '1.2rem' }}>{m.title}</Typography>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: m.color, textTransform: 'none', letterSpacing: '0.08em' }}>Module {String(i + 1).padStart(2, '0')}</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '1.2rem' }}>{m.title}</Typography>
                     </Box>
                   </Stack>
                   <Typography sx={{ color: M.slate, lineHeight: 1.65, fontSize: '0.95rem', mb: 3 }}>{m.desc}</Typography>
@@ -445,7 +445,7 @@ export default function PlatformPage() {
                       </Stack>
                     ))}
                   </Stack>
-                  <Button component="a" href={m.link} endIcon={<ArrowForward />} sx={{ color: m.color, fontWeight: 700, px: 0, textTransform: 'none', fontSize: '0.88rem' }}>
+                  <Button component="a" href={m.link} endIcon={<ArrowForward />} sx={{ color: m.color, fontWeight: 600, px: 0, textTransform: 'none', fontSize: '0.88rem' }}>
                     Learn more
                   </Button>
                 </Grid>
@@ -482,7 +482,7 @@ export default function PlatformPage() {
             </Grid>
             <Grid item xs={12} md={7}>
               <Box sx={{ p: 4, bgcolor: M.card, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-                <Typography sx={{ fontWeight: 700, mb: 2 }}>Data flow</Typography>
+                <Typography sx={{ fontWeight: 600, mb: 2 }}>Data flow</Typography>
                 {[
                   { from: 'Care note', to: 'Person record + Care plan + Visit + Staff member', icon: Description },
                   { from: 'Incident', to: 'Care plan + Risk assessment + Actions + Follow-up', icon: Warning },
@@ -492,7 +492,7 @@ export default function PlatformPage() {
                 ].map((row, i) => (
                   <Stack key={row.from} direction="row" spacing={2} alignItems="center" sx={{ py: 1.5, borderBottom: i < 4 ? `1px solid ${M.faint}` : 'none' }}>
                     <row.icon sx={{ color: M.teal, fontSize: 18 }} />
-                    <Typography sx={{ fontWeight: 700, minWidth: 100, fontSize: '0.88rem' }}>{row.from}</Typography>
+                    <Typography sx={{ fontWeight: 600, minWidth: 100, fontSize: '0.88rem' }}>{row.from}</Typography>
                     <ArrowForward sx={{ color: M.subtle, fontSize: 16 }} />
                     <Typography sx={{ color: M.slate, fontSize: '0.85rem' }}>{row.to}</Typography>
                   </Stack>
@@ -512,7 +512,7 @@ export default function PlatformPage() {
           <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
             The product is built around the person, the service and the working day.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>

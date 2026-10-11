@@ -29,7 +29,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
   const y = cy + radius * Math.sin(-midAngle * RADIAN)
   return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={700}>
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
       {`${(percent * 100).toFixed(0)}%`}
     </text>
   )
@@ -42,7 +42,7 @@ export default function ReportPieChart({ title, data, height = 350, donut = true
 
   return (
     <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>{title}</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>{title}</Typography>
       {data.length === 0 ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height - 80, color: 'text.secondary' }}>
           <Typography variant="body2">No data available</Typography>
@@ -75,7 +75,7 @@ export default function ReportPieChart({ title, data, height = 350, donut = true
           </ResponsiveContainer>
           {donut && centerLabel && (
             <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>{total}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: 'primary.main' }}>{total}</Typography>
               <Typography variant="caption" color="text.secondary">{centerLabel}</Typography>
             </Box>
           )}

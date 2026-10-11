@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
 import { AIRepository } from './ai.repository';
-import { MicaActionRequest } from './ai.actions';
 import { MicaGateway } from './ai.gateway';
-import { getProvider } from './ai.provider';
+import { getProvider, synthesizeSpeech } from './ai.provider';
 import { renderOrgPrompt } from './ai.render';
+import { MICA_TOOLS, findMicaTool } from './mica.tools';
+import { loadOrCreateSession, recordTurn, buildFollowUpMessages } from './mica.session';
+import { getMicaAction, MicaActionRequest, MicaActionDraft } from './ai.actions';
+import { collectNames, redactText, pseudonymFor } from './ai.redaction';
 import { resolveAiMinimisation } from './ai.minimisation';
+import type { AiCapability } from './ai.capabilities';
 import { AuditRepository } from '../audit/audit.repository';
-import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE } from './ai.capabilities';
+import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE, AI_FLAG_DISCLOSURES, getDisclosureForFeature } from './ai.capabilities';
 import { PROMPTS } from './ai.prompts';
 import { migrateQuery } from '../../shared/database';
 import { AIConfig, AIProvider } from './ai.types';
@@ -45,7 +49,15 @@ function sourceUrl(sourceType: string, sourceId: string, record?: any): string |
   }
 }
 
-async function aiCall(
+/**
+ * Centralised AI call helper with budget enforcement and provider fallback.
+ * All AI calls go through this function.
+ *
+ * Exported — action implementations (Mica actions) import it rather than
+ * duplicating the budget check and fallback chain, because a copy here and a
+ * copy there drift apart exactly when a payment cap changes.
+ */
+export async function aiCall(
   orgId: string,
   config: AIConfig,
   messages: Array<{ role: string; content: string }>,
@@ -117,9 +129,47 @@ export class AIController {
         prompt_key: c.promptKey,
         summary: c.summary,
         requires_narrative: c.requiresNarrative,
+        // The exact data classes sent to the provider, with the prompt
+        // variable each rides in — the same array the Settings AI tab renders
+        // per toggle. Shipping it here means a security review reads the
+        // machine-readable claim directly, not only the UI's rendering of it.
+        data_classes: c.dataClasses,
+        identifier_fields: c.identifierFields,
       })),
       prompts: PROMPTS,
     });
+  }
+
+  /**
+   * GET /ai/data-classes — capability disclosure for the Settings AI tab.
+   *
+   * Exists separately from /ai/prompts because the disclosure a manager reads
+   * next to a toggle must be ORG_ADMIN-only, but cheap and stable — while
+   * /ai/prompts ships the full templates verbatim and is heavier than a
+   * settings page needs. Same source of truth (AI_CAPABILITIES for the eleven
+   * unified-intelligence capabilities + AI_FLAG_DISCLOSURES for the seven
+   * single-purpose generators the Settings page also toggles), narrow shape.
+   * Every key the Settings AI tab can toggle resolves through
+   * getDisclosureForFeature — the drift-guard test holds that invariant.
+   */
+  static async getDataClasses(_req: Request, res: Response) {
+    const all: Array<{ id: string; label: string; data_classes: AiCapability['dataClasses']; identifier_fields: readonly string[]; requires_narrative: boolean }> = Object.values(AI_CAPABILITIES).map((c) => ({
+      id: c.id,
+      label: c.label,
+      data_classes: c.dataClasses,
+      identifier_fields: c.identifierFields,
+      requires_narrative: c.requiresNarrative,
+    }));
+    for (const f of Object.values(AI_FLAG_DISCLOSURES)) {
+      all.push({
+        id: f.id,
+        label: f.label,
+        data_classes: f.dataClasses,
+        identifier_fields: f.identifierFields,
+        requires_narrative: true,
+      });
+    }
+    res.json({ method: AI_METHOD_DISCLOSURE, capabilities: all });
   }
 
   static async getDataMinimisation(req: Request, res: Response) {
@@ -178,11 +228,12 @@ export class AIController {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
 
-    const { provider, model, enabledFeatures, apiKey, monthlyTokenBudget, monthlyCostCapGBP, fallbackProvider, fallbackApiKey, fallbackModel } = req.body;
+    const { provider, model, enabledFeatures, apiKey, monthlyTokenBudget, monthlyCostCapGBP, fallbackProvider, fallbackApiKey, fallbackModel, ttsVoice } = req.body;
     const update: Partial<AIConfig> = {};
     if (provider !== undefined) update.provider = provider;
     if (model !== undefined) update.model = model;
     if (enabledFeatures !== undefined) update.enabledFeatures = enabledFeatures;
+    if (ttsVoice !== undefined) update.ttsVoice = ttsVoice;
     if (apiKey !== undefined) {
       const trimmed = typeof apiKey === 'string' ? apiKey.trim() : apiKey;
       if (trimmed === '') {
@@ -1058,6 +1109,474 @@ export class AIController {
   }
 
   /**
+   * Mica action gateway for write actions (create task, book appointment).
+   *
+   * The confirm-before-persist contract: POST /ai/mica/actions prepares a
+   * DRAFT (with clarification rounds if a spoken name is ambiguous); the
+   * client shows the summary; the user approves; the client posts the draft
+   * to /ai/mica/actions/confirm and only then is anything persisted. The
+   * confirm endpoint re-validates every org-scoped reference server-side
+   * because the confirming client is untrusted input again.
+   */
+  static async micaAction(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const body = req.body as { action?: string; clarify?: boolean; utterance?: string; input?: Record<string, unknown> };
+    const actionId = body.action as MicaActionRequest['action'];
+    if (!actionId || actionId === 'CREATE_CARE_NOTE') {
+      // Care notes keep their dedicated endpoint and feature flag.
+      return res.status(400).json({ error: { message: 'Send care notes to /ai/voice/notes.' } });
+    }
+
+    // Feature gate: Mica write actions ride the natural_language_assistant
+    // feature — the same switch that enables Mica's question answering.
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('natural_language_assistant')) {
+      return res.status(403).json({ error: { message: 'Enable the "Natural-language Assistant" feature in Settings → AI to use Mica actions.' } });
+    }
+
+    const role = (req as unknown as { user?: { role?: string } }).user?.role;
+    const metadata = getMicaAction(actionId);
+    const allowed = metadata.allowedRoles as readonly string[];
+    if (role && !allowed.includes(role)) {
+      return res.status(403).json({ error: { message: `Your role cannot use the "${metadata.label}" action.` } });
+    }
+
+    const result = await MicaGateway.handle(
+      { action: actionId, clarify: body.clarify, utterance: body.utterance, input: body.input || {} },
+      { req, user: { organizationId: orgId, userId } },
+    );
+
+    if ('error' in result) {
+      await AuditRepository.log({
+        user_id: userId,
+        action: `${metadata.auditFeature}.rejected`,
+        entity_type: 'mica_action',
+        entity_id: undefined,
+        new_data: { action: actionId, reason: result.error.message },
+      });
+      return res.status(400).json(result);
+    }
+
+    // Drafts and clarifications are audit-logged as prepared (not applied).
+    await AuditRepository.log({
+      user_id: userId,
+      action: `${metadata.auditFeature}.prepared`,
+      entity_type: 'mica_action',
+      entity_id: undefined,
+      new_data: { action: actionId, source: (result as { context?: { source?: string } }).context?.source || 'voice' },
+    });
+    return res.json(result);
+  }
+
+  static async micaActionConfirm(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const draft = req.body?.draft as MicaActionDraft<unknown> | undefined;
+    if (!draft || typeof draft !== 'object' || (draft as { draft?: unknown }).draft !== true || typeof draft.action !== 'string') {
+      return res.status(400).json({ error: { message: 'A reviewed draft is required to confirm.' } });
+    }
+    if (draft.action === 'CREATE_CARE_NOTE') {
+      return res.status(400).json({ error: { message: 'Care notes are approved through /ai/daily-notes/approve.' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('natural_language_assistant')) {
+      return res.status(403).json({ error: { message: 'Enable the "Natural-language Assistant" feature in Settings → AI to use Mica actions.' } });
+    }
+
+    const role = (req as unknown as { user?: { role?: string } }).user?.role;
+    const metadata = getMicaAction(draft.action as MicaActionRequest['action']);
+    const allowed = metadata.allowedRoles as readonly string[];
+    if (role && !allowed.includes(role)) {
+      return res.status(403).json({ error: { message: `Your role cannot use the "${metadata.label}" action.` } });
+    }
+
+    try {
+      const result = await MicaGateway.confirm(draft, { req, user: { organizationId: orgId, userId } });
+      if ('error' in result) {
+        return res.status(400).json(result);
+      }
+      const confirmedResult = result as { ok: true; result: Record<string, unknown> };
+      await AuditRepository.log({
+        user_id: userId,
+        action: `${metadata.auditFeature}.confirmed`,
+        entity_type: 'mica_action',
+        entity_id: (confirmedResult.result.taskId as string) || (confirmedResult.result.appointmentId as string) || undefined,
+        new_data: { action: draft.action, result: confirmedResult.result },
+      });
+      return res.json({ confirmed: true, result: confirmedResult.result });
+    } catch (err: any) {
+      return res.status(400).json({ error: { message: err?.message || 'Could not save that.' } });
+    }
+  }
+
+  /**
+   * POST /ai/tts — text-to-speech for Mica's spoken replies.
+   *
+   * The client (useMica.speak) sends the sentence Mica is about to say and gets
+   * MP3 bytes back, which it plays through Web Audio. Playing through Web Audio
+   * (rather than <audio> or speechSynthesis) is what lets the orb react to the
+   * literal output amplitude via an AnalyserNode instead of a synthetic
+   * word-boundary envelope.
+   *
+   * Gated like every other AI call: org AI config enabled, an OpenAI primary
+   * or fallback key (Anthropic has no TTS API), and the org's monthly token
+   * budget. Usage is audit-logged so TTS spend shows up in /ai/usage-stats.
+   */
+  static async textToSpeech(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+
+    // TTS speaks the model's own reply back to the user — no care-record
+    // narrative crosses the boundary here, only short UI sentences, so no
+    // per-feature flag; the org-level AI enablement is the control.
+    const started = Date.now();
+    const { text, voice } = req.body as { text: string; voice?: string };
+    try {
+      const budget = await AIRepository.checkBudget(orgId, config);
+      if (!budget.allowed) {
+        return res.status(402).json({ error: { message: `AI budget exceeded: ${budget.reason}` } });
+      }
+
+      // OpenAI TTS needs an OpenAI key: synthesizeSpeech tries the primary,
+      // then the configured fallback, and returns null when the org has no
+      // OpenAI key at all. The processor allowlist is enforced inside it.
+      // Voice resolution order: per-request override (kept for the client's
+      // quick-switch), then the org's Settings → AI choice, then coral.
+      const speech = await synthesizeSpeech(config, text, { voice: voice || config.ttsVoice });
+      if (!speech) {
+        return res.status(400).json({ error: { message: 'Text-to-speech requires an OpenAI provider (primary or fallback).' } });
+      }
+
+      const { audio, mime } = speech;
+
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'tts',
+        provider: 'openai',
+        model: 'gpt-4o-mini-tts',
+        durationMs: Date.now() - started,
+        success: true,
+        createdBy: userId,
+        // Never store the spoken text: it is frequently a care-note reply and
+        // the audit log is read by more roles than the note itself.
+        responseSummary: `tts ${audio.length} bytes`,
+      });
+
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(audio);
+    } catch (err: any) {
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'tts',
+        provider: 'openai',
+        model: 'gpt-4o-mini-tts',
+        durationMs: Date.now() - started,
+        success: false,
+        errorMessage: err?.message?.slice(0, 500),
+        createdBy: userId,
+      }).catch(() => undefined);
+      const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
+      return res.status(status).json({ error: { message: err?.message || 'Text-to-speech failed.' } });
+    }
+  }
+
+  /**
+   * Mica's platform-wide question answering ("who is on shift today",
+   * "who is supporting Grace Roberts", "give me today's appointments").
+   *
+   * Mechanism, stated honestly for the prompts disclosure: the model does not
+   * see your records. It sees the question plus a menu of read-only tools; it
+   * picks tools and arguments; we run those SELECTs org-scoped; and the model
+   * only ever summarises pseudonymised results. Real names are held in a
+   * server-side map and restored into the client-facing answer, so a person's
+   * name never crosses the model boundary — the same control every other AI
+   * surface in this codebase applies, one step further because here the
+   * *reply itself* is what gets spoken aloud.
+   */
+  /**
+   * POST /ai/mica/settle — intent classification for ambiguous utterances.
+   *
+   * The client's regex heuristics (detectMicaActionIntent) catch obvious
+   * shapes like "create a task" or "book a podiatry appointment", but short
+   * spoken imperatives such as "book podiatry" or "arrangea Hoknow visit" —
+   * where the object is a kind of appointment rather than the word itself —
+   * match no regex, fall through the care-note path, and produce a wrong
+   * draft. Rather than growing the regex pile, this route classifies the
+   * utterance with one small LLM call when the client asks for help, and
+   * returns the action id plus extraction of the appointment/task subject.
+   *
+   * The model is told explicitly that anything other than one of the four
+   * listed write intents is `none` (read or care-note, which stay on their
+   * current paths), so the fallback can never invent a fifth action — it
+   * can only pick between the two registered write actions, decline to
+   * `none`, or fail bounded. Recognition-only: nothing here writes.
+   */
+  static async micaSettle(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const orgUserId = req.user?.userId;
+    if (!orgId || !orgUserId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('natural_language_assistant')) {
+      return res.status(403).json({ error: { message: 'Enable the "Natural-language Assistant" feature in Settings → AI to use Mica actions.' } });
+    }
+    if (config.provider !== 'openai') {
+      return res.status(400).json({ error: { message: 'Mica intent fallback requires an OpenAI provider.' } });
+    }
+    const utterance = (req.body as { utterance: string }).utterance;
+
+    const started = Date.now();
+    const today = new Date().toISOString().split('T')[0];
+    const system = [
+      `You are classifying what a care worker wants when speaking to a voice assistant (today is ${today}).`,
+      `Reply with ONLY a JSON object: {"action":"CREATE_APPOINTMENT"|"CREATE_TASK"|"none", "subject":"...", "personName":"..."}.`,
+      `CREATE_APPOINTMENT — they want to book/schedule/arrange/reschedule an appointment, visit, clinic, check-up, review or similar clinical/official slot.\nCREATE_TASK — they want to create/add a task, reminder, to-do or follow-up item.\n"none" — everything else (questions, care observations, notes).`,
+      `Rules: subject is the event/thing's short name ("podiatry", "GP review", "fire drill"); personName is the person it concerns ONLY if clearly named (null otherwise); a statement about someone's day is a care note, not a task; never invent an action outside the list.`,
+    ].join(' ');
+    const user = `Utterance: "${utterance}"`;
+
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        { model: config.model, temperature: 0, maxTokens: 120 },
+      );
+      const match = result.content.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('no JSON in reply');
+      let parsed: any;
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch {
+        throw new Error('unparseable JSON reply');
+      }
+      const action = parsed?.action === 'CREATE_APPOINTMENT' || parsed?.action === 'CREATE_TASK'
+        ? parsed.action
+        : null; // anything else (including 'none', misspellings) is no intent
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'mica_intent_settle',
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        totalTokens: result.totalTokens,
+        model: config.model,
+        provider: config.provider,
+        durationMs: Date.now() - started,
+        createdBy: orgUserId,
+        requestData: { utterance },
+        responseSummary: action || 'none',
+      }).catch(() => undefined);
+
+      if (!action) {
+        // Explicit none is a real result, not an error: it tells the client
+        // "this is a question or care note — carry on down your usual path".
+        return res.json({ intent: null, action: parsed?.action === 'none' ? 'none' : 'unclassified' });
+      }
+      const subject = typeof parsed?.subject === 'string' ? parsed.subject.slice(0, 80) : undefined;
+      const personName = typeof parsed?.personName === 'string' ? parsed.personName.slice(0, 80) : undefined;
+      const prefill: Record<string, unknown> = { utterance };
+      if (action === 'CREATE_APPOINTMENT') {
+        if (subject) prefill.title = subject;
+        if (personName) prefill.personName = personName;
+      } else if (subject) {
+        prefill.title = /renewal|review|follow-?up/i.test(subject) ? subject : `${subject} — check or arrange`;
+        if (personName) prefill.personName = personName;
+        prefill.priority = 'medium';
+      }
+      return res.json({ intent: { action, utterance, ...prefill }, action });
+    } catch (err: any) {
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'mica_intent_settle',
+        success: false,
+        errorMessage: err?.message?.slice(0, 300),
+        durationMs: Date.now() - started,
+        createdBy: orgUserId,
+      }).catch(() => undefined);
+      return res.status(400).json({ error: { message: 'Mica could not determine what you meant. Try rewording.' } });
+    }
+  }
+
+  static async micaAsk(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) {
+      return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('natural_language_assistant')) {
+      return res.status(403).json({ error: { message: 'Enable the "Natural-language Assistant" feature in Settings → AI to ask Mica questions.' } });
+    }
+    if (config.provider !== 'openai') {
+      return res.status(400).json({ error: { message: 'Mica question answering requires an OpenAI provider (tool calling).' } });
+    }
+    const budget = await AIRepository.checkBudget(orgId, config);
+    if (!budget.allowed) {
+      return res.status(402).json({ error: { message: `AI budget exceeded: ${budget.reason}` } });
+    }
+
+    const provider = getProvider(config);
+    if (typeof (provider as any).chatWithTools !== 'function') {
+      return res.status(400).json({ error: { message: 'Mica question answering requires an OpenAI provider (tool calling).' } });
+    }
+
+    const started = Date.now();
+    const question = (req.body as { question: string }).question;
+    const clientSessionId = (req.body as { sessionId?: string }).sessionId;
+    // Follow-up memory: the client sends back the opaque sessionId the server
+    // issued last time. Sessions are scoped to this user+org, so an id from
+    // another user (or an expired one) silently starts a fresh conversation.
+    const session = await loadOrCreateSession(orgId, userId, clientSessionId);
+    if (!session) {
+      // The store could not allocate a conversation (never happens in
+      // practice — the memory fallback is synchronous). Fail the question
+      // rather than answering without context.
+      return res.status(503).json({ error: { message: 'Mica conversation store unavailable. Try again.' } });
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const systemPrompt = [
+      `You are Mica, the voice assistant inside MeticleCare, a care-management platform. You answer one question from a member of staff, concisely (1-3 sentences, spoken style).`,
+      `Today's date is ${today}. Answer in British English.`,
+      `When asked how urgent a medication reorder is, quote the stock urgency bands consistently: already out or projected to run out within 3 days means urgent and delivery should be arranged today; 4–7 days means arrange delivery this week; over 7 days is lower urgency and can follow normal replenishment. Base this only on days_until_empty from the last 28 days of given doses. An incoming future delivery can avoid a duplicate order only if it arrives before run-out and is sufficient; explain if timing or quantity is insufficient. If expired_first is true, warn that stock expires before projected run-out and still needs replacement. Say when usage or expiry is unknown; do not invent an estimate.`,
+      `You have read-only tools over the organisation's records: rota/staff on shift, who supports a person, appointments, person overview, incidents, staff on leave, rota coverage, medication rounds, expiring training, leave balances, person lookup.`,
+      `Call the tool(s) you need, then answer from the results. Do not invent data: if the results are empty or do not answer the question, say what you could not find. Never guess names, rooms or times that are not in the results.`,
+      `If the question is actually asking to record or write something (e.g. "record a care note"), say you will start the care-note flow rather than calling tools.`,
+      `This may be a follow-up to an earlier question in the same conversation, provided as prior user/assistant turns. Pronouns and ellipses ("what about tomorrow?", "and the night shift?") refer to the most recent topic. Resolve relative dates against Today's date above, then answer the NEW question — do not just repeat the previous answer. If the follow-up is ambiguous, answer for the most likely reading and say which reading you took.`,
+    ].join(' ');
+
+    const { messages: historyMessages, priorTurns } = buildFollowUpMessages(session, systemPrompt, question);
+
+    // Names in tool results are pseudonymised before the model sees them; this
+    // map is what restores real names into the answer the staff member reads.
+    const pseudonymToReal = new Map<string, string>();
+    const pseudonymise = (rows: unknown[]): string => {
+      const names = collectNames({ rows } as Record<string, unknown>);
+      const scoped = new Map<string, string>();
+      for (const [name, pseudo] of names) {
+        const kind = pseudo.startsWith('Staff') ? 'staff' : 'person';
+        const scopedPseudo = pseudonymFor(name, orgId, kind as 'staff' | 'person');
+        scoped.set(name, scopedPseudo);
+        pseudonymToReal.set(scopedPseudo, name);
+      }
+      return redactText(JSON.stringify(rows), scoped);
+    };
+
+    try {
+      const tools = MICA_TOOLS.map((t) => ({
+        type: 'function',
+        function: { name: t.name, description: t.description, parameters: t.parameters },
+      }));
+      const messages: any[] = historyMessages;
+
+      let answer: string | null = null;
+      let totalTokens = 0;
+      const MAX_TOOL_ROUNDS = 3;
+      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        const step = await (provider as any).chatWithTools(messages, { tools, model: config.model });
+        totalTokens += step.totalTokens;
+        if (!step.toolCalls?.length) {
+          answer = step.content || 'I could not answer that. Try asking again.';
+          break;
+        }
+        messages.push({ role: 'assistant', tool_calls: step.toolCalls.map((tc: any) => ({ id: tc.id, type: 'function', function: { name: tc.name, arguments: tc.args } })) });
+        for (const tc of step.toolCalls) {
+          const tool = findMicaTool(tc.name);
+          let payload: string;
+          if (!tool) {
+            payload = JSON.stringify({ error: `Unknown tool ${tc.name}` });
+          } else {
+            try {
+              const args = JSON.parse(tc.args || '{}');
+              payload = pseudonymise(await tool.execute(orgId, args));
+            } catch (e: any) {
+              payload = JSON.stringify({ error: e?.message?.slice(0, 200) || 'tool failed' });
+            }
+          }
+          messages.push({ role: 'tool', tool_call_id: tc.id, content: payload });
+        }
+      }
+      if (answer === null) {
+        // Loop exhausted mid-tool-calling: make one final no-tools call so the
+        // user still gets an answer built from what was gathered.
+        const final = await (provider as any).chatWithTools(messages, { model: config.model });
+        totalTokens += final.totalTokens;
+        answer = final.content || 'I could not complete that question. Try asking again.';
+      }
+      const answerText: string = answer ?? 'I could not answer that. Try asking again.';
+
+      // Restore real names into the client-facing answer. Longest first so a
+      // full name is restored before a bare given name maps to the same key.
+      let restored: string = answerText;
+      for (const [pseudo, real] of [...pseudonymToReal.entries()].sort((a, b) => b[0].length - a[0].length)) {
+        restored = restored.replace(new RegExp(`\\b${pseudo.replace(/ /g, '\\s+')}\\b`, 'g'), real);
+      }
+      answer = restored;
+      const finalAnswer: string = restored;
+
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'mica_ask',
+        totalTokens,
+        model: config.model,
+        provider: config.provider,
+        durationMs: Date.now() - started,
+        success: true,
+        createdBy: userId,
+        // Store the question (it is the user's own words) but not the answer:
+        // answers echo record data, and this log is readable by ORG_ADMINs.
+        responseSummary: `mica_ask ${totalTokens} tokens${priorTurns ? ` followup_of_${priorTurns}` : ''}`,
+      });
+      // Only completed answers join the conversation memory, so a failed turn
+      // never poisons the context the next follow-up sees.
+      await recordTurn(session, question, finalAnswer);
+      return res.json({ answer: finalAnswer, tokens: totalTokens, sessionId: session.sessionId });
+    } catch (err: any) {
+      await AIRepository.logAudit({
+        organizationId: orgId,
+        feature: 'mica_ask',
+        durationMs: Date.now() - started,
+        success: false,
+        errorMessage: err?.message?.slice(0, 500),
+        createdBy: userId,
+      }).catch(() => undefined);
+      return res.status(500).json({ error: { message: err?.message || 'Mica could not answer that.' } });
+    }
+  }
+
+  /**
    * Minimal reusable person-resolution helper exported so the same disambiguation
    * logic the brief requires for voice actions is available to any future Mica
    * tool that needs to identify a person by name rather than UUID.
@@ -1674,8 +2193,7 @@ export class AIController {
 
     const [carePlans, dietaryProfile, recentNutrition] = await Promise.all([
       pool.query('SELECT title, goals, review_date FROM care_plans WHERE person_id = $1 AND status = $2', [note.person_id, 'active']),
-      pool.query('SELECT allergies, dietary_requirements, texture_modified, favourite_foods, disliked_foods, cultural_preferences FROM dietary_profiles WHERE person_id = $1', [note.person_id]),
-      pool.query(`SELECT meal_type, date, consumed_percentage, fluid_ml, appetite_level, refused, notes
+      pool.query('SELECT allergies, dietary_requirements, texture_modified, favourite_foods, disliked_foods, cultural_preferences FROM dietary_profiles WHERE person_id = $1', [note.person_id]),          pool.query(`SELECT meal_type, date, consumed_percentage, fluid_ml, appetite_level, refused, notes
         FROM nutrition_records WHERE person_id = $1 AND date >= CURRENT_DATE - INTERVAL '7 days' ORDER BY date DESC`, [note.person_id]),
     ]);
 
@@ -1798,7 +2316,9 @@ export class AIController {
     if (!config || !config.enabled || !config.apiKey) return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
     if (!config.enabledFeatures?.includes(capability)) return res.status(403).json({ error: { message: `${capability} is not enabled for your organization.` } });
 
-    const pool = (await import('../../shared/database')).default;
+    // This route runs after rlsMiddleware; tenant queries must use the ALS
+    // scoped helper rather than the privileged database pool.
+    const { query: tenantQuery } = await import('../../shared/database');
     const today = new Date().toISOString().slice(0, 10);
     const windowDays = ['7', '14', '30'].includes(String(req.body.window)) ? Number(req.body.window) : 7;
     const from = req.body.from || (capability === 'end_of_day_intelligence' ? today : new Date(Date.now() - (windowDays - 1) * 86400000).toISOString().slice(0, 10));
@@ -1812,20 +2332,20 @@ export class AIController {
       const personFilter = personId ? ' AND p.id = $4' : '';
       const params = personId ? [orgId, from, to, personId] : [orgId, from, to];
       const [visits, notes, incidents, training] = await Promise.all([
-        pool.query(`SELECT v.id, v.status, v.label, v.scheduled_start, v.scheduled_end, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
+        tenantQuery(`SELECT v.id, v.status, v.label, v.scheduled_start, v.scheduled_end, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
           FROM homecare_visits v JOIN people p ON p.id = v.person_id
           WHERE v.organization_id = $1 AND v.scheduled_start::date BETWEEN $2::date AND $3::date${personFilter}
           ORDER BY v.scheduled_start LIMIT 500`, params),
-        pool.query(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
+        tenantQuery(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
           FROM daily_notes n JOIN people p ON p.id = n.person_id
           WHERE p.organization_id = $1 AND n.note_date BETWEEN $2::date AND $3::date${personFilter}
           ORDER BY n.note_date DESC, n.created_at DESC LIMIT 300`, params),
-        pool.query(`SELECT DISTINCT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description, iir.person_id
+        tenantQuery(`SELECT DISTINCT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description, iir.person_id
           FROM incidents i LEFT JOIN incident_involved_residents iir ON iir.incident_id = i.id
           WHERE i.organization_id = $1 AND i.incident_date BETWEEN $2::date AND $3::date
             AND ($4::uuid IS NULL OR iir.person_id = $4)
           ORDER BY i.incident_date DESC LIMIT 300`, [orgId, from, to, personId || null]),
-        pool.query(`SELECT tr.id, tm.name AS module_name, tr.status, tr.expires_at, sp.first_name || ' ' || sp.last_name AS staff_name
+        tenantQuery(`SELECT tr.id, tm.name AS module_name, tr.status, tr.expires_at, sp.first_name || ' ' || sp.last_name AS staff_name
           FROM training_records tr JOIN training_modules tm ON tm.id = tr.module_id JOIN staff_profiles sp ON sp.id = tr.staff_id
           JOIN users u ON u.id = sp.user_id WHERE u.organization_id = $1 AND (tr.expires_at BETWEEN $2::date AND $3::date OR tr.status = 'expired') LIMIT 200`, [orgId, from, to]),
       ]);
@@ -1838,7 +2358,7 @@ export class AIController {
       ];
 
       if (['change_detection', 'risk_signals', 'operational_anomaly_detection', 'care_summary'].includes(capability)) {
-        const medication = await pool.query(`SELECT a.id, a.status, a.scheduled_time, a.administered_time, a.notes, i.name AS medication_name, r.person_id
+        const medication = await tenantQuery(`SELECT a.id, a.status, a.scheduled_time, a.administered_time, a.notes, i.name AS medication_name, r.person_id
           FROM emedication_administrations a JOIN emedication_items i ON i.id = a.emedication_item_id
           JOIN emedication_records r ON r.id = i.emedication_record_id
           WHERE r.organization_id = $1 AND a.scheduled_time::date BETWEEN $2::date AND $3::date
@@ -1848,15 +2368,15 @@ export class AIController {
 
       if (capability === 'compliance_copilot' || capability === 'operational_anomaly_detection') {
         const [risks, actions, competencies] = await Promise.all([
-          pool.query(`SELECT ra.id, ra.type, ra.risk_level, ra.review_date, LEFT(ra.details, 400) AS details, ra.person_id
+          tenantQuery(`SELECT ra.id, ra.type, ra.risk_level, ra.review_date, LEFT(ra.details, 400) AS details, ra.person_id
             FROM risk_assessments ra JOIN people p ON p.id = ra.person_id
             WHERE p.organization_id = $1 AND (ra.review_date BETWEEN $2::date AND $3::date OR ra.review_date < CURRENT_DATE)
             LIMIT 200`, [orgId, from, to]),
-          pool.query(`SELECT ia.id, ia.incident_id, ia.action, ia.due_date, ia.status
+          tenantQuery(`SELECT ia.id, ia.incident_id, ia.action, ia.due_date, ia.status
             FROM incident_actions ia JOIN incidents i ON i.id = ia.incident_id
             WHERE i.organization_id = $1 AND (ia.due_date BETWEEN $2::date AND $3::date OR (ia.due_date < CURRENT_DATE AND ia.status != 'completed'))
             LIMIT 200`, [orgId, from, to]),
-          pool.query(`SELECT ca.id, ca.staff_id, ca.passed, ca.assessed_at, ca.reassessment_date, ct.name AS competency_name
+          tenantQuery(`SELECT ca.id, ca.staff_id, ca.passed, ca.assessed_at, ca.reassessment_date, ct.name AS competency_name
             FROM competency_assessments ca JOIN competency_templates ct ON ct.id = ca.template_id
             WHERE ct.organization_id = $1 AND (ca.reassessment_date BETWEEN $2::date AND $3::date OR ca.reassessment_date < CURRENT_DATE OR ca.passed = false)
             LIMIT 200`, [orgId, from, to]),
@@ -1867,7 +2387,7 @@ export class AIController {
       }
 
       if (capability === 'rota_alternatives') {
-        const shifts = await pool.query(`SELECT s.id, s.start_time, s.end_time, s.status, s.shift_type, l.name AS location_name
+        const shifts = await tenantQuery(`SELECT s.id, s.start_time, s.end_time, s.status, s.shift_type, l.name AS location_name
           FROM shifts s JOIN locations l ON l.id = s.location_id
           WHERE l.organization_id = $1 AND s.start_time::date BETWEEN $2::date AND $3::date
           ORDER BY s.start_time LIMIT 300`, [orgId, from, to]);
@@ -1875,7 +2395,7 @@ export class AIController {
       }
 
       if (capability === 'family_communication_draft' && personId) {
-        const family = await pool.query(`SELECT id, name, relationship, email FROM family_contacts WHERE person_id = $1`, [personId]);
+        const family = await tenantQuery(`SELECT id, name, relationship, email FROM family_contacts WHERE person_id = $1`, [personId]);
         // `email` is an encrypted `family_contacts` column; decrypted here because
         // it is about to be summarised into a draft that leaves the process.
         const familyRows = decryptRowsForOrg('family_contacts', family.rows, orgId);

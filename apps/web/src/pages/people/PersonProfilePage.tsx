@@ -37,9 +37,10 @@ import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell } from 'recharts'
 import PageContainer from '../../components/design/PageContainer'
+import { METICLE_COLORS } from '../../context/ThemeContext'
 import { PremiumCard } from '../../components/design/PremiumCard'
 
-const RISK_COLORS: Record<string, string> = { low: '#10B981', medium: '#F59E0B', high: '#EF4444', critical: '#8B7CF6' }
+const RISK_COLORS: Record<string, string> = { low: METICLE_COLORS.success, medium: METICLE_COLORS.warning, high: METICLE_COLORS.danger, critical: '#8B7CF6' }
 
 // Shift values the profile note form accepts. The server normalises these to
 // day/night, but the client keeps the richer labels the brief wants so the UI
@@ -634,13 +635,13 @@ export default function PersonProfilePage() {
             {/* Photo */}
             <Box sx={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }} onClick={() => fileInputRef.current?.click()}>
               <Avatar src={photoUrl || undefined}
-                sx={{ width: 72, height: 72, bgcolor: '#2F80ED', fontSize: 28, fontWeight: 700, border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                sx={{ width: 72, height: 72, bgcolor: METICLE_COLORS.primary, fontSize: 28, fontWeight: 600, border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                 {!photoUrl && `${user.first_name?.[0]}${user.last_name?.[0]}`}
               </Avatar>
               {uploadPhotoMutation.isPending && (
-                <CircularProgress size={72} sx={{ position: 'absolute', top: 0, left: 0, color: '#2F80ED', opacity: 0.5 }} />
+                <CircularProgress size={72} sx={{ position: 'absolute', top: 0, left: 0, color: METICLE_COLORS.primary, opacity: 0.5 }} />
               )}
-              <Box sx={{ position: 'absolute', bottom: 0, right: 0, bgcolor: '#2F80ED', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+              <Box sx={{ position: 'absolute', bottom: 0, right: 0, bgcolor: METICLE_COLORS.primary, borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
                 <CameraIcon sx={{ fontSize: 13, color: 'white' }} />
               </Box>
             </Box>
@@ -650,8 +651,8 @@ export default function PersonProfilePage() {
             {/* Name & Info */}
             <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{user.first_name} {user.last_name}</Typography>
-                <Chip label={user.status} size="small" color={user.status === 'active' ? 'success' : user.status === 'discharged' ? 'default' : 'error'} sx={{ height: 22, fontWeight: 700 }} />
+                <Typography variant="h5" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{user.first_name} {user.last_name}</Typography>
+                <Chip label={user.status} size="small" color={user.status === 'active' ? 'success' : user.status === 'discharged' ? 'default' : 'error'} sx={{ height: 22, fontWeight: 600 }} />
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 0.75 }}>
                 {user.room_number && <Chip icon={<EventIcon sx={{ fontSize: 13 }} />} label={`Room ${user.room_number}`} size="small" variant="outlined" sx={{ borderRadius: 1 }} />}
@@ -665,7 +666,7 @@ export default function PersonProfilePage() {
                 )}
               </Stack>
               {user.date_of_birth && (
-                <Typography variant="caption" color="#667085">
+                <Typography variant="caption" color="text.secondary">
                   DOB: {formatDateOnly(user.date_of_birth)}
                   {user.date_of_birth && ` (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)`}
                 </Typography>
@@ -688,7 +689,7 @@ export default function PersonProfilePage() {
               setAiVoiceListening(true)
               setAiVoiceTranscript('')
               startMicaVoiceNote()
-            }} sx={{ textTransform: 'none', borderRadius: 1.5, whiteSpace: 'nowrap' }}>
+            }} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
               Ask Mica to record a note
             </Button>
           <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => {
@@ -696,7 +697,7 @@ export default function PersonProfilePage() {
             for (const k of EDIT_DATE_FIELDS) f[k] = toDateInput(f[k])
             setEditForm(f); setEditOpen(true)
           }}
-            sx={{ textTransform: 'none', borderRadius: 1.5, whiteSpace: 'nowrap' }}>
+            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
             Edit Profile
           </Button>
           </Stack>
@@ -706,13 +707,13 @@ export default function PersonProfilePage() {
       {/* Flags / Alerts Banner (visible on every tab) */}
       {user.flags && user.flags.length > 0 && (
         <PremiumCard noBorder sx={{ p: 2, mb: 2, bgcolor: 'notice.error.bg' }}>
-          <Typography variant="subtitle2" fontWeight={800} color='notice.error.fg' sx={{ mb: 1 }}>
+          <Typography variant="subtitle2" fontWeight={600} color='notice.error.fg' sx={{ mb: 1 }}>
             ⚠ Clinical Alerts
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {user.flags.map((f: string) => (
               <Chip key={f} label={f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} size="small"
-                color="error" variant="filled" sx={{ fontWeight: 700 }} />
+                color="error" variant="filled" sx={{ fontWeight: 600 }} />
             ))}
           </Stack>
         </PremiumCard>
@@ -721,7 +722,7 @@ export default function PersonProfilePage() {
       {/* DNACPR Banner */}
       {user.dnacpr_status === 'in_place' && (
         <PremiumCard noBorder sx={{ p: 2, mb: 2, bgcolor: 'notice.warning.bg' }}>
-          <Typography variant="subtitle2" fontWeight={800} color='notice.warning.fg' sx={{ mb: 0.5 }}>
+          <Typography variant="subtitle2" fontWeight={600} color='notice.warning.fg' sx={{ mb: 0.5 }}>
             DNACPR in place
           </Typography>
           {user.dnacpr_date && <Typography variant="caption" color='notice.warning.fg'>Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
@@ -747,20 +748,20 @@ export default function PersonProfilePage() {
               onClick={() => handleTabChange(cat.tabs[0])}
               sx={{
                 px: 1.5, py: 0.75, cursor: 'pointer', borderRadius: 1.5,
-                bgcolor: activeCategory === i ? '#2F80ED' : 'transparent',
+                bgcolor: activeCategory === i ? METICLE_COLORS.primary : 'transparent',
                 color: activeCategory === i ? '#FFFFFF' : theme.palette.text.primary,
-                fontWeight: 700, fontSize: 12, textTransform: 'none',
+                fontWeight: 600, fontSize: 12, textTransform: 'none',
                 transition: 'all 0.15s',
-                '&:hover': { bgcolor: activeCategory === i ? '#2F80ED' : 'action.selected' },
+                '&:hover': { bgcolor: activeCategory === i ? METICLE_COLORS.primary : 'action.selected' },
               }}>
               {cat.label}
             </Box>
           ))}
         </Stack>
-        <Tabs value={tab} onChange={(_, v) => handleTabChange(v)} sx={{ minHeight: 40, '& .MuiTabs-indicator': { bgcolor: '#2F80ED', height: 3 } }}>
+        <Tabs value={tab} onChange={(_, v) => handleTabChange(v)} sx={{ minHeight: 40, '& .MuiTabs-indicator': { bgcolor: METICLE_COLORS.primary, height: 3 } }}>
           {CATEGORIES[activeCategory].tabs.map(idx => (
             <Tab key={idx} value={idx} label={TAB_LABELS[idx]}
-              sx={{ textTransform: 'none', fontWeight: 700, fontSize: 13, minHeight: 40, py: 1, px: 2 }} />
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: 13, minHeight: 40, py: 1, px: 2 }} />
           ))}
         </Tabs>
       </PremiumCard>
@@ -773,8 +774,8 @@ export default function PersonProfilePage() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <PersonIcon sx={{ fontSize: 18, color: '#2F80ED' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Personal Details</Typography>
+                <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.primary }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Personal Details</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'DOB', value: user.date_of_birth ? `${formatDateOnly(user.date_of_birth)} (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)` : '—' },
@@ -785,8 +786,8 @@ export default function PersonProfilePage() {
                   { label: 'NHS Number', value: user.nhs_number || '—' },
                   { label: 'Room', value: user.room_number || '—' },
                 ].map((r, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 6 ? '1px solid #E6EAF0' : 'none', pb: i < 6 ? 0.75 : 0 }}>
-                    <Typography variant="body2" color="#667085">{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 6 ? '1px solid divider' : 'none', pb: i < 6 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -798,8 +799,8 @@ export default function PersonProfilePage() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <HealthIcon sx={{ fontSize: 18, color: '#10B981' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Medical &amp; GP</Typography>
+                <HealthIcon sx={{ fontSize: 18, color: METICLE_COLORS.success }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Medical &amp; GP</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'GP Name', value: user.gp_name || '—' },
@@ -809,8 +810,8 @@ export default function PersonProfilePage() {
                   { label: 'GP Address', value: user.gp_address || '—', isLong: true },
                   { label: 'Dietary', value: user.dietary_requirements || 'None specified' },
                 ].map((r: any, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 5 ? '1px solid #E6EAF0' : 'none', pb: i < 5 ? 0.75 : 0 }}>
-                    <Typography variant="body2" color="#667085" sx={{ flexShrink: 0, mr: 1 }}>{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 5 ? '1px solid divider' : 'none', pb: i < 5 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0, mr: 1 }}>{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600} textAlign="right" sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -823,15 +824,15 @@ export default function PersonProfilePage() {
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <AssignmentIcon sx={{ fontSize: 18, color: '#8B7CF6' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Pharmacy</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Pharmacy</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'Pharmacy Name', value: user.pharmacy_name || '—' },
                   { label: 'Phone', value: user.pharmacy_phone || '—' },
                   { label: 'Address', value: user.pharmacy_address || '—', isLong: true },
                 ].map((r: any, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid #E6EAF0' : 'none', pb: i < 2 ? 0.75 : 0 }}>
-                    <Typography variant="body2" color="#667085">{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600} sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -843,16 +844,16 @@ export default function PersonProfilePage() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <PersonIcon sx={{ fontSize: 18, color: '#F59E0B' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Social Worker</Typography>
+                <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.warning }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Social Worker</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'Name', value: user.social_worker_name || '—' },
                   { label: 'Phone', value: user.social_worker_phone || '—' },
                   { label: 'Email', value: user.social_worker_email || '—', isLong: true },
                 ].map((r: any, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid #E6EAF0' : 'none', pb: i < 2 ? 0.75 : 0 }}>
-                    <Typography variant="body2" color="#667085">{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600} sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -864,16 +865,16 @@ export default function PersonProfilePage() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <NoteIcon sx={{ fontSize: 18, color: '#2F80ED' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Communication</Typography>
+                <NoteIcon sx={{ fontSize: 18, color: METICLE_COLORS.primary }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Communication</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'Language', value: user.communication_language || 'English' },
                   { label: 'Interpreter', value: user.communication_interpreter ? 'Required' : 'Not required' },
                   { label: 'Preferred Method', value: user.communication_method ? user.communication_method.replace(/_/g, ' ') : '—' },
                 ].map((r, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid #E6EAF0' : 'none', pb: i < 2 ? 0.75 : 0 }}>
-                    <Typography variant="body2" color="#667085">{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -885,8 +886,8 @@ export default function PersonProfilePage() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <EventIcon sx={{ fontSize: 18, color: '#10B981' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Admission &amp; Funding</Typography>
+                <EventIcon sx={{ fontSize: 18, color: METICLE_COLORS.success }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Admission &amp; Funding</Typography>
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'Admission Date', value: user.admission_date ? new Date(user.admission_date).toLocaleDateString('en-GB') : '—' },
@@ -894,8 +895,8 @@ export default function PersonProfilePage() {
                   { label: 'Funding Type', value: user.funding_type ? user.funding_type.replace(/_/g, ' ') : '—' },
                   ...(user.funding_details ? [{ label: 'Funding Details', value: user.funding_details }] : []),
                 ].map((r: any) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: '1px solid #E6EAF0', pb: 0.75 }}>
-                    <Typography variant="body2" color="#667085">{r.label}</Typography>
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: '1px solid divider', pb: 0.75 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
                     <Typography variant="body2" fontWeight={600}>{r.value}</Typography>
                   </Stack>
                 ))}
@@ -909,10 +910,10 @@ export default function PersonProfilePage() {
               <PremiumCard noBorder sx={{ p: 2.5, bgcolor: 'notice.error.bg' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                   <WarningIcon sx={{ fontSize: 18, color: 'notice.error.fg' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'notice.error.fg' }}>Allergies</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'notice.error.fg' }}>Allergies</Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {user.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" variant="filled" sx={{ fontWeight: 700 }} />)}
+                  {user.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" variant="filled" sx={{ fontWeight: 600 }} />)}
                 </Stack>
               </PremiumCard>
             </Grid>
@@ -925,13 +926,13 @@ export default function PersonProfilePage() {
                 <Grid item xs={12} md={6}>
                   <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FFF7E6', bgcolor: user.dnacpr_status === 'in_place' ? '#FFF7E6' : '#F9FAFB' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <WarningIcon sx={{ fontSize: 18, color: user.dnacpr_status === 'in_place' ? '#F59E0B' : '#667085' }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: user.dnacpr_status === 'in_place' ? '#F59E0B' : '#667085' }}>
+                      <WarningIcon sx={{ fontSize: 18, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }}>
                         DNACPR — {user.dnacpr_status === 'in_place' ? 'In Place' : user.dnacpr_status === 'not_in_place' ? 'Not in Place' : 'Discussed'}
                       </Typography>
                     </Stack>
-                    {user.dnacpr_date && <Typography variant="caption" color="#667085">Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
-                    {user.dnacpr_review_date && <Typography variant="caption" color="#667085" sx={{ ml: 2 }}>Review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
+                    {user.dnacpr_date && <Typography variant="caption" color="text.secondary">Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
+                    {user.dnacpr_review_date && <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>Review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
                     {user.dnacpr_details && <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>{user.dnacpr_details}</Typography>}
                   </Paper>
                 </Grid>
@@ -941,9 +942,9 @@ export default function PersonProfilePage() {
                   <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #F4F8FF', bgcolor: 'notice.subtle.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <NoteIcon sx={{ fontSize: 18, color: '#8B7CF6' }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#8B7CF6' }}>Advance Decision / Living Will</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#8B7CF6' }}>Advance Decision / Living Will</Typography>
                     </Stack>
-                    {user.advance_decision_date && <Typography variant="caption" color="#667085">Signed: {new Date(user.advance_decision_date).toLocaleDateString('en-GB')}</Typography>}
+                    {user.advance_decision_date && <Typography variant="caption" color="text.secondary">Signed: {new Date(user.advance_decision_date).toLocaleDateString('en-GB')}</Typography>}
                     <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{user.advance_decision}</Typography>
                   </Paper>
                 </Grid>
@@ -954,16 +955,16 @@ export default function PersonProfilePage() {
           {/* Discharge Summary */}
           {user.discharge_date && (
             <Grid item xs={12}>
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', bgcolor: 'notice.subtle.bg' }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'notice.subtle.bg' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                   <NoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary' }}>Discharge Summary</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>Discharge Summary</Typography>
                 </Stack>
                 <Stack spacing={0.5}>
                   <Stack direction="row" spacing={2}>
-                    <Typography variant="caption" color="#667085">Discharged: {new Date(user.discharge_date).toLocaleDateString('en-GB')}</Typography>
-                    {user.discharge_destination && <Typography variant="caption" color="#667085">To: {user.discharge_destination.replace(/_/g, ' ')}</Typography>}
-                    {user.discharge_reason && <Typography variant="caption" color="#667085">Reason: {user.discharge_reason}</Typography>}
+                    <Typography variant="caption" color="text.secondary">Discharged: {new Date(user.discharge_date).toLocaleDateString('en-GB')}</Typography>
+                    {user.discharge_destination && <Typography variant="caption" color="text.secondary">To: {user.discharge_destination.replace(/_/g, ' ')}</Typography>}
+                    {user.discharge_reason && <Typography variant="caption" color="text.secondary">Reason: {user.discharge_reason}</Typography>}
                   </Stack>
                   {user.discharge_summary && <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{user.discharge_summary}</Typography>}
                 </Stack>
@@ -981,10 +982,10 @@ export default function PersonProfilePage() {
       {tab === 2 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Care Plans</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Care Plans</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />}
               onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setAddPlanOpen(true) }}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Care Plan</Button>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Care Plan</Button>
           </Stack>
           {(!user.care_plans || user.care_plans.length === 0) ? (
             <EmptyState
@@ -999,14 +1000,14 @@ export default function PersonProfilePage() {
                 const isOverdue = cp.review_date && new Date(cp.review_date) < new Date()
                 return (
                 <Grid item xs={12} md={6} key={cp.id}>
-                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
+                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Typography variant="subtitle2" fontWeight={700}>{cp.title}</Typography>
+                          <Typography variant="subtitle2" fontWeight={600}>{cp.title}</Typography>
                           <Chip label={cp.category?.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
                         </Stack>
-                        {cp.description && <Typography variant="body2" color="#667085" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cp.description}</Typography>}
+                        {cp.description && <Typography variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cp.description}</Typography>}
                       </Box>
                       <Stack direction="row" spacing={0.5} sx={{ ml: 1, flexShrink: 0 }}>
                         <IconButton size="small" onClick={e => { e.stopPropagation(); setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', file_name: cp.file_name || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
@@ -1025,7 +1026,7 @@ export default function PersonProfilePage() {
                       {cp.file_url && <Chip label="File uploaded" size="small" color="info" variant="outlined" sx={{ height: 22, fontSize: 11 }} />}
                     </Stack>
                     {cp.review_date && (
-                      <Typography variant="caption" sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5, color: isOverdue ? '#EF4444' : '#98A2B3' }}>
+                      <Typography variant="caption" sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5, color: isOverdue ? METICLE_COLORS.danger : 'text.muted' }}>
                         {isOverdue ? <WarningIcon sx={{ fontSize: 13 }} /> : null}
                         Review: {new Date(cp.review_date).toLocaleDateString('en-GB')} {isOverdue ? '(overdue)' : ''}
                       </Typography>
@@ -1042,7 +1043,7 @@ export default function PersonProfilePage() {
       {tab === 3 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Daily Notes</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Daily Notes</Typography>
             <Stack direction="row" spacing={1}>
               <Tooltip title="Write with AI">
                 <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
@@ -1051,7 +1052,7 @@ export default function PersonProfilePage() {
                 </IconButton>
               </Tooltip>
               <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetAiMode(); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
-                sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Note</Button>
+                sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Note</Button>
             </Stack>
           </Stack>
           {(!user.recent_notes || user.recent_notes.length === 0) ? (
@@ -1064,11 +1065,11 @@ export default function PersonProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D8DEE7' } }} onClick={() => setViewNote(n)}>
+                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D8DEE7' } }} onClick={() => setViewNote(n)}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
-                        sx={{ textTransform: 'capitalize', fontWeight: 700, height: 22, fontSize: 11 }} />
+                        sx={{ textTransform: 'capitalize', fontWeight: 600, height: 22, fontSize: 11 }} />
                       <Chip label={n.category?.replace(/_/g, ' ')} size="small" variant="outlined"
                         sx={{ textTransform: 'capitalize', height: 22, fontSize: 11 }} />
                       {n.support_level && SUPPORT_LEVEL_LABELS[n.support_level] && (
@@ -1077,11 +1078,11 @@ export default function PersonProfilePage() {
                       )}
                       {n.generated_by_ai && (
                         <Chip icon={<AiIcon sx={{ fontSize: 12 }} />} label="AI" size="small"
-                          sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
+                          sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
                       )}
-                      <Typography variant="caption" color="#667085">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
+                      <Typography variant="caption" color="text.secondary">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
                     </Stack>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 500 }}>{n.author_name || ''}</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 500 }}>{n.author_name || ''}</Typography>
                   </Stack>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', lineHeight: 1.6 }}>{n.content}</Typography>
                   {n.generated_by_ai && n.ai_risk_level && (
@@ -1104,25 +1105,25 @@ export default function PersonProfilePage() {
       {tab === 4 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Risk Assessments</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Risk Assessments</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddRiskOpen(true)}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Assessment</Button>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Assessment</Button>
           </Stack>
           {(!user.risk_assessments || user.risk_assessments.length === 0) ? (
-            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <WarningIcon sx={{ fontSize: 40, color: '#D8DEE7', mb: 1 }} />
-              <Typography color="#98A2B3">No risk assessments</Typography>
+              <Typography color="text.muted">No risk assessments</Typography>
             </Paper>
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Risk Level</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Review Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Risk Level</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Review Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1131,7 +1132,7 @@ export default function PersonProfilePage() {
                       <TableCell sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{ra.type?.replace(/_/g, ' ')}</TableCell>
                       <TableCell>
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
-                          sx={{ bgcolor: `${RISK_COLORS[ra.risk_level] || '#667085'}18`, color: RISK_COLORS[ra.risk_level] || '#667085', fontWeight: 700, textTransform: 'capitalize' }} />
+                          sx={{ bgcolor: `${RISK_COLORS[ra.risk_level] || '#667085'}18`, color: RISK_COLORS[ra.risk_level] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
                       </TableCell>
                       <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.details || '—'}</Typography></TableCell>
                       <TableCell>{ra.review_date ? new Date(ra.review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
@@ -1156,15 +1157,15 @@ export default function PersonProfilePage() {
       {tab === 5 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="subtitle1" fontWeight={800}>Family & Contacts</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Family & Contacts</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }); setAddContactOpen(true) }}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Add Contact</Button>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Contact</Button>
           </Stack>
-          <Typography variant="body2" color="#667085" sx={{ mb: 2 }}>Add family members and their contact details, then invite them to the Family Portal so they can view care notes and plans securely.</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add family members and their contact details, then invite them to the Family Portal so they can view care notes and plans securely.</Typography>
 
           {(!user.family_contacts || user.family_contacts.length === 0) ? (
-            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', mb: 3 }}>
-              <Typography color="#98A2B3">No family contacts added</Typography>
+            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider', mb: 3 }}>
+              <Typography color="text.muted">No family contacts added</Typography>
             </Paper>
           ) : (
             <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -1172,14 +1173,14 @@ export default function PersonProfilePage() {
                 const portalMember = portalMembers.find((pm: any) => pm.email?.toLowerCase() === fc.email?.toLowerCase())
                 return (
                   <Grid item xs={12} md={6} key={fc.id}>
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
-                          <Typography variant="subtitle2" fontWeight={700}>{fc.name}</Typography>
+                          <Typography variant="subtitle2" fontWeight={600}>{fc.name}</Typography>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            {fc.relationship && <Typography variant="caption" color="#667085">{fc.relationship}</Typography>}
+                            {fc.relationship && <Typography variant="caption" color="text.secondary">{fc.relationship}</Typography>}
                             {fc.is_emergency_contact && <Chip label="Emergency" size="small" color="error" />}
-                            {fc.email && <Typography variant="caption" color="#98A2B3" sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fc.email}</Typography>}
+                            {fc.email && <Typography variant="caption" color="text.muted" sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fc.email}</Typography>}
                           </Stack>
                         </Box>
                         <Stack direction="row" spacing={0.5} alignItems="center">
@@ -1189,11 +1190,11 @@ export default function PersonProfilePage() {
                               : portalMember.status === 'invited' ? 'Portal invite pending'
                               : portalMember.status === 'revoked' ? 'Portal access revoked'
                               : 'Portal access inactive'
-                            const iconColor = portalMember?.status === 'active' ? '#10B981'
-                              : portalMember?.status === 'invited' ? '#F59E0B'
-                              : portalMember?.status === 'revoked' ? '#EF4444'
-                              : portalMember?.status === 'inactive' ? '#667085'
-                              : '#98A2B3'
+                            const iconColor = portalMember?.status === 'active' ? METICLE_COLORS.success
+                              : portalMember?.status === 'invited' ? METICLE_COLORS.warning
+                              : portalMember?.status === 'revoked' ? METICLE_COLORS.danger
+                              : portalMember?.status === 'inactive' ? 'text.secondary'
+                              : 'text.muted'
                             return (
                               <Tooltip title={tooltip}>
                                 <PeopleIcon fontSize="small" sx={{ color: iconColor }} />
@@ -1230,7 +1231,7 @@ export default function PersonProfilePage() {
                     inlineInvitePortalMutation.mutate({ name: c.name, email: c.email, relationship: c.relationship || '', phone: c.phone || '', person_id: id })
                     setContactMenuAnchor(null)
                   }} disabled={inlineInvitePortalMutation.isPending}>
-                    <ListItemIcon><PeopleIcon fontSize="small" sx={{ color: '#2F80ED' }} /></ListItemIcon><ListItemText>Invite to Family Portal</ListItemText>
+                    <ListItemIcon><PeopleIcon fontSize="small" sx={{ color: METICLE_COLORS.primary }} /></ListItemIcon><ListItemText>Invite to Family Portal</ListItemText>
                   </MenuItem>
                 )
               }
@@ -1240,20 +1241,20 @@ export default function PersonProfilePage() {
                     {pm.access_token && (
                       <>
                         <MenuItem onClick={() => { const url = `${window.location.origin}/family-portal/${pm.access_token}`; navigator.clipboard?.writeText(url).then(() => showSnackbar('Portal link copied to clipboard'), () => showSnackbar(url, 'info')); setContactMenuAnchor(null) }}>
-                          <ListItemIcon><FileIcon fontSize="small" sx={{ color: '#2F80ED' }} /></ListItemIcon>
+                          <ListItemIcon><FileIcon fontSize="small" sx={{ color: METICLE_COLORS.primary }} /></ListItemIcon>
                           <ListItemText>
                             <Typography variant="body2" fontWeight={600}>Copy Portal Link</Typography>
-                            <Typography variant="caption" color="#98A2B3" sx={{ fontFamily: 'monospace' }}>{window.location.origin}/…{pm.access_token.slice(-8)}</Typography>
+                            <Typography variant="caption" color="text.muted" sx={{ fontFamily: 'monospace' }}>{window.location.origin}/…{pm.access_token.slice(-8)}</Typography>
                           </ListItemText>
                         </MenuItem>
                         <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
-                          <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#F59E0B' }}>Revoke Portal Access</ListItemText>
+                          <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: METICLE_COLORS.warning }}>Revoke Portal Access</ListItemText>
                         </MenuItem>
                       </>
                     )}
                     {!pm.access_token && pm.status === 'invited' && (
                       <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
-                        <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#F59E0B' }}>Cancel Invitation</ListItemText>
+                        <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: METICLE_COLORS.warning }}>Cancel Invitation</ListItemText>
                       </MenuItem>
                     )}
                   </Fragment>
@@ -1262,7 +1263,7 @@ export default function PersonProfilePage() {
               return null
             })()}
             <MenuItem onClick={() => { const c = contactMenuAnchor?.contact; if (c) deleteContactMutation.mutate(c.id); setContactMenuAnchor(null) }}>
-              <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon><ListItemText sx={{ color: '#EF4444' }}>Delete</ListItemText>
+              <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon><ListItemText sx={{ color: METICLE_COLORS.danger }}>Delete</ListItemText>
             </MenuItem>
           </Menu>
         </Box>
@@ -1324,7 +1325,7 @@ export default function PersonProfilePage() {
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); updateMutation.mutate(editForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Edit Person</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Edit Person</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1349,7 +1350,7 @@ export default function PersonProfilePage() {
                 ))}
               </TextField>
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>GP Details</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>GP Details</Typography>
               <TextField label="GP Name" fullWidth value={editForm.gp_name || ''} onChange={e => setEditForm({ ...editForm, gp_name: e.target.value })} />
               <TextField label="GP Surgery" fullWidth value={editForm.gp_surgery || ''} onChange={e => setEditForm({ ...editForm, gp_surgery: e.target.value })} />
               <TextField label="GP Phone" fullWidth value={editForm.gp_phone || ''} onChange={e => setEditForm({ ...editForm, gp_phone: e.target.value })} />
@@ -1358,7 +1359,7 @@ export default function PersonProfilePage() {
               <TextField label="Dietary Requirements" fullWidth multiline rows={2} value={editForm.dietary_requirements || ''} onChange={e => setEditForm({ ...editForm, dietary_requirements: e.target.value })} />
               <TextField label="Allergies (comma-separated)" fullWidth value={Array.isArray(editForm.allergies) ? editForm.allergies.join(', ') : editForm.allergies || ''} onChange={e => setEditForm({ ...editForm, allergies: e.target.value.split(',').map((a: string) => a.trim()).filter(Boolean) })} />
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Personal Details</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Personal Details</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField select label="Gender" fullWidth value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
                   <MenuItem value="">— Not specified —</MenuItem>
@@ -1383,7 +1384,7 @@ export default function PersonProfilePage() {
                 <TextField label="Religion / Faith" fullWidth placeholder="e.g. Christian, Muslim, Hindu, None" value={editForm.religion || ''} onChange={e => setEditForm({ ...editForm, religion: e.target.value })} />
               </Stack>
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Communication</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Communication</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField label="Primary Language" fullWidth placeholder="e.g. English, Polish, Urdu" value={editForm.communication_language || ''} onChange={e => setEditForm({ ...editForm, communication_language: e.target.value })} />
                 <TextField select label="Preferred Method" fullWidth value={editForm.communication_method || ''} onChange={e => setEditForm({ ...editForm, communication_method: e.target.value })}>
@@ -1403,7 +1404,7 @@ export default function PersonProfilePage() {
                 {editForm.communication_interpreter ? '✓ Interpreter Required' : 'Interpreter Needed'}
               </Button>
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Admission & Funding</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Admission & Funding</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField label="Admission Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.admission_date || ''} onChange={e => setEditForm({ ...editForm, admission_date: e.target.value })} />
                 <TextField label="Admitted From" fullWidth placeholder="e.g. Home, Hospital, Other care home" value={editForm.admission_source || ''} onChange={e => setEditForm({ ...editForm, admission_source: e.target.value })} />
@@ -1431,21 +1432,21 @@ export default function PersonProfilePage() {
                   value={editForm.min_staff_required || ''} onChange={e => setEditForm({ ...editForm, min_staff_required: e.target.value })} />
               )}
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Pharmacy</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Pharmacy</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField label="Pharmacy Name" fullWidth value={editForm.pharmacy_name || ''} onChange={e => setEditForm({ ...editForm, pharmacy_name: e.target.value })} />
                 <TextField label="Pharmacy Phone" fullWidth value={editForm.pharmacy_phone || ''} onChange={e => setEditForm({ ...editForm, pharmacy_phone: e.target.value })} />
               </Stack>
               <TextField label="Pharmacy Address" fullWidth multiline rows={2} value={editForm.pharmacy_address || ''} onChange={e => setEditForm({ ...editForm, pharmacy_address: e.target.value })} />
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Social Worker</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Social Worker</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField label="Name" fullWidth value={editForm.social_worker_name || ''} onChange={e => setEditForm({ ...editForm, social_worker_name: e.target.value })} />
                 <TextField label="Phone" fullWidth value={editForm.social_worker_phone || ''} onChange={e => setEditForm({ ...editForm, social_worker_phone: e.target.value })} />
               </Stack>
               <TextField label="Email" fullWidth value={editForm.social_worker_email || ''} onChange={e => setEditForm({ ...editForm, social_worker_email: e.target.value })} />
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Clinical Flags</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Clinical Flags</Typography>
               <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                 {['allergies', 'dnr', 'behaviour', 'falls_risk', 'mca_dols', 'choking', 'diabetic', 'epilepsy'].map(f => (
                   <Chip key={f} label={f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -1458,7 +1459,7 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Tags / Labels</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Tags / Labels</Typography>
               <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                 {['dementia', 'palliative', 'end_of_life', 'learning_disability', 'mental_health', 'autism', 'physical_disability', 'acquired_brain_injury'].map(t => (
                   <Chip key={t} label={t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -1471,7 +1472,7 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>DNACPR & Advance Decisions</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>DNACPR & Advance Decisions</Typography>
               <TextField select label="DNACPR Status" fullWidth value={editForm.dnacpr_status || ''} onChange={e => setEditForm({ ...editForm, dnacpr_status: e.target.value })}>
                 <MenuItem value="">— Not specified —</MenuItem>
                 <MenuItem value="in_place">In place</MenuItem>
@@ -1486,7 +1487,7 @@ export default function PersonProfilePage() {
               <TextField label="Advance Decision / Living Will" fullWidth multiline rows={3} value={editForm.advance_decision || ''} onChange={e => setEditForm({ ...editForm, advance_decision: e.target.value })} />
               <TextField label="Advance Decision Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.advance_decision_date || ''} onChange={e => setEditForm({ ...editForm, advance_decision_date: e.target.value })} />
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Discharge</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Discharge</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField label="Discharge Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.discharge_date || ''} onChange={e => setEditForm({ ...editForm, discharge_date: e.target.value })} />
                 <TextField select label="Destination" fullWidth value={editForm.discharge_destination || ''} onChange={e => setEditForm({ ...editForm, discharge_destination: e.target.value })}>
@@ -1505,7 +1506,7 @@ export default function PersonProfilePage() {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={updateMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {updateMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
             </Button>
           </DialogActions>
@@ -1522,8 +1523,8 @@ export default function PersonProfilePage() {
             addPlanMutation.mutate(planForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>{editPlanId ? 'Edit Care Plan' : 'Add Care Plan'}</DialogTitle>
-          <Tabs value={planTab} onChange={(_, v) => setPlanTab(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0', px: 3, mb: 1 }}>
+          <DialogTitle sx={{ fontWeight: 600, pb: 0 }}>{editPlanId ? 'Edit Care Plan' : 'Add Care Plan'}</DialogTitle>
+          <Tabs value={planTab} onChange={(_, v) => setPlanTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 3, mb: 1 }}>
             <Tab label="Details" />
             <Tab label="Person-Centred Plan" />
           </Tabs>
@@ -1583,7 +1584,7 @@ export default function PersonProfilePage() {
               )}
 
               <Divider />
-              <Typography variant="subtitle2" fontWeight={700}>Attachments</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Attachments</Typography>
               <input type="file" ref={planFileInputRef} hidden accept=".pdf,.doc,.docx" onChange={async e => {
                 const file = e.target.files?.[0]
                 if (!file) return
@@ -1598,7 +1599,7 @@ export default function PersonProfilePage() {
               }} />
               <Stack direction="row" spacing={1} alignItems="center">
                 <Button variant="outlined" size="small" onClick={() => planFileInputRef.current?.click()} disabled={planUploading}
-                  sx={{ textTransform: 'none', borderRadius: 2 }}>
+                  sx={{ textTransform: 'none',}}>
                   {planUploading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
                   {planForm.file_url ? 'Replace File' : 'Upload PDF / Document'}
                 </Button>
@@ -1612,7 +1613,7 @@ export default function PersonProfilePage() {
             </Stack>
             ) : (
             <Stack spacing={2.5} sx={{ mt: 1 }}>
-              <Typography variant="subtitle1" fontWeight={700}>Who Contributed</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>Who Contributed</Typography>
               {(planForm.sections.contributors || []).map((c: Contributor, i: number) => (
                 <Stack key={i} direction="row" spacing={1}>
                   <TextField size="small" label="Name" fullWidth value={c.name}
@@ -1640,29 +1641,29 @@ export default function PersonProfilePage() {
               </Button>
 
               <Divider />
-              <Typography variant="subtitle1" fontWeight={700}>What have we tried?</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>What have we tried?</Typography>
               <TextField fullWidth multiline rows={3} placeholder="Describe strategies, approaches, and interventions that have been attempted..."
                 value={planForm.sections.what_tried || ''}
                 onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_tried: e.target.value } })} />
 
-              <Typography variant="subtitle1" fontWeight={700}>What have we learned?</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>What have we learned?</Typography>
               <TextField fullWidth multiline rows={3} placeholder="What has worked, what hasn't worked, key insights..."
                 value={planForm.sections.what_learned || ''}
                 onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_learned: e.target.value } })} />
 
               <Divider />
-              <Typography variant="subtitle1" fontWeight={700}>What are we pleased about?</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>What are we pleased about?</Typography>
               <TextField fullWidth multiline rows={3} placeholder="Progress made, strengths, positive outcomes..."
                 value={planForm.sections.what_pleased || ''}
                 onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_pleased: e.target.value } })} />
 
-              <Typography variant="subtitle1" fontWeight={700}>What are we concerned about?</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>What are we concerned about?</Typography>
               <TextField fullWidth multiline rows={3} placeholder="Risks, challenges, areas needing attention..."
                 value={planForm.sections.what_concerned || ''}
                 onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_concerned: e.target.value } })} />
 
               <Divider />
-              <Typography variant="subtitle1" fontWeight={700}>What do we need to do next?</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>What do we need to do next?</Typography>
               <TextField fullWidth multiline rows={4} placeholder="Actionable next steps, responsible person, timeline..."
                 value={planForm.sections.next_steps || ''}
                 onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, next_steps: e.target.value } })} />
@@ -1672,7 +1673,7 @@ export default function PersonProfilePage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddPlanOpen(false); setEditPlanId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addPlanMutation.isPending || updatePlanMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addPlanMutation.isPending || updatePlanMutation.isPending) ? <CircularProgress size={20} /> : (editPlanId ? 'Save' : 'Add Plan')}
             </Button>
           </DialogActions>
@@ -1683,15 +1684,15 @@ export default function PersonProfilePage() {
       <Dialog open={!!viewPlan} onClose={closeCarePlanView} maxWidth="md" fullWidth>
         {viewPlan && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AssignmentIcon sx={{ color: '#2F80ED' }} />
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssignmentIcon sx={{ color: METICLE_COLORS.primary }} />
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="subtitle1" fontWeight={800} noWrap>{viewPlan.title}</Typography>
+                <Typography variant="subtitle1" fontWeight={600} noWrap>{viewPlan.title}</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={viewPlan.category?.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
                   <Chip label={viewPlan.status === 'active' ? 'Active' : viewPlan.status === 'archived' ? 'Archived' : 'Draft'} size="small"
                     color={viewPlan.status === 'active' ? 'success' : 'default'} sx={{ height: 20, fontSize: 11 }} />
-                  {viewPlan.review_date && <Typography variant="caption" color="#98A2B3">Review: {new Date(viewPlan.review_date).toLocaleDateString('en-GB')}</Typography>}
+                  {viewPlan.review_date && <Typography variant="caption" color="text.muted">Review: {new Date(viewPlan.review_date).toLocaleDateString('en-GB')}</Typography>}
                 </Stack>
               </Box>
               <IconButton sx={{ ml: 'auto' }} onClick={closeCarePlanView}><CloseIcon fontSize="small" /></IconButton>
@@ -1700,13 +1701,13 @@ export default function PersonProfilePage() {
               <Stack spacing={2}>
                 {viewPlan.description && (
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2 }}>
-                    <Typography variant="caption" color="#667085" fontWeight={700}>DESCRIPTION</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>DESCRIPTION</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.description}</Typography>
                   </Paper>
                 )}
                 {viewPlan.risk_assessment && (
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.warning.bg', borderColor: '#FFF7E6', borderRadius: 2 }}>
-                    <Typography variant="caption" color='notice.warning.fg' fontWeight={700}>RISK ASSESSMENT</Typography>
+                    <Typography variant="caption" color='notice.warning.fg' fontWeight={600}>RISK ASSESSMENT</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.risk_assessment}</Typography>
                   </Paper>
                 )}
@@ -1723,19 +1724,19 @@ export default function PersonProfilePage() {
                     ['Emergency Information', viewPlan.emergency_info],
                   ].filter(([, v]) => v).map(([k, v]) => (
                     <Grid item xs={12} md={6} key={k as string}>
-                      <Typography variant="caption" color="#667085" fontWeight={700}>{String(k).toUpperCase()}</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>{String(k).toUpperCase()}</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{String(v).replace(/_/g, ' ')}</Typography>
                     </Grid>
                   ))}
                 </Grid>
 
                 {viewPlan.sections && (viewPlan.sections.contributors?.length > 0 || viewPlan.sections.what_tried || viewPlan.sections.what_learned || viewPlan.sections.what_pleased || viewPlan.sections.what_concerned || viewPlan.sections.next_steps) && (
-                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#2F80ED', bgcolor: 'notice.subtle.bg' }}>
-                    <Typography variant="subtitle2" fontWeight={800} color="#2F80ED" sx={{ mb: 1.5 }}>PERSON-CENTRED PLAN</Typography>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: METICLE_COLORS.primary, bgcolor: 'notice.subtle.bg' }}>
+                    <Typography variant="subtitle2" fontWeight={600} color={METICLE_COLORS.primary} sx={{ mb: 1.5 }}>PERSON-CENTRED PLAN</Typography>
                     <Stack spacing={2}>
                       {(viewPlan.sections.contributors || []).length > 0 && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHO CONTRIBUTED</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHO CONTRIBUTED</Typography>
                           {viewPlan.sections.contributors.map((c: Contributor, i: number) => (
                             <Typography key={i} variant="body2" sx={{ mt: 0.25 }}>
                               {c.name}{c.role ? ` (${c.role})` : ''}
@@ -1745,31 +1746,31 @@ export default function PersonProfilePage() {
                       )}
                       {viewPlan.sections.what_tried && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHAT HAVE WE TRIED</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT HAVE WE TRIED</Typography>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_tried}</Typography>
                         </Box>
                       )}
                       {viewPlan.sections.what_learned && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHAT HAVE WE LEARNED</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT HAVE WE LEARNED</Typography>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_learned}</Typography>
                         </Box>
                       )}
                       {viewPlan.sections.what_pleased && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHAT ARE WE PLEASED ABOUT</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT ARE WE PLEASED ABOUT</Typography>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_pleased}</Typography>
                         </Box>
                       )}
                       {viewPlan.sections.what_concerned && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHAT ARE WE CONCERNED ABOUT</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT ARE WE CONCERNED ABOUT</Typography>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_concerned}</Typography>
                         </Box>
                       )}
                       {viewPlan.sections.next_steps && (
                         <Box>
-                          <Typography variant="caption" color="#667085" fontWeight={700}>WHAT DO WE NEED TO DO NEXT</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT DO WE NEED TO DO NEXT</Typography>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.next_steps}</Typography>
                         </Box>
                       )}
@@ -1780,13 +1781,13 @@ export default function PersonProfilePage() {
                 {viewPlan.file_url && (
                   <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
-                      <FileIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
+                      <FileIcon sx={{ fontSize: 20, color: METICLE_COLORS.primary }} />
                       <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }} noWrap>
                         {viewPlan.file_name || viewPlan.file_url.split('/').pop() || 'Attached document'}
                       </Typography>
                       <Button size="small" variant="outlined" startIcon={<DownloadIcon fontSize="small" />}
                         onClick={() => viewFileInNewTab(viewPlan.file_url)}
-                        sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+                        sx={{ textTransform: 'none' }}>
                         View file
                       </Button>
                     </Stack>
@@ -1795,7 +1796,7 @@ export default function PersonProfilePage() {
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
-              <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}
+              <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}
                 onClick={() => { closeCarePlanView(); const p = viewPlan; setTimeout(() => { setPlanForm({ title: p.title, category: p.category, description: p.description || '', risk_assessment: p.risk_assessment || '', review_date: p.review_date || '', mobility_level: p.mobility_level || '', mobility_aids: p.mobility_aids || '', communication_needs: p.communication_needs || '', capacity_status: p.capacity_status || '', sleep_pattern: p.sleep_pattern || '', emergency_info: p.emergency_info || '', personal_goals: p.personal_goals || '', likes_dislikes: p.likes_dislikes || '', cultural_needs: p.cultural_needs || '', file_url: p.file_url || '', file_name: p.file_name || '', sections: p.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(p.id); setPlanTab(0); setAddPlanOpen(true) }, 100) }}>
                 Edit Plan
               </Button>
@@ -1808,12 +1809,12 @@ export default function PersonProfilePage() {
       {/* Add Daily Note Dialog */}
       <Dialog open={addNoteOpen} onClose={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (!aiMode) { if (editNoteId) updateNoteMutation.mutate({ noteId: editNoteId, data: noteForm }); else addNoteMutation.mutate(noteForm) } }}>
-        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
           {aiMode ? <><AiIcon sx={{ color: '#10BFA5' }} /> Write with Mica</> : (editNoteId ? 'Edit Daily Note' : 'Add Daily Note')}
           {!editNoteId && !aiShowResults && (
             <Tooltip title={aiMode ? 'Switch to manual typing' : 'Write with Mica'}>
               <IconButton size="small" onClick={() => setAiMode(!aiMode)}
-                sx={{ ml: 'auto', bgcolor: aiMode ? '#10BFA5' : '#E6EAF0', color: aiMode ? '#FFFFFF' : '#667085', '&:hover': { bgcolor: aiMode ? '#0FAF97' : '#D8DEE7' } }}>
+                sx={{ ml: 'auto', bgcolor: aiMode ? '#10BFA5' : 'divider', color: aiMode ? '#FFFFFF' : 'text.secondary', '&:hover': { bgcolor: aiMode ? '#0FAF97' : '#D8DEE7' } }}>
                 <AiIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
@@ -1826,11 +1827,11 @@ export default function PersonProfilePage() {
 
             {/* Mica voice clarification card */}
             {aiMode && aiVoiceClarification && !aiShowResults && (
-              <Paper variant="outlined" sx={{ p: 2, borderColor: '#2F80ED', bgcolor: 'notice.subtle.bg' }}>
+              <Paper variant="outlined" sx={{ p: 2, borderColor: METICLE_COLORS.primary, bgcolor: 'notice.subtle.bg' }}>
                 <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
-                  <MicIcon sx={{ color: '#2F80ED', fontSize: 20 }} />
+                  <MicIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
                   <Box>
-                    <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 700 }}>Mica needs a bit more from you</Typography>
+                    <Typography variant="subtitle2" sx={{ color: METICLE_COLORS.primary, fontWeight: 600 }}>Mica needs a bit more from you</Typography>
                     <Typography variant="body2" sx={{ mt: 0.25 }}>{aiVoiceClarification.prompt}</Typography>
                   </Box>
                 </Stack>
@@ -1842,7 +1843,7 @@ export default function PersonProfilePage() {
                         setAiVoiceClarification(null)
                       }} sx={{ textTransform: 'none' }}>
                         {c.name}
-                        {c.room_number && <Typography variant="body2" color="#667085" component="span"> &nbsp;— Room {c.room_number}</Typography>}
+                        {c.room_number && <Typography variant="body2" color="text.secondary" component="span"> &nbsp;— Room {c.room_number}</Typography>}
                       </Button>
                     ))}
                   </Stack>
@@ -1854,7 +1855,7 @@ export default function PersonProfilePage() {
                         setNoteForm(f => ({ ...f, shift: opt }))
                         setAiVoiceDraftContext((ctx: any) => ctx ? { ...ctx, shift: opt } : { shift: opt, noteDate: noteForm.note_date })
                         setAiVoiceClarification(null)
-                      }} sx={{ textTransform: 'capitalize', borderColor: '#2F80ED', color: '#2F80ED' }}>
+                      }} sx={{ textTransform: 'capitalize', borderColor: METICLE_COLORS.primary, color: METICLE_COLORS.primary }}>
                         {opt}
                       </Button>
                     ))}
@@ -1865,18 +1866,18 @@ export default function PersonProfilePage() {
 
             {/* Mica voice listening card */}
             {aiMode && aiVoiceListening && !aiShowResults && (
-              <Paper variant="outlined" sx={{ p: 2, borderColor: '#2F80ED', bgcolor: 'notice.subtle.bg', textAlign: 'center' }}>
+              <Paper variant="outlined" sx={{ p: 2, borderColor: METICLE_COLORS.primary, bgcolor: 'notice.subtle.bg', textAlign: 'center' }}>
                 <Stack direction="row" justifyContent="center" spacing={1} sx={{ mb: 1 }}>
-                  <MicIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
+                  <MicIcon sx={{ color: METICLE_COLORS.primary, fontSize: 28 }} />
                   <Box>
-                    <Typography variant="h6" sx={{ color: '#2F80ED', fontWeight: 800 }}>Mica</Typography>
-                    <Typography variant="body2" color="#667085">Listening...</Typography>
+                    <Typography variant="h6" sx={{ color: METICLE_COLORS.primary, fontWeight: 600 }}>Mica</Typography>
+                    <Typography variant="body2" color="text.secondary">Listening...</Typography>
                   </Box>
                 </Stack>
                 <Typography variant="body2" sx={{ color: '#344054', mb: 1 }}>{aiVoiceTranscript || 'Speak now.'}</Typography>
                 <Stack direction="row" justifyContent="center" spacing={1}>
-                  <Button size="small" variant="outlined" onClick={() => stopMicaVoiceNote()} sx={{ borderColor: '#2F80ED', color: '#2F80ED' }}>Cancel</Button>
-                  <Button size="small" variant="contained" onClick={() => { stopMicaVoiceNote(); submitMicaVoiceNote() }} disabled={!aiVoiceTranscript.trim() || voiceNoteIntentMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+                  <Button size="small" variant="outlined" onClick={() => stopMicaVoiceNote()} sx={{ borderColor: METICLE_COLORS.primary, color: METICLE_COLORS.primary }}>Cancel</Button>
+                  <Button size="small" variant="contained" onClick={() => { stopMicaVoiceNote(); submitMicaVoiceNote() }} disabled={!aiVoiceTranscript.trim() || voiceNoteIntentMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
                     {voiceNoteIntentMutation.isPending ? 'Sending...' : 'Done'}
                   </Button>
                 </Stack>
@@ -1908,7 +1909,7 @@ export default function PersonProfilePage() {
                   <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
                     <Tooltip title={aiRecording ? 'Stop dictation' : 'Dictate note with voice'}>
                       <IconButton size="small" onClick={aiRecording ? stopAiRecording : startNoteDictation}
-                        sx={{ bgcolor: aiRecording ? '#EF4444' : '#E6EAF0', color: aiRecording ? '#FFFFFF' : '#667085', borderRadius: 1.5, width: 34, height: 34, '&:hover': { bgcolor: aiRecording ? '#B42318' : '#D8DEE7' } }}>
+                        sx={{ bgcolor: aiRecording ? METICLE_COLORS.danger : 'divider', color: aiRecording ? '#FFFFFF' : 'text.secondary', borderRadius: 1.5, width: 34, height: 34, '&:hover': { bgcolor: aiRecording ? '#B42318' : '#D8DEE7' } }}>
                         {aiRecording ? <StopIcon sx={{ fontSize: 18 }} /> : <MicIcon sx={{ fontSize: 18 }} />}
                       </IconButton>
                     </Tooltip>
@@ -1936,16 +1937,16 @@ export default function PersonProfilePage() {
                   ))}
                 </TextField>
 
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderColor: '#2F80ED' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderColor: METICLE_COLORS.primary }}>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                    <MicIcon sx={{ color: '#2F80ED' }} />
-                    <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 700 }}>Mica Voice</Typography>
-                    <Typography variant="caption" color="#667085">Speak naturally — Mica will structure it and you can review it before saving.</Typography>
+                    <MicIcon sx={{ color: METICLE_COLORS.primary }} />
+                    <Typography variant="subtitle2" sx={{ color: METICLE_COLORS.primary, fontWeight: 600 }}>Mica Voice</Typography>
+                    <Typography variant="caption" color="text.secondary">Speak naturally — Mica will structure it and you can review it before saving.</Typography>
                   </Stack>
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                     {!aiRecording ? (
                       <Button size="small" variant="contained" startIcon={<MicIcon />} onClick={startAiRecording}
-                        sx={{ bgcolor: '#2F80ED', textTransform: 'none', '&:hover': { bgcolor: '#2674D9' } }}>Start Recording</Button>
+                        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', '&:hover': { bgcolor: '#2674D9' } }}>Start Recording</Button>
                     ) : (
                       <Button size="small" variant="contained" color="error" startIcon={<StopIcon />} onClick={stopAiRecording}
                         sx={{ textTransform: 'none', animation: 'pulse 1.5s infinite' }}>Stop Recording</Button>
@@ -1958,7 +1959,7 @@ export default function PersonProfilePage() {
 
                 <Button variant="contained" fullWidth onClick={handleAiGenerate} disabled={!aiTranscript.trim() || aiGenerateMutation.isPending}
                   startIcon={aiGenerateMutation.isPending ? <CircularProgress size={18} color="inherit" /> : <PsychologyIcon />}
-                  sx={{ bgcolor: '#2F80ED', textTransform: 'none', py: 1.5, fontWeight: 700, '&:hover': { bgcolor: '#2674D9' } }}>
+                  sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', py: 1.5, fontWeight: 600, '&:hover': { bgcolor: '#2674D9' } }}>
                   {aiGenerateMutation.isPending ? 'Structuring...' : 'Generate Note'}
                 </Button>
               </>
@@ -1968,10 +1969,10 @@ export default function PersonProfilePage() {
             {aiMode && aiShowResults && aiResult && (
               <>
                 <Alert severity={aiResult.risk_level === 'high' || aiResult.risk_level === 'critical' ? 'error' : aiResult.risk_level === 'medium' ? 'warning' : 'success'} icon={<CheckCircleIcon />}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     {aiResult.risk_level?.toUpperCase()} Risk Level {getMoodEmoji(aiResult.mood_analysis?.mood_score)}
                     {aiVoiceDraftContext?.source === 'voice' && (
-                    <Box component="span" sx={{ ml: 1, color: '#2F80ED', display: { xs: 'inline', sm: 'inline' } }}>
+                    <Box component="span" sx={{ ml: 1, color: METICLE_COLORS.primary, display: { xs: 'inline', sm: 'inline' } }}>
                       <MicIcon sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.5 }} /> Mica-assisted, awaiting your approval.
                     </Box>
                   )}
@@ -1980,16 +1981,16 @@ export default function PersonProfilePage() {
                 </Alert>
 
                 {aiResult.safeguarding_flags?.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: 'notice.error.bg' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: METICLE_COLORS.danger, bgcolor: 'notice.error.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <FlagIcon sx={{ color: 'notice.error.fg', fontSize: 20 }} />
-                      <Typography variant="subtitle2" sx={{ color: 'notice.error.fg', fontWeight: 700 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
+                      <Typography variant="subtitle2" sx={{ color: 'notice.error.fg', fontWeight: 600 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
                     </Stack>
                     {aiResult.safeguarding_flags.map((flag: any, i: number) => (
                       <Box key={i} sx={{ mb: 0.5 }}>
                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                           <Chip label={flag.severity} size="small" color={flag.severity === 'high' ? 'error' : 'warning'} sx={{ height: 18, fontSize: 10 }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{flag.concern_type}</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'notice.error.fg' }}>{flag.concern_type}</Typography>
                         </Stack>
                         <Typography variant="caption" display="block" color='notice.error.fg'>{flag.description}</Typography>
                         {flag.action_required && <Typography variant="caption" display="block" color='notice.error.fg'>Action: {flag.action_required}</Typography>}
@@ -2001,41 +2002,41 @@ export default function PersonProfilePage() {
                 <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'notice.success.bg' } }} />
 
                 {aiResult.care_plan_updates?.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#2F80ED' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: METICLE_COLORS.primary }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <LightbulbIcon sx={{ color: '#2F80ED', fontSize: 20 }} />
-                      <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 700 }}>Care Plan Suggestions</Typography>
+                      <LightbulbIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: METICLE_COLORS.primary, fontWeight: 600 }}>Care Plan Suggestions</Typography>
                     </Stack>
                     {aiResult.care_plan_updates.map((u: any, i: number) => (
                       <Box key={i} sx={{ mb: 0.5 }}>
                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                           <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 18, fontSize: 10 }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>{u.goal_area || 'Care Plan'}</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 600 }}>{u.goal_area || 'Care Plan'}</Typography>
                         </Stack>
                         <Typography variant="caption" display="block" color="#344054">{u.suggested_update}</Typography>
-                        {u.evidence && <Typography variant="caption" display="block" color="#667085" fontStyle="italic">Evidence: {u.evidence}</Typography>}
+                        {u.evidence && <Typography variant="caption" display="block" color="text.secondary" fontStyle="italic">Evidence: {u.evidence}</Typography>}
                       </Box>
                     ))}
                   </Paper>
                 )}
 
                 {aiResult.interventions_suggested?.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#087A55' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: METICLE_COLORS.successText }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <TrendIcon sx={{ color: '#087A55', fontSize: 20 }} />
-                      <Typography variant="subtitle2" sx={{ color: '#087A55', fontWeight: 700 }}>Suggested Interventions</Typography>
+                      <TrendIcon sx={{ color: METICLE_COLORS.successText, fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: METICLE_COLORS.successText, fontWeight: 600 }}>Suggested Interventions</Typography>
                     </Stack>
                     {aiResult.interventions_suggested.map((s: any, i: number) => (
                       <Box key={i} sx={{ mb: 0.5 }}>
-                        <Typography variant="caption" display="block" color="#344054" sx={{ fontWeight: 700 }}>• {s.intervention || s}</Typography>
-                        {s.reason && <Typography variant="caption" display="block" color="#667085">Reason: {s.reason}</Typography>}
+                        <Typography variant="caption" display="block" color="#344054" sx={{ fontWeight: 600 }}>• {s.intervention || s}</Typography>
+                        {s.reason && <Typography variant="caption" display="block" color="text.secondary">Reason: {s.reason}</Typography>}
                         {s.expected_outcome && <Typography variant="caption" display="block" color="#087A55">Expected: {s.expected_outcome}</Typography>}
                       </Box>
                     ))}
                   </Paper>
                 )}
 
-                <Button variant="outlined" fullWidth onClick={() => { setAiShowResults(false); setAiResult(null); setAiEditedContent('') }} sx={{ textTransform: 'none', borderColor: '#2F80ED', color: '#2F80ED' }}>Back</Button>
+                <Button variant="outlined" fullWidth onClick={() => { setAiShowResults(false); setAiResult(null); setAiEditedContent('') }} sx={{ textTransform: 'none', borderColor: METICLE_COLORS.primary, color: METICLE_COLORS.primary }}>Back</Button>
               </>
             )}
           </Stack>
@@ -2043,20 +2044,20 @@ export default function PersonProfilePage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }}>Cancel</Button>          {aiMode && aiShowResults && (
             <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={() => { stopMicaVoiceNote(); resetAiMode(); setAiVoiceDraftContext({ personId: id, shift: noteForm.shift, noteDate: noteForm.note_date }); setAiVoiceTranscript(''); startMicaVoiceNote(); }} sx={{ textTransform: 'none', borderColor: '#2F80ED', color: '#2F80ED' }}>
+              <Button variant="outlined" onClick={() => { stopMicaVoiceNote(); resetAiMode(); setAiVoiceDraftContext({ personId: id, shift: noteForm.shift, noteDate: noteForm.note_date }); setAiVoiceTranscript(''); startMicaVoiceNote(); }} sx={{ textTransform: 'none', borderColor: METICLE_COLORS.primary, color: METICLE_COLORS.primary }}>
                 Record again
               </Button>
               <Button variant="outlined" onClick={() => { setAddNoteOpen(false); setViewNote(null); setAiShowResults(true); setAiEditedContent(aiResult.daily_note?.content || ''); }} sx={{ textTransform: 'none' }}>
                 Edit
               </Button>
-              <Button variant="contained" onClick={handleMicaVoiceApprove} disabled={aiVoiceApproveMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#2674D9' } }}>
+              <Button variant="contained" onClick={handleMicaVoiceApprove} disabled={aiVoiceApproveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#2674D9' } }}>
                 {(aiVoiceApproveMutation.isPending) ? 'Saving...' : 'Save care note'}
                 {aiVoiceApproveMutation.isPending ? <CircularProgress size={18} color="inherit" /> : null}
               </Button>
             </Stack>
           )}
           {!aiMode && (
-            <Button type="submit" variant="contained" disabled={addNoteMutation.isPending || updateNoteMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addNoteMutation.isPending || updateNoteMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addNoteMutation.isPending || updateNoteMutation.isPending) ? <CircularProgress size={20} /> : (editNoteId ? 'Save' : 'Add Note')}
             </Button>
           )}
@@ -2064,7 +2065,7 @@ export default function PersonProfilePage() {
         </Box>
       </Dialog>
       <Dialog open={!!viewNote} onClose={() => { setViewNote(null); setAiError('') }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Daily Note</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Daily Note</DialogTitle>
         <DialogContent>
           {aiError && <Alert severity="error" onClose={() => setAiError('')} sx={{ mb: 2 }}>{aiError}</Alert>}
           {viewNote && (
@@ -2077,10 +2078,10 @@ export default function PersonProfilePage() {
                 )}
                 {viewNote.generated_by_ai && (
                   <Chip icon={<AiIcon sx={{ fontSize: 14 }} />} label="AI Generated" size="small"
-                    sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 700, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
+                    sx={{ bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
                 )}
-                <Typography variant="caption" color="#667085">{new Date(viewNote.note_date).toLocaleDateString('en-GB')}</Typography>
-                <Typography variant="caption" color="#98A2B3">{viewNote.author_name ? `by ${viewNote.author_name}` : ''}</Typography>
+                <Typography variant="caption" color="text.secondary">{new Date(viewNote.note_date).toLocaleDateString('en-GB')}</Typography>
+                <Typography variant="caption" color="text.muted">{viewNote.author_name ? `by ${viewNote.author_name}` : ''}</Typography>
               </Stack>
               <Divider />
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewNote.content}</Typography>
@@ -2092,22 +2093,22 @@ export default function PersonProfilePage() {
                   <Paper variant="outlined" sx={{ p: 2, borderColor: '#8B7CF6', bgcolor: 'notice.subtle.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                       <AiIcon sx={{ color: '#8B7CF6', fontSize: 20 }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#8B7CF6' }}>AI Analysis</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#8B7CF6' }}>AI Analysis</Typography>
                       <Chip label={`${viewNote.ai_risk_level} risk`} size="small" color={viewNote.ai_risk_level === 'high' || viewNote.ai_risk_level === 'critical' ? 'error' : viewNote.ai_risk_level === 'medium' ? 'warning' : 'success'} sx={{ height: 20, fontSize: 10 }} />
                       {viewNote.ai_follow_up_required && <Chip label="Follow-up needed" size="small" color="warning" sx={{ height: 20, fontSize: 10 }} />}
                     </Stack>
 
                     {viewNote.ai_follow_up_details && (
                       <Alert severity="warning" sx={{ mb: 1.5, py: 0 }}>
-                        <Typography variant="caption" fontWeight={700}>Follow-up:</Typography> {viewNote.ai_follow_up_details}
+                        <Typography variant="caption" fontWeight={600}>Follow-up:</Typography> {viewNote.ai_follow_up_details}
                       </Alert>
                     )}
 
                     {viewNote.ai_mood_analysis && (
                       <Box sx={{ mb: 1.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>Mood: {getMoodEmoji(viewNote.ai_mood_analysis.mood_score)} {viewNote.ai_mood_analysis.mood_label} ({viewNote.ai_mood_analysis.mood_score}/10)</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>Mood: {getMoodEmoji(viewNote.ai_mood_analysis.mood_score)} {viewNote.ai_mood_analysis.mood_label} ({viewNote.ai_mood_analysis.mood_score}/10)</Typography>
                         {viewNote.ai_mood_analysis.indicators?.length > 0 && (
-                          <Typography variant="caption" display="block" color="#667085">{viewNote.ai_mood_analysis.indicators.join(', ')}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary">{viewNote.ai_mood_analysis.indicators.join(', ')}</Typography>
                         )}
                       </Box>
                     )}
@@ -2115,14 +2116,14 @@ export default function PersonProfilePage() {
                     {Array.isArray(viewNote.ai_safeguarding_flags) && viewNote.ai_safeguarding_flags.length > 0 && (
                       <Box sx={{ mb: 1.5 }}>
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
-                          <FlagIcon sx={{ fontSize: 14, color: '#EF4444' }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>Safeguarding ({viewNote.ai_safeguarding_flags.length})</Typography>
+                          <FlagIcon sx={{ fontSize: 14, color: METICLE_COLORS.danger }} />
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: METICLE_COLORS.danger }}>Safeguarding ({viewNote.ai_safeguarding_flags.length})</Typography>
                         </Stack>
                         {viewNote.ai_safeguarding_flags.map((f: any, i: number) => (
                           <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: 'notice.error.bg' }}>
                             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                               <Chip label={f.severity} size="small" color={f.severity === 'high' ? 'error' : 'warning'} sx={{ height: 16, fontSize: 9 }} />
-                              <Typography variant="caption" fontWeight={700}>{f.concern_type}</Typography>
+                              <Typography variant="caption" fontWeight={600}>{f.concern_type}</Typography>
                             </Stack>
                             <Typography variant="caption" display="block" color='notice.error.fg'>{f.description}</Typography>
                             {f.action_required && <Typography variant="caption" display="block" color='notice.error.fg' fontStyle="italic">Action: {f.action_required}</Typography>}
@@ -2134,17 +2135,17 @@ export default function PersonProfilePage() {
                     {Array.isArray(viewNote.ai_care_plan_updates) && viewNote.ai_care_plan_updates.length > 0 && (
                       <Box sx={{ mb: 1.5 }}>
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
-                          <LightbulbIcon sx={{ fontSize: 14, color: '#2F80ED' }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#2F80ED' }}>Care Plan Suggestions</Typography>
+                          <LightbulbIcon sx={{ fontSize: 14, color: METICLE_COLORS.primary }} />
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: METICLE_COLORS.primary }}>Care Plan Suggestions</Typography>
                         </Stack>
                         {viewNote.ai_care_plan_updates.map((u: any, i: number) => (
                           <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#6B8AFD' }}>
                             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                               <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 16, fontSize: 9 }} />
-                              <Typography variant="caption" fontWeight={700}>{u.goal_area}</Typography>
+                              <Typography variant="caption" fontWeight={600}>{u.goal_area}</Typography>
                             </Stack>
                             <Typography variant="caption" display="block" color="#344054">{u.suggested_update}</Typography>
-                            {u.evidence && <Typography variant="caption" display="block" color="#667085" fontStyle="italic">Evidence: {u.evidence}</Typography>}
+                            {u.evidence && <Typography variant="caption" display="block" color="text.secondary" fontStyle="italic">Evidence: {u.evidence}</Typography>}
                           </Paper>
                         ))}
                       </Box>
@@ -2153,13 +2154,13 @@ export default function PersonProfilePage() {
                     {Array.isArray(viewNote.ai_interventions) && viewNote.ai_interventions.length > 0 && (
                       <Box>
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
-                          <TrendIcon sx={{ fontSize: 14, color: '#087A55' }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#087A55' }}>Suggested Interventions</Typography>
+                          <TrendIcon sx={{ fontSize: 14, color: METICLE_COLORS.successText }} />
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: METICLE_COLORS.successText }}>Suggested Interventions</Typography>
                         </Stack>
                         {viewNote.ai_interventions.map((s: any, i: number) => (
                           <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#A7F3D0' }}>
-                            <Typography variant="caption" display="block" fontWeight={700} color="#344054">• {s.intervention}</Typography>
-                            {s.reason && <Typography variant="caption" display="block" color="#667085">Reason: {s.reason}</Typography>}
+                            <Typography variant="caption" display="block" fontWeight={600} color="#344054">• {s.intervention}</Typography>
+                            {s.reason && <Typography variant="caption" display="block" color="text.secondary">Reason: {s.reason}</Typography>}
                             {s.expected_outcome && <Typography variant="caption" display="block" color="#087A55">Expected: {s.expected_outcome}</Typography>}
                           </Paper>
                         ))}
@@ -2196,7 +2197,7 @@ export default function PersonProfilePage() {
             addRiskMutation.mutate(riskForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editRiskId ? 'Edit Risk Assessment' : 'Add Risk Assessment'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editRiskId ? 'Edit Risk Assessment' : 'Add Risk Assessment'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2239,7 +2240,7 @@ export default function PersonProfilePage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddRiskOpen(false); setEditRiskId(null); setError('') }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addRiskMutation.isPending || updateRiskMutation.isPending || riskFileUploading}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addRiskMutation.isPending || updateRiskMutation.isPending) ? <CircularProgress size={20} /> : (editRiskId ? 'Save' : 'Add Assessment')}
             </Button>
           </DialogActions>
@@ -2256,7 +2257,7 @@ export default function PersonProfilePage() {
             addContactMutation.mutate(contactForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{contactEditId ? 'Edit Contact' : 'Add Family Contact'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{contactEditId ? 'Edit Contact' : 'Add Family Contact'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2276,7 +2277,7 @@ export default function PersonProfilePage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddContactOpen(false); setContactEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addContactMutation.isPending || updateContactMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addContactMutation.isPending || updateContactMutation.isPending) ? <CircularProgress size={20} /> : (contactEditId ? 'Save' : 'Add Contact')}
             </Button>
           </DialogActions>
@@ -2289,11 +2290,11 @@ export default function PersonProfilePage() {
           e.preventDefault()
           inviteFromContactMutation.mutate({ ...invitePortalForm, person_id: id })
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Invite to Family Portal</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Invite to Family Portal</DialogTitle>
           <DialogContent>
             {invitePortalError && <Alert severity="error" sx={{ mb: 2 }}>{invitePortalError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="body2" color="#667085">Send portal access invitation to this family member. They'll receive an email with a secure link.</Typography>
+              <Typography variant="body2" color="text.secondary">Send portal access invitation to this family member. They'll receive an email with a secure link.</Typography>
               <TextField label="Full Name" fullWidth required value={invitePortalForm.name} onChange={e => setInvitePortalForm({ ...invitePortalForm, name: e.target.value })} />
               <TextField label="Email" fullWidth required type="email" value={invitePortalForm.email} onChange={e => setInvitePortalForm({ ...invitePortalForm, email: e.target.value })} />
               <Stack direction="row" spacing={1}>
@@ -2305,7 +2306,7 @@ export default function PersonProfilePage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setInvitePortalOpen(false); setInvitePortalError('') }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={inviteFromContactMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {inviteFromContactMutation.isPending ? <CircularProgress size={20} /> : 'Send Invite'}
             </Button>
           </DialogActions>
@@ -2314,34 +2315,34 @@ export default function PersonProfilePage() {
 
       {/* View Risk Assessment Dialog */}
       <Dialog open={!!viewRisk} onClose={() => setViewRisk(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Risk Assessment</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Risk Assessment</DialogTitle>
         <DialogContent>
           {viewRisk && (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Box>
-                <Typography variant="caption" color="#667085">Type</Typography>
+                <Typography variant="caption" color="text.secondary">Type</Typography>
                 <Typography sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{viewRisk.type?.replace(/_/g, ' ')}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085">Risk Level</Typography>
+                <Typography variant="caption" color="text.secondary">Risk Level</Typography>
                 <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={viewRisk.risk_level} size="small"
-                  sx={{ bgcolor: `${RISK_COLORS[viewRisk.risk_level] || '#667085'}18`, color: RISK_COLORS[viewRisk.risk_level] || '#667085', fontWeight: 700, textTransform: 'capitalize', mt: 0.5 }} />
+                  sx={{ bgcolor: `${RISK_COLORS[viewRisk.risk_level] || '#667085'}18`, color: RISK_COLORS[viewRisk.risk_level] || '#667085', fontWeight: 600, textTransform: 'capitalize', mt: 0.5 }} />
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085">Details</Typography>
+                <Typography variant="caption" color="text.secondary">Details</Typography>
                 <Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewRisk.details || '—'}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085">Mitigation Actions</Typography>
+                <Typography variant="caption" color="text.secondary">Mitigation Actions</Typography>
                 <Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewRisk.mitigation_actions || '—'}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085">Review Date</Typography>
+                <Typography variant="caption" color="text.secondary">Review Date</Typography>
                 <Typography>{viewRisk.review_date ? new Date(viewRisk.review_date).toLocaleDateString('en-GB') : '—'}</Typography>
               </Box>
               {viewRisk.file_url && (
                 <Box>
-                  <Typography variant="caption" color="#667085">Attached File</Typography>
+                  <Typography variant="caption" color="text.secondary">Attached File</Typography>
                   <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5, mt: 0.5 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <FileIcon color="action" />
@@ -2356,7 +2357,7 @@ export default function PersonProfilePage() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}
+          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}
             onClick={() => { const r = viewRisk; setViewRisk(null); setTimeout(() => { setRiskForm({ type: r.type, risk_level: r.risk_level, details: r.details || '', mitigation_actions: r.mitigation_actions || '', review_date: r.review_date ? r.review_date.slice(0, 10) : '', file_url: r.file_url || '', file_name: r.file_name || '' }); setEditRiskId(r.id); setAddRiskOpen(true) }, 100) }}>
             Edit
           </Button>
@@ -2366,7 +2367,7 @@ export default function PersonProfilePage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Confirm Delete</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, color: 'error.main' }}>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this {deleteConfirm?.type}? This action cannot be undone.</Typography>
         </DialogContent>
@@ -2386,7 +2387,7 @@ export default function PersonProfilePage() {
 }
 
 const ASSESSMENT_TYPES = ['Initial', 'Annual Review', 'MCA', 'DoLS', 'Best Interest', 'Capacity', 'Other']
-const ASSESSMENT_STATUS_COLORS: Record<string, string> = { draft: '#F59E0B', completed: '#10B981', reviewed: '#2F80ED' }
+const ASSESSMENT_STATUS_COLORS: Record<string, string> = { draft: METICLE_COLORS.warning, completed: METICLE_COLORS.success, reviewed: METICLE_COLORS.primary }
 
 function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
@@ -2444,21 +2445,21 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Care Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>New Assessment</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New Assessment</Button>} />
       {(!assessments || assessments.length === 0) ? (
         <EmptyRow message="No assessments yet" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Assessor</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Next Review</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Attachment</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Assessor</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Next Review</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Attachment</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -2467,7 +2468,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                   <TableCell sx={{ fontWeight: 600 }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
                   <TableCell>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{a.assessor_name || '—'}</TableCell>
-                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#667085', fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
+                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>
                     {a.file_url ? (
@@ -2490,23 +2491,23 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
 
       {/* View Dialog */}
       <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>{selected?.assessment_type}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{selected?.assessment_type}</DialogTitle>
         <DialogContent>
           {selected && (
             <Stack spacing={2}>
               <Stack direction="row" spacing={4}>
-                <Box><Typography variant="caption" color="#667085">Date</Typography><Typography fontWeight={600}>{new Date(selected.assessment_date).toLocaleDateString('en-GB')}</Typography></Box>
-                <Box><Typography variant="caption" color="#667085">Assessor</Typography><Typography fontWeight={600}>{selected.assessor_name || '—'}</Typography></Box>
-                <Box><Typography variant="caption" color="#667085">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#667085', fontWeight: 700 }} /></Box>
-                <Box><Typography variant="caption" color="#667085">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
+                <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography fontWeight={600}>{new Date(selected.assessment_date).toLocaleDateString('en-GB')}</Typography></Box>
+                <Box><Typography variant="caption" color="text.secondary">Assessor</Typography><Typography fontWeight={600}>{selected.assessor_name || '—'}</Typography></Box>
+                <Box><Typography variant="caption" color="text.secondary">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#667085', fontWeight: 600 }} /></Box>
+                <Box><Typography variant="caption" color="text.secondary">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
               </Stack>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
               {selected.file_url && (
                 <Box>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Attachment</Typography>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Attachment</Typography>
                   <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FileIcon sx={{ color: '#2F80ED' }} />
+                    <FileIcon sx={{ color: METICLE_COLORS.primary }} />
                     <Typography noWrap sx={{ flex: 1 }}>{selected.file_name || selected.file_url.split('/').pop()}</Typography>
                     <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
                   </Paper>
@@ -2516,7 +2517,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}
+          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}
             onClick={() => { const a = selected; setViewOpen(false); setTimeout(() => openEdit(a), 100) }}>
             Edit
           </Button>
@@ -2527,7 +2528,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
       {/* Create/Edit Dialog */}
       <Dialog open={open} onClose={() => { setOpen(false); setError('') }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); saveMutation.mutate() }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editAssessment ? 'Edit Assessment' : 'New Assessment'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editAssessment ? 'Edit Assessment' : 'New Assessment'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2574,7 +2575,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setOpen(false); setError('') }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={!form.assessment_type.trim() || saveMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={!form.assessment_type.trim() || saveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {saveMutation.isPending ? <CircularProgress size={20} /> : editAssessment ? 'Update' : 'Create'}
             </Button>
           </DialogActions>
@@ -2583,7 +2584,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteAssessmentId} onClose={() => setDeleteAssessmentId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Delete Assessment</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, color: 'error.main' }}>Delete Assessment</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this assessment? This action cannot be undone.</Typography>
         </DialogContent>
@@ -2607,46 +2608,46 @@ function TimelineTab({ personId }: { personId: string }) {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
   const EVENT_ICONS: Record<string, any> = {
-    admission: <EventIcon sx={{ color: '#2F80ED' }} />,
-    care_plan: <AssignmentIcon sx={{ color: '#10B981' }} />,
-    daily_note: <NoteIcon sx={{ color: '#F59E0B' }} />,
-    risk_assessment: <WarningIcon sx={{ color: '#EF4444' }} />,
+    admission: <EventIcon sx={{ color: METICLE_COLORS.primary }} />,
+    care_plan: <AssignmentIcon sx={{ color: METICLE_COLORS.success }} />,
+    daily_note: <NoteIcon sx={{ color: METICLE_COLORS.warning }} />,
+    risk_assessment: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
     health: <HealthIcon sx={{ color: '#8B7CF6' }} />,
     assessment: <PersonIcon sx={{ color: '#0C9E89' }} />,
-    incident: <WarningIcon sx={{ color: '#EF4444' }} />,
-    time_away: <LuggageIcon sx={{ color: '#F59E0B' }} />,
+    incident: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
+    time_away: <LuggageIcon sx={{ color: METICLE_COLORS.warning }} />,
     discharge_checklist: <LuggageIcon sx={{ color: '#0C9E89' }} />,
   }
 
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 3 }}>Person Timeline</Typography>
+      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 3 }}>Person Timeline</Typography>
       {timeline.length === 0 ? (
         <EmptyRow message="No timeline events yet" />
       ) : (
         <Box sx={{ position: 'relative' }}>
-          <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: '#E6EAF0' }} />
+          <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: 'divider' }} />
           <Stack spacing={2}>
             {timeline.map((event: any, i: number) => (
               <Box key={event.id || i} sx={{ position: 'relative', pl: 6 }}>
-                <Box sx={{ position: 'absolute', left: 12, top: 4, width: 16, height: 16, borderRadius: '50%', bgcolor: 'white', border: '2px solid', borderColor: '#2F80ED', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2F80ED' }} />
+                <Box sx={{ position: 'absolute', left: 12, top: 4, width: 16, height: 16, borderRadius: '50%', bgcolor: 'white', border: '2px solid', borderColor: METICLE_COLORS.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: METICLE_COLORS.primary }} />
                 </Box>
-                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
                     <Box sx={{ mt: 0.3 }}>{EVENT_ICONS[event.event_type] || <EventIcon />}</Box>
                     <Box sx={{ flex: 1 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'capitalize' }}>
+                        <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
                           {event.event_label || event.event_type?.replace(/_/g, ' ')}
                         </Typography>
-                        <Typography variant="caption" color="#98A2B3">
+                        <Typography variant="caption" color="text.muted">
                           {event.created_at ? new Date(event.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                         </Typography>
                       </Stack>
-                      {event.description && <Typography variant="body2" color="#667085" sx={{ mt: 0.5 }}>{event.description}</Typography>}
+                      {event.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{event.description}</Typography>}
                       {event.details && <Typography variant="body2" color="#344054" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{event.details}</Typography>}
-                      {event.performed_by && <Typography variant="caption" color="#98A2B3" sx={{ mt: 0.5, display: 'block' }}>by {event.performed_by}</Typography>}
+                      {event.performed_by && <Typography variant="caption" color="text.muted" sx={{ mt: 0.5, display: 'block' }}>by {event.performed_by}</Typography>}
                     </Box>
                   </Stack>
                 </Paper>
@@ -2725,21 +2726,21 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
   return (
     <Box>
       <SectionHeader title={`Room Checks for Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { rcResetForm(); setRcEditId(null); setRcError(''); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Record Check</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Record Check</Button>} />
       {checks.length === 0 ? (
         <EmptyRow message="No room checks recorded for this room" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
           <Table size="small">
             <TableHead><TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Cleanliness</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Safety</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Checked By</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Cleanliness</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Safety</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Checked By</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
+              <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {checks.map((c: any) => (
@@ -2768,10 +2769,10 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
       <Dialog open={!!rcView} onClose={() => setRcView(null)} maxWidth="sm" fullWidth>
         {rcView && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 Room Check — {rcView.room_number || roomNumber}
-                <Typography variant="caption" color="#98A2B3" sx={{ display: 'block', fontWeight: 500 }}>
+                <Typography variant="caption" color="text.muted" sx={{ display: 'block', fontWeight: 500 }}>
                   {rcView.location_name ? `${rcView.location_name} · ` : ''}{new Date(rcView.check_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </Typography>
               </Box>
@@ -2781,32 +2782,32 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
               <Stack spacing={2.5}>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Chip label={rcView.status === 'pass' ? 'Pass' : rcView.status === 'fail' ? 'Fail' : 'Needs Attention'} size="small"
-                    color={rcView.status === 'pass' ? 'success' : rcView.status === 'fail' ? 'error' : 'warning'} sx={{ fontWeight: 700 }} />
+                    color={rcView.status === 'pass' ? 'success' : rcView.status === 'fail' ? 'error' : 'warning'} sx={{ fontWeight: 600 }} />
                   {rcView.created_at && <Chip label={`Recorded ${new Date(rcView.created_at).toLocaleString('en-GB')}`} size="small" variant="outlined" />}
                 </Stack>
                 <Stack direction="row" spacing={3} flexWrap="wrap">
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cleanliness</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Cleanliness</Typography>
                     <Rating value={rcView.cleanliness_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Safety</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Safety</Typography>
                     <Rating value={rcView.safety_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
                   </Box>
                 </Stack>
                 <Box>
-                  <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Notes</Typography>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{rcView.notes || '—'}</Typography>
                 </Box>
                 {rcView.checked_by_name && (
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Checked by</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Checked by</Typography>
                     <Typography variant="body2" sx={{ mt: 0.25 }}>{rcView.checked_by_name}</Typography>
                   </Box>
                 )}
                 {rcView.photo_url && rcPhotoBlob && (
                   <Box>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
                       <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'notice.muted.bg' }} />
                       <IconButton size="small" onClick={() => { const url = rcView.photo_url; const token = localStorage.getItem('accessToken'); fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
@@ -2820,7 +2821,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button variant="outlined" startIcon={<EditIcon />} onClick={() => rcOpenEdit(rcView)} sx={{ textTransform: 'none' }}>Edit</Button>
-              <Button onClick={() => setRcView(null)} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Close</Button>
+              <Button onClick={() => setRcView(null)} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Close</Button>
             </DialogActions>
           </>
         )}
@@ -2829,7 +2830,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
       {/* Add / Edit Room Check Dialog */}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setRcEditId(null) }} maxWidth="xs" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); setRcError(''); const data = { ...rcForm, room_number: roomNumber }; if (rcEditId) updateCheckMutation.mutate(data); else addCheckMutation.mutate(data) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{rcEditId ? 'Edit Room Check' : 'Record Room Check'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{rcEditId ? 'Edit Room Check' : 'Record Room Check'}</DialogTitle>
           <DialogContent>
             {rcError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{rcError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2856,7 +2857,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setRcEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addCheckMutation.isPending || updateCheckMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addCheckMutation.isPending || updateCheckMutation.isPending) ? <CircularProgress size={20} /> : rcEditId ? 'Save Changes' : 'Save Check'}
             </Button>
           </DialogActions>
@@ -2908,27 +2909,27 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }); setFormError(''); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Record Score</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record Score</Button>} />
       {scores.length === 0 ? (
         <EmptyRow message="No clinical scores recorded" />
       ) : (
         <Stack spacing={1.5}>
           {scores.map((s: any) => (
             <Paper key={s.id} onClick={() => setViewScore(s)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer',
-              '&:hover': { borderColor: '#2F80ED', boxShadow: 1 } }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer',
+              '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: 1 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ textTransform: 'capitalize' }}>{s.score_type}</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{s.score_type}</Typography>
                     {s.score != null && <Chip label={`Score: ${s.score}`} size="small" variant="outlined" />}
                     {s.risk_level && <Chip label={s.risk_level.replace(/_/g, ' ')} size="small"
                       color={s.risk_level === 'high' || s.risk_level === 'severe' ? 'error' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? 'warning' : 'success'} />}
                   </Stack>
-                  {s.notes && <Typography variant="body2" color="#667085" sx={{ mt: 0.5 }}>{s.notes}</Typography>}
+                  {s.notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{s.notes}</Typography>}
                   <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                    <Typography variant="caption" color="#98A2B3">{new Date(s.recorded_date).toLocaleDateString('en-GB')}</Typography>
-                    {s.recorded_by_name && <Typography variant="caption" color="#98A2B3">by {s.recorded_by_name}</Typography>}
+                    <Typography variant="caption" color="text.muted">{new Date(s.recorded_date).toLocaleDateString('en-GB')}</Typography>
+                    {s.recorded_by_name && <Typography variant="caption" color="text.muted">by {s.recorded_by_name}</Typography>}
                   </Stack>
                 </Box>
                 <Stack direction="row" spacing={0} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
@@ -2948,7 +2949,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
           if (editId) updateMutation.mutate({ id: editId, data: payload })
           else addMutation.mutate(payload)
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Clinical Score' : 'Record Clinical Score'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Clinical Score' : 'Record Clinical Score'}</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2976,7 +2977,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save Changes' : 'Save')}
             </Button>
           </DialogActions>
@@ -2993,7 +2994,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
         onCancel={() => setDeleteTarget(null)}
       />
       <Dialog open={!!viewScore} onClose={() => setViewScore(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{viewScore?.score_type} Clinical Score</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, textTransform: 'capitalize' }}>{viewScore?.score_type} Clinical Score</DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -3003,11 +3004,11 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
               <Chip label={new Date(viewScore?.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
             </Stack>
             <Box>
-              <Typography variant="caption" color="#667085">Notes</Typography>
+              <Typography variant="caption" color="text.secondary">Notes</Typography>
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewScore?.notes || '—'}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="#667085">Recorded by</Typography>
+              <Typography variant="caption" color="text.secondary">Recorded by</Typography>
               <Typography variant="body1">{viewScore ? `${viewScore.recorded_by_name || '—'}${viewScore.created_at ? ` on ${new Date(viewScore.created_at).toLocaleString('en-GB')}` : ''}` : ''}</Typography>
             </Box>
           </Stack>
@@ -3083,25 +3084,25 @@ function DocumentsTab({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Documents" action={<Button size="small" variant="contained" startIcon={<UploadIcon />} onClick={() => setAddOpen(true)}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Upload Document</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Upload Document</Button>} />
       {docs.length === 0 ? (
         <EmptyRow message="No documents uploaded yet" />
       ) : (
         <Stack spacing={1.5}>
           {docs.map((d: any) => (
             <Paper key={d.id} onClick={() => viewDocument(d.file_url)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={700}>{d.title}</Typography>
+                    <Typography variant="subtitle2" fontWeight={600}>{d.title}</Typography>
                     <Chip label={d.document_type?.replace(/_/g, ' ')} size="small" variant="outlined" />
                   </Stack>
-                  {d.description && <Typography variant="body2" color="#667085" sx={{ mt: 0.5 }}>{d.description}</Typography>}
+                  {d.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{d.description}</Typography>}
                   <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} alignItems="center">
-                    <Typography variant="caption" color="#98A2B3">{new Date(d.upload_date).toLocaleDateString('en-GB')}</Typography>
-                    {d.uploaded_by_name && <Typography variant="caption" color="#98A2B3">by {d.uploaded_by_name}</Typography>}
-                    <Typography variant="caption" color="#2F80ED" sx={{ display: 'flex', alignItems: 'center', gap: 0.3, fontWeight: 600 }}>
+                    <Typography variant="caption" color="text.muted">{new Date(d.upload_date).toLocaleDateString('en-GB')}</Typography>
+                    {d.uploaded_by_name && <Typography variant="caption" color="text.muted">by {d.uploaded_by_name}</Typography>}
+                    <Typography variant="caption" color={METICLE_COLORS.primary} sx={{ display: 'flex', alignItems: 'center', gap: 0.3, fontWeight: 600 }}>
                       <OpenInNewIcon sx={{ fontSize: 13 }} /> Open
                     </Typography>
                   </Stack>
@@ -3115,7 +3116,7 @@ function DocumentsTab({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (!form.file_url) { setFormError('Please upload a file first'); return } addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Upload Document</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Upload Document</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -3144,7 +3145,7 @@ function DocumentsTab({ personId }: { personId: string }) {
                 finally { setUploading(false); e.target.value = '' }
               }} />
               <Button variant="outlined" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                sx={{ textTransform: 'none', borderRadius: 2 }}>
+                sx={{ textTransform: 'none',}}>
                 {uploading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
                 {form.file_url ? 'Replace File' : 'Choose File'}
               </Button>
@@ -3154,7 +3155,7 @@ function DocumentsTab({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || uploading} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || uploading} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {addMutation.isPending ? <CircularProgress size={20} /> : 'Upload'}
             </Button>
           </DialogActions>
@@ -3177,8 +3178,8 @@ function DocumentsTab({ personId }: { personId: string }) {
 const WELLBEING_DOMAINS = ['mood', 'engagement', 'sleep', 'appetite', 'pain', 'mobility', 'social', 'overall']
 
 const DOMAIN_COLORS: Record<string, string> = {
-  mood: '#8B7CF6', engagement: '#0C9E89', sleep: '#6B8AFD', appetite: '#10B981',
-  pain: '#EF4444', mobility: '#F59E0B', social: '#2F80ED', overall: '#667085',
+  mood: '#8B7CF6', engagement: '#0C9E89', sleep: '#6B8AFD', appetite: METICLE_COLORS.success,
+  pain: METICLE_COLORS.danger, mobility: METICLE_COLORS.warning, social: METICLE_COLORS.primary, overall: 'text.secondary',
 }
 
 function WellbeingTabInline({ personId }: { personId: string }) {
@@ -3219,16 +3220,16 @@ function WellbeingTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Wellbeing" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Record Entry</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record Entry</Button>} />
       {radarData.length >= 3 && (
-        <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
+        <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
           <RechartsResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
-              <PolarGrid stroke="#E6EAF0" />
-              <PolarAngleAxis dataKey="domain" tick={{ fontSize: 11, fill: '#667085' }} />
-              <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10, fill: '#98A2B3' }} />
-              <Radar name="Score" dataKey="score" stroke="#2F80ED" fill="#2F80ED" fillOpacity={0.25} strokeWidth={2} />
+              <PolarGrid stroke="#D8DEE7" />
+              <PolarAngleAxis dataKey="domain" tick={{ fontSize: 11, fill: 'text.secondary' }} />
+              <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10, fill: 'text.muted' }} />
+              <Radar name="Score" dataKey="score" stroke={METICLE_COLORS.primary} fill={METICLE_COLORS.primary} fillOpacity={0.25} strokeWidth={2} />
             </RadarChart>
           </RechartsResponsiveContainer>
         </Paper>
@@ -3238,35 +3239,35 @@ function WellbeingTabInline({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={2}>
           {Object.entries(grouped).map(([domain, items]) => {
-            const domainColor = DOMAIN_COLORS[domain] || '#667085'
+            const domainColor = DOMAIN_COLORS[domain] || 'text.secondary'
             const latest = items.reduce((a: any, b: any) => new Date(a.recorded_date) > new Date(b.recorded_date) ? a : b)
             return (
-              <Paper key={domain} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', overflow: 'hidden' }}>
+              <Paper key={domain} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center"
-                  sx={{ px: 2, py: 1.25, borderBottom: '1px solid #E6EAF0', bgcolor: `${domainColor}0D` }}>
+                  sx={{ px: 2, py: 1.25, borderBottom: '1px solid divider', bgcolor: `${domainColor}0D` }}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: domainColor }} />
-                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>{domain}</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{domain}</Typography>
                   </Stack>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Typography variant="caption" color="#98A2B3">{items.length} {items.length === 1 ? 'entry' : 'entries'}</Typography>
-                    <Chip label={`Latest ${latest.score}/10`} size="small" sx={{ bgcolor: `${domainColor}18`, color: domainColor, fontWeight: 700, fontSize: '0.7rem' }} />
+                    <Typography variant="caption" color="text.muted">{items.length} {items.length === 1 ? 'entry' : 'entries'}</Typography>
+                    <Chip label={`Latest ${latest.score}/10`} size="small" sx={{ bgcolor: `${domainColor}18`, color: domainColor, fontWeight: 600, fontSize: '0.7rem' }} />
                   </Stack>
                 </Stack>
                 <Stack divider={<Divider />} spacing={0}>
                   {items.map((e: any) => {
-                    const sc = (e.score || 0) >= 8 ? '#10B981' : (e.score || 0) >= 5 ? '#F59E0B' : '#EF4444'
+                    const sc = (e.score || 0) >= 8 ? METICLE_COLORS.success : (e.score || 0) >= 5 ? METICLE_COLORS.warning : METICLE_COLORS.danger
                     return (
                       <Box key={e.id} onClick={() => setViewEntry(e)}
                         sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${sc}18`, color: sc, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Typography variant="subtitle2" fontWeight={800}>{e.score}</Typography>
+                          <Typography variant="subtitle2" fontWeight={600}>{e.score}</Typography>
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           {e.notes && <Typography variant="body2" color="#344054" noWrap sx={{ maxWidth: '100%' }}>{e.notes}</Typography>}
                           <Stack direction="row" spacing={2}>
-                            <Typography variant="caption" color="#98A2B3">{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : ''}</Typography>
-                            {e.recorded_by_name && <Typography variant="caption" color="#98A2B3">by {e.recorded_by_name}</Typography>}
+                            <Typography variant="caption" color="text.muted">{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : ''}</Typography>
+                            {e.recorded_by_name && <Typography variant="caption" color="text.muted">by {e.recorded_by_name}</Typography>}
                           </Stack>
                         </Box>
                         <IconButton size="small" color="error" onClick={(ev: React.MouseEvent) => { ev.stopPropagation(); setDeleteTarget(e.id) }}><DeleteIcon fontSize="small" /></IconButton>
@@ -3281,19 +3282,19 @@ function WellbeingTabInline({ personId }: { personId: string }) {
       )}
 
       <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{viewEntry?.domain} Entry</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, textTransform: 'capitalize' }}>{viewEntry?.domain} Entry</DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700 }} />
+              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: 'notice.muted.bg', color: METICLE_COLORS.primary, fontWeight: 600 }} />
               {viewEntry?.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
             </Stack>
             <Box>
-              <Typography variant="caption" color="#667085">Notes</Typography>
+              <Typography variant="caption" color="text.secondary">Notes</Typography>
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry?.notes || '—'}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="#667085">Recorded by</Typography>
+              <Typography variant="caption" color="text.secondary">Recorded by</Typography>
               <Typography variant="body1">{viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : ''}</Typography>
             </Box>
           </Stack>
@@ -3305,7 +3306,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Record Wellbeing Entry</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Record Wellbeing Entry</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -3313,7 +3314,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
                 {WELLBEING_DOMAINS.map(d => <MenuItem key={d} value={d} sx={{ textTransform: 'capitalize' }}>{d}</MenuItem>)}
               </TextField>
               <Box>
-                <Typography variant="body2" fontWeight={700} sx={{ mb: 1 }}>Score: {form.score}/10</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Score: {form.score}/10</Typography>
                 <input type="range" min={1} max={10} value={form.score}
                   onChange={e => setForm({ ...form, score: parseInt(e.target.value) })}
                   style={{ width: '100%' }} />
@@ -3323,7 +3324,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {addMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
             </Button>
           </DialogActions>
@@ -3386,21 +3387,21 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Communication Log" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); resetForm(); setFormError(''); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Add Entry</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Entry</Button>} />
       {entries.length === 0 ? (
         <EmptyRow message="No communication entries recorded" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Contact</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Method</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Direction</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Summary</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Recorded By</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Method</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Direction</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Summary</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Recorded By</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -3408,7 +3409,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                 <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>{e.contact_name}</Typography>
-                    {e.relationship && <Typography variant="caption" color="#667085">{e.relationship}</Typography>}
+                    {e.relationship && <Typography variant="caption" color="text.secondary">{e.relationship}</Typography>}
                   </TableCell>
                   <TableCell><Chip label={e.contact_method?.replace(/_/g, ' ')} size="small" variant="outlined" /></TableCell>
                   <TableCell>
@@ -3434,7 +3435,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (editId) updateMutation.mutate({ id: editId, data: form }); else addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Communication Entry' : 'Add Communication Entry'}</DialogTitle>          <DialogContent>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Communication Entry' : 'Add Communication Entry'}</DialogTitle>          <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1}>
@@ -3456,7 +3457,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save Changes' : 'Save')}
             </Button>
           </DialogActions>
@@ -3467,7 +3468,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
       <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
         {viewEntry && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
               Communication Entry
               <Box sx={{ flex: 1 }} />
               <IconButton size="small" onClick={() => setViewEntry(null)}><CloseIcon fontSize="small" /></IconButton>
@@ -3480,27 +3481,27 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                   {viewEntry.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
                 </Stack>
                 <Box>
-                  <Typography variant="caption" color="#667085">Contact</Typography>
+                  <Typography variant="caption" color="text.secondary">Contact</Typography>
                   <Typography variant="body1" fontWeight={600}>{viewEntry.contact_name}{viewEntry.relationship ? ` — ${viewEntry.relationship}` : ''}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085">Summary</Typography>
+                  <Typography variant="caption" color="text.secondary">Summary</Typography>
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.summary || '—'}</Typography>
                 </Box>
                 {viewEntry.follow_up_actions && (
                   <Box>
-                    <Typography variant="caption" color="#667085">Follow-up Actions</Typography>
+                    <Typography variant="caption" color="text.secondary">Follow-up Actions</Typography>
                     <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.follow_up_actions}</Typography>
                   </Box>
                 )}
-                <Typography variant="caption" color="#98A2B3">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
+                <Typography variant="caption" color="text.muted">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => { setViewEntry(null); setEditId(viewEntry.id); setForm({ contact_name: viewEntry.contact_name || '', relationship: viewEntry.relationship || '', contact_method: viewEntry.contact_method || 'phone', direction: viewEntry.direction || 'inbound', summary: viewEntry.summary || '', follow_up_actions: viewEntry.follow_up_actions || '', recorded_date: viewEntry.recorded_date?.split('T')[0] || viewEntry.recorded_date }); setFormError(''); setAddOpen(true) }} sx={{ textTransform: 'none' }}>
                 <EditIcon sx={{ fontSize: 16, mr: 0.5 }} />Edit
               </Button>
-              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Close</Button>
+              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Close</Button>
             </DialogActions>
           </>
         )}
@@ -3522,7 +3523,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 const CAPACITY_STATUSES = ['has_capacity', 'lacks_capacity', 'fluctuating', 'not_assessed']
 
 const CAPACITY_STATUS_COLORS: Record<string, string> = {
-  has_capacity: '#10B981', lacks_capacity: '#EF4444', fluctuating: '#F59E0B', not_assessed: '#667085',
+  has_capacity: METICLE_COLORS.success, lacks_capacity: METICLE_COLORS.danger, fluctuating: METICLE_COLORS.warning, not_assessed: 'text.secondary',
 }
 
 function CapacityMcaTabInline({ personId }: { personId: string }) {
@@ -3567,26 +3568,26 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="MCA / Capacity Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>New Assessment</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New Assessment</Button>} />
       {assessments.length === 0 ? (
         <EmptyRow message="No capacity assessments recorded" />
       ) : (
         <Stack spacing={2}>
           {assessments.map((a: any) => (
-            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                    <Typography variant="subtitle2" fontWeight={700}>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
+                    <Typography variant="subtitle2" fontWeight={600}>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
                     <Chip label={a.capacity_found === true ? 'Has Capacity' : a.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
-                      sx={{ bgcolor: a.capacity_found === true ? '#10B98120' : a.capacity_found === false ? '#EF444420' : '#66708520', color: a.capacity_found === true ? '#10B981' : a.capacity_found === false ? '#EF4444' : '#667085', fontWeight: 700 }} />
+                      sx={{ bgcolor: a.capacity_found === true ? 'METICLE_COLORS.success20' : a.capacity_found === false ? 'METICLE_COLORS.danger20' : 'text.secondary20', color: a.capacity_found === true ? METICLE_COLORS.success : a.capacity_found === false ? METICLE_COLORS.danger : 'text.secondary', fontWeight: 600 }} />
                     <Chip label={a.capacity_status?.replace(/_/g, ' ')} size="small"
-                      sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085', fontWeight: 700 }} />
+                      sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085', fontWeight: 600 }} />
                   </Stack>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Decision: {a.decision_to_be_made}</Typography>
-                  {a.best_interest_decision && <Typography variant="body2" color="#667085">Best Interest Decision: {a.best_interest_decision}</Typography>}
-                  {a.independent_advocate && <Typography variant="body2" color="#667085">Advocate: {a.independent_advocate}</Typography>}
-                  {a.review_date && <Typography variant="caption" color="#98A2B3" sx={{ mt: 0.5, display: 'block' }}>Review: {new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>}
+                  {a.best_interest_decision && <Typography variant="body2" color="text.secondary">Best Interest Decision: {a.best_interest_decision}</Typography>}
+                  {a.independent_advocate && <Typography variant="body2" color="text.secondary">Advocate: {a.independent_advocate}</Typography>}
+                  {a.review_date && <Typography variant="caption" color="text.muted" sx={{ mt: 0.5, display: 'block' }}>Review: {new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>}
                 </Box>
                 <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => {
@@ -3617,14 +3618,14 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           if (editId) updateMutation.mutate({ id: editId, data: form })
           else addMutation.mutate(form)
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Assessment' : 'New Capacity Assessment'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Assessment' : 'New Capacity Assessment'}</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Assessment Date" type="date" fullWidth required InputLabelProps={{ shrink: true }} value={form.assessment_date} onChange={e => setForm({ ...form, assessment_date: e.target.value })} />
               <TextField label="Decision to be Made" fullWidth multiline rows={2} required value={form.decision_to_be_made} onChange={e => setForm({ ...form, decision_to_be_made: e.target.value })} />
               <Box>
-                <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>Capacity Found</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Capacity Found</Typography>
                 <Stack direction="row" spacing={1}>
                   <Button variant={form.capacity_found === true ? 'contained' : 'outlined'} color="success" size="small" onClick={() => setForm({ ...form, capacity_found: true })} sx={{ textTransform: 'none' }}>Yes</Button>
                   <Button variant={form.capacity_found === false ? 'contained' : 'outlined'} color="error" size="small" onClick={() => setForm({ ...form, capacity_found: false })} sx={{ textTransform: 'none' }}>No</Button>
@@ -3643,7 +3644,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Add Assessment')}
             </Button>
           </DialogActions>
@@ -3652,7 +3653,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
       <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
         {viewEntry && (
           <>
-            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+            <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
               Capacity Assessment
               <Box sx={{ flex: 1 }} />
               <IconButton size="small" onClick={() => setViewEntry(null)}><CloseIcon fontSize="small" /></IconButton>
@@ -3662,41 +3663,41 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Chip label={viewEntry.assessment_date ? new Date(viewEntry.assessment_date).toLocaleDateString('en-GB') : '—'} size="small" variant="outlined" />
                   <Chip label={viewEntry.capacity_found === true ? 'Has Capacity' : viewEntry.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
-                    sx={{ bgcolor: viewEntry.capacity_found === true ? '#10B98120' : viewEntry.capacity_found === false ? '#EF444420' : '#66708520', color: viewEntry.capacity_found === true ? '#10B981' : viewEntry.capacity_found === false ? '#EF4444' : '#667085', fontWeight: 700 }} />
+                    sx={{ bgcolor: viewEntry.capacity_found === true ? 'METICLE_COLORS.success20' : viewEntry.capacity_found === false ? 'METICLE_COLORS.danger20' : 'text.secondary20', color: viewEntry.capacity_found === true ? METICLE_COLORS.success : viewEntry.capacity_found === false ? METICLE_COLORS.danger : 'text.secondary', fontWeight: 600 }} />
                   <Chip label={viewEntry.capacity_status?.replace(/_/g, ' ')} size="small"
-                    sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085', fontWeight: 700 }} />
+                    sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085', fontWeight: 600 }} />
                 </Stack>
                 <Box>
-                  <Typography variant="caption" color="#667085">Decision to be Made</Typography>
+                  <Typography variant="caption" color="text.secondary">Decision to be Made</Typography>
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.decision_to_be_made || '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085">Best Interest Decision</Typography>
+                  <Typography variant="caption" color="text.secondary">Best Interest Decision</Typography>
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.best_interest_decision || '—'}</Typography>
                 </Box>
                 {viewEntry.best_interest_meeting_date && (
                   <Box>
-                    <Typography variant="caption" color="#667085">Best Interest Meeting Date</Typography>
+                    <Typography variant="caption" color="text.secondary">Best Interest Meeting Date</Typography>
                     <Typography variant="body1">{new Date(viewEntry.best_interest_meeting_date).toLocaleDateString('en-GB')}</Typography>
                   </Box>
                 )}
                 <Box>
-                  <Typography variant="caption" color="#667085">Independent Advocate</Typography>
+                  <Typography variant="caption" color="text.secondary">Independent Advocate</Typography>
                   <Typography variant="body1">{viewEntry.independent_advocate || '—'}</Typography>
                 </Box>
                 {viewEntry.relevant_people_informed && (
                   <Box>
-                    <Typography variant="caption" color="#667085">Relevant People Informed</Typography>
+                    <Typography variant="caption" color="text.secondary">Relevant People Informed</Typography>
                     <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.relevant_people_informed}</Typography>
                   </Box>
                 )}
                 {viewEntry.review_date && (
                   <Box>
-                    <Typography variant="caption" color="#667085">Review Date</Typography>
+                    <Typography variant="caption" color="text.secondary">Review Date</Typography>
                     <Typography variant="body1">{new Date(viewEntry.review_date).toLocaleDateString('en-GB')}</Typography>
                   </Box>
                 )}
-                <Typography variant="caption" color="#98A2B3">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
+                <Typography variant="caption" color="text.muted">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
@@ -3717,7 +3718,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
               }} sx={{ textTransform: 'none' }}>
                 <EditIcon sx={{ fontSize: 16, mr: 0.5 }} />Edit
               </Button>
-              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Close</Button>
+              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Close</Button>
             </DialogActions>
           </>
         )}
@@ -3762,8 +3763,8 @@ const PATHWAY_TYPES = ['hospital_admission', 'hospital_discharge', 'short_break'
 const PATHWAY_STATUS_OPTIONS = ['active', 'completed', 'cancelled']
 
 const PATHWAY_TYPE_COLORS: Record<string, string> = {
-  hospital_admission: '#EF4444', hospital_discharge: '#0C9E89', short_break: '#F59E0B',
-  assessment_unit: '#8B7CF6', transition: '#10B981', other: '#667085',
+  hospital_admission: METICLE_COLORS.danger, hospital_discharge: '#0C9E89', short_break: METICLE_COLORS.warning,
+  assessment_unit: '#8B7CF6', transition: METICLE_COLORS.success, other: 'text.secondary',
 }
 
 function CarePathwaysTabInline({ personId }: { personId: string }) {
@@ -3821,26 +3822,26 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const renderCard = (p: any) => (
     <Paper key={p.id} onClick={() => setViewId(p.id)}
-      sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+      sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-            <Typography variant="subtitle2" fontWeight={700}>{p.title}</Typography>
-            <Chip label={p.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085', fontWeight: 700 }} />
+            <Typography variant="subtitle2" fontWeight={600}>{p.title}</Typography>
+            <Chip label={p.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085', fontWeight: 600 }} />
             <Chip label={p.status} size="small" color={p.status === 'active' ? 'success' : p.status === 'completed' ? 'info' : 'error'} />
           </Stack>
           <Stack direction="row" spacing={2} sx={{ mb: 0.5 }}>
-            <Typography variant="caption" color="#667085">{p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '—'}{p.end_date ? ` → ${new Date(p.end_date).toLocaleDateString('en-GB')}` : ''}</Typography>
-            {p.location_name && <Typography variant="caption" color="#667085">{p.location_name}</Typography>}
+            <Typography variant="caption" color="text.secondary">{p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '—'}{p.end_date ? ` → ${new Date(p.end_date).toLocaleDateString('en-GB')}` : ''}</Typography>
+            {p.location_name && <Typography variant="caption" color="text.secondary">{p.location_name}</Typography>}
           </Stack>
-          {p.referral_reason && <Typography variant="body2" color="#667085" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.referral_reason}</Typography>}
-          {p.discharge_notes && <Typography variant="body2" color="#667085" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.discharge_notes}</Typography>}
+          {p.referral_reason && <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.referral_reason}</Typography>}
+          {p.discharge_notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.discharge_notes}</Typography>}
           {p.file_url && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }} onClick={e => e.stopPropagation()}>
               <IconButton size="small" title={p.file_name || 'Open file'} onClick={() => openFileInNewTab(p.file_url)} sx={{ p: 0.25 }}>
-                <FileIcon sx={{ fontSize: 15, color: '#2F80ED' }} />
+                <FileIcon sx={{ fontSize: 15, color: METICLE_COLORS.primary }} />
               </IconButton>
-              <Typography variant="caption" color="#667085" sx={{ maxWidth: 240 }} noWrap>{p.file_name || p.file_url.split('/').pop()}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 240 }} noWrap>{p.file_name || p.file_url.split('/').pop()}</Typography>
             </Stack>
           )}
         </Box>
@@ -3863,20 +3864,20 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Care Pathways" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Add Pathway</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Pathway</Button>} />
       {pathways.length === 0 ? (
         <EmptyRow message="No care pathways recorded" />
       ) : (
         <Stack spacing={3}>
           {active.length > 0 && (
             <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Active</Typography>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Active</Typography>
               <Stack spacing={1.5}>{active.map(renderCard)}</Stack>
             </Box>
           )}
           {completed.length > 0 && (
             <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: 'text.secondary' }}>Completed / Cancelled</Typography>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>Completed / Cancelled</Typography>
               <Stack spacing={1.5}>{completed.map(renderCard)}</Stack>
             </Box>
           )}
@@ -3896,7 +3897,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           if (editId) updateMutation.mutate({ id: editId, data: payload })
           else addMutation.mutate(payload)
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Pathway' : 'Add Care Pathway'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Pathway' : 'Add Care Pathway'}</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -3944,7 +3945,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending || !form.title} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending || !form.title} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Add Pathway')}
             </Button>
           </DialogActions>
@@ -3952,10 +3953,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
       </Dialog>
 
       <Dialog open={!!viewId} onClose={() => setViewId(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             <span>{viewPathway?.title}</span>
-            {viewPathway && <Chip label={viewPathway.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085', fontWeight: 700 }} />}
+            {viewPathway && <Chip label={viewPathway.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085', fontWeight: 600 }} />}
             {viewPathway && <Chip label={viewPathway.status} size="small" color={viewPathway.status === 'active' ? 'success' : viewPathway.status === 'completed' ? 'info' : 'error'} />}
           </Stack>
         </DialogTitle>
@@ -3963,33 +3964,33 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={4}>
               <Box>
-                <Typography variant="caption" color="#667085" fontWeight={700}>START DATE</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>START DATE</Typography>
                 <Typography variant="body1" fontWeight={600}>{viewPathway?.start_date ? new Date(viewPathway.start_date).toLocaleDateString('en-GB') : '—'}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085" fontWeight={700}>END DATE</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>END DATE</Typography>
                 <Typography variant="body1" fontWeight={600}>{viewPathway?.end_date ? new Date(viewPathway.end_date).toLocaleDateString('en-GB') : '—'}</Typography>
               </Box>
             </Stack>
             <Divider />
             <Box>
-              <Typography variant="caption" color="#667085" fontWeight={700}>LOCATION</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>LOCATION</Typography>
               <Typography variant="body1">{viewPathway?.location_name || '—'}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="#667085" fontWeight={700}>REFERRAL REASON</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>REFERRAL REASON</Typography>
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewPathway?.referral_reason || '—'}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="#667085" fontWeight={700}>DISCHARGE NOTES</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>DISCHARGE NOTES</Typography>
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewPathway?.discharge_notes || '—'}</Typography>
             </Box>
             <Divider />
             {viewPathway?.file_url && (
               <Box>
-                <Typography variant="caption" color="#667085" fontWeight={700}>ATTACHMENT</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>ATTACHMENT</Typography>
                 <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FileIcon sx={{ color: '#2F80ED' }} />
+                  <FileIcon sx={{ color: METICLE_COLORS.primary }} />
                   <Typography noWrap sx={{ flex: 1 }}>{viewPathway.file_name || viewPathway.file_url.split('/').pop()}</Typography>
                   <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
                 </Paper>
@@ -3997,11 +3998,11 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
             )}
             <Stack direction="row" spacing={4}>
               <Box>
-                <Typography variant="caption" color="#667085" fontWeight={700}>RECORDED BY</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>RECORDED BY</Typography>
                 <Typography variant="body1" fontWeight={600}>{viewPathway?.recorded_by_name || '—'}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="#667085" fontWeight={700}>CREATED</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>CREATED</Typography>
                 <Typography variant="body1" fontWeight={600}>{viewPathway?.created_at ? new Date(viewPathway.created_at).toLocaleString('en-GB') : '—'}</Typography>
               </Box>
             </Stack>
@@ -4009,7 +4010,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           {viewPathway && (
-            <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#2F80ED', textTransform: 'none' }} onClick={() => {
+            <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }} onClick={() => {
               setViewId(null)
               setForm({
                 pathway_type: viewPathway.pathway_type || 'hospital_admission', title: viewPathway.title || '',
@@ -4031,12 +4032,12 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 const TIME_AWAY_CATEGORIES = ['documentation', 'medication', 'equipment', 'notification', 'property', 'financial', 'other']
 const TIME_AWAY_TYPES: { value: string; label: string; color: string }[] = [
   { value: 'family_visit', label: 'Family Visit', color: '#0C9E89' },
-  { value: 'short_break', label: 'Short Break', color: '#F59E0B' },
-  { value: 'hospital_admission', label: 'Hospital Admission', color: '#EF4444' },
+  { value: 'short_break', label: 'Short Break', color: METICLE_COLORS.warning },
+  { value: 'hospital_admission', label: 'Hospital Admission', color: METICLE_COLORS.danger },
   { value: 'hospital_discharge', label: 'Hospital Discharge', color: '#8B7CF6' },
-  { value: 'trial_leave', label: 'Trial Leave', color: '#10B981' },
+  { value: 'trial_leave', label: 'Trial Leave', color: METICLE_COLORS.success },
   { value: 'discharge', label: 'Permanent Discharge', color: 'text.secondary' },
-  { value: 'other', label: 'Other', color: '#2F80ED' },
+  { value: 'other', label: 'Other', color: METICLE_COLORS.primary },
 ]
 
 function TimeAwayTabInline({ personId }: { personId: string }) {
@@ -4091,7 +4092,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader title="Time Away" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }); setFormError(''); setAddOpen(true) }}
-        sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>Add Time Away</Button>} />
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Time Away</Button>} />
       {records.length === 0 ? (
         <EmptyRow message="No time away planned yet. Add a weekend visit, hospital stay or short break." />
       ) : (
@@ -4105,7 +4106,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
             items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
             return (
               <Paper key={record.id} onClick={() => setViewRecord(record)}
-                sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+                sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={1}>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
                     <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: type.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -4113,23 +4114,23 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                     </Box>
                     <Box>
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                        <Typography variant="subtitle1" fontWeight={800}>{record.title}</Typography>
-                        <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 700, fontSize: 11 }} />
+                        <Typography variant="subtitle1" fontWeight={600}>{record.title}</Typography>
+                        <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 600, fontSize: 11 }} />
                       </Stack>
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
                         {record.destination && (
-                          <Typography variant="caption" color="#667085" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <PlaceIcon sx={{ fontSize: 14, color: type.color }} /> {record.destination}
                           </Typography>
                         )}
                         {(record.start_date || record.end_date) && (
-                          <Typography variant="caption" color="#667085" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <CalendarMonthIcon sx={{ fontSize: 14, color: type.color }} />
                             {record.start_date ? new Date(record.start_date).toLocaleDateString('en-GB') : ''}{record.start_date && record.end_date ? ' to ' : ''}{record.end_date ? new Date(record.end_date).toLocaleDateString('en-GB') : ''}
                           </Typography>
                         )}
                       </Stack>
-                      {record.created_by_name && <Typography variant="caption" color="#98A2B3">Planned by {record.created_by_name}</Typography>}
+                      {record.created_by_name && <Typography variant="caption" color="text.muted">Planned by {record.created_by_name}</Typography>}
                     </Box>
                   </Stack>
                   <Stack direction="row" spacing={0.5}>
@@ -4140,29 +4141,29 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                 {items.length > 0 && (
                   <Box sx={{ mt: 2 }}>
                     <LinearProgress variant="determinate" value={pct}
-                      sx={{ height: 8, borderRadius: 5, bgcolor: '#E6EAF0', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? '#10B981' : '#2F80ED' } }} />
-                    <Typography variant="caption" color="#667085" sx={{ mt: 0.5, display: 'block' }}>{completedCount}/{items.length} ready ({pct}%)</Typography>
+                      sx={{ height: 8, borderRadius: 5, bgcolor: 'divider', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? METICLE_COLORS.success : METICLE_COLORS.primary } }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>{completedCount}/{items.length} ready ({pct}%)</Typography>
                     <Stack spacing={1} sx={{ mt: 1 }}>
                       {Object.entries(grouped).map(([category, catItems]) => (
                         <Box key={category}>
-                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700 }}>{category.replace(/_/g, ' ')}</Typography>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>{category.replace(/_/g, ' ')}</Typography>
                           <Stack spacing={0.5}>
                             {catItems.map((item: any) => (
                               <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'notice.subtle.bg', borderRadius: 1, px: 1, py: 0.5 }}>
                                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: item.id, completed: !item.is_complete }) }} disabled={toggleMutation.isPending}>
-                                  {item.is_complete ? <CheckCircleIcon sx={{ color: '#10B981' }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
+                                  {item.is_complete ? <CheckCircleIcon sx={{ color: METICLE_COLORS.success }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
                                 </IconButton>
                                 <Box sx={{ flex: 1 }}>
                                   <Stack direction="row" spacing={0.5} alignItems="center">
-                                    <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? '#98A2B3' : 'inherit' }}>
+                                    <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? 'text.muted' : 'inherit' }}>
                                       {item.item}
                                     </Typography>
                                     {item.quantity != null && item.quantity !== '' && (
-                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
+                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
                                     )}
                                   </Stack>
                                   {item.is_complete && item.completed_by_name && (
-                                    <Typography variant="caption" color="#98A2B3">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
+                                    <Typography variant="caption" color="text.muted">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
                                   )}
                                 </Box>
                                 <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteItemTarget(item.id) }}><DeleteIcon fontSize="small" /></IconButton>
@@ -4182,7 +4183,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ title: form.title, time_away_type: form.time_away_type, destination: form.destination, start_date: form.start_date, end_date: form.end_date, notes: form.notes }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Time Away</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Add Time Away</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -4200,7 +4201,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {addMutation.isPending ? <CircularProgress size={20} /> : 'Add Time Away'}
             </Button>
           </DialogActions>
@@ -4209,7 +4210,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
 
       <Dialog open={!!itemTarget} onClose={() => setItemTarget(null)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (!itemTarget) return; addItemMutation.mutate({ id: itemTarget, data: { item: itemForm.item_text, category: itemForm.category, quantity: itemForm.quantity !== '' ? Number(itemForm.quantity) : null, unit: itemForm.unit } }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Checklist Item</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Add Checklist Item</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -4225,7 +4226,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setItemTarget(null)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addItemMutation.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addItemMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {addItemMutation.isPending ? <CircularProgress size={20} /> : 'Add Item'}
             </Button>
           </DialogActions>
@@ -4238,46 +4239,46 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
           const items: any[] = viewRecord.items || []
           return (
             <>
-              <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LuggageIcon sx={{ color: type.color }} /> {viewRecord.title}
               </DialogTitle>
               <DialogContent>
                 <Stack spacing={1.5}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 700 }} />
+                    <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 600 }} />
                     {viewRecord.destination && (
-                      <Typography variant="body2" color="#667085" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <PlaceIcon sx={{ fontSize: 16, color: type.color }} /> {viewRecord.destination}
                       </Typography>
                     )}
                   </Stack>
                   {(viewRecord.start_date || viewRecord.end_date) && (
-                    <Typography variant="body2" color="#667085" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarMonthIcon sx={{ fontSize: 16, color: type.color }} />
                       {viewRecord.start_date ? new Date(viewRecord.start_date).toLocaleDateString('en-GB') : ''}{viewRecord.start_date && viewRecord.end_date ? ' to ' : ''}{viewRecord.end_date ? new Date(viewRecord.end_date).toLocaleDateString('en-GB') : ''}
                     </Typography>
                   )}
-                  {viewRecord.created_by_name && <Typography variant="caption" color="#98A2B3">Planned by {viewRecord.created_by_name}</Typography>}
+                  {viewRecord.created_by_name && <Typography variant="caption" color="text.muted">Planned by {viewRecord.created_by_name}</Typography>}
                   {viewRecord.notes && (
                     <Box>
-                      <Typography variant="caption" color="#667085">Notes</Typography>
+                      <Typography variant="caption" color="text.secondary">Notes</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{viewRecord.notes}</Typography>
                     </Box>
                   )}
                   <Divider />
-                  <Typography variant="subtitle2" fontWeight={800}>Checklist ({items.filter((i: any) => i.is_complete).length}/{items.length})</Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>Checklist ({items.filter((i: any) => i.is_complete).length}/{items.length})</Typography>
                   {items.length === 0 ? (
-                    <Typography variant="body2" color="#98A2B3">No checklist items added yet.</Typography>
+                    <Typography variant="body2" color="text.muted">No checklist items added yet.</Typography>
                   ) : (
                     <Stack spacing={0.5}>
                       {items.map((item: any) => (
                         <Stack key={item.id} direction="row" spacing={1} alignItems="center">
-                          {item.is_complete ? <CheckCircleIcon sx={{ color: '#10B981', fontSize: 18 }} /> : <UncheckedIcon sx={{ color: 'text.secondary', fontSize: 18 }} />}
-                          <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? '#98A2B3' : 'inherit' }}>
+                          {item.is_complete ? <CheckCircleIcon sx={{ color: METICLE_COLORS.success, fontSize: 18 }} /> : <UncheckedIcon sx={{ color: 'text.secondary', fontSize: 18 }} />}
+                          <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? 'text.muted' : 'inherit' }}>
                             {item.item}
                           </Typography>
                           {item.quantity != null && item.quantity !== '' && (
-                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
+                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
                           )}
                         </Stack>
                       ))}
@@ -4334,10 +4335,10 @@ function MoodChartTabInline({ personId }: { personId: string }) {
     grouped[e.domain].push(e)
   })
 
-  const scoreColor = (score: number) => score >= 8 ? '#10B981' : score >= 5 ? '#F59E0B' : '#EF4444'
+  const scoreColor = (score: number) => score >= 8 ? METICLE_COLORS.success : score >= 5 ? METICLE_COLORS.warning : METICLE_COLORS.danger
 
   const band = (score: number) => score >= 8 ? 'High' : score >= 5 ? 'Moderate' : 'Low'
-  const BAND_COLORS: Record<string, string> = { High: '#10B981', Moderate: '#F59E0B', Low: '#EF4444' }
+  const BAND_COLORS: Record<string, string> = { High: METICLE_COLORS.success, Moderate: METICLE_COLORS.warning, Low: METICLE_COLORS.danger }
   const bandCounts: Record<string, number> = { High: 0, Moderate: 0, Low: 0 }
   recentEntries.forEach((e: any) => { bandCounts[band(e.score)] += 1 })
   const pieData = Object.entries(bandCounts).filter(([, c]) => c > 0).map(([name, value]) => ({ name, value, fill: BAND_COLORS[name] }))
@@ -4345,33 +4346,33 @@ function MoodChartTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Mood Chart — Last 30 Days</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Mood Chart — Last 30 Days</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Stack direction="row" sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2, overflow: 'hidden' }}>
+          <Stack direction="row" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
             <Button size="small" onClick={() => setView('chart')}
-              sx={{ textTransform: 'none', borderRadius: 0, px: 1.5, fontWeight: 700, color: view === 'chart' ? '#2F80ED' : '#98A2B3', bgcolor: view === 'chart' ? '#E6EAF0' : 'transparent' }}>
+              sx={{ textTransform: 'none', px: 1.5, fontWeight: 600, color: view === 'chart' ? METICLE_COLORS.primary : 'text.muted', bgcolor: view === 'chart' ? 'divider' : 'transparent' }}>
               Charts
             </Button>
             <Button size="small" onClick={() => setView('table')}
-              sx={{ textTransform: 'none', borderRadius: 0, px: 1.5, fontWeight: 700, color: view === 'table' ? '#2F80ED' : '#98A2B3', bgcolor: view === 'table' ? '#E6EAF0' : 'transparent' }}>
+              sx={{ textTransform: 'none', px: 1.5, fontWeight: 600, color: view === 'table' ? METICLE_COLORS.primary : 'text.muted', bgcolor: view === 'table' ? 'divider' : 'transparent' }}>
               Table
             </Button>
           </Stack>
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }); setFormError(''); setAddOpen(true) }}
-            sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Entry</Button>
+            sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Entry</Button>
         </Stack>
       </Stack>
 
       {view === 'table' ? (
-        <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', overflow: 'hidden' }}>
+        <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
-                  <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Domain</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -4381,10 +4382,10 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                   <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</TableCell>
                     <TableCell>
-                      <Chip label={e.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[e.domain] || '#667085', color: 'white', fontWeight: 700 }} />
+                      <Chip label={e.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[e.domain] || 'text.secondary', color: 'white', fontWeight: 600 }} />
                     </TableCell>
                     <TableCell>
-                      <Chip label={`${e.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(e.score)}20`, color: scoreColor(e.score), fontWeight: 700 }} />
+                      <Chip label={`${e.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(e.score)}20`, color: scoreColor(e.score), fontWeight: 600 }} />
                     </TableCell>
                     <TableCell><Typography variant="body2">{e.notes || '-'}</Typography></TableCell>
                   </TableRow>
@@ -4394,15 +4395,15 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           </TableContainer>
         </Paper>
       ) : entries.length === 0 ? (
-        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-          <Typography color="#98A2B3">No wellbeing data yet</Typography>
-          <Typography variant="caption" color="#667085" sx={{ mt: 0.5, display: 'block' }}>Record mood, engagement, sleep and other wellbeing scores to see trends here.</Typography>
+        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Typography color="text.muted">No wellbeing data yet</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>Record mood, engagement, sleep and other wellbeing scores to see trends here.</Typography>
         </Paper>
       ) : Object.keys(grouped).length === 0 ? (
         <EmptyRow message="No entries in the last 30 days" />
       ) : (
         <Stack spacing={3}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 3 }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 3 }}>
             <Box sx={{ position: 'relative', width: 220, height: 220, flexShrink: 0 }}>
               <RechartsResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -4410,22 +4411,22 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                     {pieData.map((s: any) => <Cell key={s.name} fill={s.fill} />)}
                   </Pie>
                   <RechartsTooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid', borderColor: '#E6EAF0', fontSize: 12 }}
+                    contentStyle={{ borderRadius: 8, border: '1px solid', borderColor: 'divider', fontSize: 12 }}
                     formatter={(value: any, name: any) => [`${value} entries`, name]}
                   />
                 </PieChart>
               </RechartsResponsiveContainer>
               <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#2F80ED', lineHeight: 1 }}>{recentEntries.length}</Typography>
-                <Typography variant="caption" color="#98A2B3">entries · 30d</Typography>
+                <Typography sx={{ fontSize: 28, fontWeight: 600, color: METICLE_COLORS.primary, lineHeight: 1 }}>{recentEntries.length}</Typography>
+                <Typography variant="caption" color="text.muted">entries · 30d</Typography>
               </Box>
             </Box>
             <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
               <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
                 {Object.entries(BAND_COLORS).map(([name, color]) => (
-                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: '#E6EAF0', minWidth: 96 }}>
-                    <Typography sx={{ fontWeight: 800, color, fontSize: 20, lineHeight: 1.2 }}>{bandCounts[name]}</Typography>
-                    <Typography variant="caption" color="#667085">{name}</Typography>
+                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: 'divider', minWidth: 96 }}>
+                    <Typography sx={{ fontWeight: 600, color, fontSize: 20, lineHeight: 1.2 }}>{bandCounts[name]}</Typography>
+                    <Typography variant="caption" color="text.secondary">{name}</Typography>
                   </Box>
                 ))}
               </Stack>
@@ -4433,7 +4434,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                 {pieData.map((s: any) => (
                   <Box key={s.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <Box sx={{ width: 10, height: 10, borderRadius: 3, bgcolor: s.fill }} />
-                    <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{s.name}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{s.name}</Typography>
                   </Box>
                 ))}
               </Box>
@@ -4441,28 +4442,28 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           </Paper>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>Recent entries</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Recent entries</Typography>
             <Stack spacing={1}>
               {recentEntries.slice(0, 12).map((e: any) => (
                 <Paper
                   key={e.id}
                   onClick={() => setViewEntry(e)}
                   sx={{
-                    p: 1.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.5,
-                    '&:hover': { borderColor: '#2F80ED', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' },
+                    p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.5,
+                    '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' },
                   }}>
-                  <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${scoreColor(e.score)}18`, color: scoreColor(e.score), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${scoreColor(e.score)}18`, color: scoreColor(e.score), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14, flexShrink: 0 }}>
                     {e.score}
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>{e.domain}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>{e.domain}</Typography>
                       <Box sx={{ width: 8, height: 8, borderRadius: 4, bgcolor: scoreColor(e.score) }} />
-                      <Typography variant="caption" color="#98A2B3">{band(e.score)}</Typography>
+                      <Typography variant="caption" color="text.muted">{band(e.score)}</Typography>
                     </Stack>
-                    <Typography variant="body2" color="#667085" noWrap sx={{ maxWidth: '100%' }}>{e.notes || 'No notes'}</Typography>
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '100%' }}>{e.notes || 'No notes'}</Typography>
                   </Box>
-                  <Typography variant="caption" color="#98A2B3" sx={{ flexShrink: 0 }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</Typography>
+                  <Typography variant="caption" color="text.muted" sx={{ flexShrink: 0 }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</Typography>
                 </Paper>
               ))}
             </Stack>
@@ -4473,28 +4474,28 @@ function MoodChartTabInline({ personId }: { personId: string }) {
       <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
         {viewEntry && (
           <>
-            <DialogTitle sx={{ fontWeight: 800 }}>Wellbeing Entry</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 600 }}>Wellbeing Entry</DialogTitle>
             <DialogContent>
               <Stack spacing={2.5}>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Chip label={viewEntry.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[viewEntry.domain] || '#667085', color: 'white', fontWeight: 700, textTransform: 'capitalize' }} />
-                  <Chip label={`${viewEntry.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(viewEntry.score)}20`, color: scoreColor(viewEntry.score), fontWeight: 700 }} />
-                  <Chip label={band(viewEntry.score)} size="small" sx={{ bgcolor: `${BAND_COLORS[band(viewEntry.score)]}18`, color: BAND_COLORS[band(viewEntry.score)], fontWeight: 700 }} />
+                  <Chip label={viewEntry.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[viewEntry.domain] || 'text.secondary', color: 'white', fontWeight: 600, textTransform: 'capitalize' }} />
+                  <Chip label={`${viewEntry.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(viewEntry.score)}20`, color: scoreColor(viewEntry.score), fontWeight: 600 }} />
+                  <Chip label={band(viewEntry.score)} size="small" sx={{ bgcolor: `${BAND_COLORS[band(viewEntry.score)]}18`, color: BAND_COLORS[band(viewEntry.score)], fontWeight: 600 }} />
                 </Stack>
                 <Stack spacing={0.5}>
-                  <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recorded</Typography>
+                  <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Recorded</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {new Date(viewEntry.recorded_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                    {viewEntry.created_at && <Typography component="span" variant="caption" color="#98A2B3"> · {new Date(viewEntry.created_at).toLocaleString('en-GB')}</Typography>}
+                    {viewEntry.created_at && <Typography component="span" variant="caption" color="text.muted"> · {new Date(viewEntry.created_at).toLocaleString('en-GB')}</Typography>}
                   </Typography>
                 </Stack>
                 <Stack spacing={0.5}>
-                  <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Notes</Typography>
                   <Typography variant="body2">{viewEntry.notes || 'No notes recorded.'}</Typography>
                 </Stack>
                 {viewEntry.created_by_name && (
                   <Stack spacing={0.5}>
-                    <Typography variant="caption" color="#98A2B3" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recorded by</Typography>
+                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5 }}>Recorded by</Typography>
                     <Typography variant="body2">{viewEntry.created_by_name}</Typography>
                   </Stack>
                 )}
@@ -4509,7 +4510,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Wellbeing Entry</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Add Wellbeing Entry</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{formError}</Alert>}
             <Stack spacing={2.5} sx={{ mt: 1 }}>
@@ -4519,7 +4520,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                 ))}
               </TextField>
               <Box>
-                <Typography variant="body2" color="#667085" sx={{ mb: 1 }}>Score: <strong>{form.score}</strong>/10</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Score: <strong>{form.score}</strong>/10</Typography>
                 <Rating value={form.score} max={10}
                   onChange={(_, v) => setForm(f => ({ ...f, score: v || 5 }))}
                   sx={{ '& .MuiRatingIcon': { fontSize: 32 } }} />
@@ -4533,7 +4534,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 1.5 }}>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
               {addMutation.isPending ? <CircularProgress size={20} /> : 'Save Entry'}
             </Button>
           </DialogActions>
@@ -4568,15 +4569,15 @@ function AuditTrailTabInline({ personId }: { personId: string }) {
   if (!logs.length) return <EmptyRow message="No audit trail entries" />
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 2 }}>Audit Trail</Typography>
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Audit Trail</Typography>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -4644,7 +4645,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Billing & Rates</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Billing & Rates</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>Client billing rates for {personName}</Typography>
         </Box>
       </Stack>
@@ -4653,19 +4654,19 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       {packages.length === 0 ? (
-        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Typography sx={{ color: 'text.secondary', mb: 1 }}>No care packages found</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Create a homecare package for this client first</Typography>
         </Paper>
       ) : (
         <Stack gap={2}>
           {packages.map((pkg: any) => (
-            <Paper key={pkg.id} elevation={0} sx={{ p: 3, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
+            <Paper key={pkg.id} elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={2}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pkg.name}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{pkg.name}</Typography>
                   <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
-                    <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#EAFBF5' : '#F7F9FC', color: pkg.status === 'active' ? '#087A55' : '#667085', fontWeight: 600 }} />
+                    <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#EAFBF5' : '#F7F9FC', color: pkg.status === 'active' ? METICLE_COLORS.successText : 'text.secondary', fontWeight: 600 }} />
                     <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
                   </Stack>
                 </Box>
@@ -4674,7 +4675,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
                   {/* Carer rate */}
                   <Box sx={{ textAlign: 'center', minWidth: 100 }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Carer rate</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#2F80ED' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: METICLE_COLORS.primary }}>
                       {pkg.hourly_rate_pence != null ? `£${(Number(pkg.hourly_rate_pence) / 100).toFixed(2)}/hr` : '—'}
                     </Typography>
                   </Box>
@@ -4700,10 +4701,10 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
                       </Stack>
                     ) : (
                       <Stack direction="row" alignItems="center" gap={0.5}>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: pkg.client_rate_pence != null ? '#10B981' : '#F59E0B' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: pkg.client_rate_pence != null ? METICLE_COLORS.success : METICLE_COLORS.warning }}>
                           {pkg.client_rate_pence != null ? `£${(Number(pkg.client_rate_pence) / 100).toFixed(2)}/hr` : 'Not set'}
                         </Typography>
-                        <IconButton size="small" onClick={() => { setEditing(pkg.id); setRateValue(pkg.client_rate_pence != null ? String(Number(pkg.client_rate_pence) / 100) : '') }} sx={{ color: '#2F80ED' }}>
+                        <IconButton size="small" onClick={() => { setEditing(pkg.id); setRateValue(pkg.client_rate_pence != null ? String(Number(pkg.client_rate_pence) / 100) : '') }} sx={{ color: METICLE_COLORS.primary }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Stack>
@@ -4713,7 +4714,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
                   {/* Mileage rate */}
                   <Box sx={{ textAlign: 'center', minWidth: 100 }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Mileage</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#8B7CF6' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: '#8B7CF6' }}>
                       {pkg.mileage_rate_pence != null ? `${Number(pkg.mileage_rate_pence).toFixed(1)}p/mi` : 'Org default'}
                     </Typography>
                   </Box>

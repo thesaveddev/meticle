@@ -16,7 +16,7 @@ const playStoreUrl = import.meta.env.VITE_GOOGLE_PLAY_URL || ''
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -61,12 +61,12 @@ function ScheduleScreen() {
   ]
   return (
     <Box sx={{ p: 1.5 }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: M.navy, mb: 1 }}>Today's Schedule</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', color: M.navy, mb: 1 }}>Today's Schedule</Typography>
       <Typography sx={{ fontSize: '0.6rem', color: M.muted, mb: 1.5 }}>4 visits · 2 completed</Typography>
       {calls.map((c, i) => (
         <Box key={i} sx={{ mb: 1, p: 1, borderRadius: M.r.sm, bgcolor: M.faint,  }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: M.navy }}>{c.time}</Typography>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.navy }}>{c.time}</Typography>
             <Chip label={c.status} size="small" sx={{ height: 16, fontSize: '0.5rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
           </Stack>
           <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: M.slate }}>{c.client}</Typography>
@@ -85,7 +85,7 @@ function ClientDetailScreen() {
           <Person sx={{ fontSize: 16, color: M.tealDeep }} />
         </Box>
         <Box>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: M.navy }}>Margaret Wilson</Typography>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.navy }}>Margaret Wilson</Typography>
           <Typography sx={{ fontSize: '0.5rem', color: M.muted }}>DOB: 15/03/1942</Typography>
         </Box>
       </Stack>
@@ -102,7 +102,7 @@ function ClientDetailScreen() {
 function ChatScreen() {
   return (
     <Box sx={{ p: 1.5 }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.7rem', color: M.navy, mb: 1.5 }}>Team Chat</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.7rem', color: M.navy, mb: 1.5 }}>Team Chat</Typography>
       {[
         { from: 'Sarah M.', msg: 'Just arrived at Margaret\'s. All good.', time: '09:12', me: false },
         { from: 'You', msg: 'Great, thanks for the update.', time: '09:13', me: true },
@@ -177,14 +177,14 @@ export default function DownloadPageNew() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 {appStoreUrl ? (
-                  <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#FFFFFF', fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
+                  <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
                 ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>App Store link pending</Button>
+                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 600 }}>App Store link pending</Button>
                 )}
                 {playStoreUrl ? (
-                  <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Get it on Google Play</Button>
+                  <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Get it on Google Play</Button>
                 ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>Google Play link pending</Button>
+                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 600 }}>Google Play link pending</Button>
                 )}
               </Stack>
             </Grid>
@@ -224,7 +224,7 @@ export default function DownloadPageNew() {
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2.5 }}>
                     <f.icon sx={{ color: M.tealDeep, fontSize: 24 }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>{f.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{f.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{f.desc}</Typography>
                 </Box>
               </Grid>
@@ -294,9 +294,9 @@ export default function DownloadPageNew() {
             Download the app or talk to the team about your care operation.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-            {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
-            {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
+            <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+            {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
+            {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
           </Stack>
         </Container>
       </Box>

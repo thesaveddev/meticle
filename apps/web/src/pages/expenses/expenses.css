@@ -103,7 +103,7 @@ body:has(.expenses-page) {
   min-height: 40px;
   white-space: nowrap;
   text-transform: none !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   border-radius: var(--exp-radius-sm) !important;
 }
 
@@ -157,7 +157,7 @@ body:has(.expenses-page) {
   margin-bottom: var(--exp-space-2);
   color: var(--exp-muted);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -174,7 +174,7 @@ body:has(.expenses-page) {
   color: var(--exp-ink);
   font-family: var(--exp-font-display);
   font-size: clamp(1.35rem, 2.2vw, 1.9rem);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.05;
 }
 
@@ -199,7 +199,7 @@ body:has(.expenses-page) {
   min-height: 48px;
   padding: 0 var(--exp-space-4);
   color: var(--exp-muted);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: none;
 }
 
@@ -232,7 +232,7 @@ body:has(.expenses-page) {
   margin: 0;
   color: var(--exp-ink);
   font-size: 1.2rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .expenses-section-heading__copy {
@@ -286,7 +286,7 @@ body:has(.expenses-page) {
   background: var(--exp-paper-subtle);
   color: var(--exp-muted);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.055em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -310,7 +310,7 @@ body:has(.expenses-page) {
 .expenses-table__amount {
   color: var(--exp-ink) !important;
   font-variant-numeric: tabular-nums;
-  font-weight: 800 !important;
+  font-weight: 600 !important;
   white-space: nowrap;
 }
 
@@ -350,7 +350,7 @@ body:has(.expenses-page) {
 .expenses-mobile-row__primary {
   min-width: 0;
   color: var(--exp-ink);
-  font-weight: 800;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -381,7 +381,7 @@ body:has(.expenses-page) {
 
 .expenses-attention__title {
   color: var(--exp-ink);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .expenses-attention__copy {
@@ -399,7 +399,7 @@ body:has(.expenses-page) {
   color: var(--exp-ink);
   font-family: var(--exp-font-display);
   font-style: normal;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .expenses-dialog .MuiDialogContent-root {
@@ -435,7 +435,7 @@ body:has(.expenses-page) {
 .expenses-balance-preview__label {
   color: var(--exp-muted);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
@@ -444,7 +444,7 @@ body:has(.expenses-page) {
   margin-top: var(--exp-space-1);
   color: var(--exp-ink);
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -452,7 +452,7 @@ body:has(.expenses-page) {
 .expenses-balance-preview__plus {
   color: var(--exp-muted);
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .expenses-balance-preview__result {
@@ -477,7 +477,7 @@ body:has(.expenses-page) {
 
 .expenses-empty__title {
   color: var(--exp-ink);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .expenses-empty__copy {
@@ -489,7 +489,7 @@ body:has(.expenses-page) {
 
 .expenses-page .MuiChip-root {
   border-radius: var(--exp-radius-sm);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (max-width: 1020px) {

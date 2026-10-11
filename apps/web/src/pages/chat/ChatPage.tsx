@@ -100,7 +100,7 @@ export default function ChatPage() {
               )}
               <Box>
                 <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Typography variant="subtitle2" fontWeight={800} sx={{ fontSize: 14, color: INK }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: 14, color: INK }}>
                     {channelName || 'Select a conversation'}
                   </Typography>
                   {(channelType === 'general' || channelType === 'group') && getOnlineCount(activeChannelData) > 0 && (
@@ -255,24 +255,24 @@ export default function ChatPage() {
 
       {/* Delete confirm */}
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: 15, color: INK }}>Delete message?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: 15, color: INK }}>Delete message?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: MIST }}>This cannot be undone.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm(null)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button onClick={() => setDeleteConfirm(null)} sx={{ color: MIST, fontWeight: 600 }}>Cancel</Button>
           <Button variant="contained" color="error" onClick={() => { chat.confirmDeleteMessage(deleteConfirm); setDeleteConfirm(null) }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
       {/* Leave group confirm */}
       <Dialog open={leaveConfirm} onClose={() => setLeaveConfirm(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: 15, color: INK }}>Leave group?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: 15, color: INK }}>Leave group?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: MIST }}>You will no longer see messages here.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLeaveConfirm(false)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button onClick={() => setLeaveConfirm(false)} sx={{ color: MIST, fontWeight: 600 }}>Cancel</Button>
           <Button variant="contained" color="error" onClick={() => { chat.handleLeaveGroup(); setLeaveConfirm(false) }}>Leave</Button>
         </DialogActions>
       </Dialog>

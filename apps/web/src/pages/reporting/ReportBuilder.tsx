@@ -223,16 +223,16 @@ export default function ReportBuilder() {
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <IconButton onClick={() => navigate('/reports')} size="small"><BackIcon /></IconButton>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>{meta.title}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>{meta.title}</Typography>
           <Typography variant="body2" color="text.secondary">{meta.description}</Typography>
         </Box>
         <Tooltip title="Refresh"><IconButton onClick={fetchData} disabled={fetching}><RefreshIcon /></IconButton></Tooltip>
         <Button variant="outlined" size="small" startIcon={<FilterIcon />} onClick={() => setFilterOpen(true)}
-          sx={{ textTransform: 'none', borderRadius: 2 }}>
+          sx={{ textTransform: 'none',}}>
           Filters {activeFilterCount > 0 && <Chip label={activeFilterCount} size="small" color="primary" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />}
         </Button>
         <Button variant="outlined" size="small" startIcon={<CsvIcon />} onClick={() => handleExport('csv')}
-          sx={{ textTransform: 'none', borderRadius: 2 }}>
+          sx={{ textTransform: 'none',}}>
           CSV
         </Button>
       </Stack>
@@ -299,7 +299,7 @@ export default function ReportBuilder() {
       <Drawer anchor="right" open={filterOpen} onClose={() => setFilterOpen(false)} PaperProps={{ sx: { width: 320, p: 3 } }}>
         <Stack spacing={3}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Filters</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>Filters</Typography>
             <Stack direction="row" spacing={1}>
               {activeFilterCount > 0 && (
                 <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>Clear All</Button>
@@ -372,7 +372,7 @@ export default function ReportBuilder() {
           <Divider />
 
           <Button variant="contained" fullWidth onClick={() => { setFilterOpen(false) }}
-            sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}>
+            sx={{ textTransform: 'none', fontWeight: 600 }}>
             Apply Filters
           </Button>
 

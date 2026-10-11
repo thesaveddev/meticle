@@ -8,7 +8,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -49,8 +49,8 @@ export default function SecurityPage() {
                 Care information deserves careful handling. Security is a core product concern — not an afterthought or a compliance checkbox. Every design decision considers data protection, access control and auditability.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Ask about security</Button>
-                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Compliance</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Ask about security</Button>
+                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Compliance</Button>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -119,7 +119,7 @@ export default function SecurityPage() {
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2.5 }}>
                     <c.icon sx={{ color: M.tealDeep, fontSize: 24 }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>{c.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{c.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.88rem', lineHeight: 1.6, mb: 2 }}>{c.desc}</Typography>
                   <Stack spacing={0.75}>
                     {c.details.map((d) => (
@@ -149,7 +149,7 @@ export default function SecurityPage() {
             {practices.map((p) => (
               <Grid item xs={12} sm={6} key={p.title}>
                 <Box sx={{ p: 3.5, bgcolor: M.card, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%' }}>
-                  <Typography sx={{ fontWeight: 700, mb: 1 }}>{p.title}</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{p.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.65 }}>{p.desc}</Typography>
                 </Box>
               </Grid>
@@ -169,7 +169,7 @@ export default function SecurityPage() {
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ask us about your data requirements.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Contact us</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Contact us</Button>
         </Container>
       </Box>
     </MarketingLayout>

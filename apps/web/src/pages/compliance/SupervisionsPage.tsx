@@ -148,7 +148,7 @@ export default function SupervisionsPage() {
         <CardContent sx={{ p: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }}>
             <Box sx={{ textAlign: 'center', minWidth: 160 }}>
-              <Typography sx={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: rateColor }}>
+              <Typography sx={{ fontSize: 40, fontWeight: 600, lineHeight: 1, color: rateColor }}>
                 {summary.isLoading ? '—' : `${rate}%`}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Supervised in the last 6 months</Typography>
@@ -156,15 +156,15 @@ export default function SupervisionsPage() {
             <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
             <Grid container spacing={2} sx={{ flex: 1 }}>
               <Grid item xs={4}>
-                <Typography sx={{ fontWeight: 800, fontSize: 22 }}>{s?.done ?? '—'}</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: 22 }}>{s?.done ?? '—'}</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>Staff supervised</Typography>
               </Grid>
               <Grid item xs={4}>
-                <Typography sx={{ fontWeight: 800, fontSize: 22 }}>{s?.total ?? '—'}</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: 22 }}>{s?.total ?? '—'}</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>Active staff</Typography>
               </Grid>
               <Grid item xs={4}>
-                <Typography sx={{ fontWeight: 800, fontSize: 22 }}>{s?.sessions ?? '—'}</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: 22 }}>{s?.sessions ?? '—'}</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>Sessions recorded</Typography>
               </Grid>
             </Grid>
@@ -179,7 +179,7 @@ export default function SupervisionsPage() {
 
       <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>Record a supervision</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>Record a supervision</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             Who was supervised, by whom, and what was agreed. This is the evidence an inspector asks for.
           </Typography>
@@ -268,12 +268,12 @@ export default function SupervisionsPage() {
 
       <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Supervision log</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Supervision log</Typography>
           {records.isLoading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>}
           {!records.isLoading && records_.length === 0 && (
             <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderStyle: 'dashed' }}>
               <RateReview sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
-              <Typography sx={{ fontWeight: 700 }}>No supervisions recorded yet</Typography>
+              <Typography sx={{ fontWeight: 600 }}>No supervisions recorded yet</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                 Record the first one above and the six-month coverage starts building from today.
               </Typography>
@@ -287,7 +287,7 @@ export default function SupervisionsPage() {
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
                     <Box sx={{ minWidth: 0 }}>
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: 'wrap', rowGap: 0.5 }}>
-                        <Typography sx={{ fontWeight: 700 }}>{r.staff_name || 'Staff member'}</Typography>
+                        <Typography sx={{ fontWeight: 600 }}>{r.staff_name || 'Staff member'}</Typography>
                         <Chip size="small" label={TYPE_LABELS[r.supervision_type] || r.supervision_type} />
                         {overdue && <Chip size="small" color="warning" label="Next supervision overdue" />}
                       </Stack>

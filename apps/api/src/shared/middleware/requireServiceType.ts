@@ -21,7 +21,7 @@ export function requireServiceType(...allowedTypes: string[]) {
 
       // Check cache on the request to avoid repeated queries
       const cacheKey = '_serviceTypeContext';
-      let serviceContext: { serviceTypes: string[]; primaryServiceType: string | null } | undefined = (req as any)[cacheKey];
+      let serviceContext: { serviceTypes: string[]; primaryServiceType: string | null; orgRowFound: boolean } | undefined = (req as any)[cacheKey];
 
       if (!serviceContext) {
         const result = await query(
@@ -31,6 +31,7 @@ export function requireServiceType(...allowedTypes: string[]) {
         serviceContext = {
           serviceTypes: result.rows[0]?.service_types || [],
           primaryServiceType: result.rows[0]?.primary_service_type || null,
+          orgRowFound: result.rows.length > 0,
         };
         (req as any)[cacheKey] = serviceContext;
       }
@@ -38,9 +39,17 @@ export function requireServiceType(...allowedTypes: string[]) {
       // When a primary model is configured, it is authoritative. This keeps
       // a domiciliary organisation from reaching supported-living routes just
       // because a legacy secondary value remains in service_types.
-      const hasAccess = serviceContext.primaryServiceType
-        ? allowedTypes.includes(serviceContext.primaryServiceType)
-        : serviceContext.serviceTypes.some((t: string) => allowedTypes.includes(t));
+      //
+      // An org with a primary model but an empty/absent service_types array
+      // (e.g. set programmatically before the array was maintained) is still
+      // a configured org — its primary model decides.
+      const hasPrimaryModel = !!serviceContext.primaryServiceType;
+      const hasAnyServiceType = serviceContext.serviceTypes.length > 0;
+      const hasAccess = hasPrimaryModel
+        ? allowedTypes.includes(serviceContext.primaryServiceType!)
+        : hasAnyServiceType
+          ? serviceContext.serviceTypes.some((t: string) => allowedTypes.includes(t))
+          : false;
       if (!hasAccess) {
         return next(new AppError(403, 'This feature is not available for your organisation type'));
       }

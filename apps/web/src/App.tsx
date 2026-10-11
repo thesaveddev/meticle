@@ -198,6 +198,12 @@ function App() {
       <Route path="/privacy" element={<ErrorBoundary><Suspense fallback={null}><PrivacyPolicyPage /></Suspense></ErrorBoundary>} />
       <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />
       <Route path="/cookies" element={<ErrorBoundary><Suspense fallback={null}><CookiePolicyPage /></Suspense></ErrorBoundary>} />
+      {/* Old title-derived slugs some links/bookmarks used: they would otherwise
+          fall into the AuthGuard catch-all and bounce visitors to /login. */}
+      <Route path="/privacy-policy" element={<Navigate to="/privacy" replace />} />
+      <Route path="/terms-of-use" element={<Navigate to="/terms" replace />} />
+      <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
+      <Route path="/cookie-policy" element={<Navigate to="/cookies" replace />} />
       {/* Play and Apple both require a public URL for requesting account
           deletion, alongside the in-app path in Settings. */}
       <Route path="/delete-account" element={<ErrorBoundary><Suspense fallback={null}><AccountDeletionPage /></Suspense></ErrorBoundary>} />

@@ -53,11 +53,11 @@ export default function VerifyEmailPage() {
           {status === 'success' && (
             <>
               <CheckCircleIcon sx={{ fontSize: 80, color: '#10B981', mb: 3 }} />
-              <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>Account Verified!</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: 'white', mb: 2 }}>Account Verified!</Typography>
               <Typography sx={{ color: 'text.secondary', mb: 4 }}>
                 Your email has been successfully verified. You can now log in to your Meticle Care dashboard.
               </Typography>
-              <Button variant="contained" fullWidth sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700 }} onClick={() => navigate('/login')}>
+              <Button variant="contained" fullWidth sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 600 }} onClick={() => navigate('/login')}>
                 Go to Login
               </Button>
             </>
@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
           {status === 'error' && (
             <>
               <ErrorIcon sx={{ fontSize: 80, color: '#ef4444', mb: 3 }} />
-              <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>Verification Error</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: 'white', mb: 2 }}>Verification Error</Typography>
               <Typography sx={{ color: 'text.secondary', mb: 4 }}>{message}</Typography>
               <Button variant="outlined" fullWidth sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.2)' }} onClick={() => navigate('/')}>
                 Back to Home

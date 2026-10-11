@@ -70,7 +70,7 @@ function statusTone(status: string) {
 
 function StatusChip({ status }: { status: string }) {
   const tone = statusTone(status)
-  return <Chip size="small" label={tone.label} sx={{ bgcolor: tone.bg, color: tone.color, fontWeight: 700, height: 24, textTransform: 'capitalize' }} />
+  return <Chip size="small" label={tone.label} sx={{ bgcolor: tone.bg, color: tone.color, fontWeight: 600, height: 24, textTransform: 'capitalize' }} />
 }
 
 function SummaryCard({ label, value, detail, tone = 'primary', icon }: { label: string; value: string; detail?: string; tone?: 'primary' | 'success' | 'warning' | 'neutral'; icon: React.ReactNode }) {
@@ -81,7 +81,7 @@ function SummaryCard({ label, value, detail, tone = 'primary', icon }: { label: 
         <Box sx={{ width: 34, height: 34, borderRadius: 1.5, bgcolor: `${colors[tone]}15`, color: colors[tone], display: 'grid', placeItems: 'center' }}>{icon}</Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="caption" color="text.secondary" display="block">{label}</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.3 }}>{value}</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.3 }}>{value}</Typography>
           {detail && <Typography variant="caption" color="text.secondary">{detail}</Typography>}
         </Box>
       </Stack>
@@ -96,17 +96,17 @@ function ReviewRow({ row }: { row: any }) {
     <>
       <TableRow hover sx={{ '& > td': { borderBottom: expanded ? 0 : undefined } }}>
         <TableCell sx={{ minWidth: 150 }}>
-          <Typography variant="body2" fontWeight={700}>{dateLabel(row.scheduled_start)}</Typography>
+          <Typography variant="body2" fontWeight={600}>{dateLabel(row.scheduled_start)}</Typography>
           <Typography variant="caption" color="text.secondary">{timeLabel(row.scheduled_start)} · {minutesLabel(row.scheduled_minutes)} planned</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 190 }}>
-          <Typography variant="body2" fontWeight={700}>{row.person_name || 'Unnamed client'}</Typography>
+          <Typography variant="body2" fontWeight={600}>{row.person_name || 'Unnamed client'}</Typography>
           <Typography variant="caption" color="text.secondary">{row.package_name || 'No package name'}</Typography>
         </TableCell>
         <TableCell><Chip size="small" label={String(row.funding_type || 'private').replace(/_/g, ' ')} sx={{ textTransform: 'capitalize', height: 23 }} /></TableCell>
         <TableCell><StatusChip status={row.billing_status} /></TableCell>
-        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{minutesLabel(row.delivered_minutes)}</Typography></TableCell>
-        <TableCell align="right"><Typography variant="body2" fontWeight={800} color="primary.main">{money(row.gross_amount_pence)}</Typography></TableCell>
+        <TableCell align="right"><Typography variant="body2" fontWeight={600}>{minutesLabel(row.delivered_minutes)}</Typography></TableCell>
+        <TableCell align="right"><Typography variant="body2" fontWeight={600} color="primary.main">{money(row.gross_amount_pence)}</Typography></TableCell>
         <TableCell align="right">
           {row.billing_status === 'review' ? <Typography variant="caption" color="warning.dark" sx={{ maxWidth: 150, display: 'inline-block' }}>{row.exclusion_reason || 'Check visit record'}</Typography> : null}
           <AppButton variant="quiet" size="small" aria-label="Show billing line details" onClick={() => setExpanded(v => !v)} endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}>Details</AppButton>
@@ -141,13 +141,13 @@ function RunCard({ run, selected, onSelect, onApprove, onVoid, approving }: { ru
         </Box>
         <Box sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onSelect}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            <Typography fontWeight={800}>{run.invoice_number || 'Draft billing run'}</Typography>
+            <Typography fontWeight={600}>{run.invoice_number || 'Draft billing run'}</Typography>
             <StatusChip status={run.status} />
           </Stack>
           <Typography variant="body2" color="text.secondary">{dateLabel(run.period_from)} – {dateLabel(run.period_to)} · {run.row_count || 0} lines · created {dateLabel(run.created_at)}</Typography>
         </Box>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ flexShrink: 0 }}>
-          <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}><Typography variant="caption" color="text.secondary">Gross</Typography><Typography fontWeight={800}>{money(run.gross_amount_pence ?? run.total_amount_pence)}</Typography></Box>
+          <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}><Typography variant="caption" color="text.secondary">Gross</Typography><Typography fontWeight={600}>{money(run.gross_amount_pence ?? run.total_amount_pence)}</Typography></Box>
           {run.status === 'draft' && <AppButton size="small" loading={approving} startIcon={<CheckCircleIcon />} onClick={e => { e.stopPropagation(); onApprove() }}>Approve</AppButton>}
           {approved && <>
             <AppButton size="small" variant="secondary" startIcon={<DownloadIcon />} onClick={e => { e.stopPropagation(); window.open(`/api/homecare/client-billing/runs/${run.id}/invoice.pdf`, '_blank') }}>Invoice</AppButton>
@@ -167,7 +167,7 @@ function InvoiceRow({ invoice, onSend, onPaid, busy }: { invoice: any; onSend: (
   const statusLabel = String(invoice.status || '').replace(/_/g, ' ')
   return <>
     <TableRow hover>
-      <TableCell><Typography fontWeight={700}>{invoice.invoice_number}</Typography><Typography variant="caption" color="text.secondary">{invoice.person_name} · {invoice.payer_name}</Typography></TableCell>
+      <TableCell><Typography fontWeight={600}>{invoice.invoice_number}</Typography><Typography variant="caption" color="text.secondary">{invoice.person_name} · {invoice.payer_name}</Typography></TableCell>
       <TableCell><Typography variant="body2">{invoice.recipient_name}</Typography><Typography variant="caption" color="text.secondary">{invoice.recipient_email}</Typography></TableCell>
       <TableCell>
         <Stack spacing={0.5} alignItems="flex-start">
@@ -181,7 +181,7 @@ function InvoiceRow({ invoice, onSend, onPaid, busy }: { invoice: any; onSend: (
           })()}
         </Stack>
       </TableCell>
-      <TableCell align="right"><Typography fontWeight={800}>{money(invoice.gross_amount_pence)}</Typography></TableCell>
+      <TableCell align="right"><Typography fontWeight={600}>{money(invoice.gross_amount_pence)}</Typography></TableCell>
       <TableCell align="right"><Stack direction="row" spacing={0.5} justifyContent="flex-end">
         {invoice.person_id && invoice.status !== 'paid' && invoice.status !== 'void' && <AppButton size="small" variant="secondary" loading={busy && invoice.status !== 'paid'} startIcon={<SendIcon />} onClick={onSend}>{invoice.sent_at || !['not_sent', 'unverified'].includes(invoice.delivery_status || 'not_sent') ? 'Resend' : 'Send'}</AppButton>}
         {invoice.person_id && ['sent', 'viewed'].includes(invoice.status) && <AppButton size="small" loading={busy} startIcon={<PaidIcon />} onClick={onPaid}>Mark paid</AppButton>}
@@ -200,12 +200,12 @@ function RunDetail({ run }: { run: any }) {
   return (
     <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1.5 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} mb={2}>
-        <Box><Typography variant="caption" color="text.secondary">Net</Typography><Typography fontWeight={800}>{money(run.subtotal_pence)}</Typography></Box>
-        <Box><Typography variant="caption" color="text.secondary">VAT</Typography><Typography fontWeight={800}>{money(run.vat_amount_pence)}</Typography></Box>
-        <Box><Typography variant="caption" color="text.secondary">Gross</Typography><Typography fontWeight={800} color="primary.main">{money(run.gross_amount_pence ?? run.total_amount_pence)}</Typography></Box>
+        <Box><Typography variant="caption" color="text.secondary">Net</Typography><Typography fontWeight={600}>{money(run.subtotal_pence)}</Typography></Box>
+        <Box><Typography variant="caption" color="text.secondary">VAT</Typography><Typography fontWeight={600}>{money(run.vat_amount_pence)}</Typography></Box>
+        <Box><Typography variant="caption" color="text.secondary">Gross</Typography><Typography fontWeight={600} color="primary.main">{money(run.gross_amount_pence ?? run.total_amount_pence)}</Typography></Box>
         <Box><Typography variant="caption" color="text.secondary">Snapshot</Typography><Typography variant="body2">Immutable after approval</Typography></Box>
       </Stack>
-      <Typography variant="caption" fontWeight={800} color="text.secondary" textTransform="uppercase">Funding mix</Typography>
+      <Typography variant="caption" fontWeight={600} color="text.secondary" textTransform="uppercase">Funding mix</Typography>
       <Stack direction="row" gap={1} flexWrap="wrap" mt={0.75}>{Object.entries(breakdown).map(([key, value]: any) => <Chip key={key} size="small" label={`${key.replace(/_/g, ' ')} · ${value.billable_count || 0} ready · ${money(value.gross_pence)}`} />)}</Stack>
       {lines.isLoading ? <Typography variant="caption" color="text.secondary" mt={2} display="block">Loading snapshot lines…</Typography> : <Typography variant="caption" color="text.secondary" mt={2} display="block">{lines.data?.length || 0} snapshot lines retained for audit. Download the invoice after approval.</Typography>}
     </Box>
@@ -270,7 +270,7 @@ export default function ClientBillingPage() {
 
         <Paper elevation={0} sx={{ p: 2, mb: 2.5, border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
-            <Typography variant="body2" fontWeight={800} sx={{ mr: 1 }}>Billing period</Typography>
+            <Typography variant="body2" fontWeight={600} sx={{ mr: 1 }}>Billing period</Typography>
             <TextField type="date" size="small" label="From" value={from} onChange={e => { setFrom(e.target.value); setPage(0) }} InputLabelProps={{ shrink: true }} />
             <TextField type="date" size="small" label="To" value={to} onChange={e => { setTo(e.target.value); setPage(0) }} InputLabelProps={{ shrink: true }} />
             <Stack direction="row" flexWrap="wrap" gap={0.5}><AppButton variant="quiet" size="small" onClick={() => { const r = monthRange(); setFrom(r.from); setTo(r.to) }}>This month</AppButton><AppButton variant="quiet" size="small" onClick={() => { const r = monthRange(1); setFrom(r.from); setTo(r.to) }}>Last month</AppButton><AppButton variant="quiet" size="small" onClick={() => { const r = quarterRange(); setFrom(r.from); setTo(r.to) }}>This quarter</AppButton></Stack>
@@ -279,7 +279,7 @@ export default function ClientBillingPage() {
         </Paper>
 
         <Paper elevation={0} sx={{ p: 2.25, mb: 2.5, border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover' }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}><Box sx={{ flex: 1 }}><Typography fontWeight={800}>A controlled billing cycle</Typography><Typography variant="body2" color="text.secondary">Review the work queue first, create a snapshot, then approve only when exceptions are understood. Approval makes the run immutable.</Typography></Box><Stack direction="row" spacing={1} alignItems="center"><Chip label="1 · Review" color={tab === 0 ? 'primary' : 'default'} /><ArrowForwardIcon fontSize="small" color="disabled" /><Chip label="2 · Draft" color={tab === 1 && !selectedRun ? 'primary' : 'default'} /><ArrowForwardIcon fontSize="small" color="disabled" /><Chip label="3 · Approve" color="success" variant="outlined" /></Stack></Stack>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}><Box sx={{ flex: 1 }}><Typography fontWeight={600}>A controlled billing cycle</Typography><Typography variant="body2" color="text.secondary">Review the work queue first, create a snapshot, then approve only when exceptions are understood. Approval makes the run immutable.</Typography></Box><Stack direction="row" spacing={1} alignItems="center"><Chip label="1 · Review" color={tab === 0 ? 'primary' : 'default'} /><ArrowForwardIcon fontSize="small" color="disabled" /><Chip label="2 · Draft" color={tab === 1 && !selectedRun ? 'primary' : 'default'} /><ArrowForwardIcon fontSize="small" color="disabled" /><Chip label="3 · Approve" color="success" variant="outlined" /></Stack></Stack>
         </Paper>
 
         <Tabs value={tab} onChange={(_, value) => setTab(value)} className="homecare-tabs" sx={{ mb: 2 }}><Tab icon={<FactCheckIcon fontSize="small" />} iconPosition="start" label={`Review work (${rows.length})`} /><Tab icon={<ReceiptLongIcon fontSize="small" />} iconPosition="start" label={`Billing runs (${runs.data?.length || 0})`} /><Tab icon={<SendIcon fontSize="small" />} iconPosition="start" label={`Invoices (${invoices.data?.length || 0})`} /><Tab icon={<GroupsIcon fontSize="small" />} iconPosition="start" label={`Recipients (${recipients.data?.length || 0})`} /></Tabs>
@@ -294,7 +294,7 @@ export default function ClientBillingPage() {
 
         {tab === 2 && <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>{invoices.isLoading ? <Box className="homecare-loading"><Typography>Loading invoices…</Typography></Box> : !invoices.data?.length ? <EmptyState title="No invoices yet" description="Approve a billing run to create client- and payer-specific invoice snapshots." variant="default" /> : <TableContainer sx={{ overflowX: 'auto' }}><Table size="small"><TableHead><TableRow sx={{ bgcolor: 'action.hover' }}><TableCell>Invoice / client</TableCell><TableCell>Recipient</TableCell><TableCell>Status</TableCell><TableCell align="right">Amount</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{invoices.data.map((invoice: any) => <InvoiceRow key={invoice.id} invoice={invoice} busy={sendInvoice.isPending || markPaid.isPending} onSend={() => sendInvoice.mutate(invoice.id)} onPaid={() => { setPaymentInvoice(invoice); setPaymentReference('') }} />)}</TableBody></Table></TableContainer>}</Paper>}
 
-        {tab === 3 && <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>{recipients.isLoading ? <Box className="homecare-loading"><Typography>Loading invoice recipients…</Typography></Box> : !recipients.data?.length ? <EmptyState title="No client–payer relationships" description="Link a payer to a client’s care package to configure their invoice contact." variant="default" /> : <TableContainer sx={{ overflowX: 'auto' }}><Table size="small"><TableHead><TableRow sx={{ bgcolor: 'action.hover' }}><TableCell>Client</TableCell><TableCell>Payer</TableCell><TableCell>Invoice recipient</TableCell><TableCell align="right"> </TableCell></TableRow></TableHead><TableBody>{recipients.data.map((recipient: any) => <TableRow key={`${recipient.person_id}-${recipient.payer_account_id}`} hover><TableCell><Typography fontWeight={700}>{recipient.person_name}</Typography></TableCell><TableCell><Typography>{recipient.payer_name}</Typography><Typography variant="caption" color="text.secondary">{String(recipient.funding_type).replace(/_/g, ' ')}</Typography></TableCell><TableCell><Typography>{recipient.recipient_name}</Typography><Typography variant="caption" color="text.secondary">{recipient.recipient_email}</Typography></TableCell><TableCell align="right"><AppButton size="small" variant="secondary" startIcon={<EditIcon />} onClick={() => { setEditingRecipient(recipient); setRecipientName(recipient.recipient_name || ''); setRecipientEmail(recipient.recipient_email || ''); setRecipientAddress(recipient.recipient_address || '') }}>Edit contact</AppButton></TableCell></TableRow>)}</TableBody></Table></TableContainer>}</Paper>}
+        {tab === 3 && <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>{recipients.isLoading ? <Box className="homecare-loading"><Typography>Loading invoice recipients…</Typography></Box> : !recipients.data?.length ? <EmptyState title="No client–payer relationships" description="Link a payer to a client’s care package to configure their invoice contact." variant="default" /> : <TableContainer sx={{ overflowX: 'auto' }}><Table size="small"><TableHead><TableRow sx={{ bgcolor: 'action.hover' }}><TableCell>Client</TableCell><TableCell>Payer</TableCell><TableCell>Invoice recipient</TableCell><TableCell align="right"> </TableCell></TableRow></TableHead><TableBody>{recipients.data.map((recipient: any) => <TableRow key={`${recipient.person_id}-${recipient.payer_account_id}`} hover><TableCell><Typography fontWeight={600}>{recipient.person_name}</Typography></TableCell><TableCell><Typography>{recipient.payer_name}</Typography><Typography variant="caption" color="text.secondary">{String(recipient.funding_type).replace(/_/g, ' ')}</Typography></TableCell><TableCell><Typography>{recipient.recipient_name}</Typography><Typography variant="caption" color="text.secondary">{recipient.recipient_email}</Typography></TableCell><TableCell align="right"><AppButton size="small" variant="secondary" startIcon={<EditIcon />} onClick={() => { setEditingRecipient(recipient); setRecipientName(recipient.recipient_name || ''); setRecipientEmail(recipient.recipient_email || ''); setRecipientAddress(recipient.recipient_address || '') }}>Edit contact</AppButton></TableCell></TableRow>)}</TableBody></Table></TableContainer>}</Paper>}
 
         <Dialog open={Boolean(editingRecipient)} onClose={() => setEditingRecipient(null)} maxWidth="sm" fullWidth><DialogTitle>Invoice contact · {editingRecipient?.person_name}</DialogTitle><DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>These details override the payer’s default contact for this client. Approved invoice snapshots remain unchanged.</Typography><Stack spacing={2} sx={{ pt: 1 }}><TextField label="Recipient name" value={recipientName} onChange={e => setRecipientName(e.target.value)} fullWidth /><TextField label="Email address" type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} fullWidth /><TextField label="Billing address" value={recipientAddress} onChange={e => setRecipientAddress(e.target.value)} multiline minRows={2} fullWidth /></Stack></DialogContent><DialogActions><AppButton variant="quiet" onClick={() => setEditingRecipient(null)}>Cancel</AppButton><AppButton loading={saveRecipient.isPending} disabled={!recipientName.trim() || !recipientEmail.trim()} onClick={() => saveRecipient.mutate()}>Save recipient</AppButton></DialogActions></Dialog>
         <Dialog open={Boolean(paymentInvoice)} onClose={() => setPaymentInvoice(null)} maxWidth="xs" fullWidth><DialogTitle>Record invoice payment</DialogTitle><DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{paymentInvoice?.invoice_number} · {money(paymentInvoice?.gross_amount_pence)}</Typography><TextField label="Payment reference (optional)" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} fullWidth /></DialogContent><DialogActions><AppButton variant="quiet" onClick={() => setPaymentInvoice(null)}>Cancel</AppButton><AppButton loading={markPaid.isPending} onClick={() => paymentInvoice && markPaid.mutate({ id: paymentInvoice.id, reference: paymentReference })}>Confirm payment</AppButton></DialogActions></Dialog>

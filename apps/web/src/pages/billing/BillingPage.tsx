@@ -95,7 +95,7 @@ function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boole
   const [cardholderName, setCardholderName] = useState('')
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
         {stripeAvailable ? <StripeCardForm cardholderName={cardholderName} setCardholderName={setCardholderName} onSuccess={onAdded} /> : <Alert severity="error">Secure card collection is unavailable. Configure Stripe Elements before adding a payment method.</Alert>}
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Your card details are collected by Stripe and never handled or stored by Meticle Care.</Typography>
@@ -123,7 +123,7 @@ function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: ()
         </Box>
         {pm.is_default && (
           <Chip icon={<StarIcon sx={{ fontSize: 12 }} />} label="Default" size="small"
-            sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 700, height: 24, fontSize: '0.7rem', backdropFilter: 'blur(4px)' }} />
+            sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600, height: 24, fontSize: '0.7rem', backdropFilter: 'blur(4px)' }} />
         )}
       </Box>
 
@@ -135,13 +135,13 @@ function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: ()
       {/* Bottom row: Expiry + Name + Remove */}
       <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
         <Box>
-          <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.5rem', textTransform: 'uppercase', letterSpacing: 1 }}>Expires</Typography>
+          <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.5rem', textTransform: 'none', letterSpacing: 1 }}>Expires</Typography>
           <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: 1 }}>
             {pm.expiry_month?.toString().padStart(2, '0')}/{String(pm.expiry_year).slice(-2)}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.85 }}>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', letterSpacing: 1, opacity: 0.85 }}>
             {pm.cardholder_name || (pm.card_brand ? pm.card_brand.toUpperCase() : '')}
           </Typography>
           <IconButton size="small" onClick={onRemove} className="card-remove"
@@ -351,11 +351,11 @@ function BillingPageInner() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 4 }}>Billing</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 600, mb: 4 }}>Billing</Typography>
 
       {subscription?.stripeUnavailable && (
         <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
-          <Typography variant="subtitle2" fontWeight={700}>Stripe billing is not configured on the server</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>Stripe billing is not configured on the server</Typography>
           <Typography variant="body2">Payment cards, subscriptions and invoices are unavailable until the administrator adds a valid live Stripe key and webhook secret. Please contact your system administrator.</Typography>
         </Alert>
       )}
@@ -366,7 +366,7 @@ function BillingPageInner() {
         </Alert>
       )}      {isRedirectedFromBlock && (
         <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FFF7E6' }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2">
             {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
           </Typography>
@@ -377,7 +377,7 @@ function BillingPageInner() {
         <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEF0F0', bgcolor: 'notice.error.bg' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={800} color='notice.error.fg' sx={{ mb: 0.5 }}>
+              <Typography variant="h6" fontWeight={600} color='notice.error.fg' sx={{ mb: 0.5 }}>
                 {subStatus === 'canceled' ? 'Your subscription has been canceled' : subStatus === 'trial' ? 'Your trial has ended' : 'Your subscription has ended'}
               </Typography>
               <Typography variant="body2" color='notice.error.fg'>
@@ -397,7 +397,7 @@ function BillingPageInner() {
                   variant="contained"
                   size="small"
                   disabled={retrying}
-                  sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 700 }}
+                  sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 600 }}
                   onClick={async () => {
                     setRetrying(true)
                     setMessage('')
@@ -434,7 +434,7 @@ function BillingPageInner() {
                 variant="contained"
                 size="small"
                 disabled={updating}
-                sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#2674D9' }, textTransform: 'none', fontWeight: 700 }}
+                sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#2674D9' }, textTransform: 'none', fontWeight: 600 }}
                 onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
               >
                 {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
@@ -446,7 +446,7 @@ function BillingPageInner() {
 
       {isTrialActive && (
         <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.info.bg', border: '1px solid #EAF3FF' }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Trial limitations</Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Trial limitations</Typography>
           <Typography variant="body2" color='notice.info.fg'>
             Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
           </Typography>
@@ -456,13 +456,13 @@ function BillingPageInner() {
 
       {isDomiciliary && (
         <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Domiciliary subscription</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Domiciliary subscription</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
             Pricing is agreed with our team for your organisation. Your care-package billing profiles are separate and do not affect this platform subscription.
           </Typography>
           {subscription?.domiciliaryMonthlyPricePence ? (
             <Stack spacing={1} sx={{ mb: 2 }}>
-              <Typography variant="h5" fontWeight={800}>
+              <Typography variant="h5" fontWeight={600}>
                 Quote: £{(subscription.domiciliaryMonthlyPricePence / 100).toFixed(2)} / month
                 <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
                   {subscription.domiciliaryPriceVatBehavior === 'inclusive' ? 'VAT included' : 'VAT added where applicable'}
@@ -487,7 +487,7 @@ function BillingPageInner() {
           )}
           {isOrgAdmin && subscription?.domiciliaryMonthlyPricePence && (
             <Stack spacing={2}>
-              <Typography variant="subtitle2" fontWeight={700}>UK billing address for VAT invoices</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>UK billing address for VAT invoices</Typography>
               <Grid container spacing={1.5}>
                 <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 1" value={billingAddress.line1} onChange={e => setBillingAddress({ ...billingAddress, line1: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 2 (optional)" value={billingAddress.line2 || ''} onChange={e => setBillingAddress({ ...billingAddress, line2: e.target.value })} /></Grid>
@@ -517,19 +517,19 @@ function BillingPageInner() {
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
             <Typography variant="body2" color="#667085">Current Plan</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{isDomiciliary ? 'Sales-led agreement' : subscription?.plan || '—'}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>{isDomiciliary ? 'Sales-led agreement' : subscription?.plan || '—'}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
             <Typography variant="body2" color="#667085">Status</Typography>
-            <Chip label={statusLabel} color={statusColor} size="small" sx={{ fontWeight: 700, textTransform: 'capitalize', mt: 0.5 }} />
+            <Chip label={statusLabel} color={statusColor} size="small" sx={{ fontWeight: 600, textTransform: 'capitalize', mt: 0.5 }} />
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
             <Typography variant="body2" color="#667085">{!isActive ? 'Expired On' : 'Next Billing Date'}</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {!isActive
                 ? (subscription?.trialEndsAt || subscription?.currentPeriodEnd)
                   ? new Date(subscription.trialEndsAt || subscription.currentPeriodEnd!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -547,7 +547,7 @@ function BillingPageInner() {
         <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: '#E6EAF0' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Domiciliary VAT & travel settings</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Domiciliary VAT & travel settings</Typography>
               <Typography variant="body2" color="#667085" sx={{ mt: 0.5 }}>
                 Client charges are calculated from each care package’s billing profile or package override in Visits & Packages. These settings control invoice VAT and paid travel policy; they do not change your MeticleCare subscription.
               </Typography>
@@ -584,8 +584,8 @@ function BillingPageInner() {
       {/* Payment Methods */}
       {isOrgAdmin && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Payment Methods</Typography>            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Payment Methods</Typography>            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
+              sx={{ bgcolor: '#2F80ED', textTransform: 'none',}}>
             Add Card
           </Button>
         </Stack>
@@ -603,7 +603,7 @@ function BillingPageInner() {
 
       {/* Plans */}
       {!isDomiciliary && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, mb: 4 }}>Choose a Plan</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 4 }}>Choose a Plan</Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
           {PLANS.map((plan) => (
             <Card key={plan.id} sx={{
@@ -611,13 +611,13 @@ function BillingPageInner() {
               border: subscription?.plan === plan.id ? '2px solid #2F80ED' : '1px solid #E6EAF0', borderRadius: 3,
             }}>
               {plan.popular && (
-                <Box sx={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', bgcolor: '#2F80ED', color: 'white', px: 2, py: 0.5, borderRadius: 9999, fontSize: '0.75rem', fontWeight: 800, zIndex: 10 }}>
+                <Box sx={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', bgcolor: '#2F80ED', color: 'white', px: 2, py: 0.5, borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600, zIndex: 10 }}>
                   Most Popular
                 </Box>
               )}
               <CardContent sx={{ pt: plan.popular ? 5 : 3, pb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{plan.name}</Typography>
-                <Typography sx={{ color: '#2F80ED', fontSize: '2.5rem', fontWeight: 800 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>{plan.name}</Typography>
+                <Typography sx={{ color: '#2F80ED', fontSize: '2.5rem', fontWeight: 600 }}>
                   £{plan.price}<Typography component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 400 }}>/month</Typography>
                 </Typography>
                 <Typography variant="body2" color="#667085" sx={{ mt: 1, mb: 2 }}>{plan.description}</Typography>
@@ -628,7 +628,7 @@ function BillingPageInner() {
               <Box sx={{ px: 3, pb: 3 }}>
                 <Button fullWidth variant={subscription?.plan === plan.id && isActive ? 'outlined' : 'contained'}
                   disabled={(subscription?.plan === plan.id && isActive) || updating}
-                  onClick={() => handleUpgradeClick(plan.id)} sx={{ py: 1.5, fontWeight: 800 }}>
+                  onClick={() => handleUpgradeClick(plan.id)} sx={{ py: 1.5, fontWeight: 600 }}>
                   {subscription?.plan === plan.id && isActive ? 'Current Plan' : !isActive ? (updating ? 'Switching...' : 'Switch and Renew') : updating ? 'Updating...' : 'Switch Plan'}
                 </Button>
               </Box>
@@ -641,7 +641,7 @@ function BillingPageInner() {
 
       {/* Billing History */}
       <Paper sx={{ p: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Subscription Billing History</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Subscription Billing History</Typography>
         {invoices.length === 0 ? (
           <EmptyState title="No invoices yet" description="Billing history will appear here" variant="default" />
         ) : (

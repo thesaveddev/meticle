@@ -42,7 +42,7 @@ function CellValue({ value, type }: { value: any; type?: string }) {
     return (
       <Stack direction="row" alignItems="center" spacing={1}>
         <LinearProgress variant="determinate" value={num} sx={{ width: 50, height: 5, borderRadius: 3, bgcolor: '#F5F7FA', '& .MuiLinearProgress-bar': { bgcolor: barColor } }} />
-        <Typography variant="body2" fontWeight={700} color={barColor}>{num}%</Typography>
+        <Typography variant="body2" fontWeight={600} color={barColor}>{num}%</Typography>
       </Stack>
     )
   }
@@ -96,7 +96,7 @@ export default function ReportTableComponent({ title, columns, rows, pageSize = 
     <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
       <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{title}</Typography>
           <Chip label={`${rows.length} records`} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         </Stack>
       </Box>
@@ -112,7 +112,7 @@ export default function ReportTableComponent({ title, columns, rows, pageSize = 
               <TableHead>
                 <TableRow>
                   {columns.filter(c => c.label).map(col => (
-                    <TableCell key={col.key} sx={{ fontWeight: 700, bgcolor: 'notice.subtle.bg', whiteSpace: 'nowrap' }}>
+                    <TableCell key={col.key} sx={{ fontWeight: 600, bgcolor: 'notice.subtle.bg', whiteSpace: 'nowrap' }}>
                       <TableSortLabel
                         active={orderBy === col.key}
                         direction={orderBy === col.key ? order : 'asc'}

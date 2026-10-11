@@ -574,6 +574,18 @@ setInterval(() => {
     .catch(err => logger.error(err, 'Late medication alert check failed'));
 }, 5 * 60 * 1000);
 
+// Stock reorder sweep — re-warn managers about active stock lines still at or
+// below their reorder level (per-line dedupe via last_reorder_alerted_at,
+// default 24h between re-warnings), so a low line never has to be discovered
+// by asking Mica. Runs in the same 5-minute cadence as the late-med sweep.
+const stockReorderTimer = setInterval(() => {
+  if (!databaseReady) return;
+  MedicationAlertService.sendStockReorderAlerts()
+    .then(count => { if (count > 0) logger.info({ emails: count }, 'Stock reorder sweep emails sent'); })
+    .catch(err => logger.error(err, 'Stock reorder sweep check failed'));
+}, 5 * 60 * 1000);
+stockReorderTimer.unref();
+
 // Alert org admins about locations with no manager (every 6 hours, plus on location mutations)
 const LOCATION_COVERAGE_INTERVAL = 6 * 60 * 60 * 1000;
 databaseReadyPromise.then(() => setTimeout(() => {

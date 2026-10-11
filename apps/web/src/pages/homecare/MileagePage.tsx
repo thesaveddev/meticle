@@ -22,11 +22,11 @@ function CarerMileageList({ rows, onSelect }: { rows: any[]; onSelect: (staffId:
     <Table>
       <TableHead>
         <TableRow>
-          <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Awarded trips</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
+          <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Carer</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Awarded trips</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Miles</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Travel time</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Mileage pay</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -43,7 +43,7 @@ function CarerMileageList({ rows, onSelect }: { rows: any[]; onSelect: (staffId:
             <TableCell align="right">{r.awarded_trips} / {r.trips}</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtMiles(r.miles)}</TableCell>
             <TableCell align="right">{`${Math.floor(r.travel_minutes / 60)}h ${r.travel_minutes % 60}m`}</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, color: '#10B981' }}>{fmtMoney(r.pay_pence)}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, color: '#10B981' }}>{fmtMoney(r.pay_pence)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -64,7 +64,7 @@ function CallOwnerDialog({ visit, onClose }: { visit: any; onClose: () => void }
     <DialogTitle>Call owning this mileage</DialogTitle>
     <DialogContent>
       {visit && <Stack spacing={0.5} sx={{ pt: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{visit.label || visit.visit_type || 'Care call'}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>{visit.label || visit.visit_type || 'Care call'}</Typography>
         {row('Client', visit.person_name || '—')}
         {row('Carer', visit.assigned_staff_name || 'Unassigned')}
         {row('Scheduled', `${fmtDateTime(visit.scheduled_start)} → ${fmtDateTime(visit.scheduled_end)}`)}
@@ -285,8 +285,8 @@ export default function MileagePage() {
         <Stack direction="row" alignItems="center" gap={1.5}>
           <CarIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
           <Box>
-            <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: 1.2 }}>Operations controls</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage, travel & rate rules</Typography>
+            <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 600, letterSpacing: 1.2 }}>Operations controls</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>Mileage, travel & rate rules</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Keep travel records visible and apply one approved reimbursement policy across the service.</Typography>
           </Box>
         </Stack>
@@ -319,19 +319,19 @@ export default function MileagePage() {
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#2F80ED' }}>{totalMiles.toFixed(1)}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: '#2F80ED' }}>{totalMiles.toFixed(1)}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded miles</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#10B981' }}>{fmtMoney(totalMileagePay)}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: '#10B981' }}>{fmtMoney(totalMileagePay)}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded mileage pay</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#2F80ED' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: '#2F80ED' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded travel time</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>{awardedVisits.length} / {mileageVisits.length}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 600 }}>{awardedVisits.length} / {mileageVisits.length}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded trips</Typography>
             </Paper>
           </Stack>
@@ -354,21 +354,21 @@ export default function MileagePage() {
               {travelView === 'carer' && selectedCarer && (
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                   <AppButton variant="quiet" size="small" startIcon={<BackIcon />} onClick={() => { setSelectedCarer(null); setTravelPage(0) }}>All carers</AppButton>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{carerMileage.find((c: any) => (c.staff_id || 'unassigned') === selectedCarer)?.name || 'Carer'}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{carerMileage.find((c: any) => (c.staff_id || 'unassigned') === selectedCarer)?.name || 'Carer'}</Typography>
                 </Stack>
               )}
               <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      {travelView === 'mileage' && <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>}
-                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Client</TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Date</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Award</TableCell>
+                      {travelView === 'mileage' && <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Carer</TableCell>}
+                      <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Client</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Date</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Miles</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Travel time</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Rate</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Mileage pay</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Award</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -388,7 +388,7 @@ export default function MileagePage() {
                           {v.actual_travel_minutes != null ? `${Math.floor(v.actual_travel_minutes / 60)}h ${v.actual_travel_minutes % 60}m` : '—'}
                         </TableCell>
                         <TableCell align="right" sx={{ color: 'text.secondary' }}>{v.mileage_rate_pence ? fmtRate(v.mileage_rate_pence) : '—'}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700, color: isAwarded(v) ? '#10B981' : 'text.disabled' }}>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: isAwarded(v) ? '#10B981' : 'text.disabled' }}>
                           {isAwarded(v) ? fmtMoney(mileagePay(v)) : '—'}
                         </TableCell>
                         <TableCell>
@@ -436,15 +436,15 @@ export default function MileagePage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Tax year</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Vehicle</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Fuel</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Effective from</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Effective to</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Source</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Status</TableCell>
-                    {isManager && <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Actions</TableCell>}
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Tax year</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Vehicle</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Fuel</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Rate</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Effective from</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Effective to</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Source</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Status</TableCell>
+                    {isManager && <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -457,7 +457,7 @@ export default function MileagePage() {
                       <TableCell>
                         <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'notice.muted.bg' }} />
                       </TableCell>
-                      <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#2F80ED' }}>{fmtRate(p.rate_pence)}</Typography></TableCell>
+                      <TableCell align="right"><Typography sx={{ fontWeight: 600, color: '#2F80ED' }}>{fmtRate(p.rate_pence)}</Typography></TableCell>
                       <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>{p.effective_to ? new Date(p.effective_to).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{p.source_label || '—'}</Typography></TableCell>
@@ -654,7 +654,7 @@ function RateProfilesTab() {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1}>
         <Box sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            <Typography fontWeight={700}>{profile.name}</Typography>
+            <Typography fontWeight={600}>{profile.name}</Typography>
             <Chip size="small" label={profile.is_active ? 'Active' : 'Inactive'} color={profile.is_active ? 'success' : 'default'} />
           </Stack>
           <Typography variant="body2" color="text.secondary">
@@ -679,14 +679,14 @@ function RateProfilesTab() {
     {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box> : <>
       <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
-          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Client billing profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly charges for client packages. A package can override the selected rate.</Typography></Box>
+          <Box><Typography variant="h6" sx={{ fontWeight: 600 }}>Client billing profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly charges for client packages. A package can override the selected rate.</Typography></Box>
           <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('billing'))}>Add billing profile</AppButton>
         </Stack>
         {renderProfiles('billing', billingProfiles)}
       </Paper>
       <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
-          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Carer pay profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly pay rates assigned to carers. A call-level pay rate takes precedence.</Typography></Box>
+          <Box><Typography variant="h6" sx={{ fontWeight: 600 }}>Carer pay profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly pay rates assigned to carers. A call-level pay rate takes precedence.</Typography></Box>
           <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('pay'))}>Add pay profile</AppButton>
         </Stack>
         {renderProfiles('pay', payProfiles)}
@@ -723,7 +723,7 @@ function RateProfilesTab() {
           ? <Typography variant="body2" color="text.secondary">No history entries found.</Typography>
           : <Stack spacing={1}>{history.map(entry => <Paper key={entry.id} variant="outlined" sx={{ p: 1.5 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={0.5}>
-              <Typography fontWeight={700}>{String(entry.action).replace(/_/g, ' ')}</Typography>
+              <Typography fontWeight={600}>{String(entry.action).replace(/_/g, ' ')}</Typography>
               <Typography variant="caption" color="text.secondary">{new Date(entry.created_at).toLocaleString('en-GB')}</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary">By {entry.actor_name || 'Former user'}</Typography>

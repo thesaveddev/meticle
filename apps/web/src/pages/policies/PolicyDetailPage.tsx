@@ -157,32 +157,32 @@ export default function PolicyDetailPage() {
 
       {!policy ? (
         <Paper variant="outlined" sx={{ p: { xs: 4, md: 6 }, borderRadius: 2, borderColor: HAIRLINE, textAlign: 'center' }}>
-          <Typography sx={{ color: INK, fontWeight: 800, mb: 1 }}>This policy is unavailable</Typography>
+          <Typography sx={{ color: INK, fontWeight: 600, mb: 1 }}>This policy is unavailable</Typography>
           <Typography sx={{ color: MUTED, mb: 2 }}>It may have been deleted, or the link may be wrong.</Typography>
-          <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/policies')} sx={{ borderColor: NAVY, color: NAVY, textTransform: 'none', fontWeight: 700 }}>Back to policy library</Button>
+          <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/policies')} sx={{ borderColor: NAVY, color: NAVY, textTransform: 'none', fontWeight: 600 }}>Back to policy library</Button>
         </Paper>
       ) : (
         <>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 3 }}>
-            <Button startIcon={<BackIcon />} onClick={() => navigate('/policies')} sx={{ color: MUTED, textTransform: 'none', fontWeight: 700 }}>
+            <Button startIcon={<BackIcon />} onClick={() => navigate('/policies')} sx={{ color: MUTED, textTransform: 'none', fontWeight: 600 }}>
               Policy library
             </Button>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              <Button variant="outlined" startIcon={<EmailIcon />} onClick={shareByEmail} sx={{ borderColor: NAVY, color: NAVY, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="outlined" startIcon={<EmailIcon />} onClick={shareByEmail} sx={{ borderColor: NAVY, color: NAVY, textTransform: 'none', fontWeight: 600 }}>
                 Share by email
               </Button>
-              <Button variant="contained" startIcon={<ShareIcon />} onClick={openShare} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0B3A63' }, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="contained" startIcon={<ShareIcon />} onClick={openShare} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, textTransform: 'none', fontWeight: 600 }}>
                 Share to org chat
               </Button>
-              <Button variant="outlined" startIcon={<PdfIcon />} onClick={downloadPolicy} sx={{ borderColor: HAIRLINE, color: INK, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="outlined" startIcon={<PdfIcon />} onClick={downloadPolicy} sx={{ borderColor: HAIRLINE, color: INK, textTransform: 'none', fontWeight: 600 }}>
                 Download
               </Button>
               {canManagePolicies && (
                 <>
-                  <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditOpen(true)} sx={{ borderColor: HAIRLINE, color: INK, textTransform: 'none', fontWeight: 700 }}>
+                  <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditOpen(true)} sx={{ borderColor: HAIRLINE, color: INK, textTransform: 'none', fontWeight: 600 }}>
                     Edit
                   </Button>
-                  <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
                     Delete
                   </Button>
                 </>
@@ -192,29 +192,29 @@ export default function PolicyDetailPage() {
 
           <Paper variant="outlined" sx={{ borderRadius: 2, borderColor: HAIRLINE, bgcolor: 'background.paper' }}>
             <Box sx={{ p: { xs: 2.5, md: 4 }, bgcolor: BONE, borderBottom: `1px solid ${HAIRLINE}` }}>
-              <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 800, fontSize: '0.68rem', mb: 1.5 }} />
-              <Typography variant="h4" sx={{ color: INK, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.03em' }}>{policy.title}</Typography>
+              <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 600, fontSize: '0.68rem', mb: 1.5 }} />
+              <Typography variant="h4" sx={{ color: INK, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.03em' }}>{policy.title}</Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
-                <Chip label={statusLabel(policy.status)} size="small" sx={{ color: statusColor(policy.status), bgcolor: `${statusColor(policy.status)}14`, fontWeight: 800 }} />
-                <Chip label={`Version ${policy.version}`} size="small" sx={{ fontWeight: 800 }} />
-                {due && <Chip label="Review overdue" size="small" sx={{ color: '#B42318', bgcolor: '#B4231814', fontWeight: 800 }} />}
+                <Chip label={statusLabel(policy.status)} size="small" sx={{ color: statusColor(policy.status), bgcolor: `${statusColor(policy.status)}14`, fontWeight: 600 }} />
+                <Chip label={`Version ${policy.version}`} size="small" sx={{ fontWeight: 600 }} />
+                {due && <Chip label="Review overdue" size="small" sx={{ color: '#B42318', bgcolor: '#B4231814', fontWeight: 600 }} />}
               </Stack>
             </Box>
 
             <Box sx={{ p: { xs: 2.5, md: 4 } }}>
               <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
                 <Box>
-                  <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Last updated</Typography>
-                  <Typography sx={{ color: INK, fontWeight: 700 }}>{formatDate(policy.updated_at || policy.created_at)}</Typography>
+                  <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' }}>Last updated</Typography>
+                  <Typography sx={{ color: INK, fontWeight: 600 }}>{formatDate(policy.updated_at || policy.created_at)}</Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Review due</Typography>
-                  <Typography sx={{ color: due ? '#B42318' : INK, fontWeight: 700 }}>{formatDate(policy.review_due_at)}</Typography>
+                  <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' }}>Review due</Typography>
+                  <Typography sx={{ color: due ? '#B42318' : INK, fontWeight: 600 }}>{formatDate(policy.review_due_at)}</Typography>
                 </Box>
                 {policy.updated_by_name && (
                   <Box>
-                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Updated by</Typography>
-                    <Typography sx={{ color: INK, fontWeight: 700 }}>{policy.updated_by_name}</Typography>
+                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' }}>Updated by</Typography>
+                    <Typography sx={{ color: INK, fontWeight: 600 }}>{policy.updated_by_name}</Typography>
                   </Box>
                 )}
               </Stack>
@@ -227,7 +227,7 @@ export default function PolicyDetailPage() {
 
       {/* Share to org chat */}
       <Dialog open={shareOpen} onClose={() => setShareOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>Share policy to org chat</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Share policy to org chat</DialogTitle>
         <DialogContent>
           {shareResult === 'success' && <Alert severity="success" sx={{ mb: 2 }}>Policy shared successfully.</Alert>}
           {shareResult === 'error' && <Alert severity="error" sx={{ mb: 2 }}>The policy could not be shared. Try again.</Alert>}
@@ -238,7 +238,7 @@ export default function PolicyDetailPage() {
 
       {/* Delete confirm */}
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>Delete this policy?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Delete this policy?</DialogTitle>
         <DialogContent><Typography sx={{ color: MUTED }}>“{policy?.title}” will be removed from your library. This cannot be undone.</Typography></DialogContent>
         <DialogActions><Button onClick={() => setDeleteOpen(false)}>Keep policy</Button><Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>{deleting ? <CircularProgress size={20} /> : 'Delete policy'}</Button></DialogActions>
       </Dialog>

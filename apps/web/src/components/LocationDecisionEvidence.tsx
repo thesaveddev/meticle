@@ -48,7 +48,7 @@ export default function LocationDecisionEvidence() {
   if (isLoading) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <FactCheckIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Who has agreed to location recording
         </Typography>
         <Typography variant="body2" color="text.secondary">Loading…</Typography>
@@ -59,7 +59,7 @@ export default function LocationDecisionEvidence() {
   if (isError || !data) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <FactCheckIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Who has agreed to location recording
         </Typography>
         <Alert severity="warning">
@@ -74,7 +74,7 @@ export default function LocationDecisionEvidence() {
 
   return (
     <Paper sx={{ p: 4 }} data-testid="location-decision-evidence">
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
         <FactCheckIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Who has agreed to location recording
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

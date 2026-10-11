@@ -77,7 +77,10 @@ function randomOrgName(): string {
 type StaffRef = { id: string; userId: string; profileId: string; role: string; name: string[] }
 
 async function seed() {
-  const orgName = randomOrgName()
+  // SEED_ORG_NAME pins the org name so a demo you screen-record (or a Mica
+  // ask-reply that quotes the org by name) is repeatable shot-for-shot.
+  // Defaults to the random palette otherwise — nothing existing changes.
+  const orgName = process.env.SEED_ORG_NAME || randomOrgName()
   const domain = `orbisgroup.care`
 
   console.log(`\n=== Seeding Demo Org: "${orgName}" ===\n`)
@@ -93,7 +96,7 @@ async function seed() {
   const leaveTypeIds = [uuid(), uuid(), uuid(), uuid()]
 
   // ── 1. Organization ──
-  await pool.query(`INSERT INTO organizations (id,name,status,plan,regulator,primary_color,secondary_color,accent_color,minimum_compliance_percent,auto_approve_documents,trial_ends_at) VALUES ($1,$2,'active','professional','cqc','#0F4C81','#B8860B','#D4AF35',70,true,$3)`,
+  await pool.query(`INSERT INTO organizations (id,name,status,plan,regulator,primary_color,secondary_color,accent_color,minimum_compliance_percent,auto_approve_documents,trial_ends_at,primary_service_type,service_types) VALUES ($1,$2,'active','professional','cqc','#0F4C81','#B8860B','#D4AF35',70,true,$3,'supported_living',ARRAY['supported_living','residential']::TEXT[])`,
     [orgId, orgName, new Date(Date.now() + 90 * 86400000).toISOString()])
   console.log(`  ✓ "${orgName}" created`)
 
@@ -954,11 +957,15 @@ async function seed() {
       const med = medNames[medIdx % medNames.length]
       const itemId = uuid()
       marItemIds.push(itemId)
-      await pool.query(`INSERT INTO emedication_items (id,emedication_record_id,name,dosage,unit,route,frequency,times,is_prn) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      await pool.query(`INSERT INTO emedication_items (id,emedication_record_id,name,dosage,unit,route,frequency,times,is_prn,prn_indication) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [itemId, marIds[mi], med.name,
          med.name.includes('mg') ? med.name.match(/\d+/)?.[0] + ' mg' : med.name.includes('mcg') ? med.name.match(/\d+/)?.[0] + ' mcg' : '1 dose',
          med.name.includes('mcg') ? 'mcg' : 'mg',
-         med.route, med.freq, JSON.stringify(['08:00', '13:00', '18:00', '22:00']), med.prn])
+         med.route, med.freq, JSON.stringify(['08:00', '13:00', '18:00', '22:00']), med.prn,
+         // Migration 135 requires an indication whenever is_prn is true —
+         // 'as needed' is the honest generic wording for demo data and keeps
+         // the seed from tripping emedication_items_prn_indication_check.
+         med.prn ? 'As needed per prescriber instructions' : null])
       // Create some administrations for past days
       for (let d = -6; d <= 0; d++) {
         if (med.prn && Math.random() > 0.3) continue
@@ -1008,6 +1015,125 @@ async function seed() {
     }
   }
   console.log(`  ✓ ${emCount} evidence mappings created`)
+
+  // ── 44. Mica-demo enrichment ──
+  //
+  // Everything above is realistic but randomised, so a recorded question like
+  // "any meds overdue?" can come back empty on the day of the take. This
+  // section places a small, deliberate set of rows at *fixed offsets from
+  // today* so every Mica ask tool has something concrete to answer with:
+  //
+  //   - training expiring in 9/16/25 days (fits the default 30-day window)
+  //   - an approved leave spanning today for one named carer
+  //   - pending medication administrations earlier today (overdue tool rows)
+  //   - two stock lines at/below reorder with recent given dose history
+  //     so days_until_empty is computable, not null
+  //   - shifts with real staff assignments today at every location
+  //
+  // Fixed offsets rather than random, so demo numbers reproduce between
+  // takes and the transcript matches what the screen shows.
+  console.log('  ✓ Mica demo enrichment...')
+
+  // Training expiring inside Mica's default 30-day window, for staff whose
+  // names are quoted in the demo script. Idempotent per staff+module.
+  const micaTraining = [
+    { first: 'David', last: 'Patel', module: 'Medication Administration', expires: 9 },
+    { first: 'Rebecca', last: 'Jones', module: 'Safeguarding Adults', expires: 16 },
+    { first: 'Laura', last: 'Bennett', module: 'Manual Handling', expires: 25 },
+  ]
+  for (const t of micaTraining) {
+    const s = staff.find(x => x.name[0] === t.first && x.name[1] === t.last)
+    if (!s) continue
+    const mid = modIds[trainingModules.findIndex(m => m.name === t.module)]
+    if (!mid) continue
+    await pool.query(`INSERT INTO training_records (module_id,staff_id,completed_at,expires_at,status) VALUES ($1,$2,$3,$4,'completed') ON CONFLICT DO NOTHING`,
+      [mid, s.profileId,
+       new Date(Date.now() - 356 * 86400000).toISOString(),
+       new Date(Date.now() + t.expires * 86400000).toISOString()])
+  }
+  console.log('  ✓ 3 training records expiring inside 30 days created (named staff)')
+
+  // A leave request spanning *today*, approved, for a radius question like
+  // "who is on leave right now?" or "is anyone off today?".
+  const leaveCarer = staff.find(s => s.name[0] === 'Daniel' && s.name[1] === 'Khan')
+  if (leaveCarer) {
+    const leaveStart = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
+    const leaveEnd = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
+    await pool.query(`INSERT INTO leave_requests (id,staff_id,leave_type_id,start_date,end_date,reason,status,reviewed_by,reviewed_at) VALUES ($1,$2,$3,$4,$5,$6,'approved',$7,$8)`,
+      [uuid(), leaveCarer.profileId, leaveTypeIds[1], leaveStart, leaveEnd,
+       'Flu — signed off by GP', staff[0].userId, new Date().toISOString()])
+    // Mirror what approving the request does (LeaveController.applyApprovedBalance):
+    // days_taken += full inclusive duration, hours_taken += duration × 8, and the
+    // profile flips to is_on_leave. Without this the leave balance tool would
+    // report 0 taken while the dashboard shows Daniel off sick — an
+    // inconsistency a demo question would catch on camera.
+    const durationDays = Math.round((new Date(`${leaveEnd}T00:00:00`).getTime() - new Date(`${leaveStart}T00:00:00`).getTime()) / 86400000) + 1
+    await pool.query(`UPDATE leave_balances SET days_taken = days_taken + $1, hours_taken = hours_taken + $2 WHERE staff_id = $3 AND leave_type_id = $4 AND year = $5`,
+      [durationDays, durationDays * 8, leaveCarer.profileId, leaveTypeIds[1], new Date().getFullYear()])
+    await pool.query(`UPDATE staff_profiles SET is_on_leave = TRUE, on_leave_until = $1 WHERE id = $2`, [leaveEnd, leaveCarer.profileId])
+    console.log(`  ✓ 1 approved leave spanning today created (Daniel Khan, ${durationDays} days deducted from sick balance)`)
+  }
+
+  // Medication administrations earlier today that are still pending —
+  // exactly what the overdue-doses tool rows look for (status 'pending'
+  // with scheduled_time more than 30 minutes in the past). Timed relative
+  // to NOW (90 and 60 minutes ago) rather than fixed clock hours: the
+  // overdue tool only counts TODAY's pending doses, and a seed may be run
+  // at any hour, so "now minus 90 minutes" is the only slot that is always
+  // both today and overdue. Rounded to the nearest 5 minutes so the card
+  // reads a tidy time on camera.
+  const overdueItems = marItemIds.slice(2, 4)
+  for (const [i, itemId] of overdueItems.entries()) {
+    const sched = new Date(Date.now() - (90 - i * 30) * 60000)
+    sched.setSeconds(0, 0)
+    sched.setMinutes(Math.round(sched.getMinutes() / 5) * 5 % 60)
+    await pool.query(`INSERT INTO emedication_administrations (id,emedication_item_id,staff_id,scheduled_time,administered_time,status) VALUES ($1,$2,$3,$4,NULL,'pending')`,
+      [uuid(), itemId, staff[4 + i].profileId, sched.toISOString()])
+  }
+  console.log('  ✓ 2 pending (overdue 60–90 min) administrations for today created')
+
+  // Stock lines near reorder for the low-stock tool: two active rows, one at
+  // reorder level, one below it, both tied to a person with given doses in
+  // the last 28 days so days_until_empty resolves to a real number.
+  const stockSpread = 5
+  for (let i = 0; i < 2; i++) {
+    const med = medNames[i]
+    await pool.query(`INSERT INTO emedication_stock (id,organization_id,medication_name,dosage,unit,quantity,quantity_unit,reorder_level,person_id,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active')`,
+      [uuid(), orgId, med.name,
+       med.name.includes('mg') ? med.name.match(/\d+/)?.[0] + ' mg' : '1 dose',
+       'tablet(s)',
+       i === 0 ? 12 : 6,          // at vs below a 10-unit reorder level
+       'tablet(s)', 10, sus[i].id])
+  }
+  console.log('  ✓ 2 low-stock lines (at/below reorder) created with usage history')
+
+  // Today's shifts are already generated for d >= 0 with random 80%
+  // assignment; force at least one OPEN and two ASSIGNED today so the
+  // "who is on shift" tool has data and "open shifts" tick on the dashboard
+  // reads non-zero deterministically.
+  const todayStr = new Date().toISOString().split('T')[0]
+  const { rows: todayShifts } = await pool.query(`SELECT s.id, s.status FROM shifts s JOIN locations l ON l.id = s.location_id WHERE l.organization_id = $1 AND s.start_time::date = $2::date ORDER BY s.start_time LIMIT 3`, [orgId, todayStr])
+  if (todayShifts.length >= 2) {
+    // First shift stays assigned, second gets unassigned to be 'open' so the
+    // demo can show the marketplace/claim affordance live.
+    await pool.query(`DELETE FROM shift_assignments WHERE shift_id = $1`, [todayShifts[1].id])
+    await pool.query(`UPDATE shifts SET status = 'open' WHERE id = $1`, [todayShifts[1].id])
+  }
+  console.log('  ✓ today\'s first shift forced open for the demo (rest assigned)')
+
+  // Link two of today's assigned shifts to people so who_supports_person
+  // answers with real carers. The base shift section leaves person_id null
+  // (the rota is location-staffed, not person-staffed), but the tool and the
+  // demo question both need at least one live pairing on the day.
+  const { rows: linkShifts } = await pool.query(
+    `SELECT s.id, s.start_time FROM shifts s JOIN locations l ON l.id = s.location_id
+     JOIN shift_assignments sa ON sa.shift_id = s.id AND sa.status = 'assigned'
+     WHERE l.organization_id = $1 AND s.start_time::date = $2::date AND s.person_id IS NULL
+     ORDER BY s.start_time LIMIT 2`, [orgId, todayStr])
+  for (const [i, row] of linkShifts.entries()) {
+    await pool.query(`UPDATE shifts SET person_id = $1 WHERE id = $2`, [sus[i].id, row.id])
+  }
+  console.log(`  ✓ ${linkShifts.length} of today's shifts linked to people for support lookups`)
 
   console.log('\n' + '='.repeat(50))
   console.log(`✓ "${orgName}" DEMO SEEDED SUCCESSFULLY`)

@@ -13,7 +13,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
@@ -130,8 +130,8 @@ export default function SolutionsPage() {
                 {data.desc}
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: data.accent, color: data.accent === M.teal ? M.navy : '#FFFFFF', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: data.accent, opacity: 0.9 } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>See the platform</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: data.accent, color: data.accent === M.teal ? M.navy : '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: data.accent, opacity: 0.9 } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>See the platform</Button>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -176,8 +176,8 @@ export default function SolutionsPage() {
                 </Grid>
                 <Grid item xs={12} md={i % 2 === 0 ? 7 : 5} order={{ xs: 2, md: i % 2 === 0 ? 2 : 1 }}>
                   <Box sx={{ p: 4, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-                    <Typography sx={{ fontSize: '3rem', fontWeight: 800, color: data.accent, opacity: 0.15, mb: 1 }}>{String(i + 1).padStart(2, '0')}</Typography>
-                    <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', mb: 1 }}>{item.title}</Typography>
+                    <Typography sx={{ fontSize: '3rem', fontWeight: 600, color: data.accent, opacity: 0.15, mb: 1 }}>{String(i + 1).padStart(2, '0')}</Typography>
+                    <Typography sx={{ fontWeight: 600, fontSize: '1.05rem', mb: 1 }}>{item.title}</Typography>
                     <Divider sx={{ my: 1.5 }} />
                     <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.65 }}>
                       {isHomecare
@@ -210,8 +210,8 @@ export default function SolutionsPage() {
             {workflow.map((w) => (
               <Grid item xs={12} sm={6} md={3} key={w.step}>
                 <Box sx={{ p: 3, bgcolor: M.card, borderRadius: M.r.lg, height: '100%', border: `1px solid ${M.faint}`, borderTop: `3px solid ${data.accent}` }}>
-                  <Typography sx={{ fontSize: '2.5rem', fontWeight: 800, color: data.accent, opacity: 0.3, mb: 1 }}>{w.step}</Typography>
-                  <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 1 }}>{w.title}</Typography>
+                  <Typography sx={{ fontSize: '2.5rem', fontWeight: 600, color: data.accent, opacity: 0.3, mb: 1 }}>{w.step}</Typography>
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem', mb: 1 }}>{w.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.65 }}>{w.desc}</Typography>
                 </Box>
               </Grid>
@@ -247,8 +247,8 @@ export default function SolutionsPage() {
                         <m.icon sx={{ color: data.accent, fontSize: 22 }} />
                       </Box>
                       <Box>
-                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: data.accent, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Capability {String(i + 1).padStart(2, '0')}</Typography>
-                        <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>{m.title}</Typography>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: data.accent, textTransform: 'none', letterSpacing: '0.08em' }}>Capability {String(i + 1).padStart(2, '0')}</Typography>
+                        <Typography sx={{ fontWeight: 600, fontSize: '1.05rem' }}>{m.title}</Typography>
                       </Box>
                     </Stack>
                   </Grid>
@@ -276,7 +276,7 @@ export default function SolutionsPage() {
                   ? 'Domiciliary care is inspected by CQC in England, the Care Inspectorate in Scotland, CIW in Wales and RQIA in Northern Ireland. MeticleCare supports the evidence and governance work your service needs — without claiming to guarantee any regulatory outcome.'
                   : 'Supported living services operate under the same four UK regulatory frameworks. The platform helps your team maintain the continuous, evidence-rich record that inspection-ready services require.'}
               </Typography>
-              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/compliance')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Explore compliance</Button>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/compliance')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Explore compliance</Button>
             </Grid>
             <Grid item xs={12} md={7}>
               <Grid container spacing={2}>
@@ -292,8 +292,8 @@ export default function SolutionsPage() {
                       p: 2.5, borderRadius: M.r.lg, border: `1px solid ${M.faint}`,                       bgcolor: M.card, transition: 'all 0.25s',
                       '&:hover': { borderColor: r.color, boxShadow: M.shadow.md, transform: 'translateY(-2px)' },
                     }}>
-                      <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.nation}</Typography>
-                      <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mt: 0.5 }}>{r.code}</Typography>
+                      <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: r.color, textTransform: 'none', letterSpacing: '0.08em' }}>{r.nation}</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '1.1rem', mt: 0.5 }}>{r.code}</Typography>
                     </Box>
                   </Grid>
                 ))}
@@ -312,7 +312,7 @@ export default function SolutionsPage() {
           <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
             Talk to the team about how MeticleCare works for {isHomecare ? 'domiciliary' : 'supported living'} providers.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
         </Container>
       </Box>
     </MarketingLayout>

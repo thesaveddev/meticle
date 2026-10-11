@@ -125,7 +125,7 @@ export default function StaffEngagementPage() {
                 <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <GroupIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
-                    <Typography variant="h4" fontWeight={800}>{aggregate.total}</Typography>
+                    <Typography variant="h4" fontWeight={600}>{aggregate.total}</Typography>
                     <Typography variant="body2" color="text.secondary">Responses</Typography>
                     <Typography variant="caption" color="text.secondary">{aggregate.anonymous_count} anon · {aggregate.named_count} named</Typography>
                   </CardContent>
@@ -134,7 +134,7 @@ export default function StaffEngagementPage() {
               <Grid item xs={12} sm={4}>
                 <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={800} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
+                    <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
                     <Typography variant="body2" color="text.secondary">Avg Score / 5</Typography>
                   </CardContent>
                 </Card>
@@ -142,7 +142,7 @@ export default function StaffEngagementPage() {
               <Grid item xs={12} sm={4}>
                 <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E6EAF0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={800} color="#2F80ED">
+                    <Typography variant="h4" fontWeight={600} color="#2F80ED">
                       {aggregate.total > 0 ? Math.round((avgAll / 5) * 100) : '—'}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Engagement Score</Typography>
@@ -161,7 +161,7 @@ export default function StaffEngagementPage() {
                     <Grid item xs={12} sm={6} md={4} key={key}>
                       <Paper variant="outlined" sx={{ p: 2 }}>
                         <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{key}</Typography>
-                        <Typography variant="h5" fontWeight={700} color={val >= 4 ? '#087A55' : val >= 3 ? '#9A6700' : '#B42318'}>
+                        <Typography variant="h5" fontWeight={600} color={val >= 4 ? '#087A55' : val >= 3 ? '#9A6700' : '#B42318'}>
                           {val.toFixed(1)}
                         </Typography>
                       </Paper>
@@ -191,11 +191,11 @@ export default function StaffEngagementPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Questions</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Active</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Created</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Questions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Active</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -236,12 +236,12 @@ export default function StaffEngagementPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Template</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Respondent</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Anonymous</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Avg Rating</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Comments</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Template</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Respondent</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Anonymous</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Avg Rating</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Comments</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

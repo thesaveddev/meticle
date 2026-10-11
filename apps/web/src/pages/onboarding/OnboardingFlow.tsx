@@ -201,7 +201,7 @@ export default function OnboardingFlow() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#020617', display: 'flex', alignItems: 'center' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', mb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: 'white', mb: 1 }}>
             {step === 1 ? 'What kind of care do you provide?' : step === 2 ? 'Tell us about your organisation' : completed ? 'Your setup is ready' : 'Set up your first record'}
           </Typography>
           <Typography sx={{ color: 'text.secondary' }}>
@@ -225,7 +225,7 @@ export default function OnboardingFlow() {
                         <Icon sx={{ color: type.color, fontSize: 28 }} />
                       </Box>
                       <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 700, color: 'white' }}>{type.label}</Typography>
+                        <Typography sx={{ fontWeight: 600, color: 'white' }}>{type.label}</Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>{type.desc}</Typography>
                       </Box>
                       <Checkbox checked={selected} sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: type.color } }} />
@@ -236,7 +236,7 @@ export default function OnboardingFlow() {
             })}
 
             <Button variant="contained" fullWidth size="large" onClick={handleServiceContinue} disabled={saving || selectedTypes.length === 0}
-              sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700, mt: 2 }}>
+              sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 600, mt: 2 }}>
               Continue
             </Button>
 
@@ -287,7 +287,7 @@ export default function OnboardingFlow() {
             <Stack direction="row" spacing={2}>
               <Button variant="outlined" fullWidth onClick={() => setStep(1)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep2Submit} disabled={saving || (isOrg ? !name.trim() || selectedTypes.length === 0 : !name.trim())}
-                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700 }}>
+                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 600 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Continue'}
               </Button>
             </Stack>
@@ -299,7 +299,7 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('domiciliary') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#10B981', fontWeight: 700, mb: 1 }}>Domiciliary Care — What to do next</Typography>
+                  <Typography variant="subtitle2" sx={{ color: '#10B981', fontWeight: 600, mb: 1 }}>Domiciliary Care — What to do next</Typography>
                   <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for home visits, carer routes, mileage tracking and payroll. Here is the recommended setup order:
                   </Typography>
@@ -314,7 +314,7 @@ export default function OnboardingFlow() {
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                      <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
+                      <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
@@ -328,7 +328,7 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('supported_living') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 700, mb: 1 }}>Supported Living — What to do next</Typography>
+                  <Typography variant="subtitle2" sx={{ color: '#2F80ED', fontWeight: 600, mb: 1 }}>Supported Living — What to do next</Typography>
                   <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for staff scheduling, shift marketplace, compliance tracking and daily notes. Here is the recommended setup order:
                   </Typography>
@@ -343,7 +343,7 @@ export default function OnboardingFlow() {
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#2F80ED', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                      <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
+                      <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
@@ -357,7 +357,7 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('residential') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#8B7CF6', fontWeight: 700, mb: 1 }}>Care Home — What to do next</Typography>
+                  <Typography variant="subtitle2" sx={{ color: '#8B7CF6', fontWeight: 600, mb: 1 }}>Care Home — What to do next</Typography>
                   <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for bed management, eMedication, daily notes and room checks. Here is the recommended setup order:
                   </Typography>
@@ -372,7 +372,7 @@ export default function OnboardingFlow() {
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#8B7CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                      <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
+                      <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
@@ -386,7 +386,7 @@ export default function OnboardingFlow() {
             {selectedTypes.includes('live_in') && (
               <>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#F59E0B', fontWeight: 700, mb: 1 }}>Live-in Care — What to do next</Typography>
+                  <Typography variant="subtitle2" sx={{ color: '#F59E0B', fontWeight: 600, mb: 1 }}>Live-in Care — What to do next</Typography>
                   <Typography sx={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.6 }}>
                     Your dashboard is configured for 24/7 carer schedules, sleep-in tracking and handover notes. Here is the recommended setup order:
                   </Typography>
@@ -401,7 +401,7 @@ export default function OnboardingFlow() {
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                      <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
+                      <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
@@ -417,7 +417,7 @@ export default function OnboardingFlow() {
             <Stack direction="row" spacing={2}>
               <Button variant="outlined" fullWidth onClick={() => setStep(2)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep3Submit} disabled={saving}
-                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 700 }}>
+                sx={{ bgcolor: '#10B981', py: 1.5, fontWeight: 600 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Go to Dashboard'}
               </Button>
             </Stack>

@@ -218,7 +218,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
       cancelled: { color: '#EF4444', bg: '#FEF0F0' }, on_hold: { color: '#F59E0B', bg: '#FFF7E6' },
     }
     const c = m[s] || { color: 'text.secondary', bg: '#F5F7FA' }
-    return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: '0.7rem' }} />
+    return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 600, fontSize: '0.7rem' }} />
   }
 
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
@@ -241,15 +241,15 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
         <Table>
           <TableHead><TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
-            <TableCell sx={{ fontWeight: 800 }} width={40}></TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Frequency</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Progress</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>CQC Domain</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Care Plan</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Target</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 600 }} width={40}></TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Frequency</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Progress</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>CQC Domain</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Care Plan</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Target</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {goals.length === 0 ? (
@@ -264,7 +264,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1}>
-                      <Typography sx={{ fontWeight: 700 }}>{g.title}</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{g.title}</Typography>
                       {g.overdue_review && <Tooltip title="Review overdue"><WarningIcon sx={{ color: '#EF4444', fontSize: 16 }} /></Tooltip>}
                     </Stack>
                   </TableCell>
@@ -275,7 +275,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   <TableCell sx={{ minWidth: 150 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: progressColor(g.progress) } }} />
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: progressColor(g.progress), minWidth: 35 }}>{g.progress}%</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: progressColor(g.progress), minWidth: 35 }}>{g.progress}%</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>{statusChip(g.status)}</TableCell>
@@ -295,7 +295,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                         <Grid container spacing={3}>
                           <Grid item xs={12} md={6}>
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Milestones ({milestones[g.id]?.length || 0})</Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Milestones ({milestones[g.id]?.length || 0})</Typography>
                               <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setFetchError(''); setMilestoneDialogOpen(true) }}>Add</Button>
                             </Stack>
                             {(milestones[g.id] || []).length === 0 ? (
@@ -314,14 +314,14 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                             )}
                           </Grid>
                           <Grid item xs={12} md={6}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>Progress History</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Progress History</Typography>
                             {(progressHistory[g.id] || []).length === 0 ? (
                               <Typography variant="body2" color="#98A2B3">No progress entries yet</Typography>
                             ) : (
                               <Stack spacing={0.5}>
                                 {(progressHistory[g.id] || []).slice(0, 10).map(p => (
                                   <Stack key={p.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
-                                    <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#FFFFFF', fontWeight: 700, minWidth: 50 }} />
+                                    <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#FFFFFF', fontWeight: 600, minWidth: 50 }} />
                                     <Typography variant="body2" sx={{ flex: 1 }}>{p.note || '-'}</Typography>
                                     <Typography variant="caption" color="#98A2B3">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
                                   </Stack>
@@ -353,7 +353,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editing ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 2 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -424,7 +424,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
               </Select>
             </FormControl>
             <Divider />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Outcome Tracking (optional)</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Outcome Tracking (optional)</Typography>
             <Stack direction="row" spacing={2}>
               <TextField label="Baseline Value" type="number" fullWidth value={form.baseline_value} onChange={e => setForm(f => ({ ...f, baseline_value: e.target.value }))} />
               <TextField label="Target Value" type="number" fullWidth value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value }))} />
@@ -444,7 +444,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Milestone Add Dialog */}
       <Dialog open={milestoneDialogOpen} onClose={() => setMilestoneDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Add Milestone</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Add Milestone</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
           <TextField label="Milestone Title" fullWidth value={milestoneTitle} onChange={e => setMilestoneTitle(e.target.value)} sx={{ mt: fetchError ? 0 : 1 }} />
@@ -457,7 +457,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Progress Record Dialog */}
       <Dialog open={progressDialogOpen} onClose={() => setProgressDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Record Progress</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Record Progress</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: fetchError ? 0 : 1 }}>
@@ -473,7 +473,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Delete Goal Confirmation */}
       <Dialog open={!!deleteGoalId} onClose={() => setDeleteGoalId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Delete Goal</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, color: 'error.main' }}>Delete Goal</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this goal? This action cannot be undone.</Typography>
         </DialogContent>

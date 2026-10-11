@@ -18,7 +18,7 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid #E6EAF0', borderRadius: 1.5, p: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-      <Typography variant="caption" fontWeight={700} sx={{ mb: 0.5, display: 'block' }}>{label}</Typography>
+      <Typography variant="caption" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>{label}</Typography>
       {payload.map((entry: any, i: number) => (
         <Stack key={i} direction="row" spacing={1} alignItems="center">
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
@@ -56,7 +56,7 @@ export default function NutritionTrendChart() {
 
   return (
     <Paper variant="outlined" sx={{ p: 3 }}>
-      <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>7-Day Nutrition Trend</Typography>
+      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>7-Day Nutrition Trend</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
         Meal intake, consumption rates, and fluid tracking across all people
       </Typography>

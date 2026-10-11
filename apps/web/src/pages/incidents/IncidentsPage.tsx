@@ -147,7 +147,7 @@ export default function IncidentsPage() {
     <PageContainer>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, letterSpacing: '-0.02em', mb: 0.5 }}>
           Incidents
         </Typography>
         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
@@ -181,7 +181,7 @@ export default function IncidentsPage() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <Stack direction="row" alignItems="center" gap={1}>
             <FilterIcon sx={{ color: theme.palette.text.secondary, fontSize: 20 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Filters</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Filters</Typography>
           </Stack>
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Status</InputLabel>
@@ -238,14 +238,14 @@ export default function IncidentsPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reported by</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">View</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Severity</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Reported by</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">View</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -323,7 +323,7 @@ export default function IncidentsPage() {
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack direction="row" alignItems="center" gap={1.5}>
                 <IncidentIcon sx={{ color: severityConfig[selectedIncident.severity]?.color || '#667085' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{selectedIncident.title}</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>{selectedIncident.title}</Typography>
               </Stack>
               <IconButton onClick={() => setSelectedIncident(null)} size="small"><CloseIcon /></IconButton>
             </DialogTitle>
@@ -345,7 +345,7 @@ export default function IncidentsPage() {
 
                   {/* Info */}
                   <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Details</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Details</Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={6}><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{dateLabel(selectedIncident.incident_date)}{selectedIncident.incident_time ? ` at ${selectedIncident.incident_time}` : ''}</Typography></Grid>
                       <Grid item xs={6}><Typography variant="caption" color="text.secondary">Location</Typography><Typography variant="body2">{selectedIncident.location || '—'}</Typography></Grid>
@@ -356,28 +356,28 @@ export default function IncidentsPage() {
 
                   {selectedIncident.description && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Description</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Description</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{selectedIncident.description}</Typography>
                     </Box>
                   )}
 
                   {selectedIncident.root_cause && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Root Cause</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Root Cause</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{selectedIncident.root_cause}</Typography>
                     </Box>
                   )}
 
                   {selectedIncident.investigation_notes && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Investigation Notes</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Investigation Notes</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{selectedIncident.investigation_notes}</Typography>
                     </Box>
                   )}
 
                   {selectedIncident.lessons_learned && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Lessons Learned</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Lessons Learned</Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{selectedIncident.lessons_learned}</Typography>
                     </Box>
                   )}
@@ -385,7 +385,7 @@ export default function IncidentsPage() {
                   {/* Involved people */}
                   {selectedIncident.involved && selectedIncident.involved.length > 0 && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Involved People</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Involved People</Typography>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         {selectedIncident.involved.map((p: any) => (
                           <Chip key={p.id} label={p.person_name} size="small" variant="outlined" />
@@ -397,7 +397,7 @@ export default function IncidentsPage() {
                   {/* Actions */}
                   {selectedIncident.actions && selectedIncident.actions.length > 0 && (
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Actions ({selectedIncident.actions.filter((a: any) => !a.completed_at).length} open)</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Actions ({selectedIncident.actions.filter((a: any) => !a.completed_at).length} open)</Typography>
                       <Stack spacing={1}>
                         {selectedIncident.actions.map((action: any) => (
                           <Stack key={action.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>

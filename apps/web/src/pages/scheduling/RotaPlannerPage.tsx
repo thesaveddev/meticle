@@ -896,7 +896,7 @@ export default function RotaPlannerPage() {
             <IconButton onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setWeekStart(d) }}>
               <ChevronLeft />
             </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {weekDates[0].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {weekDates[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </Typography>
             <IconButton onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }}>
@@ -964,7 +964,7 @@ export default function RotaPlannerPage() {
 
           {isAdminOrManager && pendingClaims.length > 0 && (
             <PremiumCard noBorder sx={{ mb: 2, p: 2, bgcolor: 'notice.warning.bg' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.warning.fg' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'notice.warning.fg' }}>
                 Pending Overtime Claims ({pendingClaims.length})
               </Typography>
               <Stack spacing={1}>
@@ -972,7 +972,7 @@ export default function RotaPlannerPage() {
                   <Stack key={pc.assignment_id} direction="row" justifyContent="space-between" alignItems="center"
                     sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 1, border: '1px solid #E6EAF0' }}>
                     <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{pc.first_name} {pc.last_name}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{pc.first_name} {pc.last_name}</Typography>
                       <Typography variant="caption" color='notice.warning.fg'>— {pc.location_name}</Typography>
                       <Typography variant="caption" color='notice.warning.fg'>
                         {new Date(pc.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -983,12 +983,12 @@ export default function RotaPlannerPage() {
                     </Stack>
                     <Stack direction="row" spacing={0.5}>
                       <Button size="small" variant="contained" color="success"
-                        sx={{ minWidth: 0, py: 0, px: 1, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none' }}
+                        sx={{ minWidth: 0, py: 0, px: 1, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none' }}
                         onClick={() => handleApproveClaim(pc.shift_id, pc.staff_id)}>
                         Approve
                       </Button>
                       <Button size="small" variant="outlined" color="error"
-                        sx={{ minWidth: 0, py: 0, px: 1, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none' }}
+                        sx={{ minWidth: 0, py: 0, px: 1, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none' }}
                         onClick={() => handleRejectClaim(pc.shift_id, pc.staff_id)}>
                         Reject
                       </Button>
@@ -1005,7 +1005,7 @@ export default function RotaPlannerPage() {
 
           {swapRequests.length > 0 && (
             <PremiumCard noBorder sx={{ mb: 2, p: 2, bgcolor: 'notice.info.bg' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.info.fg' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'notice.info.fg' }}>
                 Pending Swap Requests ({swapRequests.length})
               </Typography>
               <Stack spacing={1}>
@@ -1013,7 +1013,7 @@ export default function RotaPlannerPage() {
                   <Stack key={sr.id} direction="row" justifyContent="space-between" alignItems="center"
                     sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 1, border: '1px solid #E6EAF0' }}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{sr.from_first_name} {sr.from_last_name}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{sr.from_first_name} {sr.from_last_name}</Typography>
                       <Typography variant="caption" color='notice.info.fg'>
                         wants to swap {new Date(sr.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         {' '}{new Date(sr.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
@@ -1024,12 +1024,12 @@ export default function RotaPlannerPage() {
                     </Stack>
                     <Stack direction="row" spacing={0.5}>
                       <Button size="small" variant="contained" color="success"
-                        sx={{ minWidth: 0, py: 0, px: 1.5, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none' }}
+                        sx={{ minWidth: 0, py: 0, px: 1.5, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none' }}
                         onClick={() => handleSwapResponse(sr.id, true)}>
                         Accept
                       </Button>
                       <Button size="small" variant="outlined" color="error"
-                        sx={{ minWidth: 0, py: 0, px: 1.5, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none' }}
+                        sx={{ minWidth: 0, py: 0, px: 1.5, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none' }}
                         onClick={() => handleSwapResponse(sr.id, false)}>
                         Decline
                       </Button>
@@ -1047,7 +1047,7 @@ export default function RotaPlannerPage() {
               value={viewMode}
               exclusive
               onChange={(_, v) => { if (v) setViewMode(v) }}
-              sx={{ '& .MuiToggleButton-root': { px: 1.25, py: 0.5, fontSize: '0.72rem', fontWeight: 700, textTransform: 'none' } }}
+              sx={{ '& .MuiToggleButton-root': { px: 1.25, py: 0.5, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' } }}
             >
               <ToggleButton value="board" sx={{ '&.Mui-selected': { bgcolor: '#2F80ED', color: '#FFFFFF' } }}>
                 <ViewWeekIcon sx={{ fontSize: 15, mr: 0.5 }} />Board
@@ -1159,7 +1159,7 @@ export default function RotaPlannerPage() {
       />
 
       <Dialog open={shiftDialog} onClose={() => { if (!shiftSaving) setShiftDialog(false) }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editingShiftId ? 'Edit Shift' : 'Create Shift'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{editingShiftId ? 'Edit Shift' : 'Create Shift'}</DialogTitle>
         <DialogContent>
           {shiftDialogError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setShiftDialogError('')}>{shiftDialogError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1240,7 +1240,7 @@ export default function RotaPlannerPage() {
       </Dialog>
 
       <Dialog open={assignDialog} onClose={() => setAssignDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Assign Staff</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Assign Staff</DialogTitle>
         <DialogContent>
           <FormControl fullWidth size="small" sx={{ mt: 1 }}>
             <InputLabel>Staff Member</InputLabel>
@@ -1273,7 +1273,7 @@ export default function RotaPlannerPage() {
       </Dialog>
 
       <Dialog open={swapDialog} onClose={() => setSwapDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           {swapDialogStep === 1 ? 'Request Shift Swap' : `Swap with ${targetStaffName}`}
         </DialogTitle>
         <DialogContent>
@@ -1342,7 +1342,7 @@ export default function RotaPlannerPage() {
                         }}>
                           <Stack direction="row" justifyContent="space-between" alignItems="center">
                             <Stack spacing={0.3}>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{dateLabel}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{dateLabel}</Typography>
                               {isTransfer ? (
                                 <Typography variant="caption" color="#9A6700">
                                   Transfer — {targetStaffName || 'target'} is free this day
@@ -1396,7 +1396,7 @@ export default function RotaPlannerPage() {
       </Dialog>
 
       <Dialog open={aiDialogOpen} onClose={() => setAiDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <AutoAwesomeIcon sx={{ color: '#10BFA5' }} />
             <span>AI Rota Analysis</span>
@@ -1413,20 +1413,20 @@ export default function RotaPlannerPage() {
           ) : aiAnalysis ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <PremiumCard noBorder sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
-                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>Overall Assessment</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Overall Assessment</Typography>
                 <Typography variant="body2" color="text.secondary">{aiAnalysis.overall_assessment}</Typography>
               </PremiumCard>
 
               {aiAnalysis.coverage_warnings?.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Coverage Warnings</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Coverage Warnings</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.coverage_warnings.map((w: any, i: number) => (
                       <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Typography variant="body2" fontWeight={600}>{w.day} — {w.location}</Typography>
                           <Chip label={w.severity} size="small" sx={{
-                            height: 20, fontSize: '0.6rem', fontWeight: 700,
+                            height: 20, fontSize: '0.6rem', fontWeight: 600,
                             bgcolor: w.severity === 'high' ? '#FEF0F0' : w.severity === 'medium' ? '#FFF7E6' : '#EAF3FF',
                             color: w.severity === 'high' ? '#B42318' : w.severity === 'medium' ? '#9A6700' : '#175CD3',
                           }} />
@@ -1440,7 +1440,7 @@ export default function RotaPlannerPage() {
 
               {aiAnalysis.overtime_risks?.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Overtime Risks</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Overtime Risks</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.overtime_risks.map((r: any, i: number) => (
                       <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
@@ -1456,7 +1456,7 @@ export default function RotaPlannerPage() {
 
               {aiAnalysis.staffing_suggestions?.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Staffing Suggestions</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Staffing Suggestions</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.staffing_suggestions.map((s: any, i: number) => (
                       <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
@@ -1489,7 +1489,7 @@ export default function RotaPlannerPage() {
 
               {aiAnalysis.optimization_tips?.length > 0 && (
                 <PremiumCard noBorder sx={{ p: 2, bgcolor: 'notice.success.bg' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.success.fg' }}>Optimization Tips</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'notice.success.fg' }}>Optimization Tips</Typography>
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                     {aiAnalysis.optimization_tips.map((t: string, i: number) => (
                       <li key={i}><Typography variant="caption" color='notice.success.fg'>{t}</Typography></li>
@@ -1500,7 +1500,7 @@ export default function RotaPlannerPage() {
 
               {aiAnalysis.estimated_savings && (
                 <PremiumCard noBorder sx={{ p: 2, bgcolor: 'notice.info.bg' }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: 'notice.info.fg' }}>
+                  <Typography variant="body2" fontWeight={600} sx={{ color: 'notice.info.fg' }}>
                     Estimated Savings: {aiAnalysis.estimated_savings}
                   </Typography>
                 </PremiumCard>
@@ -1520,7 +1520,7 @@ export default function RotaPlannerPage() {
       </Dialog>
 
       <Dialog open={genDialogOpen} onClose={() => { if (!genLoading && !genApplying) setGenDialogOpen(false) }} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <AutoAwesomeIcon sx={{ color: '#10BFA5' }} />
             <span>{genResult ? 'Generated Rota Preview' : 'Generate AI Rota'}</span>
@@ -1655,25 +1655,25 @@ export default function RotaPlannerPage() {
                 <Card sx={{ flex: '1 1 140px', borderTop: '3px solid #2F80ED' }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Typography variant="caption" color="text.secondary">Total Shifts</Typography>
-                    <Typography variant="h6" fontWeight={700}>{genResult.coverage_summary?.total_shifts || genResult.shifts?.length || 0}</Typography>
+                    <Typography variant="h6" fontWeight={600}>{genResult.coverage_summary?.total_shifts || genResult.shifts?.length || 0}</Typography>
                   </CardContent>
                 </Card>
                 <Card sx={{ flex: '1 1 140px', borderTop: '3px solid #10B981' }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Typography variant="caption" color="text.secondary">Staffed Days</Typography>
-                    <Typography variant="h6" fontWeight={700}>{genResult.coverage_summary?.fully_staffed_days || '-'}</Typography>
+                    <Typography variant="h6" fontWeight={600}>{genResult.coverage_summary?.fully_staffed_days || '-'}</Typography>
                   </CardContent>
                 </Card>
                 <Card sx={{ flex: '1 1 140px', borderTop: '3px solid #F59E0B' }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Typography variant="caption" color="text.secondary">Understaffed Days</Typography>
-                    <Typography variant="h6" fontWeight={700}>{genResult.coverage_summary?.understaffed_days || '-'}</Typography>
+                    <Typography variant="h6" fontWeight={600}>{genResult.coverage_summary?.understaffed_days || '-'}</Typography>
                   </CardContent>
                 </Card>
                 <Card sx={{ flex: '1 1 140px', borderTop: '3px solid #2F80ED' }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Typography variant="caption" color="text.secondary">Utilization</Typography>
-                    <Typography variant="h6" fontWeight={700}>{genResult.coverage_summary?.staff_utilization_pct || '-'}%</Typography>
+                    <Typography variant="h6" fontWeight={600}>{genResult.coverage_summary?.staff_utilization_pct || '-'}%</Typography>
                   </CardContent>
                 </Card>
               </Stack>
@@ -1722,14 +1722,14 @@ export default function RotaPlannerPage() {
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Shift</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Date</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Type</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Start</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>End</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Location</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Assigned Staff</TableCell>
-                          {genEditMode && <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', width: 40 }}></TableCell>}
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Shift</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Date</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Type</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Start</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>End</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Location</TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Assigned Staff</TableCell>
+                          {genEditMode && <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: 40 }}></TableCell>}
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1894,7 +1894,7 @@ export default function RotaPlannerPage() {
       </Dialog>
 
       <Dialog open={staffingDialog} onClose={() => setStaffingDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Staffing Rules</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Staffing Rules</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Set minimum staff required per location. Day, Night (wake), and Sleep shift types each have their own configurable minimum. The general Minimum Staff Per Day is the fallback.

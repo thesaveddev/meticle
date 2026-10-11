@@ -133,7 +133,7 @@ export default function LocationRetentionCard() {
   if (isLoading) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <DeleteSweepIcon sx={{ mr: 1, verticalAlign: 'middle' }} />How long you keep carer location
         </Typography>
         <CircularProgress size={20} />
@@ -144,7 +144,7 @@ export default function LocationRetentionCard() {
   if (isError || !data) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <DeleteSweepIcon sx={{ mr: 1, verticalAlign: 'middle' }} />How long you keep carer location
         </Typography>
         <Alert severity="warning">
@@ -157,7 +157,7 @@ export default function LocationRetentionCard() {
 
   return (
     <Paper sx={{ p: 4 }} data-testid="location-retention-card">
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
         <DeleteSweepIcon sx={{ mr: 1, verticalAlign: 'middle' }} />How long you keep carer location
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -242,7 +242,7 @@ export default function LocationRetentionCard() {
 
       {runsData?.runs && runsData.runs.length > 0 && (
         <>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Deletions</Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Deletions</Typography>
           <Table size="small" sx={{ mb: 2 }}>
             <TableHead>
               <TableRow>

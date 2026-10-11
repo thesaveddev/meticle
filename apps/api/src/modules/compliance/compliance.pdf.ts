@@ -1,4 +1,5 @@
 import { generatePdf as sharedGeneratePdf } from '../../shared/pdf/pdf.service'
+import { PDF_TEXT as T } from '../../shared/utils/email.template'
 import { getRegulator } from './regulators'
 import {
   findFramework,
@@ -85,7 +86,7 @@ function date(value: any): string {
   return isNaN(d.getTime()) ? '-' : d.toLocaleDateString()
 }
 
-const H2 = (t: string) => `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">${esc(t)}</h2>`
+const H2 = (t: string) => `<h2 style="color:${T.navy};font-size:18px;margin-top:24px">${esc(t)}</h2>`
 
 /** A chip used for status and severity columns. */
 const chip = (text: string, bg: string) =>
@@ -111,14 +112,14 @@ function buildSections(data: any): Record<string, string> {
   sections.people = data.people?.length
     ? `${H2(`People (${data.people.length} total, ${data.people.filter((s: any) => s.status === 'active').length} active)`)}
        <table><thead><tr><th>Name</th><th>Room</th><th>Status</th><th>Care Plans</th><th>Open Risks</th><th>Goals</th></tr></thead><tbody>
-       ${data.people.map((su: any) => `<tr><td>${esc(su.first_name)} ${esc(su.last_name)}</td><td>${esc(su.room_number || '-')}</td><td>${chip(su.status, su.status === 'active' ? '#DCFCE7' : '#F3F4F6')}</td><td>${esc(su.active_care_plans || 0)}</td><td>${esc(su.open_risks || 0)}</td><td>${esc(su.total_goals || 0)}</td></tr>`).join('')}
+       ${data.people.map((su: any) => `<tr><td>${esc(su.first_name)} ${esc(su.last_name)}</td><td>${esc(su.room_number || '-')}</td><td>${chip(su.status, su.status === 'active' ? T.toneOkBg : T.toneNeutralBg)}</td><td>${esc(su.active_care_plans || 0)}</td><td>${esc(su.open_risks || 0)}</td><td>${esc(su.total_goals || 0)}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 
   sections.care_plans = data.care_plans?.length
     ? `${H2(`Care Plans (${data.care_plans.length})`)}
        <table><thead><tr><th>Person</th><th>Title</th><th>Category</th><th>Status</th><th>Review Date</th></tr></thead><tbody>
-       ${data.care_plans.map((cp: any) => `<tr><td>${esc(cp.first_name)} ${esc(cp.last_name)}</td><td>${esc(cp.title)}</td><td>${esc(String(cp.category || '').replace(/_/g, ' '))}</td><td>${chip(cp.status, cp.status === 'active' ? '#DCFCE7' : '#F3F4F6')}</td><td>${date(cp.review_date)}</td></tr>`).join('')}
+       ${data.care_plans.map((cp: any) => `<tr><td>${esc(cp.first_name)} ${esc(cp.last_name)}</td><td>${esc(cp.title)}</td><td>${esc(String(cp.category || '').replace(/_/g, ' '))}</td><td>${chip(cp.status, cp.status === 'active' ? T.toneOkBg : T.toneNeutralBg)}</td><td>${date(cp.review_date)}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 
@@ -126,7 +127,7 @@ function buildSections(data: any): Record<string, string> {
     ? `${H2(`Incidents (${data.incidents.length})`)}
        <table><thead><tr><th>Title</th><th>Involved Residents</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead><tbody>
        ${data.incidents.map((inc: any) => {
-         const bg = inc.severity === 'critical' || inc.severity === 'high' ? '#FEE2E2' : inc.severity === 'medium' ? '#FEF3C7' : '#F3F4F6'
+         const bg = inc.severity === 'critical' || inc.severity === 'high' ? T.toneBadBg : inc.severity === 'medium' ? T.toneWarnBg : T.toneNeutralBg
          return `<tr><td>${esc(inc.title)}</td><td>${esc(inc.involved_people || 'N/A')}</td><td>${chip(inc.severity, bg)}</td><td>${esc(inc.status)}</td><td>${date(inc.incident_date)}</td></tr>`
        }).join('')}
        </tbody></table>`
@@ -135,7 +136,7 @@ function buildSections(data: any): Record<string, string> {
   sections.training = data.training?.length
     ? `${H2(`Training Records (${data.training.length})`)}
        <table><thead><tr><th>Staff</th><th>Module</th><th>Category</th><th>Status</th><th>Completed</th></tr></thead><tbody>
-       ${data.training.map((t: any) => `<tr><td>${esc(t.first_name)} ${esc(t.last_name)}</td><td>${esc(t.module_name)}</td><td>${esc(t.module_category || '-')}</td><td>${chip(t.status || 'pending', t.status === 'completed' ? '#DCFCE7' : '#FEF3C7')}</td><td>${date(t.completed_at)}</td></tr>`).join('')}
+       ${data.training.map((t: any) => `<tr><td>${esc(t.first_name)} ${esc(t.last_name)}</td><td>${esc(t.module_name)}</td><td>${esc(t.module_category || '-')}</td><td>${chip(t.status || 'pending', t.status === 'completed' ? T.toneOkBg : T.toneWarnBg)}</td><td>${date(t.completed_at)}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 
@@ -143,7 +144,7 @@ function buildSections(data: any): Record<string, string> {
     ? `${H2(`Documents (${data.documents.length})`)}
        <table><thead><tr><th>Staff</th><th>Type</th><th>Status</th><th>Expires</th></tr></thead><tbody>
        ${data.documents.map((d: any) => {
-         const bg = d.status === 'approved' ? '#DCFCE7' : d.status === 'pending' ? '#FEF3C7' : '#FEE2E2'
+         const bg = d.status === 'approved' ? T.toneOkBg : d.status === 'pending' ? T.toneWarnBg : T.toneBadBg
          return `<tr><td>${esc(d.first_name)} ${esc(d.last_name)}</td><td>${esc(d.type)}</td><td>${chip(d.status, bg)}</td><td>${date(d.expiry_date)}</td></tr>`
        }).join('')}
        </tbody></table>`
@@ -152,7 +153,7 @@ function buildSections(data: any): Record<string, string> {
   sections.competency = data.competency?.length
     ? `${H2(`Competency Assessments (${data.competency.length})`)}
        <table><thead><tr><th>Staff</th><th>Template</th><th>Result</th><th>Assessor</th><th>Date</th></tr></thead><tbody>
-       ${data.competency.map((c: any) => `<tr><td>${esc(c.first_name)} ${esc(c.last_name)}</td><td>${esc(c.template_name)}</td><td>${chip(c.passed ? 'Passed' : 'Failed', c.passed ? '#DCFCE7' : '#FEE2E2')}</td><td>${esc(`${c.assessor_first || ''} ${c.assessor_last || ''}`.trim())}</td><td>${date(c.assessed_at)}</td></tr>`).join('')}
+       ${data.competency.map((c: any) => `<tr><td>${esc(c.first_name)} ${esc(c.last_name)}</td><td>${esc(c.template_name)}</td><td>${chip(c.passed ? 'Passed' : 'Failed', c.passed ? T.toneOkBg : T.toneBadBg)}</td><td>${esc(`${c.assessor_first || ''} ${c.assessor_last || ''}`.trim())}</td><td>${date(c.assessed_at)}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 
@@ -196,13 +197,13 @@ function buildSections(data: any): Record<string, string> {
          if (n.nut_allergy) flags.push('NUT')
          if (n.other_allergies) flags.push('ALLERGY')
          const isConcern = (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0 || (n.avg_consumed_7d && n.avg_consumed_7d < 50)
-         return `<tr${isConcern ? ' style="background:#FEF2F2"' : ''}>
+         return `<tr${isConcern ? ` style="background:${T.toneBadBg}"` : ''}>
            <td>${esc(n.person_name)}</td>
            <td>${esc(n.dietary_type || '-')}</td>
            <td>${esc(n.texture_modified && n.texture_modified !== 'None' ? n.texture_modified : '-')}</td>
            <td>${esc(n.appetite_level || '-')}</td>
            <td>${esc(n.meals_last_7d || 0)}</td>
-           <td>${(n.refused_last_7d || 0) > 0 ? chip(n.refused_last_7d, '#FEE2E2') : '0'}</td>
+           <td>${(n.refused_last_7d || 0) > 0 ? chip(n.refused_last_7d, T.toneBadBg) : '0'}</td>
            <td>${n.avg_consumed_7d != null ? esc(n.avg_consumed_7d) + '%' : '-'}</td>
            <td>${esc(n.total_fluid_7d || 0)}ml</td>
            <td>${flags.length > 0 ? `<span style="font-size:9px">${flags.join(' ')}</span>` : '-'}</td>
@@ -213,20 +214,20 @@ function buildSections(data: any): Record<string, string> {
 
   sections.nutrition_concerns = nutritionWithConcerns.length > 0
     ? `<div class="section-break"></div>
-       <h2 style="color:#DC2626;font-size:18px;margin-top:24px">&#9888; Nutrition Concerns (${nutritionWithConcerns.length} people)</h2>
-       <p style="color:#6B7280;font-size:12px">People with low intake, meal refusals, or declining appetite in the last 7 days &mdash; require care plan review and staff follow-up.</p>
+       <h2 style="color:${T.toneBad};font-size:18px;margin-top:24px">&#9888; Nutrition Concerns (${nutritionWithConcerns.length} people)</h2>
+       <p style="color:${T.secondary};font-size:12px">People with low intake, meal refusals, or declining appetite in the last 7 days &mdash; require care plan review and staff follow-up.</p>
        <table><thead><tr><th>Person</th><th>Diet</th><th>Meals (7d)</th><th>Refused</th><th>Avg Consumed</th><th>Fluid (7d)</th><th>Target</th><th>Below Target</th></tr></thead><tbody>
        ${nutritionWithConcerns.map((n: any) => {
          const deficit = (n.fluid_daily_target_ml || 2000) - (n.total_fluid_7d || 0)
-         return `<tr style="background:#FEF2F2">
+         return `<tr style="background:${T.toneBadBg}">
            <td><strong>${esc(n.person_name)}</strong></td>
            <td>${esc(n.dietary_type || '-')}</td>
            <td>${esc(n.meals_last_7d || 0)}</td>
-           <td>${chip(n.refused_last_7d || 0, '#DC2626')}</td>
+           <td>${chip(n.refused_last_7d || 0, T.toneBad)}</td>
            <td>${n.avg_consumed_7d != null ? esc(n.avg_consumed_7d) + '%' : '-'}</td>
            <td>${esc(n.total_fluid_7d || 0)}ml</td>
            <td>${esc(n.fluid_daily_target_ml || 2000)}ml</td>
-           <td>${deficit > 0 ? `<span style="color:#DC2626;font-weight:600">-${esc(deficit)}ml</span>` : 'On target'}</td>
+           <td>${deficit > 0 ? `<span style="color:${T.toneBad};font-weight:600">-${esc(deficit)}ml</span>` : 'On target'}</td>
          </tr>`
        }).join('')}
        </tbody></table>`
@@ -307,7 +308,7 @@ function rqiaBlock(framework: FrameworkDef, primaryServiceType?: string | null):
  */
 function contentsBlock(framework: FrameworkDef | null, sections: Record<string, string>, domains: DomainDef[] | null): string {
   if (framework && domains && domains.length > 0) {
-    return `<h2 style="color:#0F4C81;font-size:16px;margin-top:20px">Contents, by ${esc(framework.name)}</h2>
+    return `<h2 style="color:${T.navy};font-size:16px;margin-top:20px">Contents, by ${esc(framework.name)}</h2>
       <ul class="contents">${domains
         .map((d: DomainDef) => {
           const present = (EVIDENCE_BY_DOMAIN[d.key] || []).filter((k: string) => sections[k])
@@ -320,7 +321,7 @@ function contentsBlock(framework: FrameworkDef | null, sections: Record<string, 
         .join('')}</ul>`
   }
   const present = Object.entries(sections).filter(([, v]) => v)
-  return `<h2 style="color:#0F4C81;font-size:16px;margin-top:20px">Contents</h2>
+  return `<h2 style="color:${T.navy};font-size:16px;margin-top:20px">Contents</h2>
     <p class="source-meta">Arranged by Meticle Care. No framework is recorded for this regulator, so there is no regulator ordering to follow and this pack is not arranged against one.</p>
     <ul class="contents">${present.map(([k]) => `<li>${esc(k.replace(/_/g, ' '))}</li>`).join('')}</ul>`
 }
@@ -430,7 +431,7 @@ export function buildEvidencePackHtml(
 
   const rqiaSection =
     framework?.id === 'rqia'
-      ? `<div class="section-break"></div><h2 style="color:#0F4C81;font-size:18px">Standards this pack is offered against</h2>${rqiaBlock(framework, primaryServiceType)}`
+      ? `<div class="section-break"></div><h2 style="color:${T.navy};font-size:18px">Standards this pack is offered against</h2>${rqiaBlock(framework, primaryServiceType)}`
       : ''
 
   return `<!DOCTYPE html>
@@ -438,43 +439,43 @@ export function buildEvidencePackHtml(
 <style>
   @page { margin: 20mm 15mm; }
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 12px; line-height: 1.5; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: ${T.ink}; font-size: 12px; line-height: 1.5; margin: 0; padding: 0; }
   .cover { text-align: center; padding: 70px 40px; page-break-after: always; }
-  .cover h1 { color: #0F4C81; font-size: 28px; margin-bottom: 8px; }
-  .cover .subtitle { color: #6B7280; font-size: 16px; }
-  .cover .meta { margin-top: 32px; color: #9CA3AF; font-size: 13px; }
-  .cover .badge { display: inline-block; background: #0F4C81; color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; margin-top: 16px; }
-  h1 { color: #0F4C81; font-size: 22px; border-bottom: 2px solid #0F4C81; padding-bottom: 6px; }
-  h2 { color: #0F4C81; }
+  .cover h1 { color: ${T.navy}; font-size: 28px; margin-bottom: 8px; }
+  .cover .subtitle { color: ${T.secondary}; font-size: 16px; }
+  .cover .meta { margin-top: 32px; color: ${T.muted}; font-size: 13px; }
+  .cover .badge { display: inline-block; background: ${T.navy}; color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; margin-top: 16px; }
+  h1 { color: ${T.navy}; font-size: 22px; border-bottom: 2px solid ${T.navy}; padding-bottom: 6px; }
+  h2 { color: ${T.navy}; }
   table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
-  th, td { border: 1px solid #D1D5DB; padding: 6px 10px; text-align: left; }
-  th { background: #F3F4F6; font-weight: 700; }
-  tr:nth-child(even) { background: #F9FAFB; }
+  th, td { border: 1px solid ${T.secondary}; padding: 6px 10px; text-align: left; }
+  th { background: ${T.headerBg}; font-weight: 700; }
+  tr:nth-child(even) { background: ${T.panelBg}; }
   .summary-grid { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
-  .summary-card { flex: 1; min-width: 120px; text-align: center; padding: 16px; border: 1px solid #E5E7EB; border-radius: 8px; }
-  .summary-card .num { font-size: 24px; font-weight: 700; color: #0F4C81; }
-  .summary-card .label { font-size: 11px; color: #6B7280; }
+  .summary-card { flex: 1; min-width: 120px; text-align: center; padding: 16px; border: 1px solid ${T.line}; border-radius: 8px; }
+  .summary-card .num { font-size: 24px; font-weight: 700; color: ${T.navy}; }
+  .summary-card .label { font-size: 11px; color: ${T.secondary}; }
   .section-break { page-break-before: always; }
-  .theme { color: #0F4C81; font-size: 18px; margin-top: 0; border-bottom: 1px solid #D1D5DB; padding-bottom: 6px; }
-  .theme-intent { color: #374151; font-size: 12px; }
-  .theme-evidence { color: #9CA3AF; font-size: 10px; font-style: italic; }
-  .xref { color: #6B7280; font-size: 11px; font-style: italic; }
-  .note-box, .gap-box { border: 1px solid #D97706; background: #FFFBEB; padding: 12px 14px; margin: 16px 0; font-size: 11px; border-radius: 6px; }
-  .gap-box { border-color: #DC2626; background: #FEF2F2; }
+  .theme { color: ${T.navy}; font-size: 18px; margin-top: 0; border-bottom: 1px solid ${T.secondary}; padding-bottom: 6px; }
+  .theme-intent { color: ${T.body}; font-size: 12px; }
+  .theme-evidence { color: ${T.muted}; font-size: 10px; font-style: italic; }
+  .xref { color: ${T.secondary}; font-size: 11px; font-style: italic; }
+  .note-box, .gap-box { border: 1px solid ${T.toneWarnBg}; background: ${T.toneWarnBg}; padding: 12px 14px; margin: 16px 0; font-size: 11px; border-radius: 6px; }
+  .gap-box { border-color: ${T.toneBad}; background: ${T.toneBadBg}; }
   .note-box p, .gap-box p { margin: 6px 0 0 0; }
-  .source-box { border: 1px solid #D1D5DB; background: #F9FAFB; padding: 12px 14px; margin: 16px 0; font-size: 11px; border-radius: 6px; text-align: left; }
+  .source-box { border: 1px solid ${T.secondary}; background: ${T.panelBg}; padding: 12px 14px; margin: 16px 0; font-size: 11px; border-radius: 6px; text-align: left; }
   .source-box p { margin: 4px 0 0 0; }
-  .source-label, .scale-label { color: #6B7280; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .source-url { color: #0F4C81; word-break: break-all; }
-  .source-meta { color: #6B7280; font-size: 10px; }
+  .source-label, .scale-label { color: ${T.secondary}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .source-url { color: ${T.navy}; word-break: break-all; }
+  .source-meta { color: ${T.secondary}; font-size: 10px; }
   .scale { margin: 16px 0; text-align: left; }
   .scale-items { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
-  .scale-item { border: 1px solid #0F4C81; color: #0F4C81; border-radius: 14px; padding: 2px 12px; font-size: 11px; font-weight: 600; }
+  .scale-item { border: 1px solid ${T.navy}; color: ${T.navy}; border-radius: 14px; padding: 2px 12px; font-size: 11px; font-weight: 600; }
   .contents { list-style: none; padding-left: 0; font-size: 12px; }
-  .contents li { padding: 4px 0; border-bottom: 1px dotted #E5E7EB; }
-  .contents-note { color: #9CA3AF; font-size: 10px; font-weight: 400; }
+  .contents li { padding: 4px 0; border-bottom: 1px dotted ${T.line}; }
+  .contents-note { color: ${T.muted}; font-size: 10px; font-weight: 400; }
   table.statements { font-size: 11px; }
-  table.statements td:last-child { color: #6B7280; font-size: 10px; }
+  table.statements td:last-child { color: ${T.secondary}; font-size: 10px; }
 </style></head><body>
   <div class="cover">
     <div class="badge">${esc(frameworkName)}</div>
@@ -507,16 +508,16 @@ export function buildEvidencePackHtml(
     <div class="summary-card"><div class="num">${esc(data.summary?.competency_records || 0)}</div><div class="label">Competency</div></div>
     ${data.satisfaction?.avg_rating ? `<div class="summary-card"><div class="num">${esc(data.satisfaction.avg_rating)}/5</div><div class="label">Satisfaction</div></div>` : ''}
     ${data.summary?.people_with_dietary_profiles ? `<div class="summary-card"><div class="num">${esc(data.summary.people_with_dietary_profiles)}</div><div class="label">Dietary Profiles</div></div>` : ''}
-    ${data.summary?.people_with_nutrition_concerns ? `<div class="summary-card" style="${data.summary.people_with_nutrition_concerns > 0 ? 'border-color:#DC2626' : ''}"><div class="num" style="${data.summary.people_with_nutrition_concerns > 0 ? 'color:#DC2626' : ''}">${esc(data.summary.people_with_nutrition_concerns)}</div><div class="label">Nutrition Concerns</div></div>` : ''}
+    ${data.summary?.people_with_nutrition_concerns ? `<div class="summary-card" style="${data.summary.people_with_nutrition_concerns > 0 ? `border-color:${T.toneBad}` : ''}"><div class="num" style="${data.summary.people_with_nutrition_concerns > 0 ? `color:${T.toneBad}` : ''}">${esc(data.summary.people_with_nutrition_concerns)}</div><div class="label">Nutrition Concerns</div></div>` : ''}
   </div>
-  <p style="color:#6B7280;font-size:12px">Generated by Meticle Care on ${esc(now)}</p>
+  <p style="color:${T.secondary};font-size:12px">Generated by Meticle Care on ${esc(now)}</p>
   ${contentsBlock(framework, sections, domains)}
 
   ${rqiaSection}
   ${themeBody}
   ${genericBody}
 
-  <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">
+  <div style="margin-top:40px;padding-top:12px;border-top:1px solid ${T.secondary};font-size:10px;color:${T.muted};text-align:center">
     Meticle Care Evidence Pack &bull; ${esc(frameworkName)} &bull; Generated ${esc(now)} &bull; For inspection purposes
   </div>
 </body></html>`

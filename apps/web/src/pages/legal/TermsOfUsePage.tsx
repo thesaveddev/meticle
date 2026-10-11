@@ -4,7 +4,7 @@ import PageMeta from '../../components/PageMeta'
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 800, color: '#2F80ED', mb: 2 }}>{title}</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 600, color: '#2F80ED', mb: 2 }}>{title}</Typography>
       <Typography component="div" variant="body2" color="#344054" sx={{ lineHeight: 1.8, '& p': { mb: 1.5 } }}>
         {children}
       </Typography>
@@ -17,7 +17,7 @@ export default function TermsOfUsePage() {
     <>
       <PageMeta title="Terms of Use | Meticle Care" description="Terms and conditions for using Meticle Care, the care management platform for UK supported living providers." canonicalPath="/terms" />
     <Container maxWidth="md" sx={{ py: 8 }}>
-      <Typography variant="h3" sx={{ fontWeight: 900, color: '#2F80ED', mb: 1 }}>Terms of Use</Typography>
+      <Typography variant="h3" sx={{ fontWeight: 600, color: '#2F80ED', mb: 1 }}>Terms of Use</Typography>
       <Typography variant="body2" color="#667085" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
       <Section title="About the Company">

@@ -31,12 +31,12 @@ export default function MemberListDialog({
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}` }}>
+        <DialogTitle sx={{ fontWeight: 600, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}` }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <GroupsIcon sx={{ color: NAVY, fontSize: 20 }} />
-            <Typography variant="h6" fontWeight={800} sx={{ fontSize: 15, color: INK }}>{channelName}</Typography>
+            <Typography variant="h6" fontWeight={600} sx={{ fontSize: 15, color: INK }}>{channelName}</Typography>
             <Chip label={`${members.length} members`} size="small"
-              sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(15,76,129,0.08)', color: NAVY, fontWeight: 700 }} />
+              sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(15,76,129,0.08)', color: NAVY, fontWeight: 600 }} />
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
@@ -61,7 +61,7 @@ export default function MemberListDialog({
                 <ListItemText
                   primary={
                     <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Typography fontWeight={700} sx={{ fontSize: 13.5, color: INK }}>
+                      <Typography fontWeight={600} sx={{ fontSize: 13.5, color: INK }}>
                         {`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}
                       </Typography>
                       {onlineUsers.has(m.user_id) && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: EMERALD }} />}
@@ -84,12 +84,12 @@ export default function MemberListDialog({
         </DialogContent>
         <DialogActions sx={{ p: 1.5 }}>
           {channelType === 'group' && (
-            <Button onClick={() => { onClose(); onLeaveGroup() }} size="small" sx={{ color: DANGER, fontWeight: 700 }}>
+            <Button onClick={() => { onClose(); onLeaveGroup() }} size="small" sx={{ color: DANGER, fontWeight: 600 }}>
               Leave group
             </Button>
           )}
           <Box sx={{ flex: 1 }} />
-          <Button onClick={onClose} sx={{ color: MIST, fontWeight: 700 }}>Close</Button>
+          <Button onClick={onClose} sx={{ color: MIST, fontWeight: 600 }}>Close</Button>
         </DialogActions>
       </Dialog>
 
@@ -107,12 +107,12 @@ export default function MemberListDialog({
 
       {/* Remove confirm */}
       <Dialog open={!!confirmRemove} onClose={() => setConfirmRemove(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: 15, color: INK }}>Remove member?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: 15, color: INK }}>Remove member?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: MIST }}>They will no longer see messages in this group.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmRemove(null)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button onClick={() => setConfirmRemove(null)} sx={{ color: MIST, fontWeight: 600 }}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleRemove}>Remove</Button>
         </DialogActions>
       </Dialog>

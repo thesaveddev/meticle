@@ -75,8 +75,8 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Header: location + type + actions */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.4, gap: 0.5 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#2F80ED',
-              textTransform: 'uppercase', letterSpacing: '0.04em',
+              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 600, color: '#2F80ED',
+              textTransform: 'none', letterSpacing: '0.04em',
               textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0,
             }}>
               {shift.location_name || '—'}
@@ -84,7 +84,7 @@ export const ShiftCard = memo(function ShiftCard({
             <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
               {shift.shift_type && shift.shift_type !== 'day' && (
                 <Chip label={shift.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'}
-                  size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: vis.chipBg, color: vis.chipFg, fontWeight: 700 }} />
+                  size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: vis.chipBg, color: vis.chipFg, fontWeight: 600 }} />
               )}
               {!compact && (
                 <Stack direction="row" spacing={0.1} onClick={(e) => e.stopPropagation()}>
@@ -110,7 +110,7 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Time + duration + open state */}
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.35 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 800, color: '#17202A',
+              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 600, color: '#17202A',
               fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
             }}>
               {shift._startLabel} – {shift._endLabel}
@@ -120,7 +120,7 @@ export const ShiftCard = memo(function ShiftCard({
             </Typography>
             {isOpen && (
               <Chip label="Open" size="small"
-                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', '& .MuiChip-label': { px: 0.6 } }} />
+                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 600, bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', '& .MuiChip-label': { px: 0.6 } }} />
             )}
           </Stack>
 
@@ -149,11 +149,11 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Agency */}
           {shift.agency_id && (
             <Stack direction="row" spacing={0.4} alignItems="center" onClick={(e) => e.stopPropagation()} sx={{ mt: 0.3 }}>
-              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
+              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
               {canEdit && !isReadOnly && canEditShift ? (
                 <ToggleButtonGroup size="small" value={shift.agency_covered ? 'covered' : 'uncovered'} exclusive
                   onChange={() => onToggleCoverage(shift.id, shift.agency_covered)}
-                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D8DEE7', textTransform: 'none', fontWeight: 700 } }}>
+                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D8DEE7', textTransform: 'none', fontWeight: 600 } }}>
                   <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#EAFBF5' : 'transparent', color: shift.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                     Yes
                   </ToggleButton>
@@ -163,7 +163,7 @@ export const ShiftCard = memo(function ShiftCard({
                 </ToggleButtonGroup>
               ) : (
                 <Chip label={shift.agency_covered ? 'Covered' : 'Uncovered'} size="small"
-                  sx={{ height: 15, fontSize: '0.55rem', bgcolor: shift.agency_covered ? '#EAFBF5' : '#FFF7E6', color: shift.agency_covered ? '#087A55' : '#9A6700', fontWeight: 700 }} />
+                  sx={{ height: 15, fontSize: '0.55rem', bgcolor: shift.agency_covered ? '#EAFBF5' : '#FFF7E6', color: shift.agency_covered ? '#087A55' : '#9A6700', fontWeight: 600 }} />
               )}
             </Stack>
           )}
@@ -206,7 +206,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
         width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
         display: 'grid', placeItems: 'center',
         bgcolor: '#E0E7F1', color: '#2F80ED',
-        fontSize: '0.42rem', fontWeight: 800, lineHeight: 1,
+        fontSize: '0.42rem', fontWeight: 600, lineHeight: 1,
       }}>
         {initials}
       </Box>
@@ -219,7 +219,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       {a.is_overtime && (
         <Box component="span" sx={{
           height: 11, lineHeight: '11px', px: 0.35, borderRadius: '4px',
-          bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontSize: '0.5rem', fontWeight: 800,
+          bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontSize: '0.5rem', fontWeight: 600,
         }}>
           OT
         </Box>
@@ -239,7 +239,7 @@ function ButtonBlock({ onClick }: { onClick: (e: any) => void }) {
     <Box component="span">
       <Tooltip title="Claim as overtime">
         <Chip label="Claim OT" icon={<ClaimIcon sx={{ fontSize: 11 }} />} size="small" variant="outlined"
-          onClick={onClick} sx={{ height: 19, fontSize: '0.58rem', fontWeight: 700, mt: 0.3, cursor: 'pointer', color: '#9A6700', borderColor: '#F59E0B' }} />
+          onClick={onClick} sx={{ height: 19, fontSize: '0.58rem', fontWeight: 600, mt: 0.3, cursor: 'pointer', color: '#9A6700', borderColor: '#F59E0B' }} />
       </Tooltip>
     </Box>
   )

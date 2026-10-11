@@ -115,8 +115,8 @@ export default function WeeklyCallPlanner() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: 1.1 }}>Call scheduling</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Plan and assign calls</Typography>
+          <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 600, letterSpacing: 1.1 }}>Call scheduling</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Plan and assign calls</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             {dayName(weekFrom)} {dayNum(weekFrom)} - {dayName(weekDays[6])} {dayNum(weekDays[6])} · {totalCalls} calls · {assignedCalls} assigned · {unassignedCalls} unassigned
           </Typography>
@@ -145,7 +145,7 @@ export default function WeeklyCallPlanner() {
                 const dayVisits = dayMap.get(d) || []
                 return (
                   <Box key={d} sx={{ flex: 1, textAlign: 'center', px: 0.5 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: isToday ? '#2F80ED' : '#344054' }}>{dayName(d)}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: isToday ? '#2F80ED' : '#344054' }}>{dayName(d)}</Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: isToday ? '#2F80ED' : '#667085' }}>{dayNum(d)}</Typography>
                     <Chip label={dayVisits.length} size="small" sx={{ mt: 0.5, height: 18, fontSize: '0.6rem', bgcolor: dayVisits.length > 0 ? '#EAF3FF' : '#F7F9FC', color: dayVisits.length > 0 ? '#2F80ED' : '#98A2B3', fontWeight: 600 }} />
                   </Box>
@@ -204,7 +204,7 @@ export default function WeeklyCallPlanner() {
           <Stack direction="row" alignItems="center" gap={1}>
             <SwapHoriz sx={{ color: '#2F80ED' }} />
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Assign carer</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Assign carer</Typography>
               {reassignVisit && <Typography variant="caption" color="text.secondary">{reassignVisit.person_name} · {time(reassignVisit.scheduled_start)}–{time(reassignVisit.scheduled_end)}</Typography>}
             </Box>
           </Stack>

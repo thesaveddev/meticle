@@ -77,7 +77,7 @@ export default function LocationDecisionControl() {
   if (isLoading) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Your location
         </Typography>
         <CircularProgress size={20} />
@@ -91,7 +91,7 @@ export default function LocationDecisionControl() {
   if (isError || !data) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Your location
         </Typography>
         <Alert severity="warning">
@@ -107,7 +107,7 @@ export default function LocationDecisionControl() {
 
   return (
     <Paper sx={{ p: 4 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
         <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Your location
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -139,7 +139,7 @@ export default function LocationDecisionControl() {
       )}
 
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" fontWeight={700}>Your answer:</Typography>
+        <Typography variant="body2" fontWeight={600}>Your answer:</Typography>
         {!answered && <Chip label="Not answered yet" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
         {data.decision === 'agreed' && <Chip label="Agreed" size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg' }} />}
         {data.decision === 'declined' && <Chip label="Declined" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.secondary' }} />}

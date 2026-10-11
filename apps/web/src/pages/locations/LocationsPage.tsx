@@ -175,7 +175,7 @@ export default function LocationsPage() {
     <PageContainer>
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Areas' : 'Locations'}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 600 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Areas' : 'Locations'}</Typography>
         {isOrgAdmin && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
             sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>{isDomiciliary ? 'Add area' : 'Add location'}</Button>
@@ -192,17 +192,17 @@ export default function LocationsPage() {
 
       {isDomiciliary && <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
-          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Area comparison</Typography><Typography variant="body2" color="text.secondary">Compare demand, cover and indicative margin across Cardiff, Cathays and every other service area.</Typography></Box>
+          <Box><Typography variant="h6" sx={{ fontWeight: 600 }}>Area comparison</Typography><Typography variant="body2" color="text.secondary">Compare demand, cover and indicative margin across Cardiff, Cathays and every other service area.</Typography></Box>
           <Chip size="small" label="Manager view · live aggregates" variant="outlined" />
         </Stack>
         {comparisonLoading ? <Box sx={{ py: 4, textAlign: 'center' }}><CircularProgress size={24} /></Box> : areaComparison.length === 0 ? <Typography variant="body2" color="text.secondary">No domiciliary areas have been configured yet.</Typography> : <TableContainer sx={{ overflowX: 'auto' }}><Table size="small" sx={{ minWidth: 980 }}>
-          <TableHead><TableRow>{['Area','Clients','Carers','Capacity','7-day workload','Missed · 30d','Open calls','Coverage','Est. margin'].map(label => <TableCell key={label} sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+          <TableHead><TableRow>{['Area','Clients','Carers','Capacity','7-day workload','Missed · 30d','Open calls','Coverage','Est. margin'].map(label => <TableCell key={label} sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{areaComparison.map(area => <TableRow key={area.area_id} hover>
-            <TableCell><Typography variant="body2" sx={{ fontWeight: 800 }}>{area.area_name}</Typography><Typography variant="caption" color="text.secondary">{area.visits_today ?? 0} visits today</Typography></TableCell>
-            <TableCell>{area.active_clients}</TableCell><TableCell>{area.active_carers}</TableCell><TableCell><Typography sx={{ fontWeight: 700 }}>{area.available_carers}</Typography><Typography variant="caption" color="text.secondary">available today</Typography></TableCell>
+            <TableCell><Typography variant="body2" sx={{ fontWeight: 600 }}>{area.area_name}</Typography><Typography variant="caption" color="text.secondary">{area.visits_today ?? 0} visits today</Typography></TableCell>
+            <TableCell>{area.active_clients}</TableCell><TableCell>{area.active_carers}</TableCell><TableCell><Typography sx={{ fontWeight: 600 }}>{area.available_carers}</Typography><Typography variant="caption" color="text.secondary">available today</Typography></TableCell>
             <TableCell>{area.workload_hours_next_7_days}h</TableCell><TableCell>{area.missed_visits_30_days}</TableCell><TableCell>{area.open_calls}</TableCell>
             <TableCell>{area.open_call_coverage_percent == null ? '—' : `${area.open_call_coverage_percent}%`}</TableCell>
-            <TableCell><Typography sx={{ fontWeight: 800, color: Number(area.estimated_margin_pence) >= 0 ? 'success.main' : 'error.main' }}>{money(area.estimated_margin_pence)}</Typography><Typography variant="caption" color="text.secondary">indicative this month</Typography></TableCell>
+            <TableCell><Typography sx={{ fontWeight: 600, color: Number(area.estimated_margin_pence) >= 0 ? 'success.main' : 'error.main' }}>{money(area.estimated_margin_pence)}</Typography><Typography variant="caption" color="text.secondary">indicative this month</Typography></TableCell>
           </TableRow>)}</TableBody>
         </Table></TableContainer>}
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>Capacity is active carers minus carers with a scheduled visit today. Margin is an indicative scheduled-care estimate using configured package rates; confirm against approved billing and payroll before relying on it.</Typography>
@@ -216,17 +216,17 @@ export default function LocationsPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Area' : 'Name'}</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Active carers' : 'Address'}</TableCell>
-                  {isDomiciliary ? <TableCell sx={{ fontWeight: 700 }}>Active clients</TableCell> : <>
-                    <TableCell sx={{ fontWeight: 700 }}>Service Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Capacity</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Max Off/Leave</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Area' : 'Name'}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Active carers' : 'Address'}</TableCell>
+                  {isDomiciliary ? <TableCell sx={{ fontWeight: 600 }}>Active clients</TableCell> : <>
+                    <TableCell sx={{ fontWeight: 600 }}>Service Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Capacity</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Min Staff/Day</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Max Off/Leave</TableCell>
                   </>}
-                  {!isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>}
-                  {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Area manager</TableCell>}
-                  {isOrgAdmin && <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>}
+                  {!isDomiciliary && <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>}
+                  {isDomiciliary && <TableCell sx={{ fontWeight: 600 }}>Area manager</TableCell>}
+                  {isOrgAdmin && <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -251,7 +251,7 @@ export default function LocationsPage() {
                     </>}
                     <TableCell>
                       {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
-                        <Chip label={isDomiciliary ? 'No area manager' : 'No manager'} size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700, fontSize: 12, height: 22 }} />
+                        <Chip label={isDomiciliary ? 'No area manager' : 'No manager'} size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600, fontSize: 12, height: 22 }} />
                       )}
                     </TableCell>
                     {isOrgAdmin && (
@@ -273,7 +273,7 @@ export default function LocationsPage() {
       </Paper>
 
       <Dialog open={locDialog} onClose={() => setLocDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{isDomiciliary ? (editLoc.id ? 'Edit area' : 'Add area') : (editLoc.id ? 'Edit Location' : 'Add Location')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{isDomiciliary ? (editLoc.id ? 'Edit area' : 'Add area') : (editLoc.id ? 'Edit Location' : 'Add Location')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}

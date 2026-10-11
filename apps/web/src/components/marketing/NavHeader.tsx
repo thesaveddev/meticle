@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Box, AppBar, Toolbar, Typography, Container, Stack, Button, IconButton, Drawer, List, ListItem, ListItemText, Collapse, Divider } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu as MenuIcon, ExpandLess, ExpandMore as ExpandMoreIcon } from '@mui/icons-material'
+import BrandWordmark from '../BrandWordmark'
 
 const INK = '#17202A'
 const NAVY = '#2F80ED'
@@ -127,9 +128,7 @@ export default function NavHeader() {
               transition: 'min-height 0.3s ease',
             }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => navigate('/')}>
-              Meticle<span style={{ color: EMERALD }}>Care</span>
-            </Typography>
+            <BrandWordmark size={21} color={NAVY} accent={EMERALD} />
 
             {/* Desktop Nav */}
             <Stack direction="row" spacing={3.5} alignItems="center" sx={{ display: { xs: 'none', md: 'flex' } }}>
@@ -201,7 +200,7 @@ export default function NavHeader() {
 
             <Stack direction="row" spacing={2} alignItems="center">
               <Button onClick={() => navigate('/login')} sx={{ fontWeight: 600, color: INK, display: { xs: 'none', md: 'inline-flex' } }}>Login</Button>
-              <Button variant="contained" sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 700, display: { xs: 'none', md: 'inline-flex' } }} onClick={() => navigate('/register')}>
+              <Button variant="contained" sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 600, display: { xs: 'none', md: 'inline-flex' } }} onClick={() => navigate('/register')}>
                 Book a demo
               </Button>
               <IconButton sx={{ display: { xs: 'flex', md: 'none' }, '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: 2 } }} onClick={() => setMobileOpen(true)} aria-label="Open navigation menu">
@@ -215,9 +214,7 @@ export default function NavHeader() {
       {/* Mobile Drawer */}
       <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)}>
         <Box sx={{ width: 300, pt: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', px: 2, mb: 2, cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => { navigate('/'); setMobileOpen(false) }}>
-            Meticle<span style={{ color: EMERALD }}>Care</span>
-          </Typography>
+          <BrandWordmark size={21} color={NAVY} accent={EMERALD} onClick={() => { navigate('/'); setMobileOpen(false) }} />
           <Divider />
           <List>
             {navItems.map((item) => (
@@ -241,14 +238,14 @@ export default function NavHeader() {
                   })}
                   sx={{ cursor: 'pointer', '&:hover': { bgcolor: BONE }, '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: -2 } }}
                 >
-                  <ListItemText primary={item.name} primaryTypographyProps={{ fontWeight: 700, color: INK }} />
+                  <ListItemText primary={item.name} primaryTypographyProps={{ fontWeight: 600, color: INK }} />
                   {(item.mega || item.children) && (expanded[item.name] ? <ExpandLess /> : <ExpandMoreIcon />)}
                 </ListItem>
                 {item.mega && (
                   <Collapse in={expanded[item.name]}>
                     {featureGroups.map((g) => (
                       <Box key={g.cat} sx={{ pl: 2, pr: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: NAVY, textTransform: 'uppercase', letterSpacing: 1, pl: 2, display: 'block', mt: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: NAVY, textTransform: 'none', letterSpacing: 1, pl: 2, display: 'block', mt: 1 }}>
                           {g.cat}
                         </Typography>
                         <List disablePadding>
@@ -277,10 +274,10 @@ export default function NavHeader() {
             ))}
             <Divider sx={{ my: 1 }} />
             <ListItem tabIndex={0} role="button" sx={{ cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: -2 } }} onClick={() => { navigate('/login'); setMobileOpen(false) }} onKeyDown={activate(() => { navigate('/login'); setMobileOpen(false) })}>
-              <ListItemText primary="Login" primaryTypographyProps={{ fontWeight: 700 }} />
+              <ListItemText primary="Login" primaryTypographyProps={{ fontWeight: 600 }} />
             </ListItem>
             <ListItem tabIndex={0} role="button" sx={{ cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: -2 } }} onClick={() => { navigate('/register'); setMobileOpen(false) }} onKeyDown={activate(() => { navigate('/register'); setMobileOpen(false) })}>
-              <ListItemText primary="Book a demo" primaryTypographyProps={{ fontWeight: 700, color: NAVY }} />
+              <ListItemText primary="Book a demo" primaryTypographyProps={{ fontWeight: 600, color: NAVY }} />
             </ListItem>
           </List>
         </Box>
@@ -312,7 +309,7 @@ function Grid3({ featureGroups, onNavigate }: { featureGroups: { cat: string; it
         >
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: EMERALD, flexShrink: 0 }} />
-            <Typography variant="overline" sx={{ fontWeight: 800, color: NAVY, letterSpacing: 1, fontSize: '0.66rem' }}>
+            <Typography variant="overline" sx={{ fontWeight: 600, color: NAVY, letterSpacing: 1, fontSize: '0.66rem' }}>
               {g.cat}
             </Typography>
           </Stack>

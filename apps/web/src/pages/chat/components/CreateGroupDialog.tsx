@@ -27,7 +27,7 @@ export default function CreateGroupDialog({ open, onClose, orgMembers, currentUs
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>
+      <DialogTitle sx={{ fontWeight: 600, bgcolor: WHITE, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>
         Create group
       </DialogTitle>
       <DialogContent sx={{ pt: 2.5 }}>
@@ -57,9 +57,9 @@ export default function CreateGroupDialog({ open, onClose, orgMembers, currentUs
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+        <Button onClick={onClose} sx={{ color: MIST, fontWeight: 600 }}>Cancel</Button>
         <Button variant="contained" disabled={creating || !name.trim()} onClick={handleCreate}
-          sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 700 }}>
+          sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 600 }}>
           {creating ? 'Creating…' : 'Create'}
         </Button>
       </DialogActions>

@@ -245,7 +245,7 @@ export default function IncidentDetailPage() {
         )}
         {incident.witnesses && (
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={700}>Witnesses</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>Witnesses</Typography>
             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{incident.witnesses}</Typography>
           </Stack>
         )}
@@ -267,8 +267,8 @@ export default function IncidentDetailPage() {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
             <VisitIcon sx={{ color: NAVY, fontSize: 20 }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Linked care visit</Typography>
-              <Typography variant="body2" fontWeight={700}>{linkedVisit.label || linkedVisit.type?.replace(/_/g, ' ') || 'Care visit'}</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Linked care visit</Typography>
+              <Typography variant="body2" fontWeight={600}>{linkedVisit.label || linkedVisit.type?.replace(/_/g, ' ') || 'Care visit'}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {[linkedVisit.personName, linkedVisitDate, linkedVisitTime].filter(Boolean).join(' · ')}
               </Typography>
@@ -280,11 +280,11 @@ export default function IncidentDetailPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0', mb: 3 }}>
-        <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 700 }} />
-        <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 700 }} />
-        <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 700 }} />
-        <Tab label={`Evidence${incidentAttachments.length ? ` (${incident.attachments.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 700 }} />
-        <Tab label="Timeline" sx={{ textTransform: 'none', fontWeight: 700 }} />
+        <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`Evidence${incidentAttachments.length ? ` (${incident.attachments.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Timeline" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {/* Tab: Overview */}
@@ -292,7 +292,7 @@ export default function IncidentDetailPage() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-              <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Investigation Details</Typography>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Investigation Details</Typography>
               <Stack spacing={2}>
                 {[
                   { label: 'Root Cause', value: incident.root_cause },
@@ -301,7 +301,7 @@ export default function IncidentDetailPage() {
                   { label: 'Outcomes', value: incident.outcomes },
                 ].map((r, i) => (
                   <Box key={i}>
-                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{r.label}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>{r.label}</Typography>
                     <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap', color: r.value ? 'text.primary' : 'text.secondary' }}>
                       {r.value || 'Not recorded'}
                     </Typography>
@@ -331,21 +331,21 @@ export default function IncidentDetailPage() {
             <Stack spacing={3}>
               {/* Summary card */}
               <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
-                <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Summary</Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Summary</Typography>
                 <Stack spacing={2}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1} alignItems="center">
                       <PersonIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                       <Typography variant="body2">People Involved</Typography>
                     </Stack>
-                    <Typography variant="body2" fontWeight={700}>{involvedPeople.length || 0}</Typography>
+                    <Typography variant="body2" fontWeight={600}>{involvedPeople.length || 0}</Typography>
                   </Stack>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1} alignItems="center">
                       <ActionIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                       <Typography variant="body2">Actions</Typography>
                     </Stack>
-                    <Typography variant="body2" fontWeight={700}>{completedActions} / {totalActions}</Typography>
+                    <Typography variant="body2" fontWeight={600}>{completedActions} / {totalActions}</Typography>
                   </Stack>
                   {totalActions > 0 && (
                     <Box>
@@ -364,7 +364,7 @@ export default function IncidentDetailPage() {
                 <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEF0F0', bgcolor: 'notice.error.bg' }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                     <OverdueIcon sx={{ fontSize: 18, color: 'notice.error.fg' }} />
-                    <Typography variant="subtitle2" fontWeight={800} color='notice.error.fg'>Overdue Actions</Typography>
+                    <Typography variant="subtitle2" fontWeight={600} color='notice.error.fg'>Overdue Actions</Typography>
                   </Stack>
                   <Typography variant="body2" color='notice.error.fg'>{overdueActions.length} action{overdueActions.length > 1 ? 's' : ''} past due date</Typography>
                 </Paper>
@@ -375,7 +375,7 @@ export default function IncidentDetailPage() {
                 <Paper sx={{ p: 3, borderRadius: 2, border: `1px solid ${NAVY}20`, bgcolor: `${NAVY}04` }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                     <AIIcon sx={{ color: NAVY, fontSize: 20 }} />
-                    <Typography variant="subtitle2" fontWeight={800}>AI Triage</Typography>
+                    <Typography variant="subtitle2" fontWeight={600}>AI Triage</Typography>
                   </Stack>
                   {incident.ai_triage.summary && (
                     <Typography variant="body2" sx={{ mb: 1.5, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{incident.ai_triage.summary}</Typography>
@@ -388,7 +388,7 @@ export default function IncidentDetailPage() {
                   )}
                   {incident.ai_triage.actions_recommended?.length > 0 && (
                     <Stack spacing={0.5} sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary" fontWeight={700}>Recommended actions</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>Recommended actions</Typography>
                       {incident.ai_triage.actions_recommended.map((a: string, i: number) => (
                         <Typography key={i} variant="body2" sx={{ pl: 1.5, color: 'text.secondary' }}>• {a}</Typography>
                       ))}
@@ -405,10 +405,10 @@ export default function IncidentDetailPage() {
       {tab === 1 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={800}>Involved People</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Involved People</Typography>
             {canTriage && (
               <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
-                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Person</Button>
+                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Person</Button>
             )}
           </Stack>
           {(!incident.involved || incident.involved.length === 0) ? (
@@ -420,11 +420,11 @@ export default function IncidentDetailPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Room</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Involvement</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Room</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Involvement</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -455,10 +455,10 @@ export default function IncidentDetailPage() {
       {tab === 2 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={800}>Action Items</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Action Items</Typography>
             {canTriage && (
               <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
-                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Action</Button>
+                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Action</Button>
             )}
           </Stack>
           {(!incident.actions || incident.actions.length === 0) ? (
@@ -486,7 +486,7 @@ export default function IncidentDetailPage() {
                                 Due: {new Date(a.due_date).toLocaleDateString('en-GB')}
                               </Typography>
                               {overdue && <Chip icon={<OverdueIcon sx={{ fontSize: 12 }} />} label="Overdue" size="small"
-                                sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                                sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 600, fontSize: 10, height: 20 }} />}
                             </Stack>
                           )}
                           <StatusBadge label={a.status?.replace(/_/g, ' ') || 'pending'} tone={ACTION_STATUS_TONE[a.status] || 'neutral'} />
@@ -525,9 +525,9 @@ export default function IncidentDetailPage() {
       {tab === 3 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={800}>Evidence Attachments</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Evidence Attachments</Typography>
             <Button size="small" variant="contained" component="label" startIcon={<UploadFileIcon />}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>
+              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
               {uploading ? <CircularProgress size={18} color="inherit" /> : 'Upload Evidence'}
               <input type="file" hidden onChange={e => handleUpload(e.target.files?.[0] || null)} />
             </Button>
@@ -545,12 +545,12 @@ export default function IncidentDetailPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>File</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Size</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Uploaded By</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>File</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Size</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Uploaded By</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', letterSpacing: '0.05em' }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -579,7 +579,7 @@ export default function IncidentDetailPage() {
         <Box>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
             <TimelineIcon sx={{ color: NAVY, fontSize: 20 }} />
-            <Typography variant="subtitle1" fontWeight={800}>Audit Timeline</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Audit Timeline</Typography>
           </Stack>
           {(!timeline || timeline.length === 0) ? (
             <EmptyRow message="No timeline events" />
@@ -626,7 +626,7 @@ export default function IncidentDetailPage() {
           if (isOrgAdmin) payload.is_confidential = updateForm.is_confidential
           updateMutation.mutate(payload)
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Edit Incident</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Edit Incident</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required value={updateForm.title || ''} onChange={e => setUpdateForm({ ...updateForm, title: e.target.value })} />
@@ -680,7 +680,7 @@ export default function IncidentDetailPage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setUpdateOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={updateMutation.isPending}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>
+              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
               {updateMutation.isPending ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
             </Button>
           </DialogActions>
@@ -690,7 +690,7 @@ export default function IncidentDetailPage() {
       {/* Add Resident Dialog */}
       <Dialog open={addResidentOpen} onClose={() => setAddResidentOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); addResidentMutation.mutate(residentForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Involved Person</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Add Involved Person</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField select label="Person" fullWidth required value={residentForm.person_id} onChange={e => setResidentForm({ ...residentForm, person_id: e.target.value })}>
@@ -708,7 +708,7 @@ export default function IncidentDetailPage() {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddResidentOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Person</Button>
+            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Person</Button>
           </DialogActions>
         </Box>
       </Dialog>
@@ -716,7 +716,7 @@ export default function IncidentDetailPage() {
       {/* Add Action Dialog */}
       <Dialog open={addActionOpen} onClose={() => setAddActionOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); addActionMutation.mutate(actionForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Action</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Add Action</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Action" fullWidth required multiline rows={2} value={actionForm.action}
@@ -735,7 +735,7 @@ export default function IncidentDetailPage() {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddActionOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Action</Button>
+            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Action</Button>
           </DialogActions>
         </Box>
       </Dialog>
@@ -743,7 +743,7 @@ export default function IncidentDetailPage() {
       {/* Edit Action Dialog */}
       <Dialog open={editActionOpen} onClose={() => setEditActionOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); updateActionMutation.mutate({ actionId: editActionForm.id, data: editActionForm }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Edit Action</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Edit Action</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Action" fullWidth required multiline rows={2} value={editActionForm.action || ''}
@@ -768,7 +768,7 @@ export default function IncidentDetailPage() {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setEditActionOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Save Changes</Button>
+            <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Save Changes</Button>
           </DialogActions>
         </Box>
       </Dialog>

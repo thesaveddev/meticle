@@ -59,7 +59,7 @@ export default function RosterView(props: RotaViewProps) {
         <TableHead>
           <TableRow>
             <TableCell sx={{
-              fontWeight: 700, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
+              fontWeight: 600, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
             }}>
               Staff
             </TableCell>
@@ -70,12 +70,12 @@ export default function RosterView(props: RotaViewProps) {
               const short = stats.filter(x => !x.ok)
               return (
                 <TableCell key={i} sx={{
-                  fontWeight: 700, bgcolor: today ? '#E6EAF0' : '#F8FAFC', textAlign: 'center',
+                  fontWeight: 600, bgcolor: today ? '#E6EAF0' : '#F8FAFC', textAlign: 'center',
                   position: 'sticky', top: 0, zIndex: 2, minWidth: 120, fontSize: '0.7rem',
                 }}>
                   <Stack direction="row" spacing={0.4} alignItems="center" justifyContent="center">
                     <Box>
-                      <Box sx={{ fontWeight: 800, color: today ? '#2F80ED' : '#17202A', lineHeight: 1.1 }}>{DAYS[i]}</Box>
+                      <Box sx={{ fontWeight: 600, color: today ? '#2F80ED' : '#17202A', lineHeight: 1.1 }}>{DAYS[i]}</Box>
                       <Box sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 500 }}>{d.getDate()}</Box>
                     </Box>
                     {short.length > 0 ? (
@@ -115,7 +115,7 @@ export default function RosterView(props: RotaViewProps) {
                 }}>
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.72rem', lineHeight: 1.2 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.72rem', lineHeight: 1.2 }}>
                         {staff.first_name} {staff.last_name}
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: '0.58rem', color: 'text.secondary', display: 'block' }}>
@@ -123,7 +123,7 @@ export default function RosterView(props: RotaViewProps) {
                       </Typography>
                     </Box>
                     <Chip label={staff.role?.replace(/_/g, ' ').toLowerCase()} size="small"
-                      sx={{ height: 15, fontSize: '0.5rem', bgcolor: role.bg, color: role.fg, fontWeight: 700 }} />
+                      sx={{ height: 15, fontSize: '0.5rem', bgcolor: role.bg, color: role.fg, fontWeight: 600 }} />
                   </Stack>
                 </TableCell>
                 {weekDates.map((d, i) => {
@@ -147,7 +147,7 @@ export default function RosterView(props: RotaViewProps) {
                                   size="small"
                                   onClick={() => props.onOpenDetail(s)}
                                   sx={{
-                                    cursor: 'pointer', height: 17, fontSize: '0.55rem', fontWeight: 700,
+                                    cursor: 'pointer', height: 17, fontSize: '0.55rem', fontWeight: 600,
                                     bgcolor: vis.chipBg, color: vis.chipFg, width: '100%', '&:hover': { filter: 'brightness(0.97)', borderColor: '#2F80ED' },
                                   }}
                                 />

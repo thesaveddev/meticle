@@ -53,6 +53,70 @@ export class OpenAIProvider implements AIProvider {
       totalTokens: res.usage?.total_tokens || 0,
     };
   }
+
+  /**
+   * Text-to-speech for Mica's voice replies.
+   *
+   * Returns raw MP3 bytes rather than a URL so the client can pipe them
+   * through Web Audio — that is what lets the orb react to the literal audio
+   * amplitude instead of a synthetic envelope. Anthropic has no TTS API, so
+   * this only exists on OpenAIProvider and callers must check before use.
+   */
+  async speech(
+    text: string,
+    options?: { voice?: string; model?: string; speed?: number }
+  ): Promise<{ audio: Buffer; mime: string }> {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey: this.apiKey, timeout: REQUEST_TIMEOUT });
+    const res = await openai.audio.speech.create({
+      model: options?.model || 'gpt-4o-mini-tts',
+      voice: (options?.voice || 'coral') as any,
+      input: text,
+      response_format: 'mp3',
+      ...(options?.speed ? { speed: options.speed } : {}),
+    });
+    const audio = Buffer.from(await res.arrayBuffer());
+    return { audio, mime: res.headers?.get('content-type') || 'audio/mpeg' };
+  }
+
+  /**
+   * One step of a tool-calling loop for Mica's question answering.
+   *
+   * Returns either the model's final prose or the tool calls it wants executed
+   * — the caller runs them and calls again with the results appended. The loop
+   * itself lives in the controller so the number of round trips, the org's
+   * budget and the audit trail stay under our control, not the SDK's.
+   */
+  async chatWithTools(
+    messages: Array<{ role: string; content: string } | { role: string; tool_calls?: unknown[]; name?: string; tool_call_id?: string; content: string | null }>,
+    options?: { tools?: Array<Record<string, unknown>>; model?: string; maxTokens?: number }
+  ) {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey: this.apiKey, timeout: REQUEST_TIMEOUT });
+    const body: Record<string, any> = {
+      model: options?.model || 'gpt-4o-mini',
+      messages: messages as any,
+      temperature: 0.2,
+      store: false,
+    };
+    if (options?.tools?.length) {
+      body.tools = options.tools;
+      body.tool_choice = 'auto';
+    }
+    const res = await openai.chat.completions.create(body as any);
+    const msg = res.choices[0]?.message as any;
+    return {
+      content: typeof msg?.content === 'string' ? msg.content : null,
+      toolCalls: (msg?.tool_calls || []).map((tc: any) => ({
+        id: tc.id as string,
+        name: tc.function?.name as string,
+        args: tc.function?.arguments as string,
+      })),
+      promptTokens: res.usage?.prompt_tokens || 0,
+      completionTokens: res.usage?.completion_tokens || 0,
+      totalTokens: res.usage?.total_tokens || 0,
+    };
+  }
 }
 
 export class AnthropicProvider implements AIProvider {
@@ -186,4 +250,35 @@ export function getProvider(config: { provider: ProcessorId; apiKey: string }): 
     return new AnthropicProvider(config.apiKey);
   }
   return new OpenAIProvider(config.apiKey);
+}
+
+/**
+ * Text-to-speech, routed like getProvider: the factory is the only place a
+ * speech-capable provider is built, so the processor allowlist holds for TTS
+ * too and call sites cannot reach the class directly.
+ *
+ * TTS is an OpenAI-only capability — Anthropic has no speech API — so this
+ * tries the primary provider and then a configured OpenAI fallback, returning
+ * null when the org has no OpenAI key at all (the caller turns that into a
+ * clear "configure an OpenAI provider" error rather than a 500).
+ */
+export async function synthesizeSpeech(
+  config: {
+    provider: ProcessorId;
+    apiKey: string;
+    fallbackProvider?: ProcessorId;
+    fallbackApiKey?: string;
+  },
+  text: string,
+  options?: { voice?: string },
+): Promise<{ audio: Buffer; mime: string } | null> {
+  if (config.provider === 'openai') {
+    assertApprovedProcessor('openai');
+    return new OpenAIProvider(config.apiKey).speech(text, options);
+  }
+  if (config.fallbackProvider === 'openai' && config.fallbackApiKey) {
+    assertApprovedProcessor('openai');
+    return new OpenAIProvider(config.fallbackApiKey).speech(text, options);
+  }
+  return null;
 }

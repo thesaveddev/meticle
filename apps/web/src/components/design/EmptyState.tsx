@@ -85,9 +85,7 @@ export function EmptyState({ icon, title, description, action, variant = 'defaul
           variant="contained"
           onClick={action.onClick}
           sx={{
-            textTransform: 'none',
-            borderRadius: 2,
-            fontWeight: 600,
+            textTransform: 'none',fontWeight: 600,
             px: 2,
             bgcolor: 'primary.main',
           }}
