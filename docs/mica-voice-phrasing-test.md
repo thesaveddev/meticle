@@ -43,3 +43,74 @@ The client-side regex is a closed vocabulary. Phrases with real care-world words
 **Also worth fixing:** the appointment draft's "tomorrow at 2pm" came out as *23:15 UTC* because the test passed a UTC `startTime`; when the frontend extracts times it must send the carer's local wall-clock, or better, let the server parse the raw utterance ("tomorrow at 2pm") directly instead of requiring the client to pre-resolve times.
 
 **Stats:** 6 `/ask` misroutes, 2 regex hits, 2 full draft→confirm successes (1 task, 1 appointment), 0 unexpected 5xx.
+
+---
+
+## Status — what shipped since this pass
+
+Recorded here because the recommendations above are now partly built, and a test
+note that still reads as a wish list is worse than no note.
+
+### 1. The settle fallback (shipped 11 Oct, commit `01dfccb`)
+
+The recommendation above was taken in its stronger form. Instead of the client
+widening its regex, `POST /ai/mica/settle` (`ai.controller.ts → micaSettle`)
+classifies an utterance the regexes missed with one small LLM call and returns
+`{ intent: { action, utterance, title, personName } }`, which `useMica.ts` routes
+on. The model is constrained to `CREATE_APPOINTMENT | CREATE_TASK | none` and is
+told to answer `none` for everything else, so the fallback can only choose among
+registered write actions — it cannot invent a fifth, and it never writes.
+`mica.settle.integration.test.ts` pins the classification with scripted replies,
+including "book podiatry".
+
+### 2. Spoken times are resolved server-side (12 Oct)
+
+This was the other half of the note, and the half that was still open: the time
+in an utterance had nowhere to live. `mica.spoken-time.ts` now reads the spoken
+time out of the utterance and `CreateAppointmentAction` uses it when the client
+sends none — so "book podiatry for tomorrow at 2pm" drafts instead of asking the
+user for a time they just said.
+
+What the resolver reads, in UK wall-clock: `2pm`, `14:00`, `2.30 p.m.`, `half
+past two pm`, `quarter to three pm`, `noon`, `midnight`; with a day of `today`,
+`tonight`, `tomorrow`, `day after tomorrow`, `next week`, `in 3 days`, a weekday,
+`on the 20th`, `15 November`, or an ISO day. It converts using the offset in
+force **on the day being booked**, so booking across 25 October (clocks back) or
+29 March (clocks forward) is an hour-correct, not fixed-offset, conversion.
+
+What it deliberately refuses, and asks about instead: a bare hour with no
+meridiem ("at 2" is 02:00 or 14:00 — the server does not choose), and a date
+with no time ("tomorrow"). Both keep the clarification, whose message now names
+an example phrasing.
+
+### 3. A defect this work uncovered, and fixed
+
+The draft's spoken summary formatted its timestamp in the container's zone. The
+API runs in UTC, so from the day the resolver landed, a 2pm London appointment
+read back as "at 13:00" — the one number the user is asked to confirm, printed
+an hour wrong. Both labels now format in `Europe/London`.
+`mica.write.integration.test.ts` asserts the read-back says 14:00 and not 13:00,
+and separately that a zone-less `startTime` from a client (`2026-10-13T14:00`,
+what a date-time input produces) is read as the carer's wall-clock rather than
+the container's.
+
+### 4. The phrases from this pass, re-stated
+
+| Carer says | Route today | Time resolved |
+|---|---|---|
+| "schedule a task" | task regex → clarification for a title | n/a |
+| "schedule a task check the fire doors" | task regex → draft | n/a |
+| "book podiatry" | regex miss → settle → `CREATE_APPOINTMENT`, title "podiatry" | asks: no time was spoken |
+| "book a podiatry appointment" | appointment regex → draft | yes, when a time is spoken |
+| "book podiatry for tomorrow at 2pm" | settle → draft | yes — tomorrow, 14:00 London |
+| "put podiatry in the diary" | settle (no regex vocabulary needed) | yes, if a time is spoken |
+| "schedule fire door check" | settle → `CREATE_TASK`, subject "fire door check" | n/a |
+
+**Still open, and honestly so:** the settle call runs on the path where a person
+is already selected; with nobody selected `useMica.ts` still routes the utterance
+to `/ai/mica/ask` first, which is a routing decision of its own and was not
+changed here. Item 6 (person resolution for *"Joyce's podiatry is due"*) is
+unchanged: a name that matches nobody stays a question, because guessing a person
+is the one failure this flow must not make. And none of the above has been
+re-run against a live provider since the change — the pinned evidence is the
+scripted tests named above, not a fresh end-to-end pass with a real key.

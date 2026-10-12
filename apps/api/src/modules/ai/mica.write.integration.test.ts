@@ -259,6 +259,86 @@ describe('POST /ai/mica/actions — CREATE_APPOINTMENT', () => {
     expect(prepare.body.error).toBeTruthy()
     expect(await appointmentCount(seeded.org.id)).toBe(0)
   })
+
+  it('reads the time out of what the carer said, and reads it back in their zone', async () => {
+    const seeded = await seedOrg()
+    const utterance = 'book podiatry for tomorrow at 2pm'
+
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({
+        action: 'CREATE_APPOINTMENT',
+        utterance,
+        input: { utterance, title: 'Podiatry', personName: 'Elsie Fletcher' },
+      })
+    expect(prepare.status).toBe(200)
+    expect(prepare.body.draft).toBe(true)
+    expect(prepare.body.output.startTime).toBeTruthy()
+    // The read-back is the number the user confirms, so it has to be the 2pm
+    // they said. en-GB renders it as 14:00; what matters is that it is not the
+    // container's 13:00 (BST) reading of the same instant, which is what the
+    // summary said before the zone was threaded through.
+    expect(prepare.body.summary).toContain('at 14:00')
+    expect(prepare.body.summary).not.toContain('13:00')
+    expect(await appointmentCount(seeded.org.id)).toBe(0)
+
+    // End time defaults to an hour later, as the manual booking form does.
+    const drafted = new Date(prepare.body.output.startTime).getTime()
+    expect(new Date(prepare.body.output.endTime).getTime() - drafted).toBe(3600_000)
+
+    const confirm = await request(app)
+      .post('/ai/mica/actions/confirm')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ draft: prepare.body })
+    expect(confirm.status).toBe(200)
+    expect(confirm.body.confirmed).toBe(true)
+
+    // Asked of the database rather than of the resolver, so the stored instant
+    // is checked independently of the code that produced it. start_time is
+    // TIMESTAMPTZ, so `AT TIME ZONE` reads it as London wall-clock in one step;
+    // chaining a UTC step first would convert it twice and hand back the UTC
+    // hour, which is exactly the answer this assertion exists to refuse.
+    const stored = await migrateQuery(
+      `SELECT (start_time AT TIME ZONE 'Europe/London')::time::text AS local_time,
+              ((start_time AT TIME ZONE 'Europe/London')::date
+                - (now() AT TIME ZONE 'Europe/London')::date) AS day_offset
+         FROM appointments WHERE organization_id = $1`,
+      [seeded.org.id],
+    )
+    expect(stored.rows.length).toBe(1)
+    expect(stored.rows[0].local_time).toBe('14:00:00')
+    expect(Number(stored.rows[0].day_offset)).toBe(1)
+  })
+
+  it('refuses to guess a bare hour and asks instead', async () => {
+    const seeded = await seedOrg()
+    const utterance = 'book podiatry at 2'
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ action: 'CREATE_APPOINTMENT', utterance, input: { utterance, title: 'Podiatry' } })
+    // 02:00 or 14:00 is not the server's call to make, and the error says what
+    // to add rather than just failing.
+    expect(prepare.status).toBe(400)
+    expect(prepare.body.error.message).toContain('tomorrow at 2pm')
+    expect(await appointmentCount(seeded.org.id)).toBe(0)
+  })
+
+  it('takes a wall-clock timestamp as the carer\u2019s local time, not the container\u2019s', async () => {
+    const seeded = await seedOrg()
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({
+        action: 'CREATE_APPOINTMENT',
+        input: { title: 'Sight check', personName: 'Elsie Fletcher', startTime: '2030-07-04T14:00' },
+      })
+    expect(prepare.status).toBe(200)
+    // July is BST, so 14:00 London is 13:00Z — and the test runner's own zone
+    // must not be able to change that.
+    expect(prepare.body.output.startTime).toBe('2030-07-04T13:00:00.000Z')
+  })
 })
 
 describe('write-action gates', () => {

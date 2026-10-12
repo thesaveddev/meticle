@@ -1,6 +1,7 @@
 import { query as dbQuery } from '../../../shared/database';
 import { AIController } from '../ai.controller';
 import { AppointmentRepository } from '../../appointments/appointments.repository';
+import { MICA_TIMEZONE, resolveSpokenTime, zonedWallClockToUtc } from '../mica.spoken-time';
 import {
   MicaAction,
   MicaActionContext,
@@ -18,10 +19,15 @@ import {
  * Same confirm-before-persist contract as the care note and task actions:
  * resolve (with person + staff disambiguation), draft for review, and persist
  * only through `confirm()` invoked by the gateway's confirm endpoint after the
- * user approves. Date and time are normalised server-side so a spoken
- * "next Tuesday at 2" resolved on the client can never become an ambiguous
- * server-side write; the client sends ISO strings it has already confirmed
- * with the user in the review card.
+ * user approves.
+ *
+ * Where the time comes from, in order: an instant the client already put in
+ * front of the user (a review card edit), then the spoken utterance itself
+ * ("book podiatry for tomorrow at 2pm" — the user has said the time, so asking
+ * them for it again is not a safety measure, it is a bug), and only then the
+ * clarification. `mica.spoken-time.ts` owns what counts as a time the server is
+ * willing to read from speech, in UK wall-clock, including the daylight-saving
+ * offset of the day being booked.
  */
 export class CreateAppointmentAction implements MicaAction<CreateAppointmentInput, CreateAppointmentOutput> {
   metadata: MicaActionMetadata = {
@@ -48,6 +54,7 @@ export class CreateAppointmentAction implements MicaAction<CreateAppointmentInpu
       return { error: { message: 'What is the appointment for? Say or type a short title.' } };
     }
 
+    const spoken = (input.utterance || request.utterance || '').trim()
     const body: CreateAppointmentInput = {
       title,
       personId: input.personId,
@@ -55,14 +62,17 @@ export class CreateAppointmentAction implements MicaAction<CreateAppointmentInpu
       staffName: input.staffName,
       staffId: input.staffId,
       locationId: input.locationId,
-      startTime: this.normaliseTimestamp(input.startTime),
+      startTime: this.normaliseTimestamp(input.startTime) ?? resolveSpokenTime(spoken, new Date()),
       endTime: this.normaliseTimestamp(input.endTime),
       notes: (input.notes || '').trim() || undefined,
       source: input.source,
     };
 
     if (!body.startTime) {
-      return { error: { message: 'When is the appointment? Give me a date and time.' } };
+      // Reached when the utterance named no bookable time, or named one the
+      // resolver refused to guess at (a bare "at 2"). The example is here
+      // because the likely cause is a phrase the vocabulary does not read.
+      return { error: { message: 'When is the appointment? Give me a date and time — for example "tomorrow at 2pm".' } };
     }
     // End time defaults to start + 1 hour, matching the manual booking form's
     // behaviour, so the user only has to confirm one time when speaking.
@@ -177,9 +187,31 @@ export class CreateAppointmentAction implements MicaAction<CreateAppointmentInpu
     return result.rows;
   }
 
+  /**
+   * A client-supplied timestamp, in either shape a client actually sends.
+   *
+   * With a zone (…Z, or an explicit ±HH:MM) it is a real instant and is used as
+   * given. Without one — "2026-10-13T14:00", which is exactly what a
+   * date-time input yields — it is a wall-clock reading, and it is read in the
+   * carer's zone rather than the server's: this API runs in a UTC container, so
+   * trusting `new Date()` would silently book every summer 14:00 as 15:00. A
+   * malformed value resolves to undefined and the caller's clarification fires.
+   */
   private normaliseTimestamp(value: unknown): string | undefined {
     const s = typeof value === 'string' ? value.trim() : '';
     if (!s) return undefined;
+    const hasZone = /(z|[+-][0-9]{2}:?[0-9]{2})$/i.test(s);
+    const wallClock = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})[T ]([0-9]{2}):([0-9]{2})/);
+    if (!hasZone && wallClock) {
+      const zoned = zonedWallClockToUtc({
+        year: Number(wallClock[1]),
+        month: Number(wallClock[2]),
+        day: Number(wallClock[3]),
+        hour: Number(wallClock[4]),
+        minute: Number(wallClock[5]),
+      });
+      return Number.isNaN(zoned.getTime()) ? undefined : zoned.toISOString();
+    }
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
   }
@@ -192,8 +224,11 @@ export class CreateAppointmentAction implements MicaAction<CreateAppointmentInpu
       return { error: { message: 'Appointment title and start time are required.' } };
     }
     const when = new Date(body.startTime);
-    const dateLabel = when.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-    const timeLabel = when.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+    // Read back in the carer's zone, not the container's. The API runs in UTC,
+    // so without this a 2pm London appointment is spoken back as "13:00" — the
+    // one number the user is being asked to confirm, printed wrong.
+    const dateLabel = when.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: MICA_TIMEZONE });
+    const timeLabel = when.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', timeZone: MICA_TIMEZONE });
     const output: CreateAppointmentOutput = {
       title: body.title,
       personId: body.personId,
@@ -234,6 +269,12 @@ export interface CreateAppointmentInput {
   endTime?: string;
   notes?: string;
   source?: 'voice' | 'text' | 'manual';
+  /**
+   * The words the user actually spoke, when the action came from voice. The
+   * spoken time lives here and nowhere else, which is why the action reads it
+   * rather than expecting the client to have pre-resolved it.
+   */
+  utterance?: string;
 }
 
 export interface CreateAppointmentOutput {
