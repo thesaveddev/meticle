@@ -37,12 +37,12 @@ export default function DayBoardView(props: RotaViewProps) {
         return (
           <Paper key={i} variant="outlined" sx={{
             flex: '1 1 0', minWidth: 165, maxWidth: 240, p: 1, display: 'flex', flexDirection: 'column',
-            bgcolor: today ? '#E6EAF0' : '#FFFFFF', borderColor: today ? '#EAF3FF' : undefined,
+            bgcolor: today ? '#E3E9F0' : '#FFFFFF', borderColor: today ? '#EAF3FF' : undefined,
           }}>
             {/* Column header */}
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.1, color: today ? '#2F80ED' : '#17202A' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.1, color: today ? '#0164C8' : '#0C1B2E' }}>
                   {DAYS[i]}
                 </Typography>
                 <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
@@ -62,7 +62,7 @@ export default function DayBoardView(props: RotaViewProps) {
                 )}
                 {canEdit && !isReadOnly && !past && (
                   <IconButton size="small" onClick={() => props.onOpenShiftDialog(d)}
-                    sx={{ bgcolor: '#2F80ED', color: '#FFFFFF', width: 22, height: 22, '&:hover': { bgcolor: '#2674D9' } }}
+                    sx={{ bgcolor: '#0164C8', color: '#FFFFFF', width: 22, height: 22, '&:hover': { bgcolor: '#0251B3' } }}
                     aria-label={`Add shift for ${DAYS[i]}`}>
                     <AddIcon sx={{ fontSize: 13 }} />
                   </IconButton>

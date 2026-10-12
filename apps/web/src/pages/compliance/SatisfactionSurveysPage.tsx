@@ -129,7 +129,7 @@ export default function SatisfactionSurveysPage() {
       {aggregate && aggregate.total > 0 && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0' }}>
+            <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E3E9F0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <HeartIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
                 <Typography variant="h4" fontWeight={600}>{aggregate.average_rating?.toFixed(1) || '—'}</Typography>
@@ -138,7 +138,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0' }}>
+            <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E3E9F0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{aggregate.total}</Typography>
                 <Typography variant="body2" color="text.secondary">Responses</Typography>
@@ -146,7 +146,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0' }}>
+            <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E3E9F0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={600} color='notice.warning.fg'>{aggregate.positive_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Positive (4-5★)</Typography>
@@ -154,7 +154,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0' }}>
+            <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E3E9F0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={600} color='notice.error.fg'>{aggregate.negative_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Negative (1-2★)</Typography>
@@ -197,7 +197,7 @@ export default function SatisfactionSurveysPage() {
                   <TableCell><Rating value={s.rating} readOnly size="small" /></TableCell>
                   <TableCell>
                     {s.comments ? (
-                      <Button size="small" variant="text" sx={{ textTransform: 'none', color: '#2F80ED', p: 0, minWidth: 0, fontSize: '0.8rem', fontWeight: 600 }}
+                      <Button size="small" variant="text" sx={{ textTransform: 'none', color: '#0164C8', p: 0, minWidth: 0, fontSize: '0.8rem', fontWeight: 600 }}
                         onClick={(e) => { e.stopPropagation(); setViewSurvey(s); setManagerNote(s.manager_notes || '') }}>
                         View Feedback
                       </Button>
@@ -303,31 +303,31 @@ export default function SatisfactionSurveysPage() {
             <DialogContent>
               <Stack spacing={2} sx={{ mt: 1 }}>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#667085">Respondent</Typography>
+                  <Typography variant="body2" color="#51637A">Respondent</Typography>
                   <Typography variant="body2" fontWeight={600}>{viewSurvey.respondent_name || 'Anonymous'}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#667085">Relationship</Typography>
+                  <Typography variant="body2" color="#51637A">Relationship</Typography>
                   <Typography variant="body2" fontWeight={600}>{viewSurvey.relationship || '—'}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="#667085">Rating</Typography>
+                  <Typography variant="body2" color="#51637A">Rating</Typography>
                   <Rating value={viewSurvey.rating} readOnly />
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#667085">Person</Typography>
+                  <Typography variant="body2" color="#51637A">Person</Typography>
                   <Typography variant="body2" fontWeight={600}>{viewSurvey.first_name && viewSurvey.last_name ? `${viewSurvey.first_name} ${viewSurvey.last_name}` : '—'}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#667085">Source</Typography>
+                  <Typography variant="body2" color="#51637A">Source</Typography>
                   <Chip label={viewSurvey.invitation_token ? 'Email' : 'Manual'} size="small" color={viewSurvey.invitation_token ? 'info' : 'default'} />
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#667085">Date</Typography>
+                  <Typography variant="body2" color="#51637A">Date</Typography>
                   <Typography variant="body2" fontWeight={600}>{new Date(viewSurvey.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
                 </Stack>
                 {viewSurvey.comments && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid', borderColor: '#E6EAF0' }}>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid', borderColor: '#E3E9F0' }}>
                     <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Comments</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{viewSurvey.comments}</Typography>
                   </Box>

@@ -314,7 +314,7 @@ export default function StaffProfilePage() {
       <Box>
 
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
-          <Typography color="#98A2B3">Staff member not found.</Typography>
+          <Typography color="#5D6E85">Staff member not found.</Typography>
         </Paper>
       </Box>
     )
@@ -383,7 +383,7 @@ export default function StaffProfilePage() {
             </Box>
           )}
         </Stack>
-        <Divider sx={{ borderColor: '#F5F7FA' }} />
+        <Divider sx={{ borderColor: '#F7FAFE' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 600, color: complianceColor, lineHeight: 1.1 }}>{c.compliance_rate}%</Typography>
@@ -476,7 +476,7 @@ export default function StaffProfilePage() {
 
       {tab === TAB_COMPLIANCE && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
+          <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F7FAFE' }}>
             <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
               Compliance
             </Typography>
@@ -503,7 +503,7 @@ export default function StaffProfilePage() {
                       <Typography variant="caption" color="text.secondary">({items.length})</Typography>
                     </Stack>
                     {items.map((req: any) => (
-                      <Box key={req.id} sx={{ py: 1.75, borderTop: '1px solid #F7F9FC' }}>
+                      <Box key={req.id} sx={{ py: 1.75, borderTop: '1px solid #F4F9FC' }}>
                         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5}>
                           <Box sx={{ minWidth: 0, flex: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.name}</Typography>
@@ -542,7 +542,7 @@ export default function StaffProfilePage() {
 
       {tab === TAB_COMPETENCY && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
+          <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F7FAFE' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
@@ -553,7 +553,7 @@ export default function StaffProfilePage() {
                 </Typography>
               </Box>
               {canEdit && (
-                <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAssessOpen(true)} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+                <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAssessOpen(true)} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
                   New assessment
                 </Button>
               )}
@@ -615,7 +615,7 @@ export default function StaffProfilePage() {
       {tab === TAB_ACCESS && canEdit && (
         <Box>
           <Paper sx={{ borderRadius: 2, mb: 3 }}>
-            <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
+            <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F7FAFE' }}>
               <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
                 Role
               </Typography>
@@ -653,7 +653,7 @@ export default function StaffProfilePage() {
                   variant="contained"
                   disabled={!isOrgAdmin || isSelf || changeRoleMutation.isPending || !changeRoleValue || changeRoleValue === effectiveRole}
                   onClick={() => changeRoleMutation.mutate(changeRoleValue || effectiveRole)}
-                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}
+                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}
                 >
                   {changeRoleMutation.isPending ? 'Saving...' : 'Save role'}
                 </Button>
@@ -677,7 +677,7 @@ export default function StaffProfilePage() {
           </Paper>
 
           <Paper sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-            <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F5F7FA' }}>
+            <Box sx={{ px: 3.5, py: 2.5, borderBottom: '1px solid #F7FAFE' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
@@ -693,7 +693,7 @@ export default function StaffProfilePage() {
             ) : (
               <Box sx={{ px: 3.5, py: 1.5 }}>
                 {Array.from(new Map(permData.map(p => [p.module, p])).values()).map((p) => (
-                  <Stack key={p.module} direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ py: 1.25, borderBottom: '1px solid #F7F9FC' }}>
+                  <Stack key={p.module} direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ py: 1.25, borderBottom: '1px solid #F4F9FC' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatPermissionLabel(p.module)}</Typography>
                     <ToggleButtonGroup
                       exclusive
@@ -717,9 +717,9 @@ export default function StaffProfilePage() {
               </Box>
             )}
             {permDirty && (
-              <Box sx={{ position: 'sticky', bottom: 0, bgcolor: 'white', p: 2, borderTop: '1px solid #F5F7FA' }}>
+              <Box sx={{ position: 'sticky', bottom: 0, bgcolor: 'white', p: 2, borderTop: '1px solid #F7FAFE' }}>
                 <Button variant="contained" startIcon={<SaveIcon />} onClick={() => permSaveMutation.mutate()} disabled={permSaveMutation.isPending} fullWidth
-                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
                   {permSaveMutation.isPending ? 'Saving...' : 'Save permissions'}
                 </Button>
               </Box>
@@ -788,7 +788,7 @@ export default function StaffProfilePage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => { setEditOpen(false); setEditError('') }}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={updateMutation.isPending} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+          <Button variant="contained" onClick={handleSave} disabled={updateMutation.isPending} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
             {updateMutation.isPending ? 'Saving...' : 'Save changes'}
           </Button>
         </DialogActions>
@@ -837,7 +837,7 @@ export default function StaffProfilePage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setAssessOpen(false); setAssessError('') }}>Cancel</Button>
-          <Button variant="contained" onClick={() => assessMutation.mutate()} disabled={assessMutation.isPending || !assessForm.template_id || !assessForm.assessed_at} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+          <Button variant="contained" onClick={() => assessMutation.mutate()} disabled={assessMutation.isPending || !assessForm.template_id || !assessForm.assessed_at} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
             {assessMutation.isPending ? <CircularProgress size={20} color="inherit" /> : 'Save assessment'}
           </Button>
         </DialogActions>
@@ -982,7 +982,7 @@ function EditRequirementDialog({ open, requirement, onClose, onSaved }: {
                 </IconButton>
               </Stack>
             ) : (
-              <Typography variant="body2" color="#98A2B3">No file uploaded</Typography>
+              <Typography variant="body2" color="#5D6E85">No file uploaded</Typography>
             )}
             <Button component="label" variant="outlined" size="small" startIcon={<UploadFileIcon />} sx={{ mt: 1 }} disabled={uploadingFile}>
               {uploadingFile ? 'Uploading...' : 'Upload file'}
@@ -994,7 +994,7 @@ function EditRequirementDialog({ open, requirement, onClose, onSaved }: {
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose} disabled={saving}>Cancel</Button>
         <Button variant="contained" onClick={handleSave} disabled={saving}
-          sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+          sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
           {saving ? 'Saving...' : 'Save'}
         </Button>
       </DialogActions>

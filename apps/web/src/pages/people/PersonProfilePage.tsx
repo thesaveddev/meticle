@@ -926,7 +926,7 @@ export default function PersonProfilePage() {
             <>
               {user.dnacpr_status && (
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FFF7E6', bgcolor: user.dnacpr_status === 'in_place' ? '#FFF7E6' : '#F9FAFB' }}>
+                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FFF7E6', bgcolor: user.dnacpr_status === 'in_place' ? '#FFF7E6' : '#F7FAFE' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <WarningIcon sx={{ fontSize: 18, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }}>
@@ -941,7 +941,7 @@ export default function PersonProfilePage() {
               )}
               {user.advance_decision && (
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #F4F8FF', bgcolor: 'notice.subtle.bg' }}>
+                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #EAF3FF', bgcolor: 'notice.subtle.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <NoteIcon sx={{ fontSize: 18, color: '#8B7CF6' }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#8B7CF6' }}>Advance Decision / Living Will</Typography>
@@ -1060,7 +1060,7 @@ export default function PersonProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D8DEE7' } }} onClick={() => setViewNote(n)}>
+                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D6E2EE' } }} onClick={() => setViewNote(n)}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
@@ -1106,7 +1106,7 @@ export default function PersonProfilePage() {
           </Stack>
           {(!user.risk_assessments || user.risk_assessments.length === 0) ? (
             <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <WarningIcon sx={{ fontSize: 40, color: '#D8DEE7', mb: 1 }} />
+              <WarningIcon sx={{ fontSize: 40, color: '#D6E2EE', mb: 1 }} />
               <Typography color="text.muted">No risk assessments</Typography>
             </Paper>
           ) : (
@@ -1127,7 +1127,7 @@ export default function PersonProfilePage() {
                       <TableCell sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{ra.type?.replace(/_/g, ' ')}</TableCell>
                       <TableCell>
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
-                          sx={{ bgcolor: `${RISK_COLORS[ra.risk_level] || '#667085'}18`, color: RISK_COLORS[ra.risk_level] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
+                          sx={{ bgcolor: `${RISK_COLORS[ra.risk_level] || '#51637A'}18`, color: RISK_COLORS[ra.risk_level] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
                       </TableCell>
                       <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.details || '—'}</Typography></TableCell>
                       <TableCell>{ra.review_date ? new Date(ra.review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
@@ -1805,11 +1805,11 @@ export default function PersonProfilePage() {
       <Dialog open={addNoteOpen} onClose={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (!aiMode) { if (editNoteId) updateNoteMutation.mutate({ noteId: editNoteId, data: noteForm }); else addNoteMutation.mutate(noteForm) } }}>
         <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-          {aiMode ? <><AiIcon sx={{ color: '#10BFA5' }} /> Write with Mica</> : (editNoteId ? 'Edit Daily Note' : 'Add Daily Note')}
+          {aiMode ? <><AiIcon sx={{ color: '#03C6B1' }} /> Write with Mica</> : (editNoteId ? 'Edit Daily Note' : 'Add Daily Note')}
           {!editNoteId && !aiShowResults && (
             <Tooltip title={aiMode ? 'Switch to manual typing' : 'Write with Mica'}>
               <IconButton size="small" onClick={() => setAiMode(!aiMode)}
-                sx={{ ml: 'auto', bgcolor: aiMode ? '#10BFA5' : 'divider', color: aiMode ? '#FFFFFF' : 'text.secondary', '&:hover': { bgcolor: aiMode ? '#0FAF97' : '#D8DEE7' } }}>
+                sx={{ ml: 'auto', bgcolor: aiMode ? '#03C6B1' : 'divider', color: aiMode ? '#FFFFFF' : 'text.secondary', '&:hover': { bgcolor: aiMode ? '#02A995' : '#D6E2EE' } }}>
                 <AiIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
@@ -1869,7 +1869,7 @@ export default function PersonProfilePage() {
                     <Typography variant="body2" color="text.secondary">Listening...</Typography>
                   </Box>
                 </Stack>
-                <Typography variant="body2" sx={{ color: '#344054', mb: 1 }}>{aiVoiceTranscript || 'Speak now.'}</Typography>
+                <Typography variant="body2" sx={{ color: '#3A4551', mb: 1 }}>{aiVoiceTranscript || 'Speak now.'}</Typography>
                 <Stack direction="row" justifyContent="center" spacing={1}>
                   <Button size="small" variant="outlined" onClick={() => stopMicaVoiceNote()} sx={{ borderColor: METICLE_COLORS.primary, color: METICLE_COLORS.primary }}>Cancel</Button>
                   <Button size="small" variant="contained" onClick={() => { stopMicaVoiceNote(); submitMicaVoiceNote() }} disabled={!aiVoiceTranscript.trim() || voiceNoteIntentMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
@@ -1904,7 +1904,7 @@ export default function PersonProfilePage() {
                   <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
                     <Tooltip title={aiRecording ? 'Stop dictation' : 'Dictate note with voice'}>
                       <IconButton size="small" onClick={aiRecording ? stopAiRecording : startNoteDictation}
-                        sx={{ bgcolor: aiRecording ? METICLE_COLORS.danger : 'divider', color: aiRecording ? '#FFFFFF' : 'text.secondary', borderRadius: 1.5, width: 34, height: 34, '&:hover': { bgcolor: aiRecording ? '#B42318' : '#D8DEE7' } }}>
+                        sx={{ bgcolor: aiRecording ? METICLE_COLORS.danger : 'divider', color: aiRecording ? '#FFFFFF' : 'text.secondary', borderRadius: 1.5, width: 34, height: 34, '&:hover': { bgcolor: aiRecording ? '#B42318' : '#D6E2EE' } }}>
                         {aiRecording ? <StopIcon sx={{ fontSize: 18 }} /> : <MicIcon sx={{ fontSize: 18 }} />}
                       </IconButton>
                     </Tooltip>
@@ -1941,7 +1941,7 @@ export default function PersonProfilePage() {
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                     {!aiRecording ? (
                       <Button size="small" variant="contained" startIcon={<MicIcon />} onClick={startAiRecording}
-                        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', '&:hover': { bgcolor: '#2674D9' } }}>Start Recording</Button>
+                        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', '&:hover': { bgcolor: '#0251B3' } }}>Start Recording</Button>
                     ) : (
                       <Button size="small" variant="contained" color="error" startIcon={<StopIcon />} onClick={stopAiRecording}
                         sx={{ textTransform: 'none', animation: 'pulse 1.5s infinite' }}>Stop Recording</Button>
@@ -1954,7 +1954,7 @@ export default function PersonProfilePage() {
 
                 <Button variant="contained" fullWidth onClick={handleAiGenerate} disabled={!aiTranscript.trim() || aiGenerateMutation.isPending}
                   startIcon={aiGenerateMutation.isPending ? <CircularProgress size={18} color="inherit" /> : <PsychologyIcon />}
-                  sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', py: 1.5, fontWeight: 600, '&:hover': { bgcolor: '#2674D9' } }}>
+                  sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', py: 1.5, fontWeight: 600, '&:hover': { bgcolor: '#0251B3' } }}>
                   {aiGenerateMutation.isPending ? 'Structuring...' : 'Generate Note'}
                 </Button>
               </>
@@ -2008,7 +2008,7 @@ export default function PersonProfilePage() {
                           <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 18, fontSize: 10 }} />
                           <Typography variant="caption" sx={{ fontWeight: 600 }}>{u.goal_area || 'Care Plan'}</Typography>
                         </Stack>
-                        <Typography variant="caption" display="block" color="#344054">{u.suggested_update}</Typography>
+                        <Typography variant="caption" display="block" color="#3A4551">{u.suggested_update}</Typography>
                         {u.evidence && <Typography variant="caption" display="block" color="text.secondary" fontStyle="italic">Evidence: {u.evidence}</Typography>}
                       </Box>
                     ))}
@@ -2023,7 +2023,7 @@ export default function PersonProfilePage() {
                     </Stack>
                     {aiResult.interventions_suggested.map((s: any, i: number) => (
                       <Box key={i} sx={{ mb: 0.5 }}>
-                        <Typography variant="caption" display="block" color="#344054" sx={{ fontWeight: 600 }}>• {s.intervention || s}</Typography>
+                        <Typography variant="caption" display="block" color="#3A4551" sx={{ fontWeight: 600 }}>• {s.intervention || s}</Typography>
                         {s.reason && <Typography variant="caption" display="block" color="text.secondary">Reason: {s.reason}</Typography>}
                         {s.expected_outcome && <Typography variant="caption" display="block" color="#087A55">Expected: {s.expected_outcome}</Typography>}
                       </Box>
@@ -2045,7 +2045,7 @@ export default function PersonProfilePage() {
               <Button variant="outlined" onClick={() => { setAddNoteOpen(false); setViewNote(null); setAiShowResults(true); setAiEditedContent(aiResult.daily_note?.content || ''); }} sx={{ textTransform: 'none' }}>
                 Edit
               </Button>
-              <Button variant="contained" onClick={handleMicaVoiceApprove} disabled={aiVoiceApproveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#2674D9' } }}>
+              <Button variant="contained" onClick={handleMicaVoiceApprove} disabled={aiVoiceApproveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#0251B3' } }}>
                 {(aiVoiceApproveMutation.isPending) ? 'Saving...' : 'Save care note'}
                 {aiVoiceApproveMutation.isPending ? <CircularProgress size={18} color="inherit" /> : null}
               </Button>
@@ -2139,7 +2139,7 @@ export default function PersonProfilePage() {
                               <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 16, fontSize: 9 }} />
                               <Typography variant="caption" fontWeight={600}>{u.goal_area}</Typography>
                             </Stack>
-                            <Typography variant="caption" display="block" color="#344054">{u.suggested_update}</Typography>
+                            <Typography variant="caption" display="block" color="#3A4551">{u.suggested_update}</Typography>
                             {u.evidence && <Typography variant="caption" display="block" color="text.secondary" fontStyle="italic">Evidence: {u.evidence}</Typography>}
                           </Paper>
                         ))}
@@ -2153,8 +2153,8 @@ export default function PersonProfilePage() {
                           <Typography variant="caption" sx={{ fontWeight: 600, color: METICLE_COLORS.successText }}>Suggested Interventions</Typography>
                         </Stack>
                         {viewNote.ai_interventions.map((s: any, i: number) => (
-                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#A7F3D0' }}>
-                            <Typography variant="caption" display="block" fontWeight={600} color="#344054">• {s.intervention}</Typography>
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: METICLE_COLORS.success }}>
+                            <Typography variant="caption" display="block" fontWeight={600} color="#3A4551">• {s.intervention}</Typography>
                             {s.reason && <Typography variant="caption" display="block" color="text.secondary">Reason: {s.reason}</Typography>}
                             {s.expected_outcome && <Typography variant="caption" display="block" color="#087A55">Expected: {s.expected_outcome}</Typography>}
                           </Paper>
@@ -2321,7 +2321,7 @@ export default function PersonProfilePage() {
               <Box>
                 <Typography variant="caption" color="text.secondary">Risk Level</Typography>
                 <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={viewRisk.risk_level} size="small"
-                  sx={{ bgcolor: `${RISK_COLORS[viewRisk.risk_level] || '#667085'}18`, color: RISK_COLORS[viewRisk.risk_level] || '#667085', fontWeight: 600, textTransform: 'capitalize', mt: 0.5 }} />
+                  sx={{ bgcolor: `${RISK_COLORS[viewRisk.risk_level] || '#51637A'}18`, color: RISK_COLORS[viewRisk.risk_level] || '#51637A', fontWeight: 600, textTransform: 'capitalize', mt: 0.5 }} />
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">Details</Typography>
@@ -2464,7 +2464,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                   <TableCell sx={{ fontWeight: 600 }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
                   <TableCell>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{a.assessor_name || '—'}</TableCell>
-                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
+                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#51637A'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>
                     {a.file_url ? (
@@ -2494,7 +2494,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
               <Stack direction="row" spacing={4}>
                 <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography fontWeight={600}>{new Date(selected.assessment_date).toLocaleDateString('en-GB')}</Typography></Box>
                 <Box><Typography variant="caption" color="text.secondary">Assessor</Typography><Typography fontWeight={600}>{selected.assessor_name || '—'}</Typography></Box>
-                <Box><Typography variant="caption" color="text.secondary">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#667085'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#667085', fontWeight: 600 }} /></Box>
+                <Box><Typography variant="caption" color="text.secondary">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#51637A'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#51637A', fontWeight: 600 }} /></Box>
                 <Box><Typography variant="caption" color="text.secondary">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
               </Stack>
               <Box><Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
@@ -2609,10 +2609,10 @@ function TimelineTab({ personId }: { personId: string }) {
     daily_note: <NoteIcon sx={{ color: METICLE_COLORS.warning }} />,
     risk_assessment: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
     health: <HealthIcon sx={{ color: '#8B7CF6' }} />,
-    assessment: <PersonIcon sx={{ color: '#0C9E89' }} />,
+    assessment: <PersonIcon sx={{ color: '#046E86' }} />,
     incident: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
     time_away: <LuggageIcon sx={{ color: METICLE_COLORS.warning }} />,
-    discharge_checklist: <LuggageIcon sx={{ color: '#0C9E89' }} />,
+    discharge_checklist: <LuggageIcon sx={{ color: '#046E86' }} />,
   }
 
   return (
@@ -2642,7 +2642,7 @@ function TimelineTab({ personId }: { personId: string }) {
                         </Typography>
                       </Stack>
                       {event.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{event.description}</Typography>}
-                      {event.details && <Typography variant="body2" color="#344054" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{event.details}</Typography>}
+                      {event.details && <Typography variant="body2" color="#3A4551" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{event.details}</Typography>}
                       {event.performed_by && <Typography variant="caption" color="text.muted" sx={{ mt: 0.5, display: 'block' }}>by {event.performed_by}</Typography>}
                     </Box>
                   </Stack>
@@ -3174,7 +3174,7 @@ function DocumentsTab({ personId }: { personId: string }) {
 const WELLBEING_DOMAINS = ['mood', 'engagement', 'sleep', 'appetite', 'pain', 'mobility', 'social', 'overall']
 
 const DOMAIN_COLORS: Record<string, string> = {
-  mood: '#8B7CF6', engagement: '#0C9E89', sleep: '#6B8AFD', appetite: METICLE_COLORS.success,
+  mood: '#8B7CF6', engagement: '#046E86', sleep: '#6B8AFD', appetite: METICLE_COLORS.success,
   pain: METICLE_COLORS.danger, mobility: METICLE_COLORS.warning, social: METICLE_COLORS.primary, overall: 'text.secondary',
 }
 
@@ -3222,7 +3222,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
           <RechartsResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
-              <PolarGrid stroke="#D8DEE7" />
+              <PolarGrid stroke="#D6E2EE" />
               <PolarAngleAxis dataKey="domain" tick={{ fontSize: 11, fill: 'text.secondary' }} />
               <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10, fill: 'text.muted' }} />
               <Radar name="Score" dataKey="score" stroke={METICLE_COLORS.primary} fill={METICLE_COLORS.primary} fillOpacity={0.25} strokeWidth={2} />
@@ -3260,7 +3260,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
                           <Typography variant="subtitle2" fontWeight={600}>{e.score}</Typography>
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          {e.notes && <Typography variant="body2" color="#344054" noWrap sx={{ maxWidth: '100%' }}>{e.notes}</Typography>}
+                          {e.notes && <Typography variant="body2" color="#3A4551" noWrap sx={{ maxWidth: '100%' }}>{e.notes}</Typography>}
                           <Stack direction="row" spacing={2}>
                             <Typography variant="caption" color="text.muted">{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : ''}</Typography>
                             {e.recorded_by_name && <Typography variant="caption" color="text.muted">by {e.recorded_by_name}</Typography>}
@@ -3578,7 +3578,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                     <Chip label={a.capacity_found === true ? 'Has Capacity' : a.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
                       sx={{ bgcolor: a.capacity_found === true ? 'METICLE_COLORS.success20' : a.capacity_found === false ? 'METICLE_COLORS.danger20' : 'text.secondary20', color: a.capacity_found === true ? METICLE_COLORS.success : a.capacity_found === false ? METICLE_COLORS.danger : 'text.secondary', fontWeight: 600 }} />
                     <Chip label={a.capacity_status?.replace(/_/g, ' ')} size="small"
-                      sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[a.capacity_status] || '#667085', fontWeight: 600 }} />
+                      sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[a.capacity_status] || '#51637A'}20`, color: CAPACITY_STATUS_COLORS[a.capacity_status] || '#51637A', fontWeight: 600 }} />
                   </Stack>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Decision: {a.decision_to_be_made}</Typography>
                   {a.best_interest_decision && <Typography variant="body2" color="text.secondary">Best Interest Decision: {a.best_interest_decision}</Typography>}
@@ -3661,7 +3661,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                   <Chip label={viewEntry.capacity_found === true ? 'Has Capacity' : viewEntry.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
                     sx={{ bgcolor: viewEntry.capacity_found === true ? 'METICLE_COLORS.success20' : viewEntry.capacity_found === false ? 'METICLE_COLORS.danger20' : 'text.secondary20', color: viewEntry.capacity_found === true ? METICLE_COLORS.success : viewEntry.capacity_found === false ? METICLE_COLORS.danger : 'text.secondary', fontWeight: 600 }} />
                   <Chip label={viewEntry.capacity_status?.replace(/_/g, ' ')} size="small"
-                    sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085'}20`, color: CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#667085', fontWeight: 600 }} />
+                    sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#51637A'}20`, color: CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#51637A', fontWeight: 600 }} />
                 </Stack>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Decision to be Made</Typography>
@@ -3759,7 +3759,7 @@ const PATHWAY_TYPES = ['hospital_admission', 'hospital_discharge', 'short_break'
 const PATHWAY_STATUS_OPTIONS = ['active', 'completed', 'cancelled']
 
 const PATHWAY_TYPE_COLORS: Record<string, string> = {
-  hospital_admission: METICLE_COLORS.danger, hospital_discharge: '#0C9E89', short_break: METICLE_COLORS.warning,
+  hospital_admission: METICLE_COLORS.danger, hospital_discharge: '#046E86', short_break: METICLE_COLORS.warning,
   assessment_unit: '#8B7CF6', transition: METICLE_COLORS.success, other: 'text.secondary',
 }
 
@@ -3823,7 +3823,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
             <Typography variant="subtitle2" fontWeight={600}>{p.title}</Typography>
-            <Chip label={p.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[p.pathway_type] || '#667085', fontWeight: 600 }} />
+            <Chip label={p.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[p.pathway_type] || '#51637A'}20`, color: PATHWAY_TYPE_COLORS[p.pathway_type] || '#51637A', fontWeight: 600 }} />
             <Chip label={p.status} size="small" color={p.status === 'active' ? 'success' : p.status === 'completed' ? 'info' : 'error'} />
           </Stack>
           <Stack direction="row" spacing={2} sx={{ mb: 0.5 }}>
@@ -3952,7 +3952,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
         <DialogTitle sx={{ fontWeight: 600 }}>
           <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             <span>{viewPathway?.title}</span>
-            {viewPathway && <Chip label={viewPathway.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085'}20`, color: PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#667085', fontWeight: 600 }} />}
+            {viewPathway && <Chip label={viewPathway.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#51637A'}20`, color: PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#51637A', fontWeight: 600 }} />}
             {viewPathway && <Chip label={viewPathway.status} size="small" color={viewPathway.status === 'active' ? 'success' : viewPathway.status === 'completed' ? 'info' : 'error'} />}
           </Stack>
         </DialogTitle>
@@ -4027,7 +4027,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
 const TIME_AWAY_CATEGORIES = ['documentation', 'medication', 'equipment', 'notification', 'property', 'financial', 'other']
 const TIME_AWAY_TYPES: { value: string; label: string; color: string }[] = [
-  { value: 'family_visit', label: 'Family Visit', color: '#0C9E89' },
+  { value: 'family_visit', label: 'Family Visit', color: '#046E86' },
   { value: 'short_break', label: 'Short Break', color: METICLE_COLORS.warning },
   { value: 'hospital_admission', label: 'Hospital Admission', color: METICLE_COLORS.danger },
   { value: 'hospital_discharge', label: 'Hospital Discharge', color: '#8B7CF6' },
@@ -4130,7 +4130,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                     </Box>
                   </Stack>
                   <Stack direction="row" spacing={0.5}>
-                    <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={(e) => { e.stopPropagation(); setItemTarget(record.id); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }); setFormError(''); }} sx={{ textTransform: 'none', borderColor: '#D8DEE7', color: '#475467' }}>Add Item</Button>
+                    <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={(e) => { e.stopPropagation(); setItemTarget(record.id); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }); setFormError(''); }} sx={{ textTransform: 'none', borderColor: '#D6E2EE', color: '#51637A' }}>Add Item</Button>
                     <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteRecordTarget(record) }}><DeleteIcon fontSize="small" /></IconButton>
                   </Stack>
                 </Stack>
@@ -4662,7 +4662,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{pkg.name}</Typography>
                   <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
-                    <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#EAFBF5' : '#F7F9FC', color: pkg.status === 'active' ? METICLE_COLORS.successText : 'text.secondary', fontWeight: 600 }} />
+                    <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#EAFBF5' : '#F4F9FC', color: pkg.status === 'active' ? METICLE_COLORS.successText : 'text.secondary', fontWeight: 600 }} />
                     <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
                   </Stack>
                 </Box>

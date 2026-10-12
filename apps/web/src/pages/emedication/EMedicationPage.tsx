@@ -25,27 +25,29 @@ const STATUS_CONFIG: Record<AdminStatus, { label: string; color: 'success' | 'er
   'n/a': { label: 'N/A', color: 'default', icon: <span style={{ fontSize: 14 }}>&ndash;</span> },
 }
 
+/* The MAR sheet's own names for the shared tokens (styles/tokens.ts). One entry
+   per role, so the sheet reads in domain terms while every value stays a brand
+   token — a retyped hex here is how the sheet drifts from the rest of the app. */
 const EMR = {
-  navy: '#2F80ED',
-  navyDeep: '#1F68C7',
-  emerald: '#10B981',
-  ink: '#17202A',
-  inkDark: '#141C24',
-  mist: '#475467',
-  bone: '#F7F9FC',
-  hairline: '#E6EAF0',
-  windowBorder: '#E6EAF0',
-  chrome: '#F9FAFB',
-  rowAlt: '#FAF8F3',
-  today: '#F4F8FF',
-  paper: '#FFFFFF',
+  navy: P.primary,
+  navyDeep: P.primaryDeep,
+  emerald: P.green,
+  ink: P.navy,
+  mist: P.slate,
+  bone: P.warm,
+  hairline: P.hairline,
+  windowBorder: P.hairline,
+  chrome: P.faint,
+  rowAlt: P.faint,
+  today: P.indigoLight,
+  paper: P.card,
 }
 
 const STATUS_HEX: Record<'success' | 'error' | 'warning' | 'default', string> = {
   success: '#10B981',
   error: '#EF4444',
   warning: '#F59E0B',
-  default: '#667085',
+  default: '#51637A',
 }
 
 const MAR_STATUS_CODES: Record<AdminStatus, string> = {
@@ -164,7 +166,7 @@ const medicationDialogPaperSx = {
   width: { xs: '100%', md: 960 }, maxWidth: '100%', m: { xs: 0, sm: 2 },
   height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' },
   borderRadius: { xs: 0, sm: '18px' }, border: `1px solid ${METICLE_COLORS.border}`,
-  boxShadow: '0 24px 48px rgba(16, 24, 40, 0.16)',
+  boxShadow: '0 24px 48px rgba(12, 27, 46, 0.16)',
   display: 'flex', flexDirection: 'column', overflow: 'hidden',
 } as const
 
@@ -930,7 +932,7 @@ export default function EMedicationPage() {
     const statusColors: Record<string, string> = {
       given: '#10B981', refused: '#EF4444', missed: '#EF4444',
       omitted: '#F59E0B',
-      not_available: '#F59E0B', pending: '#667085', 'n/a': '#98A2B3'
+      not_available: '#F59E0B', pending: '#51637A', 'n/a': '#5D6E85'
     }
     const marCodes: Record<string, { code: string; label: string }> = {
       given: { code: '✓', label: 'Given' },
@@ -961,7 +963,7 @@ export default function EMedicationPage() {
           items.push(`<span style="display:inline-block;margin-right:10px;margin-bottom:3px"><span style="display:inline-block;width:10px;height:10px;background:${statusColors[s]};border-radius:2px;vertical-align:middle;margin-right:3px"></span><strong>${mc?.code || ''}</strong> ${statusLabels[s]}</span>`)
         }
       }
-      return items.join('') + '<br><span style="color:#667085;font-size:8px">Standard MAR codes: ' +
+      return items.join('') + '<br><span style="color:#51637A;font-size:8px">Standard MAR codes: ' +
         standardMarCodes.map(c => `<strong>${c.code}</strong> - ${c.label}`).join(' | ') + '</span>'
     }
 
@@ -977,13 +979,13 @@ export default function EMedicationPage() {
       if (existingScheduled) {
         const mc = marCodes[existingScheduled.status] || { code: '?', label: '' }
         const initials = ((existingScheduled.first_name?.[0] || '') + (existingScheduled.last_name?.[0] || '')).toUpperCase() || 'S'
-        const bg = statusColors[existingScheduled.status] || '#667085'
+        const bg = statusColors[existingScheduled.status] || '#51637A'
         cell += `<div style="background:${bg};color:#FFFFFF;font-weight:bold;font-size:8px;padding:1px 2px;border-radius:2px;line-height:1.3">${mc.code} ${initials}</div>`
         if (existingScheduled.notes) {
-          cell += `<div style="font-size:5px;color:#475467;line-height:1.2;margin-top:1px">${existingScheduled.notes.substring(0, 20)}</div>`
+          cell += `<div style="font-size:5px;color:#51637A;line-height:1.2;margin-top:1px">${existingScheduled.notes.substring(0, 20)}</div>`
         }
       } else {
-        cell += '<span style="color:#D8DEE7;font-size:8px">&bull;</span>'
+        cell += '<span style="color:#D6E2EE;font-size:8px">&bull;</span>'
       }
       cell += '</td>'
       return cell
@@ -994,33 +996,33 @@ export default function EMedicationPage() {
     <html><head><title>MAR Chart - ${chartData.record.title}</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, 'Helvetica Neue', sans-serif; font-size: 9px; margin: 6mm 8mm; color: #17202A; line-height: 1.3; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; border-bottom: 2px solid #17202A; padding-bottom: 4px; }
+      body { font-family: Arial, 'Helvetica Neue', sans-serif; font-size: 9px; margin: 6mm 8mm; color: #0C1B2E; line-height: 1.3; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; border-bottom: 2px solid #0C1B2E; padding-bottom: 4px; }
       .header h1 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .header .sub { color: #475467; font-size: 8px; }
-      .pat-section { border: 1.5px solid #17202A; padding: 4px 6px; margin-bottom: 5px; position: relative; }
-      .pat-section h2 { font-size: 10px; margin-bottom: 3px; background: #17202A; color: #FFFFFF; display: inline-block; padding: 1px 8px; position: absolute; top: -10px; left: 6px; }
+      .header .sub { color: #51637A; font-size: 8px; }
+      .pat-section { border: 1.5px solid #0C1B2E; padding: 4px 6px; margin-bottom: 5px; position: relative; }
+      .pat-section h2 { font-size: 10px; margin-bottom: 3px; background: #0C1B2E; color: #FFFFFF; display: inline-block; padding: 1px 8px; position: absolute; top: -10px; left: 6px; }
       .pat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px 15px; font-size: 8px; margin-top: 6px; }
-      .pat-grid .label { color: #667085; }
+      .pat-grid .label { color: #51637A; }
       .pat-grid .val { font-weight: bold; }
       .allergy-box { background: #FEF0F0; border: 1px solid #FEF0F0; padding: 2px 5px; border-radius: 2px; display: inline-block; }
       .allergy-box .allergen { color: #EF4444; font-weight: bold; }
-      .section-title { font-size: 9px; font-weight: bold; background: #17202A; color: #FFFFFF; padding: 2px 6px; margin: 6px 0 3px 0; text-transform: uppercase; letter-spacing: 0.3px; }
+      .section-title { font-size: 9px; font-weight: bold; background: #0C1B2E; color: #FFFFFF; padding: 2px 6px; margin: 6px 0 3px 0; text-transform: uppercase; letter-spacing: 0.3px; }
       table { border-collapse: collapse; width: 100%; margin-bottom: 4px; }
-      th, td { border: 1px solid #98A2B3; padding: 1px 2px; text-align: center; font-size: 7px; }
-      th { background: #D8DEE7; font-weight: bold; }
+      th, td { border: 1px solid #5D6E85; padding: 1px 2px; text-align: center; font-size: 7px; }
+      th { background: #D6E2EE; font-weight: bold; }
       .med-label { text-align: left; font-weight: bold; white-space: nowrap; min-width: 100px; font-size: 7px; line-height: 1.2; }
       .med-label .name { font-size: 8px; }
-      .med-label .detail { font-weight: normal; font-size: 6px; color: #344054; }
-      .today { background: #F4F8FF; }
-      .footer { margin-top: 6px; font-size: 7px; color: #98A2B3; border-top: 1px solid #D8DEE7; padding-top: 4px; }
+      .med-label .detail { font-weight: normal; font-size: 6px; color: #3A4551; }
+      .today { background: #EAF3FF; }
+      .footer { margin-top: 6px; font-size: 7px; color: #5D6E85; border-top: 1px solid #D6E2EE; padding-top: 4px; }
       .page-break { page-break-before: always; }
       .key-section { font-size: 7px; margin: 4px 0; }
       .signature-table td { padding: 3px 6px; height: 20px; }
-      .empty-section { text-align: center; color: #98A2B3; padding: 8px; font-size: 8px; border: 1px dashed #D8DEE7; }
+      .empty-section { text-align: center; color: #5D6E85; padding: 8px; font-size: 8px; border: 1px dashed #D6E2EE; }
       .flex-row { display: flex; gap: 8px; }
       .flex-row > div { flex: 1; }
-      .note-line { border-bottom: 1px solid #D8DEE7; height: 16px; margin-bottom: 2px; }
+      .note-line { border-bottom: 1px solid #D6E2EE; height: 16px; margin-bottom: 2px; }
       .warn-box { background: #FFF7E6; border: 1px solid #FFF7E6; padding: 3px 6px; margin: 4px 0; font-size: 7px; }
       .med-group { page-break-inside: avoid; }
       @page { size: landscape; margin: 6mm; }
@@ -1042,20 +1044,20 @@ export default function EMedicationPage() {
       <div style="display:flex;gap:4px;margin-top:7px">
         <div style="flex:1">
           <table style="margin:0">
-            <tr><td style="width:80px;text-align:left;background:#E6EAF0;font-weight:bold">Name</td><td style="text-align:left;font-weight:bold;font-size:9px">${suName}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">NHS Number</td><td style="text-align:left">${nhsNumber}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Date of Birth</td><td style="text-align:left">${dob}${age ? ` (${age} years)` : ''}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Room / Bed</td><td style="text-align:left">${room || 'N/A'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Weight</td><td style="text-align:left">${weight || '________ kg'}</td></tr>
+            <tr><td style="width:80px;text-align:left;background:#E3E9F0;font-weight:bold">Name</td><td style="text-align:left;font-weight:bold;font-size:9px">${suName}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">NHS Number</td><td style="text-align:left">${nhsNumber}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Date of Birth</td><td style="text-align:left">${dob}${age ? ` (${age} years)` : ''}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Room / Bed</td><td style="text-align:left">${room || 'N/A'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Weight</td><td style="text-align:left">${weight || '________ kg'}</td></tr>
           </table>
         </div>
         <div style="flex:1">
           <table style="margin:0">
-            <tr><td style="width:80px;text-align:left;background:#E6EAF0;font-weight:bold">GP / Surgery</td><td style="text-align:left">${gpName ? `${gpName}${gpSurgery ? `, ${gpSurgery}` : ''}` : '_________________'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">GP Phone</td><td style="text-align:left">${gpPhone || '_________________'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Pharmacy</td><td style="text-align:left">${pharmacyName ? `${pharmacyName}${pharmacyPhone ? ` &mdash; ${pharmacyPhone}` : ''}` : '_________________'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Social Worker</td><td style="text-align:left">${socialWorkerName ? `${socialWorkerName}${socialWorkerPhone ? ` &mdash; ${socialWorkerPhone}` : ''}` : '_________________'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Chart Period</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()} &ndash; ${new Date(chartData.record.end_date).toLocaleDateString()}</td></tr>
+            <tr><td style="width:80px;text-align:left;background:#E3E9F0;font-weight:bold">GP / Surgery</td><td style="text-align:left">${gpName ? `${gpName}${gpSurgery ? `, ${gpSurgery}` : ''}` : '_________________'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">GP Phone</td><td style="text-align:left">${gpPhone || '_________________'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Pharmacy</td><td style="text-align:left">${pharmacyName ? `${pharmacyName}${pharmacyPhone ? ` &mdash; ${pharmacyPhone}` : ''}` : '_________________'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Social Worker</td><td style="text-align:left">${socialWorkerName ? `${socialWorkerName}${socialWorkerPhone ? ` &mdash; ${socialWorkerPhone}` : ''}` : '_________________'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Chart Period</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()} &ndash; ${new Date(chartData.record.end_date).toLocaleDateString()}</td></tr>
           </table>
         </div>
       </div>
@@ -1078,20 +1080,20 @@ export default function EMedicationPage() {
     <div class="flex-row">
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:100px">Prescriber Name</td><td style="text-align:left">${pItem?.prescriber_name || '___________________'}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Prescriber Phone</td><td style="text-align:left">${pItem?.prescriber_phone || '___________________'}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Pharmacy</td><td style="text-align:left">${pharmacyName || '___________________'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:100px">Prescriber Name</td><td style="text-align:left">${pItem?.prescriber_name || '___________________'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Prescriber Phone</td><td style="text-align:left">${pItem?.prescriber_phone || '___________________'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Pharmacy</td><td style="text-align:left">${pharmacyName || '___________________'}</td></tr>
         </table>
       </div>
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:100px">Prescription Ref</td><td style="text-align:left">${pItem?.prescription_ref || '___________________'}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Date Prescribed</td><td style="text-align:left">${pItem?.start_date ? new Date(pItem.start_date).toLocaleDateString() : '___________________'}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Last Review Date</td><td style="text-align:left">___________________</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:100px">Prescription Ref</td><td style="text-align:left">${pItem?.prescription_ref || '___________________'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Date Prescribed</td><td style="text-align:left">${pItem?.start_date ? new Date(pItem.start_date).toLocaleDateString() : '___________________'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Last Review Date</td><td style="text-align:left">___________________</td></tr>
         </table>
       </div>
     </div>
-    <div style="font-size:6px;color:#98A2B3;margin-bottom:4px">Prescriber details shown from first item with prescriber data. See individual medication rows for item-specific prescribers.</div>`
+    <div style="font-size:6px;color:#5D6E85;margin-bottom:4px">Prescriber details shown from first item with prescriber data. See individual medication rows for item-specific prescribers.</div>`
 
     // ── Codes Key ──
     html += `<div class="key-section">
@@ -1171,7 +1173,7 @@ export default function EMedicationPage() {
           }
         }
         if (!hasEntries) {
-          html += `<tr><td style="font-weight:bold">${patchItem.name} ${patchItem.dosage}${patchItem.unit}</td><td colspan="7" style="color:#98A2B3;font-size:7px">No administrations recorded this period</td></tr>`
+          html += `<tr><td style="font-weight:bold">${patchItem.name} ${patchItem.dosage}${patchItem.unit}</td><td colspan="7" style="color:#5D6E85;font-size:7px">No administrations recorded this period</td></tr>`
         }
       }
       html += '</tbody></table>'
@@ -1211,7 +1213,7 @@ export default function EMedicationPage() {
           }
         }
         if (!hasData) {
-          html += `<tr><td style="font-weight:bold">${vdi.name} ${vdi.dosage}${vdi.unit}</td><td colspan="6" style="color:#98A2B3;font-size:7px">No administrations this period. Prescribed dose: ${vdi.dosage}${vdi.unit} ${vdi.frequency} — ${vdi.instructions || ''}</td></tr>`
+          html += `<tr><td style="font-weight:bold">${vdi.name} ${vdi.dosage}${vdi.unit}</td><td colspan="6" style="color:#5D6E85;font-size:7px">No administrations this period. Prescribed dose: ${vdi.dosage}${vdi.unit} ${vdi.frequency} — ${vdi.instructions || ''}</td></tr>`
         }
       }
       html += '</tbody></table>'
@@ -1222,10 +1224,10 @@ export default function EMedicationPage() {
       html += `<div class="page-break"></div><div class="section-title">PRN (As Required) Medications</div>`
       // PRN header section with indication and max dose info
       for (const prnItem of prnItems) {
-        html += `<div style="border:1px solid #D8DEE7;padding:2px 4px;margin-bottom:3px;font-size:7px">
+        html += `<div style="border:1px solid #D6E2EE;padding:2px 4px;margin-bottom:3px;font-size:7px">
           <strong>${prnItem.name}</strong> ${prnItem.dosage}${prnItem.unit} &mdash; ${prnItem.route?.toUpperCase()} &mdash; ${prnItem.frequency}
           <span style="float:right">Max in 24h: ${prnItem.instructions?.match(/max[^]*?\d+\s*(dose|mg|tablet)/i)?.[0] || 'As per prescriber'}</span>
-          <br><span style="color:#475467">Indication: ${prnItem.instructions || 'As required'} &nbsp; Min interval: ${prnItem.frequency}</span>
+          <br><span style="color:#51637A">Indication: ${prnItem.instructions || 'As required'} &nbsp; Min interval: ${prnItem.frequency}</span>
         </div>`
       }
       html += `<table><thead><tr>
@@ -1265,7 +1267,7 @@ export default function EMedicationPage() {
         </tr>`
       }
       if (prnAdmins.length === 0) {
-        html += '<tr><td colspan="8" style="text-align:center;color:#98A2B3;padding:6px">No PRN administrations recorded this period.</td></tr>'
+        html += '<tr><td colspan="8" style="text-align:center;color:#5D6E85;padding:6px">No PRN administrations recorded this period.</td></tr>'
       }
       html += '</tbody></table>'
     }
@@ -1316,7 +1318,7 @@ export default function EMedicationPage() {
       }
     } else {
       // Show blank rows for manual completion
-      html += '<tr><td colspan="10" style="text-align:center;color:#98A2B3;font-size:7px">No controlled drug administrations in this period. Complete below if applicable.</td></tr>'
+      html += '<tr><td colspan="10" style="text-align:center;color:#5D6E85;font-size:7px">No controlled drug administrations in this period. Complete below if applicable.</td></tr>'
       for (let i = 0; i < 5; i++) {
         html += '<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
       }
@@ -1347,12 +1349,12 @@ export default function EMedicationPage() {
       for (const item of [...regularItems, ...prnItems]) {
         if (item.instructions && !seen.has(item.instructions)) {
           seen.add(item.instructions)
-          html += `<span style="background:#F7F9FC;padding:1px 5px;border:1px solid #D8DEE7;border-radius:2px"><strong>${item.name}:</strong> ${item.instructions}</span>`
+          html += `<span style="background:#F4F9FC;padding:1px 5px;border:1px solid #D6E2EE;border-radius:2px"><strong>${item.name}:</strong> ${item.instructions}</span>`
         }
       }
     }
-    html += `<span style="background:#F7F9FC;padding:1px 5px;border:1px solid #D8DEE7;border-radius:2px">__________________</span>
-    <span style="background:#F7F9FC;padding:1px 5px;border:1px solid #D8DEE7;border-radius:2px">__________________</span>
+    html += `<span style="background:#F4F9FC;padding:1px 5px;border:1px solid #D6E2EE;border-radius:2px">__________________</span>
+    <span style="background:#F4F9FC;padding:1px 5px;border:1px solid #D6E2EE;border-radius:2px">__________________</span>
     </div>`
 
     // ── Omission / Refusal Reasons ──
@@ -1389,7 +1391,7 @@ export default function EMedicationPage() {
         </tr>`
       }
     } else {
-      html += '<tr><td colspan="6" style="text-align:center;color:#98A2B3">No omitted or refused doses recorded this period.</td></tr>'
+      html += '<tr><td colspan="6" style="text-align:center;color:#5D6E85">No omitted or refused doses recorded this period.</td></tr>'
     }
     html += '</tbody></table>'
 
@@ -1413,7 +1415,7 @@ export default function EMedicationPage() {
       </tr>`
     }
     if (staffLookup.length === 0) {
-      html += '<tr><td colspan="6" style="text-align:center;color:#98A2B3;padding:8px">No staff recorded this period.</td></tr>'
+      html += '<tr><td colspan="6" style="text-align:center;color:#5D6E85;padding:8px">No staff recorded this period.</td></tr>'
     }
     html += `<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
@@ -1426,27 +1428,27 @@ export default function EMedicationPage() {
     <div class="flex-row">
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:120px">Chart Version</td><td style="text-align:left">1.0</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Date Chart Created</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Last Review Date</td><td style="text-align:left">${new Date().toLocaleDateString('en-GB')}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Next Review Date</td><td style="text-align:left">_________________</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Checked by Pharmacist</td><td style="text-align:left">_________________</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:120px">Chart Version</td><td style="text-align:left">1.0</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Date Chart Created</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Last Review Date</td><td style="text-align:left">${new Date().toLocaleDateString('en-GB')}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Next Review Date</td><td style="text-align:left">_________________</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Checked by Pharmacist</td><td style="text-align:left">_________________</td></tr>
         </table>
       </div>
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:120px">Care Setting</td><td style="text-align:left">${chartData.record.title.includes('MAR') ? 'eMAR' : 'Care Home / Supported Living'}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Items on Chart</td><td style="text-align:left">${chartData.items.length} (${regularItems.length} regular, ${prnItems.length} PRN)</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Days Covered</td><td style="text-align:left">${days.length}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Chart Status</td><td style="text-align:left">${chartData.record.status}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Total Administrations</td><td style="text-align:left">${Object.values(chartData.adminMap).reduce((sum: number, byItem: any) => sum + Object.values(byItem).reduce((s: number, arr: any) => s + arr.length, 0), 0)}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:120px">Care Setting</td><td style="text-align:left">${chartData.record.title.includes('MAR') ? 'eMAR' : 'Care Home / Supported Living'}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Items on Chart</td><td style="text-align:left">${chartData.items.length} (${regularItems.length} regular, ${prnItems.length} PRN)</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Days Covered</td><td style="text-align:left">${days.length}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Chart Status</td><td style="text-align:left">${chartData.record.status}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Total Administrations</td><td style="text-align:left">${Object.values(chartData.adminMap).reduce((sum: number, byItem: any) => sum + Object.values(byItem).reduce((s: number, arr: any) => s + arr.length, 0), 0)}</td></tr>
         </table>
       </div>
     </div>`
 
     // ── Notes / Comments ──
     html += `<div class="section-title">Notes &amp; Comments</div>
-    <div style="border:1px solid #98A2B3;padding:4px;min-height:40px;margin-bottom:4px">`
+    <div style="border:1px solid #5D6E85;padding:4px;min-height:40px;margin-bottom:4px">`
     const allNotes = new Set<string>()
     if (chartData.adminMap) {
       for (const itemId of Object.keys(chartData.adminMap)) {
@@ -1459,7 +1461,7 @@ export default function EMedicationPage() {
     }
     if (allNotes.size > 0) {
       for (const note of allNotes) {
-        html += `<div style="font-size:7px;margin-bottom:2px;padding:1px 3px;background:#F7F9FC">&bull; ${note}</div>`
+        html += `<div style="font-size:7px;margin-bottom:2px;padding:1px 3px;background:#F4F9FC">&bull; ${note}</div>`
       }
     }
     html += `<div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
@@ -1543,7 +1545,7 @@ export default function EMedicationPage() {
     const statusColors: Record<string, string> = {
       given: '#10B981', refused: '#EF4444', missed: '#EF4444',
       omitted: '#F59E0B',
-      not_available: '#F59E0B', pending: '#667085', 'n/a': '#98A2B3'
+      not_available: '#F59E0B', pending: '#51637A', 'n/a': '#5D6E85'
     }
     const marCodes: Record<string, { code: string; label: string }> = {
       given: { code: '✓', label: 'Given' },
@@ -1574,7 +1576,7 @@ export default function EMedicationPage() {
           items.push(`<span style="display:inline-block;margin-right:10px;margin-bottom:3px"><span style="display:inline-block;width:10px;height:10px;background:${statusColors[s]};border-radius:2px;vertical-align:middle;margin-right:3px"></span><strong>${mc?.code || ''}</strong> ${statusLabels[s]}</span>`)
         }
       }
-      return items.join('') + '<br><span style="color:#667085;font-size:8px">Standard MAR codes: ' +
+      return items.join('') + '<br><span style="color:#51637A;font-size:8px">Standard MAR codes: ' +
         standardMarCodes.map(c => `<strong>${c.code}</strong> - ${c.label}`).join(' | ') + '</span>'
     }
 
@@ -1589,13 +1591,13 @@ export default function EMedicationPage() {
       if (existingScheduled) {
         const mc = marCodes[existingScheduled.status] || { code: '?', label: '' }
         const initials = ((existingScheduled.first_name?.[0] || '') + (existingScheduled.last_name?.[0] || '')).toUpperCase() || 'S'
-        const bg = statusColors[existingScheduled.status] || '#667085'
+        const bg = statusColors[existingScheduled.status] || '#51637A'
         cell += `<div style="background:${bg};color:#FFFFFF;font-weight:bold;font-size:8px;padding:1px 2px;border-radius:2px;line-height:1.3">${mc.code} ${initials}</div>`
         if (existingScheduled.notes) {
-          cell += `<div style="font-size:5px;color:#475467;line-height:1.2;margin-top:1px">${existingScheduled.notes.substring(0, 20)}</div>`
+          cell += `<div style="font-size:5px;color:#51637A;line-height:1.2;margin-top:1px">${existingScheduled.notes.substring(0, 20)}</div>`
         }
       } else {
-        cell += '<span style="color:#D8DEE7;font-size:8px">&bull;</span>'
+        cell += '<span style="color:#D6E2EE;font-size:8px">&bull;</span>'
       }
       cell += '</td>'
       return cell
@@ -1638,32 +1640,32 @@ export default function EMedicationPage() {
     <html><head><title>MAR Chart (Redacted) - ${chartData.record.title}</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, 'Helvetica Neue', sans-serif; font-size: 9px; margin: 6mm 8mm; color: #17202A; line-height: 1.3; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; border-bottom: 2px solid #17202A; padding-bottom: 4px; }
+      body { font-family: Arial, 'Helvetica Neue', sans-serif; font-size: 9px; margin: 6mm 8mm; color: #0C1B2E; line-height: 1.3; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; border-bottom: 2px solid #0C1B2E; padding-bottom: 4px; }
       .header h1 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .header .sub { color: #475467; font-size: 8px; }
-      .pat-section { border: 1.5px solid #17202A; padding: 4px 6px; margin-bottom: 5px; position: relative; }
-      .pat-section h2 { font-size: 10px; margin-bottom: 3px; background: #17202A; color: #FFFFFF; display: inline-block; padding: 1px 8px; position: absolute; top: -10px; left: 6px; }
+      .header .sub { color: #51637A; font-size: 8px; }
+      .pat-section { border: 1.5px solid #0C1B2E; padding: 4px 6px; margin-bottom: 5px; position: relative; }
+      .pat-section h2 { font-size: 10px; margin-bottom: 3px; background: #0C1B2E; color: #FFFFFF; display: inline-block; padding: 1px 8px; position: absolute; top: -10px; left: 6px; }
       .pat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px 15px; font-size: 8px; margin-top: 6px; }
-      .pat-grid .label { color: #667085; }
+      .pat-grid .label { color: #51637A; }
       .pat-grid .val { font-weight: bold; }
-      .section-title { font-size: 9px; font-weight: bold; background: #17202A; color: #FFFFFF; padding: 2px 6px; margin: 6px 0 3px 0; text-transform: uppercase; letter-spacing: 0.3px; }
+      .section-title { font-size: 9px; font-weight: bold; background: #0C1B2E; color: #FFFFFF; padding: 2px 6px; margin: 6px 0 3px 0; text-transform: uppercase; letter-spacing: 0.3px; }
       table { border-collapse: collapse; width: 100%; margin-bottom: 4px; }
-      th, td { border: 1px solid #98A2B3; padding: 1px 2px; text-align: center; font-size: 7px; }
-      th { background: #D8DEE7; font-weight: bold; }
+      th, td { border: 1px solid #5D6E85; padding: 1px 2px; text-align: center; font-size: 7px; }
+      th { background: #D6E2EE; font-weight: bold; }
       .med-label { text-align: left; font-weight: bold; white-space: nowrap; min-width: 100px; font-size: 7px; line-height: 1.2; }
       .med-label .name { font-size: 8px; }
-      .med-label .detail { font-weight: normal; font-size: 6px; color: #344054; }
-      .today { background: #F4F8FF; }
-      .footer { margin-top: 6px; font-size: 7px; color: #98A2B3; border-top: 1px solid #D8DEE7; padding-top: 4px; }
+      .med-label .detail { font-weight: normal; font-size: 6px; color: #3A4551; }
+      .today { background: #EAF3FF; }
+      .footer { margin-top: 6px; font-size: 7px; color: #5D6E85; border-top: 1px solid #D6E2EE; padding-top: 4px; }
       .page-break { page-break-before: always; }
       .key-section { font-size: 7px; margin: 4px 0; }
       .signature-table td { padding: 3px 6px; height: 20px; }
-      .empty-section { text-align: center; color: #98A2B3; padding: 8px; font-size: 8px; border: 1px dashed #D8DEE7; }
+      .empty-section { text-align: center; color: #5D6E85; padding: 8px; font-size: 8px; border: 1px dashed #D6E2EE; }
       .flex-row { display: flex; gap: 8px; }
       .flex-row > div { flex: 1; }
-      .note-line { border-bottom: 1px solid #D8DEE7; height: 16px; margin-bottom: 2px; }
-      .redacted-banner { background: #17202A; color: #FFFFFF; text-align: center; padding: 8px; font-size: 14px; font-weight: bold; letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; }
+      .note-line { border-bottom: 1px solid #D6E2EE; height: 16px; margin-bottom: 2px; }
+      .redacted-banner { background: #0C1B2E; color: #FFFFFF; text-align: center; padding: 8px; font-size: 14px; font-weight: bold; letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; }
       @page { size: landscape; margin: 6mm; }
     </style></head><body>
 
@@ -1685,20 +1687,20 @@ export default function EMedicationPage() {
       <div style="display:flex;gap:4px;margin-top:7px">
         <div style="flex:1">
           <table style="margin:0">
-            <tr><td style="width:80px;text-align:left;background:#E6EAF0;font-weight:bold">Name</td><td style="text-align:left;font-weight:bold;font-size:9px">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">NHS Number</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Date of Birth</td><td style="text-align:left">${age ? `[REDACTED] (${age} years)` : '[REDACTED]'}</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Room / Bed</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Weight</td><td style="text-align:left">________ kg</td></tr>
+            <tr><td style="width:80px;text-align:left;background:#E3E9F0;font-weight:bold">Name</td><td style="text-align:left;font-weight:bold;font-size:9px">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">NHS Number</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Date of Birth</td><td style="text-align:left">${age ? `[REDACTED] (${age} years)` : '[REDACTED]'}</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Room / Bed</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Weight</td><td style="text-align:left">________ kg</td></tr>
           </table>
         </div>
         <div style="flex:1">
           <table style="margin:0">
-            <tr><td style="width:80px;text-align:left;background:#E6EAF0;font-weight:bold">GP / Surgery</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">GP Phone</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Pharmacy</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Social Worker</td><td style="text-align:left">[REDACTED]</td></tr>
-            <tr><td style="text-align:left;background:#E6EAF0;font-weight:bold">Chart Period</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()} &ndash; ${new Date(chartData.record.end_date).toLocaleDateString()}</td></tr>
+            <tr><td style="width:80px;text-align:left;background:#E3E9F0;font-weight:bold">GP / Surgery</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">GP Phone</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Pharmacy</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Social Worker</td><td style="text-align:left">[REDACTED]</td></tr>
+            <tr><td style="text-align:left;background:#E3E9F0;font-weight:bold">Chart Period</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()} &ndash; ${new Date(chartData.record.end_date).toLocaleDateString()}</td></tr>
           </table>
         </div>
       </div>
@@ -1706,7 +1708,7 @@ export default function EMedicationPage() {
 
     <div class="pat-section" style="margin-top:8px">
       <h2>ALLERGIES [REDACTED]</h2>
-      <div style="margin-top:7px;text-align:center;color:#98A2B3;font-size:8px">Information withheld for data protection</div>
+      <div style="margin-top:7px;text-align:center;color:#5D6E85;font-size:8px">Information withheld for data protection</div>
     </div>
 
     <div class="key-section">
@@ -1743,7 +1745,7 @@ export default function EMedicationPage() {
           }
         }
         if (!hasEntries) {
-          html += `<tr><td style="font-weight:bold">${patchItem.name} ${patchItem.dosage}${patchItem.unit}</td><td colspan="7" style="color:#98A2B3;font-size:7px">No administrations recorded this period</td></tr>`
+          html += `<tr><td style="font-weight:bold">${patchItem.name} ${patchItem.dosage}${patchItem.unit}</td><td colspan="7" style="color:#5D6E85;font-size:7px">No administrations recorded this period</td></tr>`
         }
       }
       html += '</tbody></table>'
@@ -1776,7 +1778,7 @@ export default function EMedicationPage() {
           }
         }
         if (!hasData) {
-          html += `<tr><td style="font-weight:bold">${vdi.name} ${vdi.dosage}${vdi.unit}</td><td colspan="6" style="color:#98A2B3;font-size:7px">No administrations this period.</td></tr>`
+          html += `<tr><td style="font-weight:bold">${vdi.name} ${vdi.dosage}${vdi.unit}</td><td colspan="6" style="color:#5D6E85;font-size:7px">No administrations this period.</td></tr>`
         }
       }
       html += '</tbody></table>'
@@ -1786,7 +1788,7 @@ export default function EMedicationPage() {
     if (prnItems.length > 0) {
       html += `<div class="page-break"></div><div class="section-title">PRN (As Required) Medications</div>`
       for (const prnItem of prnItems) {
-        html += `<div style="border:1px solid #D8DEE7;padding:2px 4px;margin-bottom:3px;font-size:7px">
+        html += `<div style="border:1px solid #D6E2EE;padding:2px 4px;margin-bottom:3px;font-size:7px">
           <strong>${prnItem.name}</strong> ${prnItem.dosage}${prnItem.unit} &mdash; ${prnItem.route?.toUpperCase()} &mdash; ${prnItem.frequency}</div>`
       }
       html += `<table><thead><tr>
@@ -1820,7 +1822,7 @@ export default function EMedicationPage() {
         </tr>`
       }
       if (prnAdmins.length === 0) {
-        html += '<tr><td colspan="8" style="text-align:center;color:#98A2B3;padding:6px">No PRN administrations recorded this period.</td></tr>'
+        html += '<tr><td colspan="8" style="text-align:center;color:#5D6E85;padding:6px">No PRN administrations recorded this period.</td></tr>'
       }
       html += '</tbody></table>'
     }
@@ -1856,7 +1858,7 @@ export default function EMedicationPage() {
         </tr>`
       }
     } else {
-      html += '<tr><td colspan="10" style="text-align:center;color:#98A2B3;font-size:7px">No controlled drug administrations in this period.</td></tr>'
+      html += '<tr><td colspan="10" style="text-align:center;color:#5D6E85;font-size:7px">No controlled drug administrations in this period.</td></tr>'
       for (let i = 0; i < 5; i++) {
         html += '<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
       }
@@ -1910,7 +1912,7 @@ export default function EMedicationPage() {
         </tr>`
       }
     } else {
-      html += '<tr><td colspan="6" style="text-align:center;color:#98A2B3">No omitted or refused doses recorded this period.</td></tr>'
+      html += '<tr><td colspan="6" style="text-align:center;color:#5D6E85">No omitted or refused doses recorded this period.</td></tr>'
     }
     html += '</tbody></table>'
 
@@ -1928,7 +1930,7 @@ export default function EMedicationPage() {
       </tr>`
     }
     if (staffLookup.length === 0) {
-      html += '<tr><td colspan="6" style="text-align:center;color:#98A2B3;padding:8px">No staff recorded this period.</td></tr>'
+      html += '<tr><td colspan="6" style="text-align:center;color:#5D6E85;padding:8px">No staff recorded this period.</td></tr>'
     }
     html += `<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
@@ -1940,26 +1942,26 @@ export default function EMedicationPage() {
     <div class="flex-row">
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:120px">Chart Version</td><td style="text-align:left">1.0</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Date Chart Created</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Last Review Date</td><td style="text-align:left">${new Date().toLocaleDateString('en-GB')}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Next Review Date</td><td style="text-align:left">_________________</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Checked by Pharmacist</td><td style="text-align:left">_________________</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:120px">Chart Version</td><td style="text-align:left">1.0</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Date Chart Created</td><td style="text-align:left">${new Date(chartData.record.start_date).toLocaleDateString()}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Last Review Date</td><td style="text-align:left">${new Date().toLocaleDateString('en-GB')}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Next Review Date</td><td style="text-align:left">_________________</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Checked by Pharmacist</td><td style="text-align:left">_________________</td></tr>
         </table>
       </div>
       <div>
         <table>
-          <tr><td style="text-align:left;background:#E6EAF0;width:120px">Items on Chart</td><td style="text-align:left">${chartData.items.length} (${regularItems.length} regular, ${prnItems.length} PRN)</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Days Covered</td><td style="text-align:left">${days.length}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Chart Status</td><td style="text-align:left">${chartData.record.status}</td></tr>
-          <tr><td style="text-align:left;background:#E6EAF0">Total Administrations</td><td style="text-align:left">${Object.values(chartData.adminMap).reduce((sum: number, byItem: any) => sum + Object.values(byItem).reduce((s: number, arr: any) => s + arr.length, 0), 0)}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0;width:120px">Items on Chart</td><td style="text-align:left">${chartData.items.length} (${regularItems.length} regular, ${prnItems.length} PRN)</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Days Covered</td><td style="text-align:left">${days.length}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Chart Status</td><td style="text-align:left">${chartData.record.status}</td></tr>
+          <tr><td style="text-align:left;background:#E3E9F0">Total Administrations</td><td style="text-align:left">${Object.values(chartData.adminMap).reduce((sum: number, byItem: any) => sum + Object.values(byItem).reduce((s: number, arr: any) => s + arr.length, 0), 0)}</td></tr>
         </table>
       </div>
     </div>`
 
     // ── Notes ──
     html += `<div class="section-title">Notes &amp; Comments</div>
-    <div style="border:1px solid #98A2B3;padding:4px;min-height:30px;margin-bottom:4px">`
+    <div style="border:1px solid #5D6E85;padding:4px;min-height:30px;margin-bottom:4px">`
     const allNotes = new Set<string>()
     if (chartData.adminMap) {
       for (const itemId of Object.keys(chartData.adminMap)) {
@@ -1972,7 +1974,7 @@ export default function EMedicationPage() {
     }
     if (allNotes.size > 0) {
       for (const note of allNotes) {
-        html += `<div style="font-size:7px;margin-bottom:2px;padding:1px 3px;background:#F7F9FC">&bull; ${note}</div>`
+        html += `<div style="font-size:7px;margin-bottom:2px;padding:1px 3px;background:#F4F9FC">&bull; ${note}</div>`
       }
     }
     html += `<div class="note-line"></div><div class="note-line"></div>
@@ -2289,7 +2291,7 @@ export default function EMedicationPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }} className="no-print">
         <Box>
           <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 700, color: METICLE_COLORS.text, letterSpacing: '-0.025em' }}>Medication (eMAR)</Typography>
-          <Typography variant="body2" sx={{ color: '#667085', mt: 0.25 }}>Administration records, stock, deliveries and controlled-drug counts.</Typography>
+          <Typography variant="body2" sx={{ color: '#51637A', mt: 0.25 }}>Administration records, stock, deliveries and controlled-drug counts.</Typography>
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
           {overdueError || overdueCountError ? <Chip icon={<WarningIcon />} label="Overdue status unavailable" size="small" variant="outlined" /> : overdueLoading || overdueCountLoading ? <Chip label="Checking overdue doses…" size="small" variant="outlined" /> : overdueCount > 0 ? (
@@ -2320,7 +2322,7 @@ export default function EMedicationPage() {
 
       {/* Tabs */}
       <Paper sx={{ mb: 2, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
-        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#667085', '&.Mui-selected': { color: METICLE_COLORS.primary } }, '& .MuiTabs-indicator': { backgroundColor: METICLE_COLORS.primary, height: 3 } }}>
+        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#51637A', '&.Mui-selected': { color: METICLE_COLORS.primary } }, '& .MuiTabs-indicator': { backgroundColor: METICLE_COLORS.primary, height: 3 } }}>
           <Tab id="emed-tab-0" aria-controls="emed-panel-0" label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
           <Tab id="emed-tab-1" aria-controls="emed-panel-1" label="Stock" icon={<InventoryIcon />} iconPosition="start" />
           <Tab id="emed-tab-2" aria-controls="emed-panel-2" label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
@@ -2333,7 +2335,7 @@ export default function EMedicationPage() {
       {tab === 0 && (
         <Box id="emed-panel-0" role="tabpanel" aria-labelledby="emed-tab-0">
           <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
-            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? METICLE_COLORS.danger : '#667085' },
+            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? METICLE_COLORS.danger : '#51637A' },
 
               { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: selectedPerson ? 'Scheduled doses' : 'Select a person for count', icon: <TodayIcon fontSize="small" />, color: METICLE_COLORS.info },
               { label: 'Administered today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: selectedPerson ? 'Recorded as given' : 'Select a person for count', icon: <CheckIcon fontSize="small" />, color: METICLE_COLORS.success },
@@ -2342,7 +2344,7 @@ export default function EMedicationPage() {
             ].map(metric => <Grid item xs={6} sm={4} lg key={metric.label}>
               <Paper variant="outlined" sx={{ p: 1.5, height: '100%', minHeight: 104, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
                 <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F2F4F7' : metric.color === METICLE_COLORS.danger ? NOTICE_COLORS.error.bg : metric.color === METICLE_COLORS.success ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
+                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F0F5FC' : metric.color === METICLE_COLORS.danger ? NOTICE_COLORS.error.bg : metric.color === METICLE_COLORS.success ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
                     <Typography variant="h5" sx={{ mt: 0.2, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{metric.value}</Typography>
@@ -2411,7 +2413,7 @@ export default function EMedicationPage() {
                   </IconButton>
                 </Stack>}
 
-                {peopleLoading ? <Box sx={{ display: 'grid', gap: 0.75 }}>{[0, 1, 2, 3].map(i => <Box key={i} sx={{ height: 50, bgcolor: '#F2F4F7', borderRadius: 1 }} />)}</Box> : visiblePeople.length === 0 ? (
+                {peopleLoading ? <Box sx={{ display: 'grid', gap: 0.75 }}>{[0, 1, 2, 3].map(i => <Box key={i} sx={{ height: 50, bgcolor: '#F0F5FC', borderRadius: 1 }} />)}</Box> : visiblePeople.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 3 }}>
                     <Typography color="text.secondary" variant="body2">{personSearch || selectedLocationFilter !== 'all' || personStatusFilter !== 'all' ? 'No people match these filters.' : 'No people found for this organisation.'}</Typography>
                   </Box>
@@ -2421,7 +2423,7 @@ export default function EMedicationPage() {
                       const isSelected = selectedPerson?.id === person.id
                       const isOnMedication = personHasMedication(person.id)
                       return <Box key={person.id} component="button" type="button" onClick={() => { setSelectedPerson(person); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)); setPersonMedicationSearch('') }} sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, p: 1, border: '1px solid', borderColor: isSelected ? METICLE_COLORS.primary : 'transparent', borderRadius: 1.5, bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'notice.subtle.bg' }, '&:focus-visible': { outline: `2px solid ${METICLE_COLORS.primary}`, outlineOffset: 1 } }}>
-                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: METICLE_COLORS.infoSoft, color: '#175CD3' }}><PersonIcon fontSize="small" /></Box>
+                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: METICLE_COLORS.infoSoft, color: '#004085' }}><PersonIcon fontSize="small" /></Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={600} noWrap>{person.first_name} {person.last_name}</Typography><Typography variant="caption" color="text.secondary" noWrap>{person.location_name || locations.find((loc: any) => loc.id === person.location_id)?.name || 'No location'}</Typography></Box>
                         {isOnMedication && <Box aria-label="Active medication record" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: METICLE_COLORS.success, flexShrink: 0 }} />}
                       </Box>
@@ -2566,7 +2568,7 @@ export default function EMedicationPage() {
                                   bgcolor: day === todayStr() ? EMR.today : EMR.rowAlt,
                                   color: day === todayStr() ? EMR.navy : EMR.ink,
                                   borderLeft: i > 0 ? `1px solid ${EMR.hairline}` : 'none',
-                                  cursor: 'pointer', '&:hover': { bgcolor: day === todayStr() ? '#E3EDF6' : '#F1EDE3' }
+                                  cursor: 'pointer', '&:hover': { bgcolor: P.hairline }
                                 }}
                                   onClick={() => openDayAdminDialog(day)}
                                 >
@@ -2600,7 +2602,7 @@ export default function EMedicationPage() {
                                     borderRight: `2px solid ${EMR.windowBorder}`, whiteSpace: 'nowrap'
                                   }}>
                                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ opacity: item.is_active ? 1 : 0.5 }}>
-                                      <MedIcon sx={{ fontSize: 14, color: item.is_active ? '#2F80ED' : '#98A2B3' }} />
+                                      <MedIcon sx={{ fontSize: 14, color: item.is_active ? '#0164C8' : '#5D6E85' }} />
                                       <span style={{ textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</span>
                                       <Typography variant="caption" color="text.secondary">{item.dosage}{item.unit}</Typography>
                                       <Chip label={item.route} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
@@ -2683,7 +2685,7 @@ export default function EMedicationPage() {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', height: 30,
                                             '&:hover': { bgcolor: 'rgba(15,76,129,0.06)' }
                                           }}>
-                                            <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#E6EAF0' }} />
+                                            <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#E3E9F0' }} />
                                           </Box>
                                         )}
                                       </TableCell>
@@ -2728,7 +2730,7 @@ export default function EMedicationPage() {
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ opacity: item.is_active ? 1 : 0.5 }}>
                               <Box>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                  <MedIcon sx={{ fontSize: 16, color: item.is_active ? '#2F80ED' : '#98A2B3' }} />
+                                  <MedIcon sx={{ fontSize: 16, color: item.is_active ? '#0164C8' : '#5D6E85' }} />
                                   <Typography variant="body2" fontWeight={600} sx={{ textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</Typography>
                                   <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
                                   <Chip label={item.route} size="small" variant="outlined" />
@@ -3326,7 +3328,7 @@ export default function EMedicationPage() {
         </Box>
 
         {selectedPerson && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, py: 1.5, bgcolor: '#F4F8FF', borderBottom: `1px solid ${METICLE_COLORS.border}`, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, py: 1.5, bgcolor: '#EAF3FF', borderBottom: `1px solid ${METICLE_COLORS.border}`, flexShrink: 0 }}>
             <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#FFFFFF', color: METICLE_COLORS.primary, border: `1px solid ${METICLE_COLORS.borderStrong}` }}>
               <PersonIcon fontSize="small" />
             </Box>
@@ -3535,7 +3537,7 @@ export default function EMedicationPage() {
 
         <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${METICLE_COLORS.border}`, bgcolor: '#FFFFFF', gap: 1, flexShrink: 0 }}>
           <Button onClick={() => setItemDialog(false)} variant="outlined"
-            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', borderColor: METICLE_COLORS.borderStrong, color: '#344054' }}>
+            sx={{ textTransform: 'none', minHeight: 42, px: 2.5, borderRadius: '10px', borderColor: METICLE_COLORS.borderStrong, color: '#3A4551' }}>
             Cancel
           </Button>
           <Button variant="contained" onClick={handleSaveItem} disabled={itemSaveDisabled}

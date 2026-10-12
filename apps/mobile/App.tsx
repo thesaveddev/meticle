@@ -139,6 +139,16 @@ type Screen =
   | { kind: 'mica' }
   | { kind: 'sos' }
 
+/**
+ * The tab bar's height, derived from the styles below rather than guessed, so the
+ * floating Mica orb can be told how much of the bottom edge the navigation owns.
+ * A dragged orb used to clamp 40px from the bottom of the window — inside this
+ * bar — which parked a live control on top of the tabs.
+ */
+const TAB_ROW_MIN_HEIGHT = 48
+const TAB_BAR_PADDING_BOTTOM = Platform.OS === 'ios' ? spacing.xs : spacing.md
+const TAB_BAR_HEIGHT = spacing.xs + TAB_ROW_MIN_HEIGHT + TAB_BAR_PADDING_BOTTOM + StyleSheet.hairlineWidth
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -207,13 +217,15 @@ function AppInner() {
   const sosContacts = useMemo(() => organisationSosContacts(session?.organization), [session?.organization])
 
   // Mica surface. Tap the floating orb anywhere to open the Mica home screen;
-  // long-press it to open the SOS & Help screen.
+  // long-press it to open the SOS & Help screen. Both pushes are idempotent:
+  // the orb is mounted on every screen including these two, so tapping it while
+  // already there must not stack a second copy of the same screen.
   const openMica = useCallback(() => {
-    pushScreen({ kind: 'mica' })
-  }, [pushScreen])
+    setScreenStack(prev => prev[prev.length - 1].kind === 'mica' ? prev : [...prev, { kind: 'mica' }])
+  }, [])
   const openSos = useCallback(() => {
-    pushScreen({ kind: 'sos' })
-  }, [pushScreen])
+    setScreenStack(prev => prev[prev.length - 1].kind === 'sos' ? prev : [...prev, { kind: 'sos' }])
+  }, [])
 
   const loadVisits = useCallback(async (activeSession: AuthSession, refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -686,6 +698,7 @@ function AppInner() {
           onMicaPress={openMica}
           onSosPress={openSos}
           sosContacts={sosContacts}
+          bottomClearance={TAB_BAR_HEIGHT}
         />
       </SafeAreaView>
     </>
@@ -702,10 +715,10 @@ const s = StyleSheet.create({
     // the iOS home indicator, so the bar only has to add its own breathing
     // room. Without that edge the bar sat under the indicator on every iPhone
     // with a gesture bar.
-    paddingBottom: Platform.OS === 'ios' ? spacing.xs : spacing.md,
+    paddingBottom: TAB_BAR_PADDING_BOTTOM,
     paddingTop: spacing.xs,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 2, minHeight: 48 },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 2, minHeight: TAB_ROW_MIN_HEIGHT },
   chatBadge: { position: 'absolute', top: 1, right: '50%', marginRight: -20, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, zIndex: 2 },
   chatBadgeText: { fontSize: 10, fontWeight: '700', fontFamily: FONT, lineHeight: 13 },
   tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },

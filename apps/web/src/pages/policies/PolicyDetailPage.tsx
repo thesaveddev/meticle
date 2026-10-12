@@ -171,7 +171,7 @@ export default function PolicyDetailPage() {
               <Button variant="outlined" startIcon={<EmailIcon />} onClick={shareByEmail} sx={{ borderColor: NAVY, color: NAVY, textTransform: 'none', fontWeight: 600 }}>
                 Share by email
               </Button>
-              <Button variant="contained" startIcon={<ShareIcon />} onClick={openShare} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, textTransform: 'none', fontWeight: 600 }}>
+              <Button variant="contained" startIcon={<ShareIcon />} onClick={openShare} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' }, textTransform: 'none', fontWeight: 600 }}>
                 Share to org chat
               </Button>
               <Button variant="outlined" startIcon={<PdfIcon />} onClick={downloadPolicy} sx={{ borderColor: HAIRLINE, color: INK, textTransform: 'none', fontWeight: 600 }}>

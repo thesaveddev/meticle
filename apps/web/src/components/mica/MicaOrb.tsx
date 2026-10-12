@@ -1,7 +1,10 @@
 import { useEffect, useMemo } from 'react'
 import { motion, useMotionValue, useSpring, useTransform, animate, type MotionValue } from 'framer-motion'
 
-export type MicaState = 'idle' | 'listening' | 'thinking' | 'responding'
+import { MICA_LABEL, type MicaState } from './mica.identity'
+
+/** Re-exported so existing importers keep working; the union lives in one place. */
+export type { MicaState }
 
 interface MicaOrbProps {
   state: MicaState
@@ -17,16 +20,17 @@ interface MicaOrbProps {
  * the orb cannot drift from the brand the rest of the app ships.
  */
 const COLORS = {
-  primaryBlue: '#2F80ED',
-  deepBlue: '#1F68C7',
+  primaryBlue: '#0164C8',
+  deepBlue: '#014FB5',
   sky: '#6B8AFD',
-  cyan: '#10BFA5',
+  cyan: '#03C6B1',
   mint: '#10B981',
   white: '#FFFFFF',
 }
 
 export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps) {
   const isIdle = state === 'idle'
+  const isError = state === 'error'
 
   const orbSize = isIdle ? 62 : 170
   const orbitSize = isIdle ? 78 : 250
@@ -85,6 +89,13 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
       controls.push(animate(innerRotation, [0, -360], { duration: 13, ease: 'linear', repeat: Infinity }))
       controls.push(animate(waveScale, [1, 1.1, 0.92, 1], { duration: 1.3, ease: 'easeInOut', repeat: Infinity }))
       controls.push(animate(barPhase, [0, 1], { duration: 0.9, ease: 'linear', repeat: Infinity }))
+    } else if (state === 'error') {
+      // Deliberately still: a looping animation reads as progress, and a failed
+      // request is not progressing. The orb keeps its size, gradient, eyes and
+      // ambient glow — the danger ring is the only new signal, so an error can
+      // never be mistaken for a different assistant.
+      controls.push(animate(scale, 1, { duration: 0.25 }))
+      controls.push(animate(glowOpacity, 0.3, { duration: 0.3 }))
     }
     return () => controls.forEach(c => c.stop())
   }, [state])
@@ -107,9 +118,10 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
         position: 'relative',
       }}
     >
-      {/* AMBIENT GLOW */}
+      {/* AMBIENT GLOW — exactly one in every state; the orb's resting signal. */}
       <motion.div
         aria-hidden
+        data-mica-glow="on"
         style={{
           position: 'absolute',
           width: orbSize * 1.65,
@@ -155,12 +167,28 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
         </motion.div>
       )}
 
+      {/* ERROR RING — the one signal that distinguishes a failure from speech. */}
+      {isError && (
+        <div
+          aria-hidden
+          data-mica-ring="error"
+          style={{
+            position: 'absolute',
+            width: orbSize + 18,
+            height: orbSize + 18,
+            borderRadius: '50%',
+            border: '3px solid var(--mc-danger)',
+            boxShadow: '0 0 24px var(--mc-danger)',
+          }}
+        />
+      )}
+
       {/* ORB */}
       <button
         type="button"
         disabled={!isIdle}
         onClick={isIdle ? onPress : undefined}
-        aria-label="MICA AI assistant"
+        aria-label={MICA_LABEL.orb}
         style={{
           width: orbSize,
           height: orbSize,
@@ -231,10 +259,11 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
         </motion.div>
       </button>
 
-      {/* VOICE WAVEFORM */}
-      {!isIdle && (
+      {/* VOICE WAVEFORM — speech states only; an error has nothing to meter. */}
+      {!isIdle && !isError && (
         <motion.div
           aria-hidden
+          data-mica-waveform="on"
           style={{
             position: 'absolute',
             bottom: -4,
@@ -261,6 +290,7 @@ function WaveBar({ baseHeight, tall, phase }: { baseHeight: number; tall: boolea
   const height = baseHeight * (tall ? 0.8 : 1)
   return (
     <motion.div
+      data-mica-bar="on"
       style={{
         width: 4,
         height,

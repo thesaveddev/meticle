@@ -18,7 +18,7 @@ const mileagePay = (v: any) => (Number(v.actual_mileage_miles) || 0) * (Number(v
 
 /* ── Carer roll-up list for the "By carer" view ── */
 function CarerMileageList({ rows, onSelect }: { rows: any[]; onSelect: (staffId: string) => void }) {
-  return <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+  return <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
     <Table>
       <TableHead>
         <TableRow>
@@ -55,7 +55,7 @@ function CarerMileageList({ rows, onSelect }: { rows: any[]; onSelect: (staffId:
 function CallOwnerDialog({ visit, onClose }: { visit: any; onClose: () => void }) {
   const awarded = visit ? isAwarded(visit) : false
   const row = (label: string, value: React.ReactNode) => (
-    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.75, borderBottom: '1px solid #F7F9FC' }}>
+    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.75, borderBottom: '1px solid #F4F9FC' }}>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>{label}</Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>{value}</Typography>
     </Stack>
@@ -283,7 +283,7 @@ export default function MileagePage() {
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
-          <CarIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
+          <CarIcon sx={{ color: '#0164C8', fontSize: 28 }} />
           <Box>
             <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 600, letterSpacing: 1.2 }}>Operations controls</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>Mileage, travel & rate rules</Typography>
@@ -297,7 +297,7 @@ export default function MileagePage() {
       </Stack>
 
       {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: '1px solid #E6EAF0' }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: '1px solid #E3E9F0' }}>
         <Tab label="Travel register" icon={<TravelTimeIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
         <Tab label={`Policy register ${activePolicies.length > 0 ? `(${activePolicies.length})` : ''}`} icon={<SettingsIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
         {isManager && <Tab label="Rate profiles" icon={<PolicyIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />}
@@ -318,19 +318,19 @@ export default function MileagePage() {
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 600, color: '#2F80ED' }}>{totalMiles.toFixed(1)}</Typography>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: '#0164C8' }}>{totalMiles.toFixed(1)}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded miles</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, color: '#10B981' }}>{fmtMoney(totalMileagePay)}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded mileage pay</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 600, color: '#2F80ED' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: '#0164C8' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded travel time</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 600 }}>{awardedVisits.length} / {mileageVisits.length}</Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded trips</Typography>
             </Paper>
@@ -357,7 +357,7 @@ export default function MileagePage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{carerMileage.find((c: any) => (c.staff_id || 'unassigned') === selectedCarer)?.name || 'Carer'}</Typography>
                 </Stack>
               )}
-              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -419,8 +419,8 @@ export default function MileagePage() {
           {policiesLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : policies.length === 0 ? (
-            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
-              <PolicyIcon sx={{ fontSize: 48, color: '#D8DEE7', mb: 1 }} />
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
+              <PolicyIcon sx={{ fontSize: 48, color: '#D6E2EE', mb: 1 }} />
               <Typography sx={{ color: 'text.secondary', mb: 1 }}>No mileage policies configured</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>Add an approved policy to calculate mileage reimbursement consistently for carer travel.</Typography>
               {isManager && (
@@ -432,7 +432,7 @@ export default function MileagePage() {
           ) : (
             <>
               <TextField size="small" placeholder="Search policies..." value={policySearch} onChange={e => { setPolicySearch(e.target.value); setPolicyPage(0) }} sx={{ mb: 2, minWidth: 250 }} />
-              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -457,17 +457,17 @@ export default function MileagePage() {
                       <TableCell>
                         <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'notice.muted.bg' }} />
                       </TableCell>
-                      <TableCell align="right"><Typography sx={{ fontWeight: 600, color: '#2F80ED' }}>{fmtRate(p.rate_pence)}</Typography></TableCell>
+                      <TableCell align="right"><Typography sx={{ fontWeight: 600, color: '#0164C8' }}>{fmtRate(p.rate_pence)}</Typography></TableCell>
                       <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>{p.effective_to ? new Date(p.effective_to).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{p.source_label || '—'}</Typography></TableCell>
                       <TableCell>
-                        <Chip label={p.is_active ? 'Active' : 'Inactive'} size="small" sx={{ bgcolor: p.is_active ? '#EAFBF5' : '#F7F9FC', color: p.is_active ? '#087A55' : '#98A2B3', fontWeight: 600 }} />
+                        <Chip label={p.is_active ? 'Active' : 'Inactive'} size="small" sx={{ bgcolor: p.is_active ? '#EAFBF5' : '#F4F9FC', color: p.is_active ? '#087A55' : '#5D6E85', fontWeight: 600 }} />
                       </TableCell>
                       {isManager && (
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                            <Button size="small" startIcon={<EditIcon />} onClick={() => openPolicyEdit(p)} sx={{ textTransform: 'none', color: '#2F80ED' }}>Edit</Button>
+                            <Button size="small" startIcon={<EditIcon />} onClick={() => openPolicyEdit(p)} sx={{ textTransform: 'none', color: '#0164C8' }}>Edit</Button>
                             <Button size="small" startIcon={<DeleteIcon />} onClick={() => setDeleteConfirm(p.id)} sx={{ textTransform: 'none', color: '#EF4444' }}>Delete</Button>
                           </Stack>
                         </TableCell>
@@ -520,7 +520,7 @@ export default function MileagePage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPolicyDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={savePolicy} disabled={policySaving || !policyForm.tax_year || !policyForm.rate_pence} sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}>
+          <Button variant="contained" onClick={savePolicy} disabled={policySaving || !policyForm.tax_year || !policyForm.rate_pence} sx={{ textTransform: 'none', bgcolor: '#0164C8' }}>
             {policySaving ? <CircularProgress size={18} color="inherit" /> : editId ? 'Save changes' : 'Add policy'}
           </Button>
         </DialogActions>
@@ -677,14 +677,14 @@ function RateProfilesTab() {
   return <Stack spacing={2}>
     {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box> : <>
-      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
           <Box><Typography variant="h6" sx={{ fontWeight: 600 }}>Client billing profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly charges for client packages. A package can override the selected rate.</Typography></Box>
           <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('billing'))}>Add billing profile</AppButton>
         </Stack>
         {renderProfiles('billing', billingProfiles)}
       </Paper>
-      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E6EAF0', borderRadius: 3 }}>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: '#E3E9F0', borderRadius: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
           <Box><Typography variant="h6" sx={{ fontWeight: 600 }}>Carer pay profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly pay rates assigned to carers. A call-level pay rate takes precedence.</Typography></Box>
           <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('pay'))}>Add pay profile</AppButton>

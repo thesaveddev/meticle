@@ -122,7 +122,7 @@ export default function StaffEngagementPage() {
           {aggregate && aggregate.total > 0 && (
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0' }}>
+                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E3E9F0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <GroupIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
                     <Typography variant="h4" fontWeight={600}>{aggregate.total}</Typography>
@@ -132,7 +132,7 @@ export default function StaffEngagementPage() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E6EAF0' }}>
+                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E3E9F0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
                     <Typography variant="body2" color="text.secondary">Avg Score / 5</Typography>
@@ -140,9 +140,9 @@ export default function StaffEngagementPage() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E6EAF0' }}>
+                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E3E9F0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={600} color="#2F80ED">
+                    <Typography variant="h4" fontWeight={600} color="#0164C8">
                       {aggregate.total > 0 ? Math.round((avgAll / 5) * 100) : '—'}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Engagement Score</Typography>

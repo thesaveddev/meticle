@@ -199,7 +199,7 @@ export default function IdentityMonitoringPage() {
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', mb: 4 }}>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E3E9F0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={600}>{counts.compliant}</Typography>
@@ -210,7 +210,7 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E3E9F0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={600}>{counts.incomplete}</Typography>
@@ -221,7 +221,7 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E3E9F0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={600}>{counts.expiring}</Typography>
@@ -232,7 +232,7 @@ export default function IdentityMonitoringPage() {
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
-          <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E6EAF0', borderRadius: 3 }}>
+          <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E3E9F0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>
               <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1 }}>
                 <Typography variant="h5" color="white" fontWeight={600}>{counts.expired}</Typography>

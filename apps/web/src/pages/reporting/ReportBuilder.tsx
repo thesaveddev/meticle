@@ -41,7 +41,7 @@ const CHART_ICONS: Record<string, React.ReactNode> = {
   bar: <BarIcon />, pie: <PieIcon />, line: <LineIcon />, area: <AreaIcon />, radar: <RadarIcon />, table: <TableIcon />,
 }
 
-const SEVERITY_COLORS: Record<string, string> = { critical: '#EF4444', high: '#F59E0B', medium: '#F59E0B', low: '#2F80ED' }
+const SEVERITY_COLORS: Record<string, string> = { critical: '#EF4444', high: '#F59E0B', medium: '#F59E0B', low: '#0164C8' }
 
 export default function ReportBuilder() {
   const { reportId } = useParams<{ reportId: string }>()
@@ -171,7 +171,7 @@ export default function ReportBuilder() {
       })
       chartData = Object.entries(byName).map(([name, vals]) => ({ name, ...vals }))
       const newSeriesKeys = Array.from(allSeverities)
-      const sevColors = newSeriesKeys.map(s => SEVERITY_COLORS[s] || '#667085')
+      const sevColors = newSeriesKeys.map(s => SEVERITY_COLORS[s] || '#51637A')
       return <BarChart title={data.report.title} data={chartData as any} seriesKeys={newSeriesKeys} colors={sevColors}
         stacked={chartType === 'bar'} horizontal={chartData.length <= 8} />
     }

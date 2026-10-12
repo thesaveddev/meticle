@@ -20,7 +20,7 @@ import WeeklyMealGrid from '../../components/nutrition/WeeklyMealGrid';
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
   { value: 'morning_snack', label: 'Morning Snack', color: '#10B981', icon: '🍎' },
-  { value: 'lunch', label: 'Lunch', color: '#2F80ED', icon: '🍽️' },
+  { value: 'lunch', label: 'Lunch', color: '#0164C8', icon: '🍽️' },
   { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B7CF6', icon: '🥤' },
   { value: 'dinner', label: 'Dinner', color: '#EF4444', icon: '🌙' },
   { value: 'evening_snack', label: 'Evening Snack', color: '#8B7CF6', icon: '🍪' },

@@ -14,33 +14,33 @@
 export const X = {
   /* ── Ink ─────────────────────────────────────────── */
   /** Body ink on paper. */
-  ink:        '#17202A',
+  ink:        '#0C1B2E',
   /** Strongest ink — headings, key figures. */
   heading:    '#1F2937',
   /** Paragraph copy, table cells. */
-  body:       '#17202A',
+  body:       '#0C1B2E',
   /** Secondary copy — captions, labels. */
-  secondary:  '#667085',
+  secondary:  '#51637A',
   /** Faintest copy — meta, footers, legal lines. */
-  muted:      '#98A2B3',
+  muted:      '#5D6E85',
 
   /* ── Rules & surfaces ────────────────────────────── */
   /** Table rules, card borders. */
-  line:       '#E6EAF0',
+  line:       '#E3E9F0',
   /** Softer rules (row hairlines inside panels). */
-  lineSoft:   '#D8DEE7',
+  lineSoft:   '#D6E2EE',
   /** Table header fill, row striping, soft panels. */
-  headerBg:   '#F7F9FC',
-  panelBg:    '#F9FAFB',
+  headerBg:   '#F4F9FC',
+  panelBg:    '#F7FAFE',
 
   /* ── Brand ───────────────────────────────────────── */
   /** Brand blue — headings, figure accents, section rules. */
-  brand:      '#2F80ED',
+  brand:      '#0164C8',
   /** Wordmark + footer text accent. */
   brandDeep:  '#087A55',
   /** AI-section accent and its soft panel fill. */
   accent:     '#8B7CF6',
-  accentSoft: '#F4F8FF',
+  accentSoft: '#EAF3FF',
 
   /* ── Status tones ────────────────────────────────── */
   okBg:       '#EAFBF5',
@@ -49,8 +49,8 @@ export const X = {
   warnFg:     '#9A6700',
   badBg:      '#FEF0F0',
   badFg:      '#B42318',
-  neutralBg:  '#F2F4F7',
-  neutralFg:  '#344054',
+  neutralBg:  '#F0F5FC',
+  neutralFg:  '#3A4551',
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

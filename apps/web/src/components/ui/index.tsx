@@ -126,10 +126,10 @@ const TONE_COLORS: Record<BadgeTone, { bg: string; fg: string }> = {
   success: { bg: '#EAFBF5', fg: '#087A55' },
   warning: { bg: '#FFF7E6', fg: '#9A6700' },
   error: { bg: '#FEF0F0', fg: '#B42318' },
-  info: { bg: '#EAF3FF', fg: '#175CD3' },
-  neutral: { bg: '#F2F4F7', fg: '#475467' },
-  primary: { bg: '#EAF3FF', fg: '#175CD3' },
-  purple: { bg: '#EAF3FF', fg: '#175CD3' },
+  info: { bg: '#EAF3FF', fg: '#004085' },
+  neutral: { bg: '#F0F5FC', fg: '#51637A' },
+  primary: { bg: '#EAF3FF', fg: '#004085' },
+  purple: { bg: '#EAF3FF', fg: '#004085' },
 }
 
 interface StatusBadgeProps {
@@ -215,7 +215,7 @@ export function Card({ children, header, onClick, sx }: CardProps) {
         bgcolor: 'var(--mc-surface)',
         border: '1px solid var(--mc-border)',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 2px 8px rgba(16,24,40,0.04)',
+        boxShadow: '0 2px 8px rgba(12,27,46,0.04)',
         display: 'flex',
         flexDirection: 'column',
         minWidth: 0,

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../services/api'
+import type { MicaState } from './mica.identity'
 
-export type MicaState = 'idle' | 'listening' | 'thinking' | 'responding'
+/** Re-exported so existing importers keep working; the union lives in one place. */
+export type { MicaState }
 
 export interface MicaPerson {
   id: string
@@ -393,9 +395,12 @@ export function useMica() {
           'Mica could not reach the AI service. Check AI settings.'
         setResponseMessage(msg)
         setState('responding')
+        // The message is still spoken (a voice-first user must hear the
+        // failure), but the session then lands in the explicit error state:
+        // the calm "responding…" animation is the wrong signal for a failure,
+        // and the orb and overlay both have an error treatment now.
         speak(msg, () => {
-          setState('idle')
-          setResponseMessage(null)
+          setState('error')
         })
       }
       return
@@ -437,9 +442,12 @@ export function useMica() {
         const msg = (err.handled ? err.message : (err.response?.data?.error?.message || '')) || 'Mica could not prepare that. Check AI settings.'
         setResponseMessage(msg)
         setState('responding')
+        // The message is still spoken (a voice-first user must hear the
+        // failure), but the session then lands in the explicit error state:
+        // the calm "responding…" animation is the wrong signal for a failure,
+        // and the orb and overlay both have an error treatment now.
         speak(msg, () => {
-          setState('idle')
-          setResponseMessage(null)
+          setState('error')
         })
       }
       return
@@ -488,9 +496,10 @@ export function useMica() {
           const msg = (err.handled ? err.message : (err.response?.data?.error?.message || '')) || 'Mica could not prepare that. Check AI settings.'
           setResponseMessage(msg)
           setState('responding')
+          // Same contract as the outer failure paths: speak the failure, then
+          // hold the explicit error state until the user dismisses it.
           speak(msg, () => {
-            setState('idle')
-            setResponseMessage(null)
+            setState('error')
           })
         }
         return
@@ -560,6 +569,9 @@ export function useMica() {
     stopTtsPlayback()
     setState('idle')
     setTranscript('')
+    // Dismissing clears a session failure too — an error the user has closed
+    // must not reappear on the next tap.
+    setError(null)
   }, [stopMicMeter, stopTtsPlayback])
 
   // Refs so the VAD timer closure reads fresh values without re-subscribing.

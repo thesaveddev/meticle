@@ -8,30 +8,34 @@
 /* ─── Palette ─────────────────────────────────────── */
 
 export const P = {
-  /* Primary — deep, serious, trustworthy */
-  navy:       '#17202A',
-  navyMid:    '#1E293B',
-  navyLight:  '#334155',
-  slate:      '#475467',
-  slateLight: '#667085',
-  muted:      '#94A3B8',
-  subtle:     '#CBD5E1',
-  faint:      '#F5F7FA',
+  /* Primary — the logo-derived brand ramp (scripts/design/palette.mjs):
+     Ink #0C1B2E, Mist Ground #F4F9FC, Hairline #E3E9F0, Brand Blue #0164C8. */
+  navy:       '#0C1B2E',
+  navyMid:    '#112539',
+  navyLight:  '#2A3C54',
+  slate:      '#51637A',
+  slateLight: '#5D6E85',
+  muted:      '#5D6E85',
+  subtle:     '#C3D2E2',
+  faint:      '#F7FAFE',
 
-  /* Surfaces */
-  paper:      '#FBFCFE',
-  warm:       '#F7F9FC',
+  /* Surfaces and the line that separates them. `hairline` is the brand Hairline
+     (#E3E9F0): every card border, table rule and grid line in the app comes
+     from it, so a page that retypes it is a page that will drift. */
+  paper:      '#FCFDFF',
+  warm:       '#F4F9FC',
   card:       '#FFFFFF',
+  hairline:   '#E3E9F0',
 
-  /* Accent — distinctive teal, not generic healthcare */
-  teal:       '#10BFA5',
-  tealDark:   '#0C9E89',
-  tealLight:  '#E8FAF6',
-  tealDeep:   '#087A55',
+  /* Accent — brand Mint, not generic healthcare teal */
+  teal:       '#03C6B1',
+  tealDark:   '#046E86',
+  tealLight:  '#D2FBF4',
+  tealDeep:   '#004E45',
 
   /* Secondary accent — indigo for contrast */
   indigo:     '#6B8AFD',
-  indigoLight:'#F4F8FF',
+  indigoLight:'#EAF3FF',
 
   /* Status */
   red:        '#EF4444',
@@ -41,10 +45,86 @@ export const P = {
   green:      '#10B981',
   greenLight: '#EAFBF5',
 
+  /* Brand primaries, straight from scripts/design/palette.mjs. Spelled out so
+     a page that needs the brand blue as a literal — a print sheet, an inline
+     style, a third-party button clone — has a name for it instead of retyping
+     the hex and drifting onto #004B93 or #0158AC. */
+  primary:      '#0164C8',
+  primaryHover: '#0251B3',
+  primaryDeep:  '#014FB5',
+
   /* Dark sections */
-  dark:       '#17202A',
-  darkMid:    '#17202A',
-  darkCard:   '#1E293B',
+  dark:       '#0C1B2E',
+  darkMid:    '#112539',
+  darkCard:   '#112539',
+  /* Deeper than ink, for a dark band stacked on another dark band. */
+  inkDark:    '#081320',
+} as const
+
+/**
+ * Categorical colour — one entry per category, hue carries no status meaning.
+ *
+ * Policies, appointment types, incident categories and team belts all need to
+ * tell N items apart in a legend. The semantic set (success/warning/error/info)
+ * cannot do that: eight categories must not read as eight severities, and two
+ * categories sharing a hue is a legend nobody can read. So this is a categorical
+ * ramp, declared once here so the policy directory, an eMAR chart and any future
+ * module draw from the same ten hues instead of each inventing its own.
+ *
+ * Deliberately named by hue, not by category: the values outlive the categories
+ * that currently use them.
+ */
+export const CATEGORY_COLORS = {
+  blue:   '#0164C8',
+  teal:   '#027A8B',
+  green:  '#087443',
+  crimson:'#B42318',
+  amber:  '#9A6700',
+  violet: '#8B7CF6',
+  mint:   '#087A55',
+  cyan:   '#087E8B',
+  rust:   '#C4320A',
+  plum:   '#9F1239',
+} as const
+
+/**
+ * The Bristol Stool Form Scale, as published by the Royal College of Nursing.
+ *
+ * Clinical data, not brand colour: types 1–7 are conventionally charted in this
+ * brown-to-green sequence and a carer reads the colour as the type number. They
+ * are declared here so the scale exists once, with its provenance, rather than
+ * sitting as seven anonymous literals inside the bowel-chart tab.
+ */
+export const BRISTOL_SCALE_COLORS: Record<number, string> = {
+  1: '#6B4226',
+  2: '#8B5E3C',
+  3: '#A0785A',
+  4: '#8FBC8F',
+  5: '#D4A76A',
+  6: '#D2B48C',
+  7: '#C4A882',
+}
+
+/**
+ * Third-party brand marks.
+ *
+ * Regulators publish their own colours and the card networks insist on theirs.
+ * These are not MeticleCare brand values and must never be re-pointed at the
+ * ramp above — a CQC badge in brand blue is a wrong badge. Declared here so the
+ * two pages that need them import a name and lint.mjs can still fail any new
+ * stray literal elsewhere.
+ */
+export const EXTERNAL_BRAND = {
+  /* The four UK care regulators, each with the colour its own badge uses. */
+  cqcBlue:               '#005EA5',
+  ciwGreen:              '#00855A',
+  careInspectorateBlue:  '#0065BD',
+  rqiaPlum:              '#6D2077',
+  /* Card networks' marks, used for the card artwork in billing. */
+  amex:           '#1A1F71',
+  amexAlt:        '#2E86AB',
+  mastercardRed:  '#EB001B',
+  mastercardGold: '#F79E1B',
 } as const
 
 /* ─── Typography ──────────────────────────────────── */
@@ -124,7 +204,7 @@ export const S = {
   md:  '0 4px 12px rgba(0,0,0,0.07)',
   lg:  '0 10px 30px rgba(0,0,0,0.1)',
   xl:  '0 20px 50px rgba(0,0,0,0.14)',
-  glow: '0 0 80px rgba(0,201,167,0.12)',
+  glow: '0 0 80px rgba(3,198,177,0.12)',
 } as const
 
 /* ─── Transitions ─────────────────────────────────── */

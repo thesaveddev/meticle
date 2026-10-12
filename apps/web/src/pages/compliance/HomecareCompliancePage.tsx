@@ -39,7 +39,7 @@ function ScoreRing({ value, size = 80, strokeWidth = 6, color }: { value: number
   return (
     <Box sx={{ position: 'relative', width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E6EAF0" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E3E9F0" strokeWidth={strokeWidth} />
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
@@ -309,7 +309,7 @@ export default function HomecareCompliancePage() {
             </Stack>
             <Stack spacing={1}>
               {actions.slice(0, 8).map((a, i) => {
-                const accent = a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : '#667085'
+                const accent = a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : '#51637A'
                 return (
                   <Paper
                     key={i}

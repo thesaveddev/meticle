@@ -3,13 +3,14 @@ import { ArrowForward, CheckCircle, Insights, Tune } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
+import { P } from '../../styles/tokens'
 
-const INK = '#17202A'
-const NAVY = '#2F80ED'
+const INK = '#0C1B2E'
+const NAVY = '#0164C8'
 const EMERALD = '#10B981'
-const BONE = '#F7F9FC'
-const MIST = '#475467'
-const HAIRLINE = '#E6EAF0'
+const BONE = '#F4F9FC'
+const MIST = '#51637A'
+const HAIRLINE = '#E3E9F0'
 
 const pilotAreas = [
   { icon: <Tune sx={{ color: NAVY }} />, title: 'Operational visibility', body: 'Agree the measures that matter to your service: visit completion, staffing pressure, outstanding actions and reporting time.' },
@@ -67,7 +68,7 @@ export default function CaseStudiesPage() {
         <Container maxWidth="md">
           <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 2 }}>Build the evidence with us.</Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '1.1rem', lineHeight: 1.7, mb: 4 }}>Tell us how your service runs and we will show you what a focused evaluation could look like.</Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => navigate('/contact')} sx={{ bgcolor: EMERALD, color: '#07251E', fontWeight: 600, px: 4, py: 1.5, textTransform: 'none', '&:hover': { bgcolor: '#34D399' } }}>Talk to our team</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => navigate('/contact')} sx={{ bgcolor: EMERALD, color: P.navy, fontWeight: 600, px: 4, py: 1.5, textTransform: 'none', '&:hover': { bgcolor: '#34D399' } }}>Talk to our team</Button>
         </Container>
       </Box>
     </MarketingLayout>

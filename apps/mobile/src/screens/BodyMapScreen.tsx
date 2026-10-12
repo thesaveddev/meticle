@@ -12,13 +12,13 @@ const CONDITION_TYPES = [
   { key: 'bruise', label: 'Bruise', color: '#8B7CF6', IconComponent: IconBruise },
   { key: 'wound', label: 'Wound', color: '#EF4444', IconComponent: IconWound },
   { key: 'rash', label: 'Rash', color: '#F59E0B', IconComponent: IconRash },
-  { key: 'injection', label: 'Injection', color: '#2F80ED', IconComponent: IconInjection },
+  { key: 'injection', label: 'Injection', color: '#0164C8', IconComponent: IconInjection },
   { key: 'burn', label: 'Burn', color: '#EF4444', IconComponent: IconBurn },
   { key: 'pressure_sore', label: 'Pressure sore', color: '#8B7CF6', IconComponent: IconWarning },
-  { key: 'scar', label: 'Scar', color: '#667085', IconComponent: IconScar },
-  { key: 'swelling', label: 'Swelling', color: '#0C9E89', IconComponent: IconSwelling },
+  { key: 'scar', label: 'Scar', color: '#51637A', IconComponent: IconScar },
+  { key: 'swelling', label: 'Swelling', color: '#046E86', IconComponent: IconSwelling },
   { key: 'skin_tear', label: 'Skin tear', color: '#B42318', IconComponent: IconSkinTear },
-  { key: 'other', label: 'Other', color: '#667085', IconComponent: IconAlert },
+  { key: 'other', label: 'Other', color: '#51637A', IconComponent: IconAlert },
 ] as const
 
 const SEVERITIES = [

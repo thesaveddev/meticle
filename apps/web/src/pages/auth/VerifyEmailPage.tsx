@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Box, Typography, Container, CircularProgress, Button } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircle as CheckCircleIcon, Error as ErrorIcon } from '@mui/icons-material'
+import { P } from '../../styles/tokens'
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
@@ -40,7 +41,7 @@ export default function VerifyEmailPage() {
   usePageMeta({ title: 'Verify Email | Meticle Care', description: 'Verify your email address for Meticle Care.', noindex: true })
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: P.inkDark }}>
       <Container maxWidth="sm">
         <Box className="glass-morphism" sx={{ p: 6, textAlign: 'center' }}>
           {status === 'loading' && (

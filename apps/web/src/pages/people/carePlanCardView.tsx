@@ -53,7 +53,7 @@ export function CarePlanCardView({
         borderColor: 'divider',
         cursor: 'pointer',
         transition: 'border-color 150ms ease, box-shadow 150ms ease',
-        '&:hover': { borderColor: 'primary.light', boxShadow: '0 2px 8px rgba(16,24,40,0.06)' },
+        '&:hover': { borderColor: 'primary.light', boxShadow: '0 2px 8px rgba(12,27,46,0.06)' },
         '&:focus-within': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
       }}
     >

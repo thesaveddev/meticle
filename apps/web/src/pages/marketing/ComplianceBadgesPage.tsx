@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowForward as ArrowIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
+import { EXTERNAL_BRAND } from '../../styles/tokens'
 
-const INK = '#17202A'
-const NAVY = '#2F80ED'
+const INK = '#0C1B2E'
+const NAVY = '#0164C8'
 const EMERALD = '#10B981'
-const MIST = '#475467'
-const HAIRLINE = '#E6EAF0'
+const MIST = '#51637A'
+const HAIRLINE = '#E3E9F0'
 
 interface Badge {
   name: string
@@ -42,7 +43,7 @@ const badges: Badge[] = [
     name: 'Care Quality Commission',
     acronym: 'CQC',
     logo: '/logos/cqc.png',
-    color: '#005EA5',
+    color: EXTERNAL_BRAND.cqcBlue,
     region: 'England',
     description: 'The independent regulator of health and adult social care in England. CQC monitors, inspects and regulates services to ensure they meet fundamental standards of quality and safety.',
     whatItDoes: 'CQC inspects care services against five key questions: Safe, Effective, Caring, Responsive, and Well-led. Services are rated as Outstanding, Good, Requires Improvement, or Inadequate.',
@@ -67,7 +68,7 @@ const badges: Badge[] = [
     name: 'Care Inspectorate Wales',
     acronym: 'CIW',
     logo: '/logos/ciw.png',
-    color: '#00855A',
+    color: EXTERNAL_BRAND.ciwGreen,
     region: 'Wales',
     description: 'The independent regulator and inspector of care and support services in Wales. CIW registers and inspects services under the Regulation and Inspection of Social Care (Wales) Act 2016.',
     // Verified against gov.wales, "New ratings system for care services
@@ -98,7 +99,7 @@ const badges: Badge[] = [
     name: 'Care Inspectorate',
     acronym: 'CI',
     logo: '/logos/cis.png',
-    color: '#0065BD',
+    color: EXTERNAL_BRAND.careInspectorateBlue,
     region: 'Scotland',
     // Named "Care Inspectorate", not "Care Inspectorate Scotland", and not "CIS".
     // "CIS" was not an acronym this body used anywhere — the API's regulator
@@ -126,7 +127,7 @@ const badges: Badge[] = [
     name: 'Regulation and Quality Improvement Authority',
     acronym: 'RQIA',
     logo: '/logos/rqia.png',
-    color: '#6D2077',
+    color: EXTERNAL_BRAND.rqiaPlum,
     region: 'Northern Ireland',
     // An Order, not an Act, and "Social Services" not "Care Services". Both this
     // page and the API's regulator registry had "Health and Personal Care
@@ -169,7 +170,7 @@ const badges: Badge[] = [
     // commercial page implies an endorsement or accreditation we do not hold.
     // This is a trademark problem, not a copy problem, so no wording fixes it.
     logo: undefined,
-    color: '#2F80ED',
+    color: '#0164C8',
     region: 'United Kingdom',
     description: 'The National Health Service sets standards for healthcare in England. It is not the regulator of adult social care — that is CQC, CIW, Care Inspectorate or RQIA, listed above — and we hold no NHS accreditation. We have not submitted the NHS Data Security and Protection Toolkit, and we have no integration with NHS Digital or any NHS system.',
     whatItDoes: 'NHS standards apply to NHS providers. Where a care provider also supports people with NHS-funded care, its own obligations come from the commissioner and the local authority, not from us — and those are matters for the provider, not for software.',
@@ -190,7 +191,7 @@ const badges: Badge[] = [
     name: 'UK GDPR & Data Protection Act 2018',
     acronym: 'DPA',
     logo: '/logos/ukgdpr.png',
-    color: '#17202A',
+    color: '#0C1B2E',
     region: 'United Kingdom',
     description: 'The UK General Data Protection Regulation and Data Protection Act 2018 set the rules for how personal data must be handled. The Data Security and Protection Toolkit (DSPT) is the NHS-specific self-assessment.',
     whatItDoes: 'UK GDPR and DPA 2018 require organisations to protect personal data, report breaches, and maintain appropriate security measures. The DSPT is the annual self-assessment for NHS and social care organisations.',
@@ -401,7 +402,7 @@ export default function ComplianceBadgesPage() {
             <Button
               variant="contained"
               size="large"
-              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, fontWeight: 600, px: 5, borderRadius: 2 }}
+              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' }, fontWeight: 600, px: 5, borderRadius: 2 }}
               onClick={() => navigate('/contact')}
             >
               Book a demo

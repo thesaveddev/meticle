@@ -3,6 +3,7 @@ import {
   Box, Typography, Stack, Chip, IconButton, Tooltip, Card, CardContent,
   ToggleButtonGroup, ToggleButton,
 } from '@mui/material'
+import { P } from '../../../styles/tokens'
 import {
   PersonAdd as AssignIcon,
   Delete as DeleteIcon,
@@ -51,12 +52,12 @@ export const ShiftCard = memo(function ShiftCard({
       sx={{
         cursor: 'pointer',
         borderRadius: '10px',
-        border: '1px solid #E6EAF0',
-        bgcolor: isOpen ? '#FFFDF5' : '#FFFFFF',
+        border: `1px solid ${P.hairline}`,
+        bgcolor: isOpen ? P.amberLight : '#FFFFFF',
         boxShadow: 'none',
         transition: 'box-shadow .15s ease, border-color .15s ease, transform .15s ease',
         '&:hover': {
-          borderColor: '#2F80ED',
+          borderColor: '#0164C8',
           boxShadow: '0 6px 16px -6px rgba(15,76,129,0.25)',
           transform: 'translateY(-1px)',
         },
@@ -75,7 +76,7 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Header: location + type + actions */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.4, gap: 0.5 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 600, color: '#2F80ED',
+              fontSize: compact ? '0.62rem' : '0.68rem', fontWeight: 600, color: '#0164C8',
               textTransform: 'none', letterSpacing: '0.04em',
               textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0,
             }}>
@@ -110,7 +111,7 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Time + duration + open state */}
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.35 }}>
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 600, color: '#17202A',
+              fontSize: compact ? '0.72rem' : '0.76rem', fontWeight: 600, color: '#0C1B2E',
               fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
             }}>
               {shift._startLabel} – {shift._endLabel}
@@ -153,11 +154,11 @@ export const ShiftCard = memo(function ShiftCard({
               {canEdit && !isReadOnly && canEditShift ? (
                 <ToggleButtonGroup size="small" value={shift.agency_covered ? 'covered' : 'uncovered'} exclusive
                   onChange={() => onToggleCoverage(shift.id, shift.agency_covered)}
-                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D8DEE7', textTransform: 'none', fontWeight: 600 } }}>
-                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#EAFBF5' : 'transparent', color: shift.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
+                  sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D6E2EE', textTransform: 'none', fontWeight: 600 } }}>
+                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#EAFBF5' : 'transparent', color: shift.agency_covered ? '#087A55' : '#5D6E85', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                     Yes
                   </ToggleButton>
-                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FFF7E6' : 'transparent', color: !shift.agency_covered ? '#9A6700' : '#98A2B3', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
+                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FFF7E6' : 'transparent', color: !shift.agency_covered ? '#9A6700' : '#5D6E85', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
                     No
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -199,13 +200,13 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       display: 'inline-flex', alignItems: 'center', gap: 0.35,
       height: compact ? 17 : 19, px: 0.5,
       borderRadius: '999px',
-      border: '1px solid #E6EAF0',
+      border: '1px solid #E3E9F0',
       bgcolor: 'notice.subtle.bg',
     }}>
       <Box sx={{
         width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
         display: 'grid', placeItems: 'center',
-        bgcolor: '#E0E7F1', color: '#2F80ED',
+        bgcolor: P.hairline, color: P.primary,
         fontSize: '0.42rem', fontWeight: 600, lineHeight: 1,
       }}>
         {initials}
@@ -225,7 +226,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
         </Box>
       )}
       {isCurrent && !isPast && (
-        <SwapHorizIcon sx={{ fontSize: 11, cursor: 'pointer', color: '#2F80ED', ml: 0.1 }} onClick={onSwap} />
+        <SwapHorizIcon sx={{ fontSize: 11, cursor: 'pointer', color: '#0164C8', ml: 0.1 }} onClick={onSwap} />
       )}
       {canDelete && (
         <CloseIcon sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', ml: 0.1, '&:hover': { color: '#EF4444' } }} onClick={onDelete} />

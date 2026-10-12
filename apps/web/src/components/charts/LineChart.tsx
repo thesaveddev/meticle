@@ -19,7 +19,7 @@ interface Props {
   smooth?: boolean
 }
 
-const DEFAULT_COLORS = ['#2F80ED', '#10BFA5', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#94A3B8']
+const DEFAULT_COLORS = ['#0164C8', '#03C6B1', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#5D6E85']
 
 export default function ReportLineChart({ title, data, height = 350, showLegend = true, showGrid = true, seriesKeys, colors, smooth = true }: Props) {
   const palette = colors || DEFAULT_COLORS
@@ -35,11 +35,11 @@ export default function ReportLineChart({ title, data, height = 350, showLegend 
       ) : (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#E6EAF0" />}
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#E3E9F0" />}
             <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={data.length > 8 ? -45 : 0} textAnchor={data.length > 8 ? 'end' : 'middle'} height={data.length > 8 ? 60 : 40} />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip
-              contentStyle={{ borderRadius: 8, border: '1px solid #E6EAF0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              contentStyle={{ borderRadius: 8, border: '1px solid #E3E9F0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               formatter={(value: any, name: any) => [typeof value === 'number' ? value.toLocaleString() : value, name === 'value' ? title : name]}
             />
             {showLegend && hasMultipleSeries && <Legend />}

@@ -11,9 +11,9 @@ import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import bodyMapUrl from './body-map.svg'
 
 const CONDITION_COLORS: Record<string, string> = {
-  bruise: '#8B7CF6', wound: '#B42318', rash: '#9A6700', injection: '#175CD3',
-  burn: '#B42318', pressure_sore: '#B42318', scar: '#667085', swelling: '#9A6700',
-  skin_tear: '#B42318', other: '#667085',
+  bruise: '#8B7CF6', wound: '#B42318', rash: '#9A6700', injection: '#004085',
+  burn: '#B42318', pressure_sore: '#B42318', scar: '#51637A', swelling: '#9A6700',
+  skin_tear: '#B42318', other: '#51637A',
 }
 const SEVERITY_COLORS: Record<string, string> = { mild: '#087A55', moderate: '#9A6700', severe: '#B42318' }
 const STATUS_COLORS: Record<string, string> = { active: '#B42318', healing: '#9A6700', resolved: '#087A55' }
@@ -232,13 +232,13 @@ export default function BodyMapTab({ personId }: { personId: string }) {
     <Box>
       <SectionHeader title="Body Map" action={<Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />} />
 
-      <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', mb: 3, overflow: 'hidden' }}>
-        <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0' }}>
+      <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', mb: 3, overflow: 'hidden' }}>
+        <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E3E9F0' }}>
           <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 600 }} />
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 600 }} />
         </Tabs>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'notice.subtle.bg', py: 2, px: 1, position: 'relative' }}>
-          <Typography variant="caption" color="#667085" sx={{ mb: 0.5 }}>
+          <Typography variant="caption" color="#51637A" sx={{ mb: 0.5 }}>
             Click any body part to add a condition
           </Typography>
           <Box ref={figureWrapRef} onMouseMove={onFigureMove}
@@ -247,7 +247,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           <svg viewBox={VB} width={BODY_W * 1.7} height={BODY_H * 1.7} style={{ maxWidth: '100%', height: 'auto', display: 'block' }}>
             <defs>
               <filter id="bodyShadow" x="-10%" y="-10%" width="120%" height="130%">
-                <feDropShadow dx={1} dy={1} stdDeviation={2} floodColor="#17202A" floodOpacity={0.08} />
+                <feDropShadow dx={1} dy={1} stdDeviation={2} floodColor="#0C1B2E" floodOpacity={0.08} />
               </filter>
             </defs>
 
@@ -258,7 +258,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
             {/* Spine (back only) */}
             {view === 'back' && (
-              <path d="M75,85 L75,200" fill="none" stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 5" opacity={0.7} />
+              <path d="M75,85 L75,200" fill="none" stroke="#C3D2E2" strokeWidth={1.5} strokeDasharray="4 5" opacity={0.7} />
             )}
 
             {/* Clickable zones — invisible hit areas; nothing is drawn over the silhouette */}
@@ -278,7 +278,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
               const zd = zones.find(z => z.id === e.body_zone)
               if (!zd) return null
               const c = zoneCenter(zd)
-              const color = CONDITION_COLORS[e.condition_type] || '#667085'
+              const color = CONDITION_COLORS[e.condition_type] || '#51637A'
               return (
                 <g key={e.id} style={{ cursor: 'pointer' }} onClick={(ev) => { ev.stopPropagation(); openEdit(e) }}>
                   <circle cx={c.cx} cy={c.cy} r={13} fill={color} fillOpacity={0.12} stroke={color} strokeWidth={1.5} />
@@ -297,7 +297,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
               const zd = zones.find(z => z.id === latest.body_zone)
               if (!zd) return null
               const c = zoneCenter(zd)
-              const color = CONDITION_COLORS[latest.condition_type] || '#667085'
+              const color = CONDITION_COLORS[latest.condition_type] || '#51637A'
               return <circle cx={c.cx} cy={c.cy} r={13} fill="none" stroke={color} strokeWidth={1.5} opacity={0.5}>
                 <animate attributeName="r" from={10} to={22} dur="2s" repeatCount="indefinite" />
                 <animate attributeName="opacity" from={0.5} to={0} dur="2s" repeatCount="indefinite" />
@@ -314,9 +314,9 @@ export default function BodyMapTab({ personId }: { personId: string }) {
             const top = Math.max(hoverPos.y - 34, 4)
             return (
               <Box sx={{ position: 'absolute', left, top, zIndex: 5, pointerEvents: 'none',
-                bgcolor: '#2F80ED', color: '#FFFFFF', px: 1, py: 0.5, borderRadius: '6px',
+                bgcolor: '#0164C8', color: '#FFFFFF', px: 1, py: 0.5, borderRadius: '6px',
                 fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap',
-                boxShadow: '0 2px 8px rgba(23,32,42,0.18)' }}>
+                boxShadow: '0 2px 8px rgba(12,27,46,0.18)' }}>
                 {z.label}
               </Box>
             )
@@ -325,11 +325,11 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         </Box>
 
         {/* Legend */}
-        <Box sx={{ p: 1.5, borderTop: '1px solid #E6EAF0', bgcolor: 'notice.subtle.bg', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ p: 1.5, borderTop: '1px solid #E3E9F0', bgcolor: 'notice.subtle.bg', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
           {zones.map(z => {
             const has = zoneCounts[z.id]
             return <Chip key={z.id} label={`${z.label}${has ? ` (${has})` : ''}`}
-              size="small" variant="outlined" sx={{ fontSize: '0.58rem', height: 20, cursor: 'pointer', '&:hover': { bgcolor: '#2F80ED10' } }}
+              size="small" variant="outlined" sx={{ fontSize: '0.58rem', height: 20, cursor: 'pointer', '&:hover': { bgcolor: '#0164C810' } }}
               onMouseEnter={() => setHoverZone(z.id)} onMouseLeave={() => setHoverZone(null)}
             />
           })}
@@ -343,23 +343,23 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {entries.map(e => (
             <Paper key={e.id} onClick={() => openEdit(e)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', cursor: 'pointer', transition: 'border-color 160ms ease, box-shadow 160ms ease', '&:hover': { borderColor: '#CBD5E1', boxShadow: 'var(--shadow-sm)' } }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', cursor: 'pointer', transition: 'border-color 160ms ease, box-shadow 160ms ease', '&:hover': { borderColor: '#C3D2E2', boxShadow: 'var(--shadow-sm)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={e.condition_type.replace(/_/g, ' ')} size="small"
-                    sx={{ bgcolor: `${CONDITION_COLORS[e.condition_type] || '#667085'}20`, color: CONDITION_COLORS[e.condition_type] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
+                    sx={{ bgcolor: `${CONDITION_COLORS[e.condition_type] || '#51637A'}20`, color: CONDITION_COLORS[e.condition_type] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
                   <Chip label={e.severity} size="small"
-                    sx={{ bgcolor: `${SEVERITY_COLORS[e.severity] || '#667085'}20`, color: SEVERITY_COLORS[e.severity] || '#667085', fontWeight: 600, textTransform: 'capitalize' }} />
+                    sx={{ bgcolor: `${SEVERITY_COLORS[e.severity] || '#51637A'}20`, color: SEVERITY_COLORS[e.severity] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
                   <Chip label={e.status} size="small" variant="outlined"
                     color={e.status === 'active' ? 'error' : e.status === 'healing' ? 'warning' : 'success'} sx={{ textTransform: 'capitalize' }} />
                 </Stack>
-                <Typography variant="caption" color="#667085">{e.recorded_date ? new Date(e.recorded_date + 'T00:00:00').toLocaleDateString('en-GB') : ''}</Typography>
+                <Typography variant="caption" color="#51637A">{e.recorded_date ? new Date(e.recorded_date + 'T00:00:00').toLocaleDateString('en-GB') : ''}</Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
-                <Typography variant="body2" fontWeight={600} color="#344054" sx={{ textTransform: 'capitalize' }}>{e.body_zone?.replace(/_/g, ' ')}</Typography>
-                {e.created_by_name && <Typography variant="caption" color="#98A2B3">{e.created_by_name}</Typography>}
+                <Typography variant="body2" fontWeight={600} color="#3A4551" sx={{ textTransform: 'capitalize' }}>{e.body_zone?.replace(/_/g, ' ')}</Typography>
+                {e.created_by_name && <Typography variant="caption" color="#5D6E85">{e.created_by_name}</Typography>}
               </Stack>
-              {e.description && <Typography variant="body2" color="#667085" sx={{ mt: 0.5, fontStyle: 'italic' }}>{e.description}</Typography>}
+              {e.description && <Typography variant="body2" color="#51637A" sx={{ mt: 0.5, fontStyle: 'italic' }}>{e.description}</Typography>}
             </Paper>
           ))}
         </Stack>
@@ -399,7 +399,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             {selectedEntry && <IconButton onClick={() => setDeleteTarget(selectedEntry.id)} color="error" sx={{ mr: 'auto' }}><DeleteIcon /></IconButton>}
             <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={createM.isPending || updateM.isPending} sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={createM.isPending || updateM.isPending} sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
               {createM.isPending || updateM.isPending ? <CircularProgress size={20} /> : 'Save'}
             </Button>
           </DialogActions>

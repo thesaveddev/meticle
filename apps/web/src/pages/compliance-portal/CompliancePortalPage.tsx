@@ -11,7 +11,7 @@ import {
   Medication as MedicIcon, Restaurant as FoodIcon, School as TrainIcon,
   Assignment as CompIcon,
   ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
-  Visibility as ViewIcon, Close as CloseIcon, Logout as LogoutIcon,
+  Close as CloseIcon, Logout as LogoutIcon,
   Link as LinkIcon, ContentCopy as CopyIcon,
   CheckCircle as CheckIcon, Cancel as CancelIcon, AccessTime as ClockIcon,
   Block as BlockIcon,
@@ -27,9 +27,9 @@ const SEVERITY_COLORS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  complete: '#10B981', incomplete: '#EF4444', expired: '#98A2B3',
-  pending_review: '#F59E0B', active: '#10B981', draft: '#667085',
-  published: '#087A55', archived: '#98A2B3',
+  complete: '#10B981', incomplete: '#EF4444', expired: '#5D6E85',
+  pending_review: '#F59E0B', active: '#10B981', draft: '#51637A',
+  published: '#087A55', archived: '#5D6E85',
 }
 
 // ── Portal Login Page ──
@@ -103,25 +103,25 @@ export function PortalLoginPage() {
   if (loading) return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Stack alignItems="center" spacing={2}>
-        <CircularProgress size={32} sx={{ color: '#2F80ED' }} />
-        <Typography variant="body2" color="#667085">Verifying access...</Typography>
+        <CircularProgress size={32} sx={{ color: '#0164C8' }} />
+        <Typography variant="body2" color="#51637A">Verifying access...</Typography>
       </Stack>
     </Box>
   )
 
   if (error) return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg', px: 2 }}>
-      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: '#E6EAF0' }}>
+      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: '#E3E9F0' }}>
         <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7E6' : '#FEF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
           {getErrorIcon()}
         </Box>
         <Typography variant="h5" fontWeight={600} sx={{ mb: 1 }}>{getErrorTitle()}</Typography>
-        <Typography variant="body2" color="#667085" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
+        <Typography variant="body2" color="#51637A" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
         <Stack spacing={1.5} alignItems="center">
-          <Button variant="contained" href="/login" sx={{ bgcolor: '#2F80ED', textTransform: 'none', px: 4 }}>
+          <Button variant="contained" href="/login" sx={{ bgcolor: '#0164C8', textTransform: 'none', px: 4 }}>
             Go to Login
           </Button>
-          <Typography variant="caption" color="#98A2B3">
+          <Typography variant="caption" color="#5D6E85">
             Need help? Contact the care home directly.
           </Typography>
         </Stack>
@@ -204,14 +204,14 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
       {/* Token management list */}
       {showTokens && (
         <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E6EAF0', bgcolor: 'notice.subtle.bg' }}>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E3E9F0', bgcolor: 'notice.subtle.bg' }}>
             <Typography variant="subtitle2" fontWeight={600}>Compliance Portal Links</Typography>
-            <Typography variant="caption" color="#667085">Manage and revoke access tokens for compliance officers</Typography>
+            <Typography variant="caption" color="#51637A">Manage and revoke access tokens for compliance officers</Typography>
           </Box>
           {tokensLoading ? (
             <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
           ) : tokens.length === 0 ? (
-            <Box sx={{ p: 3, textAlign: 'center' }}><Typography color="#98A2B3">No links generated yet</Typography></Box>
+            <Box sx={{ p: 3, textAlign: 'center' }}><Typography color="#5D6E85">No links generated yet</Typography></Box>
           ) : (
             <TableContainer>
               <Table size="small">
@@ -230,17 +230,17 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                     const isExpired = new Date(t.expires_at) < new Date()
                     const isRevoked = t.revoked
                     const status = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
-                    const statusColor = isRevoked ? '#EF4444' : isExpired ? '#98A2B3' : '#10B981'
+                    const statusColor = isRevoked ? '#EF4444' : isExpired ? '#5D6E85' : '#10B981'
                     return (
                       <TableRow key={t.id} sx={{ opacity: isRevoked || isExpired ? 0.6 : 1 }}>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>{t.officer_name}</Typography>
-                          <Typography variant="caption" color="#667085">{t.email}</Typography>
+                          <Typography variant="caption" color="#51637A">{t.email}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{t.location_name}</Typography></TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography variant="caption" fontFamily="monospace" color="#667085">…{t.id.slice(-8)}</Typography>
+                            <Typography variant="caption" fontFamily="monospace" color="#51637A">…{t.id.slice(-8)}</Typography>
                             {!isRevoked && !isExpired && t.jwt_token && (
                               <IconButton size="small" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/login?token=${t.jwt_token}`) }}>
                                 <CopyIcon sx={{ fontSize: 14 }} />
@@ -248,7 +248,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                             )}
                           </Stack>
                         </TableCell>
-                        <TableCell><Typography variant="caption" color="#667085">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
+                        <TableCell><Typography variant="caption" color="#51637A">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
                         <TableCell><Chip label={status} size="small" sx={{ bgcolor: statusColor, color: 'white', fontWeight: 600, fontSize: 11 }} /></TableCell>
                         <TableCell align="right">
                           {!isRevoked && !isExpired && (
@@ -287,7 +287,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                   <IconButton size="small" onClick={copyLink}><CopyIcon sx={{ fontSize: 16 }} /></IconButton>
                 </Stack>
               </Paper>
-              <Button startIcon={<CopyIcon />} variant="contained" onClick={copyLink} sx={{ bgcolor: '#2F80ED' }}>
+              <Button startIcon={<CopyIcon />} variant="contained" onClick={copyLink} sx={{ bgcolor: '#0164C8' }}>
                 Copy Full Link
               </Button>
             </Box>
@@ -318,7 +318,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => { setOpen(false); setResult(null) }}>{result ? 'Done' : 'Cancel'}</Button>
-          {!result && <Button variant="contained" onClick={handleCreate} disabled={loading || !form.location_id || !form.officer_name || !form.email} sx={{ bgcolor: '#2F80ED' }}>
+          {!result && <Button variant="contained" onClick={handleCreate} disabled={loading || !form.location_id || !form.officer_name || !form.email} sx={{ bgcolor: '#0164C8' }}>
             {loading ? <CircularProgress size={20} /> : 'Generate Link'}
           </Button>}
         </DialogActions>
@@ -386,7 +386,7 @@ export default function CompliancePortalPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Header */}
-      <Paper elevation={0} sx={{ borderRadius: 0, borderBottom: '1px solid #E6EAF0', bgcolor: '#2F80ED', color: 'white', px: 4, py: 2 }}>
+      <Paper elevation={0} sx={{ borderRadius: 0, borderBottom: '1px solid #E3E9F0', bgcolor: '#0164C8', color: 'white', px: 4, py: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" spacing={2} alignItems="center">
             <ShieldIcon sx={{ fontSize: 28 }} />
@@ -407,7 +407,7 @@ export default function CompliancePortalPage() {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <CompIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
+                <CompIcon sx={{ fontSize: 20, color: '#0164C8' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">COMPLIANCE</Typography>
               </Stack>
               <Typography variant="h3" fontWeight={600} sx={{ color: overallScore >= 80 ? '#10B981' : '#F59E0B' }}>{overallScore}%</Typography>
@@ -447,10 +447,10 @@ export default function CompliancePortalPage() {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <FoodIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
+                <FoodIcon sx={{ fontSize: 20, color: '#0164C8' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">NUTRITION TODAY</Typography>
               </Stack>
-              <Typography variant="h3" fontWeight={600} color="#2F80ED">
+              <Typography variant="h3" fontWeight={600} color="#0164C8">
                 {nutrition?.filter((n: any) => n.meals_today > 0).length || 0}/{nutrition?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">people fed today</Typography>
@@ -460,7 +460,7 @@ export default function CompliancePortalPage() {
 
         {/* Location Details */}
         {location && (
-          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
               <Typography variant="subtitle2" fontWeight={600}>{location.name}</Typography>
               {location.address && <Typography variant="body2" color="text.secondary">{location.address}</Typography>}
@@ -482,20 +482,20 @@ export default function CompliancePortalPage() {
           { key: 'people', label: 'People', icon: <PeopleIcon />, count: people?.length },
           { key: 'policies', label: 'Policies', icon: <CompIcon />, count: policies?.length },
         ].map(section => (
-          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', overflow: 'hidden' }}>
+          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden' }}>
             <Box
               onClick={() => toggleSection(section.key)}
               sx={{ p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: 'notice.subtle.bg' } }}
             >
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box sx={{ color: '#2F80ED' }}>{section.icon}</Box>
+                <Box sx={{ color: '#0164C8' }}>{section.icon}</Box>
                 <Typography fontWeight={600}>{section.label}</Typography>
                 {section.count != null && <Chip label={section.count} size="small" />}
               </Stack>
               {expandedSection === section.key ? <CollapseIcon /> : <ExpandIcon />}
             </Box>
             <Collapse in={expandedSection === section.key}>
-              <Box sx={{ p: 2, borderTop: '1px solid #E6EAF0' }}>
+              <Box sx={{ p: 2, borderTop: '1px solid #E3E9F0' }}>
                 {section.key === 'staff' && <StaffComplianceTable data={staffCompliance} />}
                 {section.key === 'incidents' && <IncidentsList data={openIncidents} />}
                 {section.key === 'training' && <TrainingTable data={expiringTraining} />}
@@ -538,7 +538,7 @@ function StaffComplianceTable({ data }: { data: any[] }) {
               <TableCell sx={{ fontWeight: 600 }}>{s.name}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Box sx={{ width: 60, height: 6, bgcolor: '#E6EAF0', borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ width: 60, height: 6, bgcolor: '#E3E9F0', borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{ width: `${s.score}%`, height: 6, bgcolor: s.score >= 80 ? '#10B981' : s.score >= 50 ? '#F59E0B' : '#EF4444', borderRadius: 3 }} />
                   </Box>
                   <Typography variant="body2" fontWeight={600}>{s.score}%</Typography>
@@ -560,7 +560,7 @@ function IncidentsList({ data }: { data: any[] }) {
   return (
     <Stack spacing={1}>
       {data.map((i: any) => (
-        <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#667085' }}>
+        <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#51637A' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
               <Stack direction="row" spacing={1} alignItems="center">
@@ -645,7 +645,7 @@ function MedicationTable({ data, onView }: { data: any[]; onView: (id: string) =
               </TableCell>
               <TableCell>{new Date(m.scheduled_time).toLocaleString('en-GB')}</TableCell>
               <TableCell>
-                <IconButton size="small" onClick={() => onView(m.person_id)}><ViewIcon fontSize="small" /></IconButton>
+                <Button size="small" onClick={() => onView(m.person_id)} sx={{ textTransform: 'none' }}>Open</Button>
               </TableCell>
             </TableRow>
           ))}
@@ -681,7 +681,7 @@ function NutritionAuditTable({ data }: { data: any[] }) {
               <TableCell>{p.refused_today > 0 && <Chip label={p.refused_today} size="small" color="error" icon={<CancelIcon />} />}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <WaterIcon sx={{ fontSize: 14, color: '#175CD3' }} />
+                  <WaterIcon sx={{ fontSize: 14, color: '#004085' }} />
                   <Typography variant="body2">{p.fluid_today}ml</Typography>
                   {p.fluid_daily_target_ml > 0 && p.fluid_today < p.fluid_daily_target_ml * 0.75 && (
                     <Chip label="Low" size="small" color="warning" sx={{ height: 18 }} />
@@ -728,7 +728,9 @@ function PeopleList({ data, onView }: { data: any[]; onView: (id: string) => voi
                 {p.dietary_requirements && <Chip label={p.dietary_requirements} size="small" variant="outlined" sx={{ ml: p.allergies?.length > 0 ? 0.5 : 0 }} />}
                 {!p.dietary_requirements && (!p.allergies || p.allergies.length === 0) && <span style={{ color: 'text.secondary' }}>—</span>}
               </TableCell>
-              <TableCell><IconButton size="small"><ViewIcon fontSize="small" /></IconButton></TableCell>
+              {/* The icon button that used to sit here had no handler at all — a
+                  control that did nothing. The row's own data is the record. */}
+              <TableCell />
             </TableRow>
           ))}
         </TableBody>
@@ -762,7 +764,7 @@ function PoliciesTable({ data }: { data: any[] }) {
                   <Chip
                     label={p.status}
                     size="small"
-                    sx={{ bgcolor: (STATUS_COLORS[p.status] || '#667085') + '20', color: STATUS_COLORS[p.status] || '#667085' }}
+                    sx={{ bgcolor: (STATUS_COLORS[p.status] || '#51637A') + '20', color: STATUS_COLORS[p.status] || '#51637A' }}
                   />
                 </TableCell>
                 <TableCell>{p.version || '—'}</TableCell>
@@ -791,7 +793,7 @@ function NutritionAlertsList({ data, onView }: { data: any[]; onView: (id: strin
   const getAlertIcon = (type: string) => {
     if (type.includes('refused')) return <CancelIcon sx={{ color: '#EF4444', fontSize: 18 }} />
     if (type.includes('appetite')) return <WarningIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
-    return <WaterIcon sx={{ color: '#2F80ED', fontSize: 18 }} />
+    return <WaterIcon sx={{ color: '#0164C8', fontSize: 18 }} />
   }
 
   const getAlertLabel = (type: string) => {
@@ -923,7 +925,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Incidents</Typography>
                 <Stack spacing={1}>
                   {incidents.map((i: any) => (
-                    <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#667085' }}>
+                    <Paper key={i.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: SEVERITY_COLORS[i.severity] || '#51637A' }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
                         <Chip label={i.severity} size="small" />

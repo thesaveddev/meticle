@@ -1,52 +1,35 @@
-import { Box, Snackbar, Alert } from '@mui/material'
+import { Box } from '@mui/material'
 import MicaOrb from './MicaOrb'
-import MicaOverlay from './MicaOverlay'
-import { useMica } from './useMica'
+import { useMicaSession } from './MicaProvider'
+import { MICA_GEOMETRY, MICA_LABEL, MICA_Z } from './mica.identity'
 
 /**
- * Floating Mica button used across authenticated pages. Renders the idle orb
- * bottom-right and swaps it for the full-screen voice overlay when active.
+ * The floating Mica orb — the entry point that is present on every authenticated
+ * page. It is deliberately only an entry point: the overlay and the pre-session
+ * notice belong to the session itself (`MicaProvider`), so the dashboard's
+ * in-page launcher and this orb cannot each mount a second copy of them.
  */
 export default function MicaFab() {
-  const mica = useMica()
+  // The shell's single session (see MicaProvider) — not a second useMica().
+  const mica = useMicaSession()
   const active = mica.state !== 'idle'
 
   return (
-    <>
-      <MicaOverlay
-        state={mica.state}
-        audioLevel={mica.audioLevel}
-        transcript={mica.transcript}
-        responseMessage={mica.responseMessage}
-        person={mica.selectedPerson}
-        onPersonChange={mica.setSelectedPerson}
-        onSendText={mica.sendText}
-        onCancel={mica.stopListening}
-      />
-      {/* Voice errors (denied mic, unsupported browser) must be visible: the
-          overlay closes itself on failure, so without this the tap would look dead. */}
-      <Snackbar
-        open={Boolean(mica.error) && !active}
-        autoHideDuration={6000}
-        onClose={() => mica.setState('idle')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="warning" variant="filled" sx={{ borderRadius: 2 }}>
-          {mica.error}
-        </Alert>
-      </Snackbar>
-      <Box
-        title={mica.supported ? 'Talk to Mica' : 'Mica needs Chrome or Edge for voice'}
-        sx={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 1200,
-          display: active ? 'none' : 'block',
-        }}
-      >
-        <MicaOrb state="idle" onPress={mica.startListening} />
-      </Box>
-    </>
+    <Box
+      title={mica.supported ? 'Talk to Mica' : MICA_LABEL.orbNeedsVoiceBrowser}
+      sx={{
+        position: 'fixed',
+        bottom: MICA_GEOMETRY.offset,
+        right: MICA_GEOMETRY.offset,
+        // Below MUI's modal layer (1300) on purpose: an open dialog — the
+        // medication administration dialog, a confirmation, a form — paints
+        // over the orb, so the orb cannot cover anything inside a dialog.
+        // Page content is protected by the shell's reserved corner instead.
+        zIndex: MICA_Z.orb,
+        display: active ? 'none' : 'block',
+      }}
+    >
+      <MicaOrb state="idle" onPress={mica.startListening} />
+    </Box>
   )
 }

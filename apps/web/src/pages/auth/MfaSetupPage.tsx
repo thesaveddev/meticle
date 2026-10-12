@@ -61,7 +61,7 @@ export default function MfaSetupPage() {
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm">
           <Paper sx={{ p: 4, borderRadius: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: '#2F80ED' }}>MFA Enabled Successfully</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: '#0164C8' }}>MFA Enabled Successfully</Typography>
             <Alert severity="warning" sx={{ mb: 3 }}>
               Save these 8 backup codes. Each can be used once to log in if you lose access to your authenticator app.
             </Alert>
@@ -89,7 +89,7 @@ export default function MfaSetupPage() {
                 }).catch(() => navigate('/dashboard'))
               }
             }}
-              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' }, py: 1.5, fontWeight: 600 }}>
+              sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' }, py: 1.5, fontWeight: 600 }}>
               {(() => {
                 const raw = localStorage.getItem('user')
                 let isPlatformAdmin = false
@@ -108,7 +108,7 @@ export default function MfaSetupPage() {
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <BrandWordmark size={22} />
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#17202A' }}>Set Up Multi-Factor Authentication</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#0C1B2E' }}>Set Up Multi-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Your organisation requires MFA. Scan the QR code with your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
@@ -120,7 +120,7 @@ export default function MfaSetupPage() {
           {qrCode ? (
             <Box sx={{ mb: 3 }}>
               <img src={qrCode} alt="MFA QR Code" style={{ width: 200, height: 200 }} />
-              <Typography variant="body2" color="#667085" sx={{ mt: 1 }}>
+              <Typography variant="body2" color="#51637A" sx={{ mt: 1 }}>
                 Scan with Google Authenticator, Microsoft Authenticator, or Authy
               </Typography>
               {secret && (
@@ -145,7 +145,7 @@ export default function MfaSetupPage() {
                 inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' } }}
               />
               <Button fullWidth type="submit" variant="contained" size="large" disabled={loading || !qrCode}
-                sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
+                sx={{ bgcolor: '#0164C8', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify & Enable MFA'}
               </Button>
             </Stack>

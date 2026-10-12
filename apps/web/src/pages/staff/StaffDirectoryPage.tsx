@@ -28,6 +28,7 @@ import { PremiumCard, StatusBadge as DesignStatusBadge } from '../../components/
 import { EmptyState } from '../../components/design/EmptyState'
 import { PageHeader } from '../../components/ui'
 import PageContainer from '../../components/design/PageContainer'
+import { P } from '../../styles/tokens'
 
 const ROLE_OPTIONS = [
   { value: 'MANAGER', label: 'Manager' },
@@ -81,17 +82,17 @@ const EMPLOYMENT_TYPE_OPTIONS = [
 ]
 
 const ROLE_ICON_COLOR: Record<string, string> = {
-  ORG_ADMIN: '#1A2332',
-  MANAGER: '#175CD3',
+  ORG_ADMIN: P.navy,
+  MANAGER: '#004085',
   CARE_WORKER: '#087A55',
   COMPLIANCE_OFFICER: '#8B7CF6',
 }
 
 const ROLE_BG_COLOR: Record<string, string> = {
-  ORG_ADMIN: '#E6EAF0',
+  ORG_ADMIN: '#E3E9F0',
   MANAGER: '#EAF3FF',
   CARE_WORKER: '#EAFBF5',
-  COMPLIANCE_OFFICER: '#F4F8FF',
+  COMPLIANCE_OFFICER: '#EAF3FF',
 }
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
@@ -506,7 +507,7 @@ export default function StaffDirectoryPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GroupIcon sx={{ fontSize: 20, color: '#2F80ED' }} />
+            <GroupIcon sx={{ fontSize: 20, color: '#0164C8' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{totalStaff}</Typography>
@@ -584,7 +585,7 @@ export default function StaffDirectoryPage() {
                       key={`${m._type}-${m.id}`}
                       sx={{
                         cursor: !isInvitation ? 'pointer' : 'default',
-                        '&:hover': !isInvitation ? { bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' } : {},
+                        '&:hover': !isInvitation ? { bgcolor: theme.palette.mode === 'dark' ? '#112539' : '#F7FAFE' } : {},
                         '&:last-child td': { borderBottom: 'none' },
                       }}
                       onClick={() => {
@@ -595,9 +596,9 @@ export default function StaffDirectoryPage() {
                         <Stack direction="row" alignItems="center" spacing={1.5}>
                           <Avatar sx={{
                             width: 36, height: 36,
-                            bgcolor: isInvitation ? '#E6EAF0' : ROLE_BG_COLOR[m.role] || '#E6EAF0',
+                            bgcolor: isInvitation ? P.hairline : ROLE_BG_COLOR[m.role] || P.hairline,
                             fontSize: 14, fontWeight: 800,
-                            color: isInvitation ? '#98A2B3' : ROLE_ICON_COLOR[m.role] || '#1A2332',
+                            color: isInvitation ? P.slateLight : ROLE_ICON_COLOR[m.role] || P.navy,
                           }}>
                             {isInvitation ? '—' : `${(m.first_name || '?')[0]}${(m.last_name || '') ? (m.last_name)[0] : ''}`.toUpperCase()}
                           </Avatar>
@@ -631,7 +632,7 @@ export default function StaffDirectoryPage() {
                           <Stack direction="row" alignItems="center" spacing={1}>
                             <Box sx={{
                               width: 40, height: 4, borderRadius: 2,
-                              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                              bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
                               position: 'relative', overflow: 'hidden',
                             }}>
                               <Box sx={{
@@ -658,7 +659,7 @@ export default function StaffDirectoryPage() {
                       <TableCell align="right" sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                         {isAdmin && currentUserRole !== UserRole.ORG_ADMIN ? null : (
                           <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, m) }}
-                            sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA' } }}>
+                            sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE' } }}>
                             <MoreVertIcon fontSize="small" />
                           </IconButton>
                         )}
@@ -807,26 +808,26 @@ export default function StaffDirectoryPage() {
               size="small"
               href="/templates/staff-invite-template.csv"
               target="_blank"
-              sx={{ textTransform: 'none', color: '#2F80ED', fontWeight: 600, alignSelf: 'flex-start' }}
+              sx={{ textTransform: 'none', color: '#0164C8', fontWeight: 600, alignSelf: 'flex-start' }}
             >
               Download Template
             </Button>
 
             {inviteEntries.length > 0 && (
-              <Box sx={{ p: 1.5, maxHeight: 200, overflow: 'auto', borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC', border: `1px solid ${theme.palette.divider}` }}>
+              <Box sx={{ p: 1.5, maxHeight: 200, overflow: 'auto', borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#112539' : '#F7FAFE', border: `1px solid ${theme.palette.divider}` }}>
                 <Stack spacing={0.5}>
                   {inviteEntries.map((entry) => (
-                    <Stack key={entry.email} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5, borderRadius: '8px', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F4F8FF' } }}>
+                    <Stack key={entry.email} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5, borderRadius: '8px', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#EAF3FF' } }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.email}</Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip
                           label={ROLE_BADGE[entry.role] || entry.role}
                           size="small"
-                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'notice.muted.bg', color: '#0164C8', fontWeight: 700 }}
                         />
                         {entry.location_id && (() => {
                           const loc = locationList.find((l: any) => l.id === entry.location_id)
-                          return loc ? <Chip label={loc.name} size="small" sx={{ height: 20, fontSize: '0.7rem', color: theme.palette.text.secondary, bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F7F9FC', fontWeight: 600 }} /> : null
+                          return loc ? <Chip label={loc.name} size="small" sx={{ height: 20, fontSize: '0.7rem', color: theme.palette.text.secondary, bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F4F9FC', fontWeight: 600 }} /> : null
                         })()}
                         <IconButton size="small" onClick={() => handleRemoveEntry(entry.email)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: '#EF4444' } }}>
                           <DeleteIcon fontSize="small" />

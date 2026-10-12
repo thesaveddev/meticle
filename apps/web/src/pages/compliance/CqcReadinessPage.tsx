@@ -64,7 +64,7 @@ function buildActions(gaps: string[]): { priority: 'high' | 'medium' | 'low'; ac
 
 function getFrameworkStyle(frameworkName: string) {
   const name = (frameworkName || '').toLowerCase()
-  if (name.includes('cqc')) return { label: 'CQC', color: '#2F80ED' as const }
+  if (name.includes('cqc')) return { label: 'CQC', color: '#0164C8' as const }
   if (name.includes('ciw')) return { label: 'CIW', color: '#8B7CF6' as const }
   if (name.includes('care inspectorate')) return { label: 'Care Inspectorate', color: '#087A55' as const }
   if (name.includes('rqia')) return { label: 'RQIA', color: '#EF4444' as const }
@@ -404,7 +404,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 value={100}
                 size={160}
                 thickness={4}
-                sx={{ color: '#E6EAF0', position: 'absolute' }}
+                sx={{ color: '#E3E9F0', position: 'absolute' }}
               />
               <CircularProgress
                 variant="determinate"
@@ -459,14 +459,14 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         {actions.length > 0 && (
           <PremiumCard noBorder sx={{ p: 3, mb: 3, bgcolor: 'notice.subtle.bg' }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-              <ActionIcon sx={{ color: '#2F80ED' }} />
+              <ActionIcon sx={{ color: '#0164C8' }} />
               <Typography variant="h6">What To Action Next</Typography>
             </Stack>
             <Stack spacing={1.5}>
               {actions.map((a, i) => (
                 <Box key={i} sx={{
                   p: 2, borderRadius: 1,
-                  bgcolor: a.priority === 'high' ? '#FEF0F0' : a.priority === 'medium' ? '#FFF7E6' : '#F2F4F7'
+                  bgcolor: a.priority === 'high' ? '#FEF0F0' : a.priority === 'medium' ? '#FFF7E6' : '#F0F5FC'
                 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="subtitle2" fontWeight={600}>{a.action}</Typography>
@@ -502,9 +502,9 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 {gapData.gaps.map((g: any, i: number) => (
                   <Box key={i} sx={{
                     p: 2, borderRadius: 1, border: '1px solid',
-                    borderColor: g.priority === 'HIGH' ? '#FEF0F0' : g.priority === 'MEDIUM' ? '#FFF7E6' : '#E6EAF0',
+                    borderColor: g.priority === 'HIGH' ? '#FEF0F0' : g.priority === 'MEDIUM' ? '#FFF7E6' : '#E3E9F0',
 
-                    bgcolor: g.priority === 'HIGH' ? '#FEF0F0' : g.priority === 'MEDIUM' ? '#FFF7E6' : '#F9FAFB'
+                    bgcolor: g.priority === 'HIGH' ? '#FEF0F0' : g.priority === 'MEDIUM' ? '#FFF7E6' : '#F7FAFE'
                   }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                       <Stack direction="row" spacing={1} alignItems="center">
@@ -543,7 +543,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         {actionItems.length > 0 && (
           <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-              <ActionIcon sx={{ color: '#2F80ED' }} />
+              <ActionIcon sx={{ color: '#0164C8' }} />
               <Typography variant="h6">Action Plan</Typography>
               <Chip label={`${actionItems.filter((a: any) => a.status === 'open').length} open`} size="small" color="error" />
               <Chip label={`${actionItems.filter((a: any) => a.status === 'in_progress').length} in progress`} size="small" color="warning" />
@@ -551,7 +551,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
             </Stack>
             <Stack spacing={1}>
               {actionItems.map((a: any) => (
-                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid', borderColor: '#E6EAF0' }}>
+                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid', borderColor: '#E3E9F0' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Tooltip title={a.status === 'open' ? 'Start' : a.status === 'in_progress' ? 'Complete' : ''}>
@@ -560,7 +560,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                             const next = a.status === 'open' ? 'in_progress' : a.status === 'in_progress' ? 'completed' : 'open'
                             updateAction.mutate({ id: a.id, data: { status: next } })
                           }}
-                          sx={{ color: a.status === 'completed' ? '#087A55' : a.status === 'in_progress' ? '#9A6700' : '#D8DEE7' }}>
+                          sx={{ color: a.status === 'completed' ? '#087A55' : a.status === 'in_progress' ? '#9A6700' : '#D6E2EE' }}>
                           <CheckCircle fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -570,7 +570,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                       <Chip label={a.priority} size="small" color={a.priority === 'high' ? 'error' : a.priority === 'medium' ? 'warning' : 'default'} />
                     </Stack>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      {a.staff_name && <Typography variant="caption" color="#667085">{a.staff_name}</Typography>}
+                      {a.staff_name && <Typography variant="caption" color="#51637A">{a.staff_name}</Typography>}
                       <IconButton size="small" onClick={() => deleteAction.mutate(a.id)}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
                     </Stack>
                   </Stack>
@@ -581,15 +581,15 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         )}
 
         {/* AI Gap Analysis */}
-        <Paper ref={aiRef} sx={{ p: 3, mb: 3, border: '1px solid #E6EAF0' }}>
+        <Paper ref={aiRef} sx={{ p: 3, mb: 3, border: '1px solid #E3E9F0' }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <AiIcon sx={{ color: '#10BFA5' }} />
+            <AiIcon sx={{ color: '#03C6B1' }} />
             <Typography variant="h6" sx={{ flex: 1 }}>AI Gap Analysis</Typography>
             {aiResult && (
               <>
                 <Button size="small" startIcon={<PrintIcon />} onClick={handlePrintAi}>Print</Button>
                 <Button size="small" startIcon={<DownloadIcon />} onClick={handleDownloadAiPDF}>Download</Button>
-                <Button size="small" startIcon={<ChatIcon />} variant="outlined" onClick={handleOpenShareDialog} sx={{ borderColor: '#D8DEE7', color: '#2F80ED' }}>Share to Chat</Button>
+                <Button size="small" startIcon={<ChatIcon />} variant="outlined" onClick={handleOpenShareDialog} sx={{ borderColor: '#D6E2EE', color: '#0164C8' }}>Share to Chat</Button>
               </>
             )}
             <Button
@@ -648,7 +648,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                     {aiResult.critical_gaps.map((item: any, i: number) => (
                       <Box key={i} sx={{
                         p: 1.5, borderRadius: 1,
-                        bgcolor: item.priority === 'critical' || item.priority === 'high' ? '#FEF0F0' : item.priority === 'medium' ? '#FFF7E6' : '#F9FAFB'
+                        bgcolor: item.priority === 'critical' || item.priority === 'high' ? '#FEF0F0' : item.priority === 'medium' ? '#FFF7E6' : '#F7FAFE'
                       }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                           <Typography variant="body2" fontWeight={600}>{item.area}</Typography>
@@ -715,7 +715,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                     {filteredShareChannels.map((channel: any) => (
                       <ListItemButton key={channel.id} onClick={() => handleShareToChannel(channel)} disabled={shareSending === channel.id}>
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: channel.type === 'group' ? '#6B8AFD' : '#2F80ED', width: 32, height: 32, fontSize: 14 }}>
+                          <Avatar sx={{ bgcolor: channel.type === 'group' ? '#6B8AFD' : '#0164C8', width: 32, height: 32, fontSize: 14 }}>
                             {(channel.name || '?')[0].toUpperCase()}
                           </Avatar>
                         </ListItemAvatar>
@@ -812,7 +812,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <LinearProgress
                     variant="determinate"
                     value={domain.score}
-                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#E6EAF0', '& .MuiLinearProgress-bar': { bgcolor: domainColor } }}
+                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#E3E9F0', '& .MuiLinearProgress-bar': { bgcolor: domainColor } }}
                   />
                 </Box>
                 <IconButton sx={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: '0.2s' }} aria-label={isExpanded ? 'Collapse domain' : 'Expand domain'}>
@@ -820,7 +820,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 </IconButton>
               </Stack>
               <Collapse in={isExpanded}>
-                <Box sx={{ px: 2, pb: 2, borderTop: '1px solid #E6EAF0', pt: 1 }}>
+                <Box sx={{ px: 2, pb: 2, borderTop: '1px solid #E3E9F0', pt: 1 }}>
                   <Grid container spacing={1}>
                     {domain.statements.map((stmt: any) => {
                       const stmtRating = getRating(stmt.score, data?.framework?.ratings)

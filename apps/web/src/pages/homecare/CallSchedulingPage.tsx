@@ -26,9 +26,9 @@ const localDate = (date: Date) => {
 const statusColor = (s: string) => {
   if (s === 'completed') return { bg: '#EAFBF5', color: '#087A55' }
   if (s === 'missed' || s === 'cancelled') return { bg: '#FEF0F0', color: '#B42318' }
-  if (s === 'checked_in') return { bg: '#EAF3FF', color: '#2F80ED' }
-  if (s === 'en_route') return { bg: '#F4F8FF', color: '#8B7CF6' }
-  return { bg: '#F7F9FC', color: 'text.secondary' }
+  if (s === 'checked_in') return { bg: '#EAF3FF', color: '#0164C8' }
+  if (s === 'en_route') return { bg: '#EAF3FF', color: '#8B7CF6' }
+  return { bg: '#F4F9FC', color: 'text.secondary' }
 }
 
 const PAGE_SIZE = 15
@@ -165,7 +165,7 @@ export default function CallSchedulingPage() {
           label={`${dateLabel(dayStr)} — ${sorted.length} calls`}
           color={offset === 0 ? 'primary' : 'default'}
           onClick={() => setOffset(0)}
-          sx={{ fontWeight: 600, bgcolor: offset === 0 ? '#2F80ED' : undefined, color: offset === 0 ? 'white' : undefined }}
+          sx={{ fontWeight: 600, bgcolor: offset === 0 ? '#0164C8' : undefined, color: offset === 0 ? 'white' : undefined }}
         />
         <Button size="small" onClick={() => setOffset(o => o + 1)} sx={{ minWidth: 'auto' }}><ChevronRightIcon /></Button>
       </Stack>
@@ -181,7 +181,7 @@ export default function CallSchedulingPage() {
             sx={{
               fontWeight: 600, cursor: 'pointer',
               bgcolor: statusFilter === status ? statusColor(status).bg : 'transparent',
-              border: `1px solid ${statusFilter === status ? statusColor(status).color : '#E6EAF0'}`,
+              border: `1px solid ${statusFilter === status ? statusColor(status).color : '#E3E9F0'}`,
               color: statusFilter === status ? statusColor(status).color : 'text.secondary',
             }}
           />
@@ -212,7 +212,7 @@ export default function CallSchedulingPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
         <>
-          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E6EAF0', borderRadius: 2 }}>
+          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: '#E3E9F0', borderRadius: 2 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -260,7 +260,7 @@ export default function CallSchedulingPage() {
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             {!v.assigned_staff_id && (
                               <Tooltip title="Assign carer">
-                                <IconButton size="small" onClick={() => { setAssignDialog(v); setAssignStaffId('') }} sx={{ color: '#2F80ED' }}>
+                                <IconButton size="small" onClick={() => { setAssignDialog(v); setAssignStaffId('') }} sx={{ color: '#0164C8' }}>
                                   <AssignIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -274,7 +274,7 @@ export default function CallSchedulingPage() {
                             )}
                             {isOpen && v.status === 'en_route' && (
                               <Tooltip title="Check in">
-                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'checked_in' })} sx={{ color: '#2F80ED' }}>
+                                <IconButton size="small" onClick={() => updateStatus.mutate({ visitId: v.id, status: 'checked_in' })} sx={{ color: '#0164C8' }}>
                                   <CheckInIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -323,7 +323,7 @@ export default function CallSchedulingPage() {
           <Button onClick={() => setAssignDialog(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" disabled={!assignStaffId || assignVisit.isPending}
             onClick={() => { if (assignDialog) assignVisit.mutate({ visitId: assignDialog.id, staffId: assignStaffId }) }}
-            sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}>
+            sx={{ textTransform: 'none', bgcolor: '#0164C8' }}>
             {assignVisit.isPending ? <CircularProgress size={18} color="inherit" /> : 'Assign'}
           </Button>
         </DialogActions>

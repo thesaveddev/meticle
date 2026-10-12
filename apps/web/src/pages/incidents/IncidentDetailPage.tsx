@@ -152,7 +152,7 @@ export default function IncidentDetailPage() {
     }
   }
 
-  if (isLoading) return <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}><CircularProgress size={28} sx={{ color: NAVY }} /><Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incident...</Typography></Paper>
+  if (isLoading) return <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}><CircularProgress size={28} sx={{ color: NAVY }} /><Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incident...</Typography></Paper>
   if (!incident) return <Alert severity="error">Incident not found</Alert>
 
   const involvedPeople = Array.isArray(incident.involved) ? incident.involved : []
@@ -209,7 +209,7 @@ export default function IncidentDetailPage() {
       </Stack>
 
       {/* Metadata strip */}
-      <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+      <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} divider={<Divider orientation="vertical" flexItem />}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary" fontWeight={600}>Date</Typography>
@@ -257,7 +257,7 @@ export default function IncidentDetailPage() {
           to={`/call-scheduling/day?date=${localDateParam(linkedVisit.startsAt)}&visit=${encodeURIComponent(linkedVisit.id)}`}
           aria-label={`Open linked care visit: ${linkedVisit.label || linkedVisit.type || 'Care visit'}`}
           sx={{
-            display: 'block', p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0',
+            display: 'block', p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0',
             color: 'inherit', textDecoration: 'none', cursor: 'pointer',
             transition: 'border-color 150ms ease, box-shadow 150ms ease',
             '&:hover': { borderColor: NAVY, boxShadow: '0 4px 14px rgba(15, 76, 129, 0.12)' },
@@ -279,7 +279,7 @@ export default function IncidentDetailPage() {
       )}
 
       {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E6EAF0', mb: 3 }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E3E9F0', mb: 3 }}>
         <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
@@ -291,7 +291,7 @@ export default function IncidentDetailPage() {
       {tab === 0 && (
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Investigation Details</Typography>
               <Stack spacing={2}>
                 {[
@@ -330,7 +330,7 @@ export default function IncidentDetailPage() {
           <Grid item xs={12} md={4}>
             <Stack spacing={3}>
               {/* Summary card */}
-              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Summary</Typography>
                 <Stack spacing={2}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -416,7 +416,7 @@ export default function IncidentDetailPage() {
               canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)} sx={{ textTransform: 'none' }}>Add Person</Button>
             } />
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -470,7 +470,7 @@ export default function IncidentDetailPage() {
               {incidentActions.map((a: any) => {
                 const overdue = !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date()
                 return (
-                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="body2" fontWeight={600}>{a.action}</Typography>
@@ -541,7 +541,7 @@ export default function IncidentDetailPage() {
               </Button>
             } />
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -586,13 +586,13 @@ export default function IncidentDetailPage() {
           ) : (
             <Box sx={{ position: 'relative', pl: 3 }}>
               {/* Vertical line */}
-              <Box sx={{ position: 'absolute', left: 7, top: 0, bottom: 0, width: 2, bgcolor: '#E6EAF0' }} />
+              <Box sx={{ position: 'absolute', left: 7, top: 0, bottom: 0, width: 2, bgcolor: '#E3E9F0' }} />
               <Stack spacing={0}>
                 {timeline.map((t: any, i: number) => (
                   <Box key={i} sx={{ position: 'relative', pb: 2.5 }}>
                     {/* Dot */}
-                    <Box sx={{ position: 'absolute', left: -25, top: 4, width: 12, height: 12, borderRadius: '50%', bgcolor: i === 0 ? NAVY : '#D8DEE7', border: `2px solid ${i === 0 ? NAVY : '#E6EAF0'}` }} />
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+                    <Box sx={{ position: 'absolute', left: -25, top: 4, width: 12, height: 12, borderRadius: '50%', bgcolor: i === 0 ? NAVY : '#D6E2EE', border: `2px solid ${i === 0 ? NAVY : '#E3E9F0'}` }} />
+                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
                           <Typography variant="body2" fontWeight={600}>{t.title}</Typography>

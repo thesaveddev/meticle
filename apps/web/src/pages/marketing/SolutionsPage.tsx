@@ -281,7 +281,7 @@ export default function SolutionsPage() {
             <Grid item xs={12} md={7}>
               <Grid container spacing={2}>
                 {[
-                  { code: 'CQC', nation: 'England', color: '#2F80ED', path: '/compliance/cqc' },
+                  { code: 'CQC', nation: 'England', color: '#0164C8', path: '/compliance/cqc' },
                   { code: 'Care Inspectorate', nation: 'Scotland', color: '#EF4444', path: '/compliance/care-inspectorate' },
                   { code: 'CIW', nation: 'Wales', color: '#087A55', path: '/compliance/ciw' },
                   { code: 'RQIA', nation: 'Northern Ireland', color: '#8B7CF6', path: '/compliance/rqia' },

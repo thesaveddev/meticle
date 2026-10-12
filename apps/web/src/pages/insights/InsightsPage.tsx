@@ -45,7 +45,7 @@ interface OutcomesData {
 }
 
 const statusColors: Record<string, string> = {
-  open: '#F59E0B', filled: '#10B981', completed: '#2F80ED', cancelled: '#EF4444', pending: '#F59E0B',
+  open: '#F59E0B', filled: '#10B981', completed: '#0164C8', cancelled: '#EF4444', pending: '#F59E0B',
 }
 
 const roleLabels: Record<string, string> = {
@@ -119,10 +119,10 @@ export default function InsightsPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Insights</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => navigate('/intelligence')} sx={{ color: '#2F80ED', borderColor: '#D8DEE7' }}>
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => navigate('/intelligence')} sx={{ color: '#0164C8', borderColor: '#D6E2EE' }}>
             Open Intelligence
           </Button>
-          <Button variant="text" onClick={() => navigate('/manager-briefing')} sx={{ color: '#2F80ED' }}>
+          <Button variant="text" onClick={() => navigate('/manager-briefing')} sx={{ color: '#0164C8' }}>
             Manager Briefing
           </Button>
         </Stack>
@@ -131,20 +131,20 @@ export default function InsightsPage() {
       {/* Overview Cards */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {[
-          { label: 'Total Staff', value: overview?.total_staff ?? 0, icon: <PeopleIcon />, color: '#2F80ED' },
+          { label: 'Total Staff', value: overview?.total_staff ?? 0, icon: <PeopleIcon />, color: '#0164C8' },
           { label: 'Compliance Rate', value: `${overview?.compliance_rate ?? 0}%`, icon: <CheckIcon />, color: '#10B981' },
           { label: 'Open Shifts', value: overview?.open_shifts ?? 0, icon: <ShiftIcon />, color: '#F59E0B' },
           { label: 'Staff on Leave', value: overview?.staff_on_leave ?? 0, icon: <LeaveIcon />, color: '#EF4444' },
           { label: 'Pending Leave', value: overview?.pending_leave ?? 0, icon: <LeaveIcon />, color: '#F59E0B' },
-          { label: 'Overtime (Month)', value: `${overview?.overtime_hours_month ?? 0}h`, icon: <TrendIcon />, color: '#2F80ED' },
+          { label: 'Overtime (Month)', value: `${overview?.overtime_hours_month ?? 0}h`, icon: <TrendIcon />, color: '#0164C8' },
         ].map((item, i) => (
           <Grid item xs={6} md={4} lg={2} key={i}>
-            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ color: item.color }}>{item.icon}</Box>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{item.value}</Typography>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{item.label}</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>{item.label}</Typography>
                 </Box>
               </Stack>
             </Paper>
@@ -155,10 +155,10 @@ export default function InsightsPage() {
       <Grid container spacing={3}>
         {/* Staffing */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Staff by Role</Typography>
             {staffingByRole.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No staff data</Typography>
+              <Typography variant="body2" color="#5D6E85">No staff data</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -182,7 +182,7 @@ export default function InsightsPage() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Staff by Location</Typography>
             {staffingByLocation.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No locations</Typography>
+              <Typography variant="body2" color="#5D6E85">No locations</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -208,7 +208,7 @@ export default function InsightsPage() {
 
         {/* Compliance */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Compliance</Typography>
             <Stack spacing={2}>
               <Box>
@@ -221,10 +221,10 @@ export default function InsightsPage() {
                 <LinearProgress
                   variant="determinate"
                   value={complianceOverall?.rate ?? 0}
-                  sx={{ height: 8, borderRadius: 4, bgcolor: '#E6EAF0', '& .MuiLinearProgress-bar': { bgcolor: (complianceOverall?.rate ?? 0) >= complianceThreshold ? '#10B981' : '#EF4444' } }}
+                  sx={{ height: 8, borderRadius: 4, bgcolor: '#E3E9F0', '& .MuiLinearProgress-bar': { bgcolor: (complianceOverall?.rate ?? 0) >= complianceThreshold ? '#10B981' : '#EF4444' } }}
                 />
               </Box>
-              <Typography variant="caption" color="#667085">
+              <Typography variant="caption" color="#51637A">
                 {complianceOverall?.completed ?? 0} / {complianceOverall?.total_records ?? 0} records complete
                 &nbsp;| {staffBelowThreshold > 0 && <span style={{ color: '#EF4444', fontWeight: 600 }}>{staffBelowThreshold} staff below {complianceThreshold}% threshold</span>}
               </Typography>
@@ -233,7 +233,7 @@ export default function InsightsPage() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>By Category</Typography>
             {complianceByCategory.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No compliance data</Typography>
+              <Typography variant="body2" color="#5D6E85">No compliance data</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -255,7 +255,7 @@ export default function InsightsPage() {
                             <LinearProgress
                               variant="determinate"
                               value={c.total > 0 ? (c.completed / c.total) * 100 : 0}
-                              sx={{ width: 60, height: 6, borderRadius: 3, bgcolor: '#E6EAF0', '& .MuiLinearProgress-bar': { bgcolor: '#2F80ED' } }}
+                              sx={{ width: 60, height: 6, borderRadius: 3, bgcolor: '#E3E9F0', '& .MuiLinearProgress-bar': { bgcolor: '#0164C8' } }}
                             />
                           </Stack>
                         </TableCell>
@@ -273,23 +273,23 @@ export default function InsightsPage() {
                 {[
                   { label: '30 days', value: expiring.next_30, color: expiring.next_30 > 0 ? '#EF4444' : '#10B981' },
                   { label: '60 days', value: expiring.next_60, color: expiring.next_60 > 0 ? '#F59E0B' : '#10B981' },
-                  { label: '90 days', value: expiring.next_90, color: '#2F80ED' },
+                  { label: '90 days', value: expiring.next_90, color: '#0164C8' },
                 ].map((e) => (
                   <Chip key={e.label} label={`${e.value} in ${e.label}`} size="small" sx={{ fontWeight: 600, bgcolor: `${e.color}15`, color: e.color }} />
                 ))}
               </Stack>
             ) : (
-              <Typography variant="body2" color="#98A2B3">No data</Typography>
+              <Typography variant="body2" color="#5D6E85">No data</Typography>
             )}
           </Paper>
         </Grid>
 
         {/* Leave */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Leave by Type (This Year)</Typography>
             {leaveByType.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No leave data</Typography>
+              <Typography variant="body2" color="#5D6E85">No leave data</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -327,7 +327,7 @@ export default function InsightsPage() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Currently on Leave</Typography>
             {onLeaveStaff.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No staff on leave today</Typography>
+              <Typography variant="body2" color="#5D6E85">No staff on leave today</Typography>
             ) : (
               <Stack spacing={1}>
                 {onLeaveStaff.map((s, i) => (
@@ -335,7 +335,7 @@ export default function InsightsPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography variant="body2" fontWeight={600}>{s.first_name} {s.last_name}</Typography>
-                        <Typography variant="caption" color="#667085">{s.leave_type}</Typography>
+                        <Typography variant="caption" color="#51637A">{s.leave_type}</Typography>
                       </Box>
                       <Chip label={`until ${s.end_date}`} size="small" variant="outlined" />
                     </Stack>
@@ -347,7 +347,7 @@ export default function InsightsPage() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Monthly Trend</Typography>
             {leaveTrend.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No trend data</Typography>
+              <Typography variant="body2" color="#5D6E85">No trend data</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -375,10 +375,10 @@ export default function InsightsPage() {
 
         {/* Rota */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Shift Status (Last 30 Days)</Typography>
             {shiftStatuses.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No shift data</Typography>
+              <Typography variant="body2" color="#5D6E85">No shift data</Typography>
             ) : (
               <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
                 {shiftStatuses.map((s) => (
@@ -386,7 +386,7 @@ export default function InsightsPage() {
                     key={s.status}
                     label={`${s.status}: ${s.count}`}
                     size="small"
-                    sx={{ fontWeight: 600, bgcolor: `${statusColors[s.status] || '#667085'}15`, color: statusColors[s.status] || '#667085', textTransform: 'capitalize' }}
+                    sx={{ fontWeight: 600, bgcolor: `${statusColors[s.status] || '#51637A'}15`, color: statusColors[s.status] || '#51637A', textTransform: 'capitalize' }}
                   />
                 ))}
               </Stack>
@@ -394,7 +394,7 @@ export default function InsightsPage() {
 
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Fill Rate by Location</Typography>
             {fillRate.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No data</Typography>
+              <Typography variant="body2" color="#5D6E85">No data</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -428,7 +428,7 @@ export default function InsightsPage() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Upcoming Shifts (Next 7 Days)</Typography>
             {upcomingShifts.length === 0 ? (
-              <Typography variant="body2" color="#98A2B3">No upcoming shifts</Typography>
+              <Typography variant="body2" color="#5D6E85">No upcoming shifts</Typography>
             ) : (
               <TableContainer>
                 <Table size="small">
@@ -454,7 +454,7 @@ export default function InsightsPage() {
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
-                            <Typography variant="body2" color="#667085">{s.minimum_staff_per_day}</Typography>
+                            <Typography variant="body2" color="#51637A">{s.minimum_staff_per_day}</Typography>
                           </TableCell>
                         </TableRow>
                       )
@@ -468,9 +468,9 @@ export default function InsightsPage() {
 
         {/* Outcomes */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-              <OutcomeIcon sx={{ color: '#2F80ED' }} />
+              <OutcomeIcon sx={{ color: '#0164C8' }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Care Outcomes</Typography>
             </Stack>
             {outcomes ? (
@@ -529,7 +529,7 @@ export default function InsightsPage() {
                 )}
               </>
             ) : (
-              <Typography variant="body2" color="#98A2B3">No care outcomes data</Typography>
+              <Typography variant="body2" color="#5D6E85">No care outcomes data</Typography>
             )}
           </Paper>
         </Grid>

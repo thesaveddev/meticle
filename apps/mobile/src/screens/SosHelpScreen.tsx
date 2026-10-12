@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react'
-import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, ScrollView } from 'react-native'
+import { Alert, Linking, Pressable, StyleSheet, Text, View, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme'
 import { spacing, radii, mcType } from '../theme'
-import { FloatingMicaOrb, SosContact, MICA_ORB_IMAGE } from '../components/FloatingMicaOrb'
+import type { SosContact } from '../components/FloatingMicaOrb'
 import type { AuthSession, SessionOrganisation } from '../types'
 import { hapticWarning } from '../services/haptics'
 
@@ -44,41 +44,11 @@ export function SosHelpScreen({ navigation, session, onMicaPress }: Props) {
     }
   }, [])
 
-  const show = useCallback(() => {
-    const targets: SosContact[] = [
-      { label: '999 — Emergency', phone: '999' },
-      { label: '111 — NHS', phone: '111' },
-      ...contacts,
-      ...(managerPhone ? [{ label: 'Manager', phone: managerPhone }] : []),
-    ]
-    type AlertBtn = { text: string; onPress: () => void; style?: 'default' | 'cancel' | 'destructive' }
-    const buttons: AlertBtn[] = targets.map((t): AlertBtn => ({
-      text: `Call ${t.label}`,
-      onPress: () => dial(t.phone),
-      style: t.phone === '999' ? 'destructive' : 'default',
-    }))
-    if (Platform.OS === 'ios') {
-      Alert.alert('Emergency Call', 'Who do you need to call?', [
-        { text: 'Cancel', style: 'cancel' },
-        ...buttons,
-      ])
-    } else {
-      Alert.alert('Emergency Call', 'Who do you need to call?', [
-        { text: 'Cancel', style: 'cancel' },
-        ...buttons,
-      ])
-    }
-  }, [contacts, managerPhone, dial])
-
+  // No orb is mounted here: the screen frame already mounts exactly one, and a
+  // second copy floated over this screen's own controls. The numbers below are
+  // the same emergency targets, one tap away.
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
-      <FloatingMicaOrb
-        onMicaPress={onMicaPress}
-        onSosPress={show}
-        sosContacts={contacts}
-        managerPhone={managerPhone}
-        listeningImage={MICA_ORB_IMAGE}
-      />
       <ScrollView contentContainerStyle={styles.body}>
         <View style={[styles.header, { borderBottomColor: c.border }]}>
           <Pressable onPress={navigation.pop} style={styles.back}>
@@ -131,10 +101,10 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md, paddingBottom: 120 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1 },
   back: { flexDirection: 'row', alignItems: 'center', padding: spacing.xs, borderRadius: radii.sm },
-  title: { fontSize: 20, fontWeight: '700', color: '#17202A', marginBottom: spacing.xs },
-  subtitle: { fontSize: 14, color: '#667085', lineHeight: 20, marginBottom: spacing.md },
-  card: { borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: '#E6EAF0', marginBottom: spacing.lg },
+  title: { fontSize: 20, fontWeight: '700', color: '#0C1B2E', marginBottom: spacing.xs },
+  subtitle: { fontSize: 14, color: '#51637A', lineHeight: 20, marginBottom: spacing.md },
+  card: { borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: '#E3E9F0', marginBottom: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: '600', marginLeft: spacing.sm },
-  micaRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: '#E6EAF0', backgroundColor: '#EAF3FF', marginTop: spacing.sm },
+  micaRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: '#E3E9F0', backgroundColor: '#EAF3FF', marginTop: spacing.sm },
 })

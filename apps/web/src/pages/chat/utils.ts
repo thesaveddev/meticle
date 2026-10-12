@@ -1,3 +1,6 @@
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
+import { P } from '../../styles/tokens'
+
 export const URL_REGEX = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]}>'"])/gi
 const MENTION_REGEX = /(^|[\s(])(@[A-Za-z0-9][A-Za-z0-9 .'\-]*)/gi
 
@@ -128,15 +131,17 @@ export function getCurrentUser(): { id: string; first_name?: string; last_name?:
   } catch { return { id: '' } }
 }
 
-export const NAVY = '#2F80ED'
-export const NAVY_DEEP = '#1F68C7'
-export const EMERALD = '#10B981'
-export const EMERALD_DEEP = '#087A55'
-export const INK = '#17202A'
-export const MIST = '#475467'
-export const BONE = '#F7F9FC'
-export const HAIRLINE = '#E6EAF0'
-export const WHITE = '#FFFFFF'
-export const OUTLINE = '#D8DEE7'
-export const WINDOW_BORDER = '#D8DEE7'
+/* Chat's colour names, resolved through the shared tokens rather than retyping
+   the ramp — the chat surface and the marketing pages must not drift apart. */
+export const NAVY = P.primary
+export const NAVY_DEEP = P.primaryDeep
+export const EMERALD = P.green
+export const EMERALD_DEEP = NOTICE_COLORS.success.fg
+export const INK = P.navy
+export const MIST = P.slate
+export const BONE = P.warm
+export const HAIRLINE = P.hairline
+export const WHITE = P.card
+export const OUTLINE = '#D6E2EE'
+export const WINDOW_BORDER = '#D6E2EE'
 export const DANGER = '#EF4444'

@@ -21,11 +21,11 @@ type Props = {
 }
 
 const TYPE_ICONS: Record<string, { name: string; color: string }> = {
-  info: { name: 'information-circle', color: '#2F80ED' },
+  info: { name: 'information-circle', color: '#0164C8' },
   warning: { name: 'warning', color: '#F59E0B' },
   success: { name: 'checkmark-circle', color: '#10B981' },
   error: { name: 'alert-circle', color: '#EF4444' },
-  default: { name: 'notifications', color: '#2F80ED' },
+  default: { name: 'notifications', color: '#0164C8' },
 }
 
 export function NotificationsScreen({ session, onBack }: Props) {

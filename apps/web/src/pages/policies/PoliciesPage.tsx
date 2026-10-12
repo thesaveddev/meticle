@@ -127,7 +127,7 @@ export default function PoliciesPage() {
               Keep the team aligned on the policies that protect people, staff, and your service. Open any policy to read the full guidance and its review history.
             </Typography>
           </Box>
-          {canManagePolicies && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' }, px: 2.5, py: 1.25, fontWeight: 600, flexShrink: 0 }}>
+          {canManagePolicies && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' }, px: 2.5, py: 1.25, fontWeight: 600, flexShrink: 0 }}>
             Add policy
           </Button>}
         </Stack>
@@ -138,7 +138,7 @@ export default function PoliciesPage() {
           { label: 'All policies', value: stats.total, icon: <ArticleIcon />, color: NAVY },
           { label: 'Published', value: stats.published, icon: <PublishedIcon />, color: EMERALD },
           { label: 'Drafts', value: stats.drafts, icon: <EditIcon />, color: '#9A6700' },
-          { label: 'Review due', value: stats.due, icon: <WarningIcon />, color: stats.due ? '#B42318' : '#667085' },
+          { label: 'Review due', value: stats.due, icon: <WarningIcon />, color: stats.due ? '#B42318' : '#51637A' },
         ].map((stat) => (
           <Grid item xs={6} md={3} key={stat.label}>
             <Paper variant="outlined" sx={{ p: 2, borderColor: HAIRLINE, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -184,7 +184,7 @@ export default function PoliciesPage() {
 
       {visiblePolicies.length === 0 ? (
         <Paper variant="outlined" sx={{ p: { xs: 5, md: 8 }, borderRadius: 2, borderColor: HAIRLINE, textAlign: 'center' }}>
-          <ArticleIcon sx={{ fontSize: 44, color: '#CBD5E1', mb: 1 }} />
+          <ArticleIcon sx={{ fontSize: 44, color: '#C3D2E2', mb: 1 }} />
           <Typography sx={{ color: INK, fontWeight: 600, mb: 0.75 }}>No policies match those filters</Typography>
           <Typography sx={{ color: MUTED, mb: 2 }}>Try a different search or clear one of the filters.</Typography>
           <Button variant="outlined" onClick={() => { setSearch(''); setCategoryFilter(''); setStatusFilter('') }} sx={{ borderColor: NAVY, color: NAVY }}>Clear filters</Button>

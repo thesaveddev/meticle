@@ -214,10 +214,10 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
   const statusChip = (s: string) => {
     const m: Record<string, { color: string; bg: string }> = {
-      active: { color: '#2F80ED', bg: '#E6EAF0' }, completed: { color: '#10B981', bg: '#EAFBF5' },
+      active: { color: '#0164C8', bg: '#E3E9F0' }, completed: { color: '#10B981', bg: '#EAFBF5' },
       cancelled: { color: '#EF4444', bg: '#FEF0F0' }, on_hold: { color: '#F59E0B', bg: '#FFF7E6' },
     }
-    const c = m[s] || { color: 'text.secondary', bg: '#F5F7FA' }
+    const c = m[s] || { color: 'text.secondary', bg: '#F7FAFE' }
     return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 600, fontSize: '0.7rem' }} />
   }
 
@@ -235,7 +235,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
             {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </Select>
         </FormControl>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#2F80ED' }}>Add Goal</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0164C8' }}>Add Goal</Button>
       </Stack>
 
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
@@ -283,7 +283,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   <TableCell>{g.care_plan_title ? <Chip label={g.care_plan_title} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontSize: '0.7rem' }} /> : '-'}</TableCell>
                   <TableCell>{g.target_date ? new Date(g.target_date).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#2F80ED' }} /></IconButton>
+                    <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#0164C8' }} /></IconButton>
                     <IconButton size="small" onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteGoalId(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -299,15 +299,15 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                               <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setFetchError(''); setMilestoneDialogOpen(true) }}>Add</Button>
                             </Stack>
                             {(milestones[g.id] || []).length === 0 ? (
-                              <Typography variant="body2" color="#98A2B3">No milestones yet</Typography>
+                              <Typography variant="body2" color="#5D6E85">No milestones yet</Typography>
                             ) : (
                               <Stack spacing={0.5}>
                                 {(milestones[g.id] || []).map(m => (
                                   <Stack key={m.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
                                     <IconButton size="small" onClick={() => handleToggleMilestone(g.id, m)}>
-                                      {m.is_completed ? <CheckIcon sx={{ color: '#10B981', fontSize: 18 }} /> : <Box sx={{ width: 18, height: 18, border: '2px solid #D8DEE7', borderRadius: '50%' }} />}
+                                      {m.is_completed ? <CheckIcon sx={{ color: '#10B981', fontSize: 18 }} /> : <Box sx={{ width: 18, height: 18, border: '2px solid #D6E2EE', borderRadius: '50%' }} />}
                                     </IconButton>
-                                    <Typography variant="body2" sx={{ textDecoration: m.is_completed ? 'line-through' : 'none', color: m.is_completed ? '#98A2B3' : '#17202A' }}>{m.title}</Typography>
+                                    <Typography variant="body2" sx={{ textDecoration: m.is_completed ? 'line-through' : 'none', color: m.is_completed ? '#5D6E85' : '#0C1B2E' }}>{m.title}</Typography>
                                   </Stack>
                                 ))}
                               </Stack>
@@ -316,14 +316,14 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                           <Grid item xs={12} md={6}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Progress History</Typography>
                             {(progressHistory[g.id] || []).length === 0 ? (
-                              <Typography variant="body2" color="#98A2B3">No progress entries yet</Typography>
+                              <Typography variant="body2" color="#5D6E85">No progress entries yet</Typography>
                             ) : (
                               <Stack spacing={0.5}>
                                 {(progressHistory[g.id] || []).slice(0, 10).map(p => (
                                   <Stack key={p.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
                                     <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#FFFFFF', fontWeight: 600, minWidth: 50 }} />
                                     <Typography variant="body2" sx={{ flex: 1 }}>{p.note || '-'}</Typography>
-                                    <Typography variant="caption" color="#98A2B3">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
+                                    <Typography variant="caption" color="#5D6E85">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
                                   </Stack>
                                 ))}
                               </Stack>

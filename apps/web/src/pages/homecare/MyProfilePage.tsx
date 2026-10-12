@@ -94,7 +94,7 @@ export default function MyProfilePage() {
 
       {/* Photo section */}
       <Paper sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#2F80ED', fontSize: 36, fontWeight: 600 }}>
+        <Avatar src={profilePhoto} sx={{ width: 96, height: 96, bgcolor: '#0164C8', fontSize: 36, fontWeight: 600 }}>
           {initials}
         </Avatar>
         <Box>

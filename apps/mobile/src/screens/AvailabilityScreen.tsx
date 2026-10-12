@@ -615,10 +615,10 @@ const styles = StyleSheet.create({
   selectedDateText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', flex: 1 },
   dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
   unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
-  dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D8DEE7' },
+  dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D6E2EE' },
   batchCard: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
   batchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   batchTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '800' },
   batchCount: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
-  batchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#CBD5E1' },
+  batchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#C3D2E2' },
 })

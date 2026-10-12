@@ -10,7 +10,7 @@ export default function ContextualLearnLink({ topic, label = 'Learn more' }: { t
       size="small"
       variant="text"
       startIcon={<HelpIcon sx={{ fontSize: 16 }} />}
-      sx={{ textTransform: 'none', fontWeight: 600, color: '#2F80ED', whiteSpace: 'nowrap' }}
+      sx={{ textTransform: 'none', fontWeight: 600, color: '#0164C8', whiteSpace: 'nowrap' }}
     >
       {label}
     </Button>

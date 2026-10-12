@@ -30,7 +30,7 @@ describe('MicaOverlay', () => {
   it('shows the listening dialog with the live transcript and person picker', () => {
     render(<MicaOverlay {...baseProps} state="listening" transcript="Grace had a good lunch" />)
 
-    const dialog = screen.getByRole('dialog', { name: 'MICA voice assistant' })
+    const dialog = screen.getByRole('dialog', { name: 'Mica voice assistant' })
     expect(dialog).toBeInTheDocument()
     expect(screen.getByText('“Grace had a good lunch”')).toBeInTheDocument()
     expect(screen.getByLabelText(/who is this note about/i)).toBeInTheDocument()
@@ -109,5 +109,36 @@ describe('MicaOverlay', () => {
     fireEvent.change(box, { target: { value: '   ' } })
     fireEvent.keyDown(box, { key: 'Enter', shiftKey: false })
     expect(onSendText).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders a failure as the error state, not as a calm response', () => {
+    const onCancel = vi.fn()
+    const { container } = render(
+      <MicaOverlay
+        {...baseProps}
+        state="error"
+        responseMessage="Mica could not reach the AI service. Check AI settings."
+        onCancel={onCancel}
+      />,
+    )
+
+    // Still one labelled modal dialog, and still dismissable.
+    expect(screen.getByRole('dialog', { name: 'Mica voice assistant' })).toBeInTheDocument()
+
+    // The message is shown with the error treatment rather than the ordinary card.
+    const card = container.querySelector('[data-mica-message="error"]')
+    expect(card).not.toBeNull()
+    expect(card).toHaveTextContent('could not reach the AI service')
+    expect(screen.queryByText('responding…')).toBeNull()
+
+    // The orb carries the danger ring and no speech waveform.
+    expect(container.querySelector('[data-mica-ring="error"]')).not.toBeNull()
+    expect(container.querySelector('[data-mica-waveform]')).toBeNull()
+
+    // And the failure is announced for screen-reader users.
+    expect(screen.getByRole('status')).toHaveTextContent('could not reach the AI service')
+
+    fireEvent.click(screen.getByRole('button', { name: /Cancel Mica/ }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
   })
 })

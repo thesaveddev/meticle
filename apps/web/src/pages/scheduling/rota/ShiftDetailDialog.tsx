@@ -66,7 +66,7 @@ export default function ShiftDetailDialog({
         <Stack spacing={1.5}>
           <Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-              <LocationIcon sx={{ fontSize: 16, color: '#2F80ED' }} />
+              <LocationIcon sx={{ fontSize: 16, color: '#0164C8' }} />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{shift.location_name || '—'}</Typography>
               {shift.shift_type && shift.shift_type !== 'day' && (
                 <Chip label={shift.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'} size="small"

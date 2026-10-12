@@ -22,8 +22,8 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  ORG_ADMIN: '#175CD3',
-  MANAGER: '#0C9E89',
+  ORG_ADMIN: '#004085',
+  MANAGER: '#046E86',
   CARE_WORKER: '#087A55',
   COMPLIANCE_OFFICER: '#9A6700',
 }
@@ -71,7 +71,7 @@ export function StaffDirectoryScreen({ session, onBack, onSelect }: Props) {
   const renderItem = ({ item }: { item: any }) => {
     const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email
     const roleLabel = ROLE_LABELS[item.role] || item.role
-    const roleColor = ROLE_COLORS[item.role] || '#667085'
+    const roleColor = ROLE_COLORS[item.role] || '#51637A'
     const compliance = item.compliance_rate || 0
     const color = getAvatarColor(name)
     const isActive = item.status === 'active'

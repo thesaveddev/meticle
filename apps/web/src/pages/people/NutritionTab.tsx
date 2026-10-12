@@ -13,6 +13,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
+import { P } from '../../styles/tokens'
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { EmptyState } from '../../components/design/EmptyState'
 import PrintableWeeklyMealPlan from '../../components/nutrition/PrintableWeeklyMealPlan'
 
@@ -20,10 +22,10 @@ const today = () => new Date().toISOString().split('T')[0]
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B' },
-  { value: 'morning_snack', label: 'Morning Snack', color: '#FB923C' },
+  { value: 'morning_snack', label: 'Morning Snack', color: P.amber },
   { value: 'lunch', label: 'Lunch', color: '#10B981' },
   { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B7CF6' },
-  { value: 'dinner', label: 'Dinner', color: '#2F80ED' },
+  { value: 'dinner', label: 'Dinner', color: '#0164C8' },
   { value: 'evening_snack', label: 'Evening Snack', color: '#8B7CF6' },
   { value: 'supplement', label: 'Supplement', color: '#6B8AFD' },
 ]
@@ -38,7 +40,7 @@ const APPETITE_LEVELS = [
 const CONSUMED_COLORS = {
   red: { bg: '#FEF0F0', text: '#B42318', label: '0-25%' },
   orange: { bg: '#FFF7E6', text: '#9A6700', label: '26-50%' },
-  yellow: { bg: '#FFF7E6', text: '#854D0E', label: '51-75%' },
+  yellow: { bg: NOTICE_COLORS.warning.bg, text: NOTICE_COLORS.warning.fg, label: '51-75%' },
   green: { bg: '#EAFBF5', text: '#087A55', label: '76-100%' },
 }
 
@@ -120,7 +122,7 @@ function DietaryProfileSection({ personId }: { personId: string }) {
           action={{ label: 'Set Up Dietary Profile', onClick: startEdit }}
         />
       ) : (
-        <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
           <Stack spacing={2}>
             {/* Dietary Requirements */}
             {(profile.dietary_type || profile.texture_modified) && (
@@ -145,7 +147,7 @@ function DietaryProfileSection({ personId }: { personId: string }) {
                 {profile.dairy_free && <Chip label="Dairy Free" size="small" color="warning" variant="outlined" />}
                 {profile.nut_allergy && <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label="Nut Allergy" size="small" color="error" variant="filled" />}
                 {!profile.vegetarian && !profile.vegan && !profile.halal && !profile.kosher && !profile.gluten_free && !profile.dairy_free && !profile.nut_allergy && (
-                  <Typography variant="body2" color="#98A2B3">No dietary flags set</Typography>
+                  <Typography variant="body2" color="#5D6E85">No dietary flags set</Typography>
                 )}
               </Stack>
             </Box>
@@ -205,7 +207,7 @@ function DietaryProfileSection({ personId }: { personId: string }) {
             )}
 
             {profile.recorded_by_name && (
-              <Typography variant="caption" color="#98A2B3">
+              <Typography variant="caption" color="#5D6E85">
                 Last updated by {profile.recorded_by_name}{profile.updated_at ? ` on ${new Date(profile.updated_at).toLocaleDateString('en-GB')}` : ''}
               </Typography>
             )}
@@ -285,10 +287,10 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
   const consumedColor = getConsumedColor(avgConsumed)
 
   return (
-    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', bgcolor: 'notice.subtle.bg' }}>
+    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', bgcolor: 'notice.subtle.bg' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <CalendarIcon sx={{ fontSize: 18, color: '#2F80ED' }} />
+          <CalendarIcon sx={{ fontSize: 18, color: '#0164C8' }} />
           <Typography variant="subtitle2" fontWeight={600}>Daily Summary</Typography>
         </Stack>
         <TextField type="date" size="small" value={date} onChange={e => setDate(e.target.value)} sx={{ width: 160 }} InputLabelProps={{ shrink: true }} />
@@ -296,7 +298,7 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         {/* Meals */}
-        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E3E9F0' }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
             <MealIcon sx={{ fontSize: 18, color: '#087A55' }} />
             <Typography variant="subtitle2" fontWeight={600}>Meals</Typography>
@@ -313,7 +315,7 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
         </Box>
 
         {/* Consumed */}
-        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E3E9F0' }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
             <CheckIcon sx={{ fontSize: 18, color: '#10B981' }} />
             <Typography variant="subtitle2" fontWeight={600}>Avg Consumed</Typography>
@@ -327,18 +329,18 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
         </Box>
 
         {/* Fluid */}
-        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid', borderColor: '#E3E9F0' }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-            <WaterIcon sx={{ fontSize: 18, color: '#175CD3' }} />
+            <WaterIcon sx={{ fontSize: 18, color: '#004085' }} />
             <Typography variant="subtitle2" fontWeight={600}>Fluid Intake</Typography>
           </Stack>
           <Stack>
             <Stack direction="row" alignItems="baseline" spacing={1}>
-              <Typography variant="h4" fontWeight={600} color="#175CD3">{totalFluid}<span style={{ fontSize: '0.7em', fontWeight: 600 }}>ml</span></Typography>
-              <Typography variant="caption" color="#667085">of {fluidTargetMl}ml</Typography>
+              <Typography variant="h4" fontWeight={600} color="#004085">{totalFluid}<span style={{ fontSize: '0.7em', fontWeight: 600 }}>ml</span></Typography>
+              <Typography variant="caption" color="#51637A">of {fluidTargetMl}ml</Typography>
             </Stack>
-            <Box sx={{ width: '100%', bgcolor: '#E6EAF0', borderRadius: 1, height: 6, mt: 0.5, overflow: 'hidden' }}>
-              <Box sx={{ width: `${fluidPercent}%`, bgcolor: fluidPercent >= 75 ? '#175CD3' : fluidPercent >= 50 ? '#F59E0B' : '#EF4444', height: 6, borderRadius: 1, transition: 'width 0.3s' }} />
+            <Box sx={{ width: '100%', bgcolor: '#E3E9F0', borderRadius: 1, height: 6, mt: 0.5, overflow: 'hidden' }}>
+              <Box sx={{ width: `${fluidPercent}%`, bgcolor: fluidPercent >= 75 ? '#004085' : fluidPercent >= 50 ? '#F59E0B' : '#EF4444', height: 6, borderRadius: 1, transition: 'width 0.3s' }} />
             </Box>
           </Stack>
         </Box>
@@ -480,7 +482,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
                 key={meal.id}
                 onClick={() => setViewMeal(meal)}
                 sx={{
-                  p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0',
+                  p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0',
                   cursor: 'pointer', transition: 'box-shadow 0.15s',
                   '&:hover': { borderColor: typeInfo.color, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
                 }}
@@ -492,7 +494,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
                       size="small"
                       sx={{ bgcolor: typeInfo.color + '20', color: typeInfo.color, fontWeight: 600 }}
                     />
-                    {meal.meal_time && <Typography variant="caption" color="#667085">{meal.meal_time.slice(0, 5)}</Typography>}
+                    {meal.meal_time && <Typography variant="caption" color="#51637A">{meal.meal_time.slice(0, 5)}</Typography>}
                     {meal.refused && (
                       <Chip icon={<CancelIcon sx={{ fontSize: 14 }} />} label="Refused" size="small" color="error" variant="filled" sx={{ fontWeight: 600 }} />
                     )}
@@ -525,8 +527,8 @@ function MealRecordsSection({ personId }: { personId: string }) {
                 </Stack>
                 {(meal.amount_consumed || meal.notes) && (
                   <Stack sx={{ mt: 1 }} spacing={0.5}>
-                    {meal.amount_consumed && <Typography variant="body2" color="#667085"><strong>Consumed:</strong> {meal.amount_consumed}</Typography>}
-                    {meal.notes && <Typography variant="body2" color="#667085" sx={{ fontStyle: 'italic' }}>{meal.notes}</Typography>}
+                    {meal.amount_consumed && <Typography variant="body2" color="#51637A"><strong>Consumed:</strong> {meal.amount_consumed}</Typography>}
+                    {meal.notes && <Typography variant="body2" color="#51637A" sx={{ fontStyle: 'italic' }}>{meal.notes}</Typography>}
                   </Stack>
                 )}
               </Paper>
@@ -645,14 +647,14 @@ function MealRecordsSection({ personId }: { personId: string }) {
                     <Typography variant="body2" fontWeight={600}>Consumed</Typography>
                     <Typography variant="body2" fontWeight={600} sx={{ color: getConsumedColor(mealDetail.consumed_percent).text }}>{mealDetail.consumed_percent}%</Typography>
                   </Stack>
-                  <LinearProgress variant="determinate" value={mealDetail.consumed_percent} sx={{ height: 8, borderRadius: 4, bgcolor: '#E6EAF0', '& .MuiLinearProgress-bar': { bgcolor: getConsumedColor(mealDetail.consumed_percent).text } }} />
+                  <LinearProgress variant="determinate" value={mealDetail.consumed_percent} sx={{ height: 8, borderRadius: 4, bgcolor: '#E3E9F0', '& .MuiLinearProgress-bar': { bgcolor: getConsumedColor(mealDetail.consumed_percent).text } }} />
                 </Box>
               )}
 
               <Stack spacing={1}>
                 {mealDetail.amount_offered && <Stack direction="row" spacing={1}><Typography variant="body2" fontWeight={600}>Offered:</Typography><Typography variant="body2">{mealDetail.amount_offered}</Typography></Stack>}
                 {mealDetail.amount_consumed && <Stack direction="row" spacing={1}><Typography variant="body2" fontWeight={600}>Consumed:</Typography><Typography variant="body2">{mealDetail.amount_consumed}</Typography></Stack>}
-                {mealDetail.fluid_ml > 0 && <Stack direction="row" spacing={1}><WaterIcon sx={{ fontSize: 16, color: '#175CD3' }} /><Typography variant="body2" fontWeight={600}>{mealDetail.fluid_ml}ml fluid</Typography></Stack>}
+                {mealDetail.fluid_ml > 0 && <Stack direction="row" spacing={1}><WaterIcon sx={{ fontSize: 16, color: '#004085' }} /><Typography variant="body2" fontWeight={600}>{mealDetail.fluid_ml}ml fluid</Typography></Stack>}
               </Stack>
 
               {mealDetail.items && mealDetail.items.length > 0 && (
@@ -666,7 +668,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
                           {item.portion_size && <Chip label={item.portion_size} size="small" variant="outlined" />}
                         </Stack>
                         {item.allergens && <Typography variant="caption" color="#9A6700">Allergens: {item.allergens}</Typography>}
-                        {item.preparation_notes && <Typography variant="caption" color="#667085" sx={{ display: 'block' }}>{item.preparation_notes}</Typography>}
+                        {item.preparation_notes && <Typography variant="caption" color="#51637A" sx={{ display: 'block' }}>{item.preparation_notes}</Typography>}
                       </Paper>
                     ))}
                   </Stack>
@@ -688,7 +690,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
               )}
 
               {mealDetail.recorded_by_name && (
-                <Typography variant="caption" color="#98A2B3">
+                <Typography variant="caption" color="#5D6E85">
                   Recorded by {mealDetail.recorded_by_name}
                 </Typography>
               )}

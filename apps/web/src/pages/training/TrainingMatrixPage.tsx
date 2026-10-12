@@ -377,7 +377,7 @@ function DashboardView() {
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress /></Box>
 
-  const chartColors = ['#2F80ED', '#10BFA5', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#94A3B8']
+  const chartColors = ['#0164C8', '#03C6B1', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#5D6E85']
 
   return (
     <Box>

@@ -60,7 +60,7 @@ function DetailsView() {
     standards_exceeded: 'Standards Exceeded',
   }
   const DSPT_COLORS: Record<string, string> = {
-    not_started: '#98A2B3',
+    not_started: '#5D6E85',
     in_progress: '#F59E0B',
     submitted: '#6B8AFD',
     standards_met: '#10B981',
@@ -79,7 +79,7 @@ function DetailsView() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>NHS DSPT Certification</Typography>
           <Chip icon={<ShieldIcon />} label={DSPT_LABELS[ds] || 'Not Started'}
             onClick={() => navigate('/compliance/dspt')}
-            sx={{ color: DSPT_COLORS[ds] || '#98A2B3', bgcolor: `${DSPT_COLORS[ds] || '#98A2B3'}15`, fontWeight: 600, cursor: 'pointer' }} />
+            sx={{ color: DSPT_COLORS[ds] || '#5D6E85', bgcolor: `${DSPT_COLORS[ds] || '#5D6E85'}15`, fontWeight: 600, cursor: 'pointer' }} />
         </Box>
       </Stack>
     </Paper>
@@ -339,12 +339,12 @@ function BrandingView() {
       <Typography variant="h6" sx={{ mb: 3 }}>Branding</Typography>
       <Stack spacing={3} maxWidth={500}>
         <TextField label="Logo URL" fullWidth defaultValue={org?.logo_url || ''} {...register('logo_url')} />
-        <TextField label="Primary Color" fullWidth defaultValue={org?.primary_color || '#2F80ED'} {...register('primary_color')} />
-        <TextField label="Secondary Color" fullWidth defaultValue={org?.secondary_color || '#667085'} {...register('secondary_color')} />
-        <TextField label="Accent Color" fullWidth defaultValue={org?.accent_color || '#F8FAFC'} {...register('accent_color')} />
+        <TextField label="Primary Color" fullWidth defaultValue={org?.primary_color || '#0164C8'} {...register('primary_color')} />
+        <TextField label="Secondary Color" fullWidth defaultValue={org?.secondary_color || '#51637A'} {...register('secondary_color')} />
+        <TextField label="Accent Color" fullWidth defaultValue={org?.accent_color || '#F7FAFE'} {...register('accent_color')} />
         <Box sx={{ display: 'flex', gap: 1 }}>
           {['primary_color', 'secondary_color', 'accent_color'].map(field => (
-            <Box key={field} sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: org?.[field] || '#D8DEE7' }} />
+            <Box key={field} sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: org?.[field] || '#D6E2EE' }} />
           ))}
         </Box>
         <Button variant="contained" onClick={handleSubmit((data) => updateBranding.mutate(data))}>Save Branding</Button>

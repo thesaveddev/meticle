@@ -10,6 +10,8 @@ import {
   RotaIcon, LeaveIcon, IncidentIcon, TaskIcon, ChatIcon, TrainingIcon,
   ShieldIcon, EvidenceIcon, SurveyIcon, PolicyIcon, DsptIcon, AuditIcon,
 } from '../components/marketing/icons'
+import { P } from '../styles/tokens'
+import { NOTICE_COLORS } from '../theme/noticeTokens'
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -43,15 +45,18 @@ const structuredData = {
   ],
 }
 
-const INK = '#17202A'
-const NAVY = '#2F80ED'
-const NAVY_DEEP = '#1F68C7'
-const EMERALD = '#10B981'
-const EMERALD_DEEP = '#087A55'
-const BONE = '#F7F9FC'
-const MIST = '#475467'
-const HAIRLINE = '#E6EAF0'
-const INK_DARK = '#141C24'
+// Brand colours resolve to the shared design tokens (styles/tokens.ts) so this
+// page cannot drift from the app palette.
+const INK = P.navy
+const NAVY = P.primary
+const NAVY_DEEP = P.primaryDeep
+const EMERALD = P.green
+// The success foreground on a mint fill (theme/noticeTokens.ts).
+const EMERALD_DEEP = NOTICE_COLORS.success.fg
+const BONE = P.warm
+const MIST = P.slate
+const HAIRLINE = P.hairline
+const INK_DARK = P.navyMid
 
 const HERO_IMAGE = '/illustrations/hero-care.svg'
 const SHOWCASE_IMAGE = '/illustrations/care-moment.svg'
@@ -149,7 +154,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                   variant="outlined"
                   size="large"
                   onClick={() => navigate('/how-it-works')}
-                  sx={{ borderColor: '#C9C2B4', color: INK, '&:hover': { borderColor: INK, bgcolor: 'rgba(27,36,48,0.04)' }, fontWeight: 600, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease' }}
+                  sx={{ borderColor: P.subtle, color: INK, '&:hover': { borderColor: INK, bgcolor: 'rgba(12,27,46,0.04)' }, fontWeight: 600, px: { xs: 4, sm: 5 }, py: 1.75, fontSize: '1rem', transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease' }}
                 >
                   See how it works
                 </Button>
@@ -168,7 +173,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                     transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease',
                   }}
               >
-                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E6EAF0`, bgcolor: 'background.paper' }}>
+                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid ${HAIRLINE}`, bgcolor: 'background.paper' }}>
                   <img src={HERO_IMAGE} alt="Meticle Care dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
                 </Box>
               </Box>
@@ -549,8 +554,8 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={7}>
-              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E6EAF0`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'notice.subtle.bg' }}>
+              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid ${HAIRLINE}`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${HAIRLINE}`, bgcolor: 'notice.subtle.bg' }}>
                   <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
                 </Stack>
                 <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in Meticle Care with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />

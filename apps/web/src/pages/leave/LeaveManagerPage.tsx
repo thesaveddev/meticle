@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { ConfirmDialog, EmptyRow } from '../../components/ui'
+import { P } from '../../styles/tokens'
 
 interface LeaveType {
   id: string; name: string; color: string; days_allowed: number; hours_allowed: number; duration_type: string
@@ -339,9 +340,9 @@ export default function LeaveManagerPage() {
       pending: { bg: '#FFF7E6', text: '#9A6700' },
       approved: { bg: '#EAFBF5', text: '#087A55' },
       rejected: { bg: '#FEF0F0', text: '#B42318' },
-      cancelled: { bg: '#E6EAF0', text: '#344054' },
+      cancelled: { bg: '#E3E9F0', text: '#3A4551' },
     }
-    const c = colors[status] || { bg: '#E6EAF0', text: '#344054' }
+    const c = colors[status] || { bg: '#E3E9F0', text: '#3A4551' }
     return <Chip label={status} size="small" sx={{ bgcolor: c.bg, color: c.text, fontWeight: 600, textTransform: 'capitalize' }} />
   }
 
@@ -420,35 +421,35 @@ export default function LeaveManagerPage() {
 
       <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 2.5 }}>
         <Stack direction="row" spacing={1.25} alignItems="center">
-          <LeaveIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
+          <LeaveIcon sx={{ color: '#0164C8', fontSize: 28 }} />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 600, letterSpacing: '-0.02em' }}>Leave Manager</Typography>
             <Typography variant="body2" color="text.secondary">Plan time away and keep your balance visible.</Typography>
           </Box>
         </Stack>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
           Apply for leave
         </Button>
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5, borderRadius: 2.5, borderColor: '#D9E6F2', bgcolor: '#F4F8FF' }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5, borderRadius: 2.5, borderColor: P.hairline, bgcolor: P.indigoLight }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }}>
           <Box sx={{ position: 'relative', width: 104, height: 104, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-            <CircularProgress variant="determinate" value={100} size={104} thickness={4} sx={{ color: '#E5EEF5', position: 'absolute' }} />
-            <CircularProgress variant="determinate" value={takenPercentage} size={104} thickness={4} sx={{ color: '#2F80ED', position: 'absolute', transform: 'rotate(-90deg)' }} />
-            <Box sx={{ textAlign: 'center' }}><Typography variant="h6" sx={{ fontWeight: 600, color: '#2F80ED' }}>{takenPercentage}%</Typography><Typography variant="caption" color="text.secondary">used</Typography></Box>
+            <CircularProgress variant="determinate" value={100} size={104} thickness={4} sx={{ color: P.hairline, position: 'absolute' }} />
+            <CircularProgress variant="determinate" value={takenPercentage} size={104} thickness={4} sx={{ color: '#0164C8', position: 'absolute', transform: 'rotate(-90deg)' }} />
+            <Box sx={{ textAlign: 'center' }}><Typography variant="h6" sx={{ fontWeight: 600, color: '#0164C8' }}>{takenPercentage}%</Typography><Typography variant="caption" color="text.secondary">used</Typography></Box>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.08em' }}>Your leave balance</Typography>
+            <Typography variant="overline" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.08em' }}>Your leave balance</Typography>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25 }}>{fmtDaysHours(totalRemainingHours)} left</Typography>
             <Typography variant="body2" color="text.secondary">{fmtDaysHours(totalTakenHours)} taken from {fmtDaysHours(totalAllocatedHours)} allocated · {fmtDaysHours(pendingHoursTotal)} pending</Typography>
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(72px, 1fr))', gap: 1, width: { xs: '100%', md: 330 } }}>
             {[
-              ['Allocated', fmtDaysHours(totalAllocatedHours), '#2F80ED'],
+              ['Allocated', fmtDaysHours(totalAllocatedHours), '#0164C8'],
               ['Taken', fmtDaysHours(totalTakenHours), '#B42318'],
               ['Remaining', fmtDaysHours(totalRemainingHours), '#087A55'],
-            ].map(([label, value, color]) => <Box key={label} sx={{ p: 1.25, bgcolor: '#FFFFFF', borderRadius: 1.75, border: '1px solid #E6EAF0' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ fontWeight: 600, color }}>{value}</Typography></Box>)}
+            ].map(([label, value, color]) => <Box key={label} sx={{ p: 1.25, bgcolor: '#FFFFFF', borderRadius: 1.75, border: '1px solid #E3E9F0' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ fontWeight: 600, color }}>{value}</Typography></Box>)}
           </Box>
         </Stack>
         {balances.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No leave balances configured.</Typography>}
@@ -460,7 +461,7 @@ export default function LeaveManagerPage() {
 
       {isAdminOrManager && (
         <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #EAF3FF', bgcolor: 'notice.subtle.bg' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#2F80ED', mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#0164C8', mb: 1 }}>
             Active Delegations
           </Typography>
           {activeDelegations.length > 0 ? (
@@ -471,7 +472,7 @@ export default function LeaveManagerPage() {
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {d.delegate_first_name || 'Delegate'} {d.delegate_last_name || ''}
                     </Typography>
-                    <Typography variant="caption" color="#667085">
+                    <Typography variant="caption" color="#51637A">
                       {d.ends_at ? `Ends ${new Date(d.ends_at).toLocaleDateString()}` : 'No end date'}
                     </Typography>
                   </Box>
@@ -489,7 +490,7 @@ export default function LeaveManagerPage() {
               ))}
             </Stack>
           ) : (
-            <Typography variant="body2" color="#98A2B3">No active delegations.</Typography>
+            <Typography variant="body2" color="#5D6E85">No active delegations.</Typography>
           )}
         </Paper>
       )}
@@ -509,11 +510,11 @@ export default function LeaveManagerPage() {
         ) : (<>
         {tab === 0 && (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(230px, 0.32fr) minmax(0, 1fr)' }, gap: 0, alignItems: 'stretch' }}>
-            <Box sx={{ p: { xs: 2, lg: 3 }, bgcolor: '#F4F8FF', borderRight: { lg: '1px solid #E6EAF0' }, borderBottom: { xs: '1px solid #E6EAF0', lg: 0 } }}>
-              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.08em' }}>New request</Typography>
+            <Box sx={{ p: { xs: 2, lg: 3 }, bgcolor: '#EAF3FF', borderRight: { lg: '1px solid #E3E9F0' }, borderBottom: { xs: '1px solid #E3E9F0', lg: 0 } }}>
+              <Typography variant="overline" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.08em' }}>New request</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.25, mb: 1 }}>Need time away?</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Choose your dates and leave type. Your current balance will be shown before you submit.</Typography>
-              <Button fullWidth variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Apply for leave</Button>
+              <Button fullWidth variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Apply for leave</Button>
               <Stack spacing={1} sx={{ mt: 3 }}>
                 <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Pending</Typography><Typography variant="body2" sx={{ fontWeight: 600, color: '#9A6700' }}>{fmtDaysHours(pendingHoursTotal)}</Typography></Stack>
                 <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Available</Typography><Typography variant="body2" sx={{ fontWeight: 600, color: '#087A55' }}>{fmtDaysHours(totalRemainingHours)}</Typography></Stack>
@@ -545,7 +546,7 @@ export default function LeaveManagerPage() {
                       onClick={() => setDetailRequest(r)}
                       sx={{ cursor: 'pointer' }}>
                       <TableCell>
-                        <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#2F80ED') + '20', color: r.leave_type_color || '#2F80ED', fontWeight: 600 }} />
+                        <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#0164C8') + '20', color: r.leave_type_color || '#0164C8', fontWeight: 600 }} />
                       </TableCell>
                       <TableCell>{fmtDay(parseYMD(r.start_date))}{r.end_date !== r.start_date ? ` - ${fmtDay(parseYMD(r.end_date))}` : ''}</TableCell>
                       <TableCell>{duration}</TableCell>
@@ -586,7 +587,7 @@ export default function LeaveManagerPage() {
                 <CircularProgress />
               </Box>
             ) : (<>
-            <Stack direction="row" spacing={2} sx={{ p: 2, borderBottom: '1px solid #E6EAF0' }}>
+            <Stack direction="row" spacing={2} sx={{ p: 2, borderBottom: '1px solid #E3E9F0' }}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Location</InputLabel>
                 <Select value={filterLocation} label="Location" onChange={e => setFilterLocation(e.target.value)}>
@@ -632,7 +633,7 @@ export default function LeaveManagerPage() {
                         sx={{ cursor: 'pointer' }}>
                         <TableCell sx={{ fontWeight: 600 }}>{r.first_name} {r.last_name}</TableCell>
                         <TableCell>
-                        <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#2F80ED') + '20', color: r.leave_type_color || '#2F80ED', fontWeight: 600 }} />
+                        <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#0164C8') + '20', color: r.leave_type_color || '#0164C8', fontWeight: 600 }} />
                         </TableCell>
                         <TableCell>{fmtDay(parseYMD(r.start_date))}{r.end_date !== r.start_date ? ` - ${fmtDay(parseYMD(r.end_date))}` : ''}</TableCell>
                         <TableCell>{duration}</TableCell>
@@ -683,7 +684,7 @@ export default function LeaveManagerPage() {
                 <IconButton size="small" onClick={() => {
                   const d = new Date(calendarMonth); d.setMonth(d.getMonth() - 1); setCalendarMonth(d)
                 }}><ChevronLeft /></IconButton>
-                <CalendarIcon sx={{ color: '#2F80ED' }} />
+                <CalendarIcon sx={{ color: '#0164C8' }} />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </Typography>
@@ -694,16 +695,16 @@ export default function LeaveManagerPage() {
               {isAdminOrManager && (
                 <Stack direction="row" spacing={2}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#2F80ED' }}>{totalOnLeave}</Typography>
-                    <Typography variant="caption" color="#667085">On Leave</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0164C8' }}>{totalOnLeave}</Typography>
+                    <Typography variant="caption" color="#51637A">On Leave</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#10B981' }}>{totalApproved}</Typography>
-                    <Typography variant="caption" color="#667085">Approved</Typography>
+                    <Typography variant="caption" color="#51637A">Approved</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#F59E0B' }}>{totalPending}</Typography>
-                    <Typography variant="caption" color="#667085">Pending</Typography>
+                    <Typography variant="caption" color="#51637A">Pending</Typography>
                   </Box>
                 </Stack>
               )}
@@ -716,7 +717,7 @@ export default function LeaveManagerPage() {
                 </Box>
               ))}
               {calendarDays.map((day, i) => {
-                if (!day) return <Box key={`empty-${i}`} sx={{ width: '14.285%', minHeight: 90, border: '1px solid #F7F9FC' }} />
+                if (!day) return <Box key={`empty-${i}`} sx={{ width: '14.285%', minHeight: 90, border: '1px solid #F4F9FC' }} />
                 const events = calendarEvents.filter(e => e.date.toDateString() === day.toDateString())
                 const isToday = day.toDateString() === new Date().toDateString()
                 const stats = calendarStats.find(s => s.date === toYMD(day))
@@ -724,8 +725,8 @@ export default function LeaveManagerPage() {
                 return (
                   <Box key={i} sx={{
                     width: '14.285%', minHeight: 90, p: 0.5, borderRadius: 0,
-                    bgcolor: isToday ? '#E6EAF0' : 'transparent',
-                    border: '1px solid #F7F9FC',
+                    bgcolor: isToday ? '#E3E9F0' : 'transparent',
+                    border: '1px solid #F4F9FC',
                     cursor: 'pointer',
                     '&:hover': { bgcolor: 'notice.subtle.bg' },
                   }}
@@ -753,11 +754,11 @@ export default function LeaveManagerPage() {
                       }
                     }}
                   >
-                    <Typography variant="caption" sx={{ fontWeight: isToday ? 800 : 400, color: isToday ? '#2F80ED' : '#667085' }}>
+                    <Typography variant="caption" sx={{ fontWeight: isToday ? 800 : 400, color: isToday ? '#0164C8' : '#51637A' }}>
                       {day.getDate()}
                     </Typography>
                     {dayAvailability.length > 0 && (
-                      <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#2F80ED', fontWeight: 600, lineHeight: 1.2 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#0164C8', fontWeight: 600, lineHeight: 1.2 }}>
                         {isAdminOrManager ? `${new Set(dayAvailability.map(record => record.staff_id)).size} available` : 'Available'}
                       </Typography>
                     )}
@@ -774,7 +775,7 @@ export default function LeaveManagerPage() {
                     {events.slice(0, 2).map(e => (
                       <Chip key={e.id} label={e.label} size="small"
                         sx={{ width: '100%', height: 14, fontSize: '0.45rem', mt: 0.1,
-                          bgcolor: (e.color || '#2F80ED') + '30', color: e.color || '#2F80ED', fontWeight: 600, '& .MuiChip-label': { px: 0.2 } }} />
+                          bgcolor: (e.color || '#0164C8') + '30', color: e.color || '#0164C8', fontWeight: 600, '& .MuiChip-label': { px: 0.2 } }} />
                     ))}
                     {events.length > 2 && (
                       <Typography variant="caption" sx={{ fontSize: '0.45rem', color: 'text.secondary', display: 'block', textAlign: 'center' }}>
@@ -806,7 +807,7 @@ export default function LeaveManagerPage() {
             </Typography>
             <Divider sx={{ mb: 1 }} />
             {availabilityForDate(parseYMD(dayPopover.date)).length > 0 && (
-              <Typography variant="caption" color="#2F80ED" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+              <Typography variant="caption" color="#0164C8" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
                 {isAdminOrManager ? `${new Set(availabilityForDate(parseYMD(dayPopover.date)).map(record => record.staff_id)).size} staff with availability recorded` : 'Availability recorded for this day'}
               </Typography>
             )}
@@ -837,7 +838,7 @@ export default function LeaveManagerPage() {
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{e.first_name} {e.last_name}</Typography>
                             <Chip label={e.leave_type_name || e.type} size="small"
-                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#2F80ED') + '20', color: e.leave_type_color || '#2F80ED', fontWeight: 600 }} />
+                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#0164C8') + '20', color: e.leave_type_color || '#0164C8', fontWeight: 600 }} />
                             <Chip label={e.status} size="small"
                               color={e.status === 'approved' ? 'success' : e.status === 'rejected' ? 'error' : e.status === 'pending' ? 'warning' : 'default'}
                               sx={{ height: 18, fontSize: '0.6rem' }} />
@@ -845,10 +846,10 @@ export default function LeaveManagerPage() {
                         }
                         secondary={
                           <Stack spacing={0.3} sx={{ mt: 0.3 }}>
-                            <Typography variant="caption" color="#667085">
+                            <Typography variant="caption" color="#51637A">
                               {duration} &middot; {fmtDay(parseYMD(e.start_date))}{e.end_date !== e.start_date ? ` - ${fmtDay(parseYMD(e.end_date))}` : ''}
                             </Typography>
-                            {e.reason && <Typography variant="caption" color="#98A2B3" sx={{ fontStyle: 'italic' }}>"{e.reason}"</Typography>}
+                            {e.reason && <Typography variant="caption" color="#5D6E85" sx={{ fontStyle: 'italic' }}>"{e.reason}"</Typography>}
                             {e.status === 'pending' && isAdminOrManager && (
                               <Stack direction="row" spacing={0.5} sx={{ mt: 0.3 }}>
                                 <Button size="small" variant="contained" color="success" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
@@ -871,7 +872,7 @@ export default function LeaveManagerPage() {
                 })}
               </List>
             ) : (
-              <Typography variant="body2" color="#98A2B3">No leave on this day.</Typography>
+              <Typography variant="body2" color="#5D6E85">No leave on this day.</Typography>
             )}
           </Box>
         )}
@@ -910,7 +911,7 @@ export default function LeaveManagerPage() {
               {leaveTypes.map(t => <MenuItem key={t.id} value={t.id}>
                 <Stack direction="row" justifyContent="space-between" sx={{ width: '100%' }}>
                   <span>{t.name}</span>
-                  <Typography variant="caption" color="#667085">
+                  <Typography variant="caption" color="#51637A">
                     ({t.duration_type === 'hours' ? `${t.hours_allowed}h` : `${(t.days_allowed * HOURS_PER_DAY)}h`} allowance)
                   </Typography>
                 </Stack>
@@ -971,7 +972,7 @@ export default function LeaveManagerPage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleRequestLeave}
-            sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Submit Request</Button>
+            sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Submit Request</Button>
         </DialogActions>
       </Dialog>
 
@@ -979,7 +980,7 @@ export default function LeaveManagerPage() {
         <DialogTitle sx={{ fontWeight: 600 }}>Set Up Delegation?</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2" color="#667085">
+            <Typography variant="body2" color="#51637A">
               As a manager, you may want to delegate your responsibilities while on leave.
               Optionally select someone to cover for you.
             </Typography>
@@ -1032,7 +1033,7 @@ export default function LeaveManagerPage() {
             } finally {
               setDelegationSaving(false)
             }
-          }} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+          }} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
             {delegationSaving ? <><CircularProgress size={16} sx={{ mr: 1, color: 'inherit' }} />Setting...</> : 'Set Delegation'}
           </Button>
         </DialogActions>
@@ -1050,19 +1051,19 @@ export default function LeaveManagerPage() {
             <DialogContent dividers>
               <Stack spacing={1.5}>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>LEAVE TYPE</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>LEAVE TYPE</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     <Chip label={detailRequest.leave_type_name} size="small"
-                      sx={{ bgcolor: (detailRequest.leave_type_color || '#2F80ED') + '20', color: detailRequest.leave_type_color || '#2F80ED', fontWeight: 600 }} />
+                      sx={{ bgcolor: (detailRequest.leave_type_color || '#0164C8') + '20', color: detailRequest.leave_type_color || '#0164C8', fontWeight: 600 }} />
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>DATES</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>DATES</Typography>
                   <Typography variant="body2">{fmtDay(parseYMD(detailRequest.start_date))}
                     {detailRequest.end_date !== detailRequest.start_date ? ` - ${fmtDay(parseYMD(detailRequest.end_date))}` : ''}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>DURATION</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>DURATION</Typography>
                   <Typography variant="body2">
                     {detailRequest.duration_type === 'hours' && detailRequest.hours_requested
                       ? `${detailRequest.hours_requested}h`
@@ -1070,17 +1071,17 @@ export default function LeaveManagerPage() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REASON</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>REASON</Typography>
                   <Typography variant="body2">{detailRequest.reason || '-'}</Typography>
                 </Box>
                 {detailRequest.notes && (
                   <Box>
-                    <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REVIEWER NOTES</Typography>
-                    <Typography variant="body2" color="#475467">{detailRequest.notes}</Typography>
+                    <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>REVIEWER NOTES</Typography>
+                    <Typography variant="body2" color="#51637A">{detailRequest.notes}</Typography>
                   </Box>
                 )}
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REVIEWER</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>REVIEWER</Typography>
                   <Typography variant="body2">
                     {detailRequest.reviewer_first_name || detailRequest.reviewer_last_name
                       ? `${detailRequest.reviewer_first_name || ''} ${detailRequest.reviewer_last_name || ''}`.trim()
@@ -1088,7 +1089,7 @@ export default function LeaveManagerPage() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>REQUESTED</Typography>
+                  <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>REQUESTED</Typography>
                   <Typography variant="body2">{new Date(detailRequest.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Typography>
                 </Box>
               </Stack>

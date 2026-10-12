@@ -21,7 +21,7 @@ interface Props {
   colors?: string[]
 }
 
-const DEFAULT_COLORS = ['#2F80ED', '#10BFA5', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#94A3B8']
+const DEFAULT_COLORS = ['#0164C8', '#03C6B1', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#5D6E85']
 
 export default function ReportBarChart({ title, data, height = 350, horizontal = false, showLegend = true, showGrid = true, stacked = false, seriesKeys, colors }: Props) {
   const palette = colors || DEFAULT_COLORS
@@ -50,7 +50,7 @@ export default function ReportBarChart({ title, data, height = 350, horizontal =
             layout={horizontal ? 'vertical' : 'horizontal'}
             margin={{ top: 5, right: 20, left: horizontal ? 80 : 20, bottom: horizontal ? 5 : 20 }}
           >
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#E6EAF0" />}
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#E3E9F0" />}
             {horizontal ? (
               <>
                 <XAxis type="number" tick={{ fontSize: 12 }} />
@@ -63,7 +63,7 @@ export default function ReportBarChart({ title, data, height = 350, horizontal =
               </>
             )}
             <Tooltip
-              contentStyle={{ borderRadius: 8, border: '1px solid #E6EAF0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              contentStyle={{ borderRadius: 8, border: '1px solid #E3E9F0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               formatter={(value: any, name: any) => [typeof value === 'number' ? value.toLocaleString() : value, name === 'value' ? title : name]}
             />
             {showLegend && hasMultipleSeries && <Legend />}

@@ -3,12 +3,12 @@
  */
 
 .homecare-page {
-  --homecare-ink: #17202A;
-  --homecare-muted: #667085;
-  --homecare-paper: #F8FAFC;
+  --homecare-ink: #0C1B2E;
+  --homecare-muted: #51637A;
+  --homecare-paper: #F7FAFE;
   --homecare-surface: #FFFFFF;
-  --homecare-rule: #E6EAF0;
-  --homecare-navy: #2F80ED;
+  --homecare-rule: #E3E9F0;
+  --homecare-navy: #0164C8;
   --homecare-green: #10B981;
   /* Full content width like every other app page — no boxed column or side margins. */
   min-width: 0;

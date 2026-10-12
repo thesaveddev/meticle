@@ -32,8 +32,8 @@ ${body}
 // Web-brand transactional templates.
 //
 // The web authentication experience (apps/web/src/components/auth) uses the
-// app's blue brand (#2F80ED family, --mc-primary) on an almost-white canvas
-// with a white card. These builders give the transactional emails the same
+// app's blue brand (--mc-primary, #0164C8 — see scripts/design/palette.mjs)
+// on an almost-white canvas with a white card. These builders give the transactional emails the same
 // product feel: near-white page, white surface, one primary CTA, a soft blue
 // security panel, and a shared footer. Email-safe throughout: table layout,
 // inline styles only, system font stack, no external fonts or images except
@@ -44,14 +44,14 @@ export const EMAIL_BRAND = {
   pageBg: '#F7F9FC',
   surface: '#FFFFFF',
   border: '#E4EAF2',
-  primary: '#2F80ED',
-  primaryDeep: '#1F68C7',
+  primary: '#0164C8',
+  primaryDeep: '#0251B3',
   textPrimary: '#101828',
   textSecondary: '#667085',
   textMuted: '#98A2B3',
-  infoSoft: '#EFF8FF',
-  infoBorder: '#D6E9FF',
-  infoText: '#175CD3',
+  infoSoft: '#EAF3FF',
+  infoBorder: '#D4E6FF',
+  infoText: '#014FB5',
   footerMuted: '#98A2B3',
 } as const;
 

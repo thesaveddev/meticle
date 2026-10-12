@@ -8,19 +8,19 @@ const THEME_KEY = 'app_theme_mode'
 
 /* ─── Light colors ──────────────────────────────────────────── */
 export const CHART_PALETTE = [
-  '#2F80ED',
-  '#10BFA5',
+  '#0164C8',
+  '#03C6B1',
   '#10B981',
   '#F59E0B',
   '#EF4444',
   '#8B7CF6',
   '#6B8AFD',
-  '#94A3B8',
+  '#5D6E85',
 ] as const
 
 export const lightColors = {
-  primary: '#2F80ED',
-  primaryLight: '#2674D9',
+  primary: '#0164C8',
+  primaryLight: '#0251B3',
   primarySurface: '#EAF3FF',
   success: '#10B981',
   successDeep: '#087A55',
@@ -31,38 +31,38 @@ export const lightColors = {
   warningText: '#9A6700',
   dangerSoft: '#FEF0F0',
   dangerText: '#B42318',
-  surfaceHover: '#F5F7FA',
-  textMuted: '#667085',
-  textSecondary: '#98A2B3',
-  background: '#F7F9FC',
+  surfaceHover: '#F7FAFE',
+  textMuted: '#5D6E85',
+  textSecondary: '#51637A',
+  background: '#F4F9FC',
   warning: '#F59E0B',
   warningSurface: '#FFF7E6',
   danger: '#EF4444',
   dangerDeep: '#B42318',
   dangerSurface: '#FEF0F0',
-  accent: '#10BFA5',
-  accentSurface: '#E8FAF6',
-  info: '#2F80ED',
+  accent: '#03C6B1',
+  accentSurface: '#D2FBF4',
+  info: '#0164C8',
   infoSurface: '#EAF3FF',
-  bg: '#F7F9FC',
+  bg: '#F4F9FC',
   surface: '#FFFFFF',
-  surfaceAlt: '#FBFCFE',
-  border: '#E6EAF0',
-  borderLight: '#E6EAF0',
-  ink: '#17202A',
-  inkLight: '#344054',
-  muted: '#667085',
-  subtle: '#98A2B3',
+  surfaceAlt: '#FCFDFF',
+  border: '#E3E9F0',
+  borderLight: '#E3E9F0',
+  ink: '#0C1B2E',
+  inkLight: '#3A4551',
+  muted: '#51637A',
+  subtle: '#5D6E85',
   inverse: '#FFFFFF',
-  text: '#17202A',
-  dark: '#0F172A',
+  text: '#0C1B2E',
+  dark: '#081320',
 }
 
 /* ─── Dark colors ───────────────────────────────────────────── */
 export const darkColors = {
-  primary: '#94A3B8',
-  primaryLight: '#CBD5E1',
-  primarySurface: '#1E293B',
+  primary: '#0164C8',
+  primaryLight: '#3DB8FD',
+  primarySurface: '#002552',
   success: '#34D399',
   successDeep: '#10B981',
   successSurface: '#064E3B',
@@ -71,32 +71,32 @@ export const darkColors = {
   danger: '#F87171',
   dangerDeep: '#EF4444',
   dangerSurface: '#B42318',
-  accent: '#34D399',
-  accentSurface: '#064E3B',
-  info: '#22D3EE',
-  infoSurface: '#164E63',
-  bg: '#0F172A',
-  surface: '#1E293B',
-  surfaceAlt: '#334155',
-  border: '#334155',
-  borderLight: '#1E293B',
-  ink: '#F5F7FA',
-  inkLight: '#CBD5E1',
-  muted: '#94A3B8',
-  subtle: '#667085',
-  inverse: '#0F172A',
-  text: '#F5F7FA',
-  textSecondary: '#CBD5E1',
-  textMuted: '#94A3B8',
-  surfaceHover: '#334155',
+  accent: '#03C6B1',
+  accentSurface: '#002E28',
+  info: '#3DB8FD',
+  infoSurface: '#002552',
+  bg: '#081320',
+  surface: '#112539',
+  surfaceAlt: '#16283D',
+  border: '#2A3C54',
+  borderLight: '#112539',
+  ink: '#E8EEF6',
+  inkLight: '#B0BFD2',
+  muted: '#8A9AAF',
+  subtle: '#8A9AAF',
+  inverse: '#081320',
+  text: '#E8EEF6',
+  textSecondary: '#B0BFD2',
+  textMuted: '#8A9AAF',
+  surfaceHover: '#16283D',
   successSoft: '#064E3B',
   successText: '#34D399',
   warningSoft: '#9A6700',
   warningText: '#FBBF24',
   dangerSoft: '#B42318',
   dangerText: '#F87171',
-  background: '#0F172A',
-  dark: '#0F172A',
+  background: '#081320',
+  dark: '#081320',
 }
 
 export type AppColors = typeof lightColors
@@ -159,14 +159,50 @@ export const colors = lightColors
 
 /* ─── Mica identity colors (expressive accent, isolated to Mica) ── */
 export const mica = {
-  blue: '#2F80ED',
-  surfaceStrong: '#2A6EE0',
+  blue: '#0164C8',
+  surfaceStrong: '#014FB5',
   surface: '#EAF3FF',
-  blueDark: '#1F5FC4',
+  blueDark: '#0251B3',
   violet: '#8B7CF6',
   green: '#10B981',
-  ink: '#17202A',
+  ink: '#0C1B2E',
+  /**
+   * Orb geometry. One source for the button size, the screen-edge inset and the
+   * drag bounds, so the orb cannot drift from the web FAB.
+   *
+   * `bottomClearance` is the free space the orb keeps above the bottom of its
+   * container. It is the floor, not the whole story: a screen that shares its
+   * bottom edge with the tab bar passes the bar's real height on top of this, so
+   * a dragged orb can never be parked on top of the navigation.
+   */
+  orb: {
+    size: 56,
+    sideInset: 12,
+    gap: 12,
+    minTop: 60,
+    bottomClearance: 24,
+  },
+  /**
+   * Accessible name for the orb. The web MicaOrb uses the same wording, so a
+   * screen-reader user gets one name for one control across both apps.
+   */
+  a11y: {
+    orb: 'Mica assistant — tap to open. Press and hold for emergency options.',
+  },
+  /**
+   * The shared Mica state vocabulary. Web's `MicaState` is the same union, and
+   * `idle` is the resting state on both platforms.
+   */
+  states: ['idle', 'listening', 'thinking', 'responding', 'error'] as const,
+  /**
+   * Error treatment stays inside Mica's identity: the orb keeps its blue and
+   * gains a danger ring, rather than becoming a different control.
+   */
+  errorRing: '#B42318',
 } as const
+
+/** A Mica orb state, shared with web's `MicaState`. */
+export type MicaOrbState = (typeof mica.states)[number]
 
 export interface MicaColorSet {
   readonly blue: string
@@ -178,25 +214,25 @@ export interface MicaColorSet {
   readonly ink: string
 }
 
-export const micaGradientStops = ['#2F80ED', '#8B7CF6', '#10B981'] as const
+export const micaGradientStops = ['#0164C8', '#8B7CF6', '#10B981'] as const
 
 export const shadows = StyleSheet.create({
   sm: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
   },
   md: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 3,
   },
   lg: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -253,21 +289,21 @@ export const radii = {
 export const elevation = {
   none: { shadowOpacity: 0 },
   sm: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
   },
   md: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 3,
   },
   lg: {
-    shadowColor: '#17202A',
+    shadowColor: '#0C1B2E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,

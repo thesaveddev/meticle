@@ -9,7 +9,7 @@ interface IconProps {
 
 // ─── Tab Icons ───────────────────────────────────────────────
 
-export function IconToday({ size = 24, color = '#344054' }: IconProps) {
+export function IconToday({ size = 24, color = '#3A4551' }: IconProps) {
   const s = size / 24
   return (
     <View style={{ width: size, height: size }}>
@@ -25,7 +25,7 @@ export function IconToday({ size = 24, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconWeek({ size = 24, color = '#344054' }: IconProps) {
+export function IconWeek({ size = 24, color = '#3A4551' }: IconProps) {
   const s = size / 24
   return (
     <View style={{ width: size, height: size }}>
@@ -46,7 +46,7 @@ export function IconWeek({ size = 24, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconMileage({ size = 24, color = '#344054' }: IconProps) {
+export function IconMileage({ size = 24, color = '#3A4551' }: IconProps) {
   const s = size / 24
   return (
     <View style={{ width: size, height: size }}>
@@ -63,7 +63,7 @@ export function IconMileage({ size = 24, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconSchedule({ size = 24, color = '#344054' }: IconProps) {
+export function IconSchedule({ size = 24, color = '#3A4551' }: IconProps) {
   const s = size / 24
   return (
     <View style={{ width: size, height: size }}>
@@ -79,7 +79,7 @@ export function IconSchedule({ size = 24, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconSettings({ size = 24, color = '#344054' }: IconProps) {
+export function IconSettings({ size = 24, color = '#3A4551' }: IconProps) {
   const s = size / 24
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -112,7 +112,7 @@ export function IconCheck({ size = 16, color = '#10B981' }: IconProps) {
   )
 }
 
-export function IconClock({ size = 16, color = '#344054' }: IconProps) {
+export function IconClock({ size = 16, color = '#3A4551' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -147,7 +147,7 @@ export function IconSync({ size = 16, color = '#10B981' }: IconProps) {
 
 // ─── Action Icons ────────────────────────────────────────────
 
-export function IconCamera({ size = 20, color = '#344054' }: IconProps) {
+export function IconCamera({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -162,7 +162,7 @@ export function IconCamera({ size = 20, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconGallery({ size = 20, color = '#344054' }: IconProps) {
+export function IconGallery({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -177,7 +177,7 @@ export function IconGallery({ size = 20, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconPhoto({ size = 20, color = '#344054' }: IconProps) {
+export function IconPhoto({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -188,7 +188,7 @@ export function IconPhoto({ size = 20, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconBack({ size = 20, color = '#344054' }: IconProps) {
+export function IconBack({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -198,7 +198,7 @@ export function IconBack({ size = 20, color = '#344054' }: IconProps) {
   )
 }
 
-export function IconForward({ size = 20, color = '#344054' }: IconProps) {
+export function IconForward({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -236,7 +236,7 @@ export function IconIncident({ size = 20, color = '#EF4444' }: IconProps) {
 
 // ─── Misc Icons ──────────────────────────────────────────────
 
-export function IconProfile({ size = 20, color = '#344054' }: IconProps) {
+export function IconProfile({ size = 20, color = '#3A4551' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -258,7 +258,7 @@ export function IconSyncSmall({ size = 14, color = '#10B981' }: IconProps) {
   )
 }
 
-export function IconNavigate({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconNavigate({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -270,7 +270,7 @@ export function IconNavigate({ size = 20, color = '#2F80ED' }: IconProps) {
   )
 }
 
-export function IconMapPin({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconMapPin({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -321,7 +321,7 @@ export function IconMiles({ size = 16, color = '#087A55' }: IconProps) {
 }
 
 /** Swap icon — two arrows in a circle */
-export function IconSwap({ size = 16, color = '#2F80ED' }: IconProps) {
+export function IconSwap({ size = 16, color = '#0164C8' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -386,7 +386,7 @@ export function IconSun({ size = 18, color = '#F59E0B' }: IconProps) {
 }
 
 /** Moon icon for dark mode */
-export function IconMoon({ size = 18, color = '#2F80ED' }: IconProps) {
+export function IconMoon({ size = 18, color = '#0164C8' }: IconProps) {
   const s = size / 18
   return (
     <View style={{ width: size, height: size }}>
@@ -411,12 +411,12 @@ export function IconBell({ size = 18, color = '#F59E0B' }: IconProps) {
 // ─── Client Detail Tab Icons ──────────────────────────────
 
 /** Clipboard / overview */
-export function IconOverview({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconOverview({ size = 20, color = '#0164C8' }: IconProps) {
   return <IconToday size={size} color={color} />
 }
 
 /** Clipboard with lines / care plans */
-export function IconCarePlans({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconCarePlans({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -429,7 +429,7 @@ export function IconCarePlans({ size = 20, color = '#2F80ED' }: IconProps) {
 }
 
 /** Body map icon */
-export function IconBody({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconBody({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -444,7 +444,7 @@ export function IconBody({ size = 20, color = '#2F80ED' }: IconProps) {
 }
 
 /** Fork and knife / nutrition */
-export function IconNutrition({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconNutrition({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -460,7 +460,7 @@ export function IconNutrition({ size = 20, color = '#2F80ED' }: IconProps) {
 }
 
 /** Pill icon / medication */
-export function IconPill({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconPill({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -471,7 +471,7 @@ export function IconPill({ size = 20, color = '#2F80ED' }: IconProps) {
 }
 
 /** Phone / contacts */
-export function IconContacts({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconContacts({ size = 20, color = '#0164C8' }: IconProps) {
   const s = size / 20
   return (
     <View style={{ width: size, height: size }}>
@@ -520,7 +520,7 @@ export function IconRash({ size = 16, color = '#F59E0B' }: IconProps) {
 }
 
 /** Syringe / injection */
-export function IconInjection({ size = 16, color = '#2F80ED' }: IconProps) {
+export function IconInjection({ size = 16, color = '#0164C8' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -543,7 +543,7 @@ export function IconBurn({ size = 16, color = '#EF4444' }: IconProps) {
 }
 
 /** Circle / swelling */
-export function IconSwelling({ size = 16, color = '#0C9E89' }: IconProps) {
+export function IconSwelling({ size = 16, color = '#046E86' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -554,7 +554,7 @@ export function IconSwelling({ size = 16, color = '#0C9E89' }: IconProps) {
 }
 
 /** Line / scar */
-export function IconScar({ size = 16, color = '#667085' }: IconProps) {
+export function IconScar({ size = 16, color = '#51637A' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -599,7 +599,7 @@ export function IconSnack({ size = 16, color = '#10B981' }: IconProps) {
 }
 
 /** Plate / lunch or dinner */
-export function IconPlate({ size = 16, color = '#2F80ED' }: IconProps) {
+export function IconPlate({ size = 16, color = '#0164C8' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -621,12 +621,12 @@ export function IconCup({ size = 16, color = '#8B7CF6' }: IconProps) {
 }
 
 /** Pill capsule / supplement */
-export function IconSupplement({ size = 16, color = '#2F80ED' }: IconProps) {
+export function IconSupplement({ size = 16, color = '#0164C8' }: IconProps) {
   return <IconPill size={size} color={color} />
 }
 
 /** Notes / document lines */
-export function IconNotes({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconNotes({ size = 20, color = '#0164C8' }: IconProps) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ width: size * 0.75, height: size * 0.12, backgroundColor: color, borderRadius: 1, marginTop: size * 0.15 }} />
@@ -648,7 +648,7 @@ export function IconRisk({ size = 20, color = '#EF4444' }: IconProps) {
 }
 
 /** Document / file */
-export function IconDocument({ size = 20, color = '#2F80ED' }: IconProps) {
+export function IconDocument({ size = 20, color = '#0164C8' }: IconProps) {
   return (
     <View style={{ width: size, height: size * 1.2, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ width: size * 0.7, height: size * 1, backgroundColor: color, borderRadius: size * 0.06, opacity: 0.15 }} />
@@ -659,7 +659,7 @@ export function IconDocument({ size = 20, color = '#2F80ED' }: IconProps) {
 }
 
 /** Arrow-right transfer icon */
-export function IconTransfer({ size = 16, color = '#0C9E89' }: IconProps) {
+export function IconTransfer({ size = 16, color = '#046E86' }: IconProps) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ width: size * 0.7, height: size * 0.12, backgroundColor: color, borderRadius: 1 }} />

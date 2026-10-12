@@ -139,7 +139,7 @@ export default function HomecareMissionControl() {
               variant="determinate"
               value={completionRate}
               sx={{
-                height: 8, borderRadius: 4, bgcolor: '#F5F7FA',
+                height: 8, borderRadius: 4, bgcolor: 'notice.subtle.bg',
                 '& .MuiLinearProgress-bar': {
                   borderRadius: 4,
                   bgcolor: completionRate >= 90 ? '#10B981' : completionRate >= 70 ? '#F59E0B' : '#EF4444',
@@ -216,12 +216,12 @@ export default function HomecareMissionControl() {
                     return (
                       <Tooltip key={d.day} title={`${d.day}: ${d.count} missed`}>
                         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: d.count > 0 ? '#334155' : '#CBD5E1' }}>
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: d.count > 0 ? '#2A3C54' : '#C3D2E2' }}>
                             {d.count}
                           </Typography>
                           <Box sx={{
                             width: '100%', height: barHeight, borderRadius: 1,
-                            bgcolor: d.count > 3 ? '#EF4444' : d.count > 1 ? '#F59E0B' : d.count > 0 ? '#CBD5E1' : '#F5F7FA',
+                            bgcolor: d.count > 3 ? '#EF4444' : d.count > 1 ? '#F59E0B' : d.count > 0 ? '#C3D2E2' : '#F7FAFE',
                             transition: 'height 0.3s', minHeight: 4,
                           }} />
                         </Box>

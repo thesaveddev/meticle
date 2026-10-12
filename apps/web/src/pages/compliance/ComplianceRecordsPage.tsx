@@ -46,7 +46,7 @@ export default function ComplianceRecordsPage() {
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
         <Table size="small">
           <TableHead><TableRow>
             <TableCell sx={{ fontWeight: 600 }}>Staff</TableCell>

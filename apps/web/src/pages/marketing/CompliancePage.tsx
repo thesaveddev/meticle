@@ -37,7 +37,7 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
  */
 const regulators = [
   {
-    slug: 'cqc', code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2F80ED',
+    slug: 'cqc', code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#0164C8',
     desc: 'CQC uses its own assessment approach and quality statements. MeticleCare helps providers organise care records, workforce evidence, incidents, reviews and governance information for their own inspection-readiness work.',
     guidance: [
       'CQC assesses services against five key questions: Safe, Effective, Caring, Responsive and Well-led.',

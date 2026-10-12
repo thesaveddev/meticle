@@ -16,7 +16,7 @@ const CQC_DOMAINS = [
   { key: 'effective', label: 'Effective', color: '#6B8AFD', statements: ['E1','E2','E3','E4','E5','E6','E7'] },
   { key: 'caring', label: 'Caring', color: '#8B7CF6', statements: ['C1','C2','C3','C4','C5'] },
   { key: 'responsive', label: 'Responsive', color: '#F59E0B', statements: ['R1','R2','R3','R4','R5','R6','R7'] },
-  { key: 'well-led', label: 'Well-led', color: '#2F80ED', statements: ['W1','W2','W3','W4','W5','W6','W7'] },
+  { key: 'well-led', label: 'Well-led', color: '#0164C8', statements: ['W1','W2','W3','W4','W5','W6','W7'] },
 ]
 
 export default function EvidencePacksPage() {
@@ -239,7 +239,7 @@ export default function EvidencePacksPage() {
 
       <Box ref={printRef}>
         <Paper sx={{ p: 4, mb: 3 }}>
-          <Typography variant="h5" sx={{ color: '#2F80ED', mb: 1 }}>Meticle Care Evidence Pack</Typography>
+          <Typography variant="h5" sx={{ color: '#0164C8', mb: 1 }}>Meticle Care Evidence Pack</Typography>
           <Typography variant="body2" color="text.secondary">
             Generated: {new Date(data?.generated_at || Date.now()).toLocaleString()}
             {data?.summary && ` · ${data.summary.total_staff} staff, ${data.summary.total_people || 0} people`}
@@ -248,7 +248,7 @@ export default function EvidencePacksPage() {
           {data?.summary && (
             <Box className="summary" sx={{ display: 'flex', gap: 'var(--card-gap)', my: 3, flexWrap: 'wrap' }}>
               {Object.entries(data.summary).map(([k, v]) => (
-                <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #E6EAF0', borderRadius: 2, p: 2, textAlign: 'center' }}>
+                <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #E3E9F0', borderRadius: 2, p: 2, textAlign: 'center' }}>
                   <Typography variant="h5" fontWeight={600}>{v as number}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {k === 'total_staff' ? 'Staff' : k === 'total_people' ? 'People' : k === 'active_people' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : k === 'people_with_dietary_profiles' ? 'Dietary Profiles' : k === 'people_with_nutrition_concerns' ? 'Nutrition Concerns' : ''}
@@ -261,8 +261,8 @@ export default function EvidencePacksPage() {
 
         {/* KLOE Summary — Evidence mapped to CQC domains */}
         {buildDomainEvidence().length > 0 && (
-          <Paper sx={{ p: 3, mb: 3, border: '2px solid #2F80ED' }}>
-            <Typography variant="h6" sx={{ color: '#2F80ED', mb: 2 }}>Key Lines of Enquiry (KLOE) — Evidence Mapping</Typography>
+          <Paper sx={{ p: 3, mb: 3, border: '2px solid #0164C8' }}>
+            <Typography variant="h6" sx={{ color: '#0164C8', mb: 2 }}>Key Lines of Enquiry (KLOE) — Evidence Mapping</Typography>
             <Grid container spacing={2}>
               {buildDomainEvidence().map(([key, val]) => (
                 <Grid item xs={12} sm={6} key={key}>
@@ -473,15 +473,15 @@ export default function EvidencePacksPage() {
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Satisfaction Surveys Overview</Typography>
             <Stack direction="row" spacing={3}>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
-                <Typography variant="h5" fontWeight={600} color="#2F80ED">{data.satisfaction.avg_rating}/5</Typography>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E3E9F0', borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight={600} color="#0164C8">{data.satisfaction.avg_rating}/5</Typography>
                 <Typography variant="caption">Average Rating</Typography>
               </Box>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E3E9F0', borderRadius: 2 }}>
                 <Typography variant="h5" fontWeight={600} color="#10B981">{data.satisfaction.total}</Typography>
                 <Typography variant="caption">Total Responses</Typography>
               </Box>
-              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E6EAF0', borderRadius: 2 }}>
+              <Box sx={{ flex: 1, textAlign: 'center', p: 2, border: '1px solid #E3E9F0', borderRadius: 2 }}>
                 <Typography variant="h5" fontWeight={600} color="#F59E0B">{data.satisfaction.positive}</Typography>
                 <Typography variant="caption">Positive (4+ Rating)</Typography>
               </Box>

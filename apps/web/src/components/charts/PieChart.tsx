@@ -20,7 +20,7 @@ interface Props {
   centerLabel?: string
 }
 
-const DEFAULT_COLORS = ['#2F80ED', '#10BFA5', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#94A3B8']
+const DEFAULT_COLORS = ['#0164C8', '#03C6B1', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#5D6E85']
 
 const RADIAN = Math.PI / 180
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -68,7 +68,7 @@ export default function ReportPieChart({ title, data, height = 350, donut = true
               </Pie>
               <Tooltip
                 formatter={(value: any, name: any) => [typeof value === 'number' ? value.toLocaleString() : value, name]}
-                contentStyle={{ borderRadius: 8, border: '1px solid #E6EAF0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                contentStyle={{ borderRadius: 8, border: '1px solid #E3E9F0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               />
               {showLegend && <Legend />}
             </PieChart>

@@ -237,7 +237,7 @@ export default function PricingPage() {
                         {val ? (
                           <Check sx={{ color: '#10B981', fontSize: 18 }} />
                         ) : (
-                          <Typography sx={{ color: '#D8DEE7', fontSize: '0.8rem' }}>—</Typography>
+                          <Typography sx={{ color: '#D6E2EE', fontSize: '0.8rem' }}>—</Typography>
                         )}
                       </Box>
                     ))}

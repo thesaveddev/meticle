@@ -240,7 +240,7 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
               { icon: 'calendar-outline', label: 'All visits', screen: 'allVisits', color: c.success },
               { icon: 'people-circle-outline', label: 'Staff', screen: 'staffDirectory', color: c.primary },
               { icon: 'document-text-outline', label: 'Timesheets', screen: 'timesheets', color: c.warning },
-              { icon: 'trending-up-outline', label: 'Totals', screen: 'carerTotals', color: '#2F80ED' },
+              { icon: 'trending-up-outline', label: 'Totals', screen: 'carerTotals', color: '#0164C8' },
             ].map(action => (
               <Pressable
                 key={action.screen}

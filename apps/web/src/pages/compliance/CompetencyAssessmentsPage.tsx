@@ -430,7 +430,7 @@ function TemplatesView() {
                 <MenuItem key={r} value={r}>{r.replace(/_/g, ' ')}</MenuItem>
               ))}
             </TextField>
-            <Typography variant="caption" color="#667085">Limit this assessment to specific staff roles (leave empty for all roles)</Typography>
+            <Typography variant="caption" color="#51637A">Limit this assessment to specific staff roles (leave empty for all roles)</Typography>
 
             <Divider />
             <Stack direction="row" justifyContent="space-between" alignItems="center">

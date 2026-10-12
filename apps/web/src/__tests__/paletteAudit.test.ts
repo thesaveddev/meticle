@@ -21,7 +21,16 @@
  *    (case-insensitive; comments stripped so historical explanations are
  *    exempt). If a legacy value is genuinely needed at runtime (e.g.
  *    recognising a stored org branding colour), isolate it behind the
- *    central theme module and document it here — do not scatter it.
+ *    central theme module and document it here — do not scatter it, and mark
+ *    that one line with the exemption marker so it is a decision on record
+ *    rather than a silent hole in the rule.
+ *
+ * The superseded master-palette values (the old #2F80ED blue, the old teal
+ * accent, the retired slate greys, the old dark chrome) were added to the ban
+ * list when the product was re-pointed onto the logo-derived brand ramp in
+ * `scripts/design/palette.mjs`. That sweep was mechanical —
+ * `scripts/design/brand-migration.mjs` — so the guarantee this section makes is
+ * that the *old* palette cannot return one file at a time.
  * 2. No `grey.*` MUI palette references (they resolve to near-white in both
  *    modes — use `#E6EAF0` / notice tokens).
  * 3. No 3-digit shorthand hex (always expand to the 6-digit master token).
@@ -69,11 +78,34 @@ const LEGACY_HEX = [
   '#F5F3FF', '#FAF8FF', '#D946EF', '#EC4899', '#FCE7F3',
   // Legacy warm neutrals (backgrounds are #F7F9FC / #F9FAFB).
   '#F7F4EE', '#E7E1D6', '#E0D9CA', '#E7EEF4', '#D8E0EA', '#CAD6E5',
+  // Superseded by the brand re-point — the previous master UI palette. Each of
+  // these was replaced across 155 files by scripts/design/brand-migration.mjs;
+  // banning them here is what stops the old look from creeping back in.
+  // Old master blue family -> brand #0164C8 / #0251B3 / #014FB5.
+  '#2F80ED', '#2674D9', '#1F68C7', '#1F5FC4', '#2A6EE0', '#175CD3', '#F4F8FF',
+  // Old accent (teal) -> brand mint #03C6B1 / #02A995 / #046E86.
+  '#10BFA5', '#0FAF97', '#0C9E89', '#E8FAF6', '#F3FCFA', '#5CC8B7', '#55BFD3',
+  // Retired neutrals -> Ink #0C1B2E, Slate #51637A, Hairline #E3E9F0.
+  '#17202A', '#1E293B', '#334155', '#475467', '#667085', '#98A2B3', '#94A3B8',
+  '#CBD5E1', '#E6EAF0', '#D8DEE7', '#F7F9FC', '#F9FAFB', '#F5F7FA', '#FBFCFE',
+  '#F8FAFC', '#F7FAFC', '#F2F4F7', '#B8C0CC', '#344054', '#DDF8FA', '#CFE4FB',
+  // Retired dark chrome -> the brand ink ramp.
+  '#0F172A', '#172235', '#1B2A3E', '#2B394D', '#43536A', '#111C2D', '#A8B3C3',
+  '#8290A4', '#738096', '#8C9AAF', '#E7EDF5', '#3A4A60', '#D9EAF5', '#C9D4DD',
+  // Chart slot 8 is now the AA-clearing muted slate #5D6E85, not Foot Muted.
+  '#8497AC',
 ]
+
+/**
+ * A line carrying this marker is exempt from the legacy-hex rule. It exists so
+ * a deliberate exception is visible in a review diff instead of being achieved
+ * by quietly loosening the rule.
+ */
+const LEGACY_EXEMPTION_MARKER = 'palette-audit: allow-legacy'
 
 /** The one chart order used by every module. */
 const CHART_ORDER =
-  "['#2F80ED', '#10BFA5', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#94A3B8']"
+  "['#0164C8', '#03C6B1', '#10B981', '#F59E0B', '#EF4444', '#8B7CF6', '#6B8AFD', '#5D6E85']"
 
 const CHART_FILES = [
   'components/charts/AreaChart.tsx',
@@ -119,17 +151,21 @@ const display = (p: string) => p.replace(/\\/g, '/')
 
 describe('master palette guardrails', () => {
   it('no legacy palette hexes in web or mobile sources', () => {
-    const offenders: string[] = []
+    const offenders = new Set<string>()
     for (const file of sourceFiles()) {
       const code = stripComments(readFileSync(file, 'utf8'))
-      const lowered = code.toLowerCase()
-      for (const hex of LEGACY_HEX) {
-        if (lowered.includes(hex.toLowerCase())) {
-          offenders.push(`${display(file)}: ${hex}`)
+      for (const line of code.split('\n')) {
+        if (line.includes(LEGACY_EXEMPTION_MARKER)) continue
+        const lowered = line.toLowerCase()
+        for (const hex of LEGACY_HEX) {
+          if (lowered.includes(hex.toLowerCase())) {
+            offenders.add(`${display(file)}: ${hex}`)
+          }
         }
       }
     }
-    expect(offenders, offenders.join('\n')).toEqual([])
+    const list = [...offenders]
+    expect(list, list.join('\n')).toEqual([])
   })
 
   it('no MUI grey.* palette references', () => {

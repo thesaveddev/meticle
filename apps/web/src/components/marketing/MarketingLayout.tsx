@@ -9,7 +9,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [pathname])
 
   return (
-    <Box sx={{ bgcolor: '#FFFFFF', color: '#17202A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', color: '#0C1B2E', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Nav />
       <Box component="main" sx={{ pt: { xs: '56px', md: '68px' }, flex: 1, minWidth: 0, overflowX: 'clip' }}>
         {children}

@@ -17,7 +17,7 @@ interface Props {
   maxValue?: number
 }
 
-export default function ReportRadarChart({ title, data, height = 350, showLegend = false, color = '#2F80ED', maxValue }: Props) {
+export default function ReportRadarChart({ title, data, height = 350, showLegend = false, color = '#0164C8', maxValue }: Props) {
   const domain: [number, number] = [0, maxValue || Math.max(...data.map(d => d.value), 10)]
 
   return (
@@ -30,12 +30,12 @@ export default function ReportRadarChart({ title, data, height = 350, showLegend
       ) : (
         <ResponsiveContainer width="100%" height={height}>
           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
-            <PolarGrid stroke="#E6EAF0" />
+            <PolarGrid stroke="#E3E9F0" />
             <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
             <PolarRadiusAxis angle={30} domain={domain} tick={{ fontSize: 10 }} />
             <Radar name="Score" dataKey="value" stroke={color} fill={color} fillOpacity={0.25} strokeWidth={2} />
             <Tooltip
-              contentStyle={{ borderRadius: 8, border: '1px solid #E6EAF0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              contentStyle={{ borderRadius: 8, border: '1px solid #E3E9F0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
             />
             {showLegend && <Legend />}
           </RadarChart>

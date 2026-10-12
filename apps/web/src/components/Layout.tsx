@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import MicaFab from './mica/MicaFab'
+import { MicaProvider } from './mica/MicaProvider'
 import GlobalSearch from './GlobalSearch'
 import SearchIcon from '@mui/icons-material/Search'
 import { UserRole } from '@meticle/shared'
@@ -50,7 +51,7 @@ import { useTheme } from '@mui/material/styles'
 
 const drawerWidth = 248
 
-export default function Layout({ children }: { children?: React.ReactNode }) {
+function LayoutShell({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -386,7 +387,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         updateBranding({
           primary_color: org.primary_color || METICLE_PRIMARY,
           secondary_color: org.secondary_color || METICLE_SECONDARY,
-          accent_color: org.accent_color || '#F8FAFC',
+          accent_color: org.accent_color || '#F7FAFE',
         }, org.logo_url || '')
       }
     } catch { /* silent */ }
@@ -438,7 +439,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   const handleLogout = () => {
     localStorage.clear()
-    updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }, '')
+    updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F7FAFE' }, '')
     navigate('/login')
   }
 
@@ -541,11 +542,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                       transition: 'background-color var(--motion-fast) ease',
                     },
                     '&.Mui-selected': {
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : 'var(--mc-sidebar-active, #EAF3FF)',
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.16)' : 'var(--mc-sidebar-active, #EAF3FF)',
                       color: 'var(--mc-primary)',
                       '&::before': { bgcolor: 'var(--mc-primary)' },
                       '& .MuiListItemIcon-root': { color: 'var(--mc-primary)' },
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.22)' : 'var(--mc-sidebar-active, #EAF3FF)' }
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.22)' : 'var(--mc-sidebar-active, #EAF3FF)' }
                     },
                     '&:hover': { bgcolor: theme.palette.action.hover },
                     '&.Mui-disabled': { opacity: 0.45 },
@@ -585,7 +586,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           const disabled = sidebarDisabled && item.text !== 'Billing' && item.text !== 'Learn'
           return (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton disabled={disabled} sx={{ borderRadius: '9px', minHeight: 40, px: 1.25, '&.Mui-selected': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : '#EAF3FF', color: METICLE_PRIMARY, '& .MuiListItemIcon-root': { color: METICLE_PRIMARY } }, '&.Mui-disabled': { opacity: 0.45 }, '&:hover': { bgcolor: theme.palette.action.hover } }}
+            <ListItemButton disabled={disabled} sx={{ borderRadius: '9px', minHeight: 40, px: 1.25, '&.Mui-selected': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.16)' : '#EAF3FF', color: METICLE_PRIMARY, '& .MuiListItemIcon-root': { color: METICLE_PRIMARY } }, '&.Mui-disabled': { opacity: 0.45 }, '&:hover': { bgcolor: theme.palette.action.hover } }}
               onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}>
               <ListItemIcon sx={{ minWidth: 36, color: !disabled && location.pathname === item.path ? METICLE_PRIMARY : theme.palette.text.secondary, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{item.icon}</ListItemIcon>
               <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }} />
@@ -668,7 +669,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               </Badge>
             </IconButton>
             <Box component="button" type="button" aria-label={`Account menu for ${userName}`} aria-haspopup="menu" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ appearance: 'none', border: 0, bgcolor: 'transparent', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer', p: 0.5, borderRadius: '10px', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-              <Avatar src={profilePic || undefined} sx={{ width: 34, height: 34, bgcolor: theme.palette.mode === 'dark' ? '#243B5A' : '#EAF3FF', color: METICLE_PRIMARY, fontSize: '0.8rem', fontWeight: 600 }}>
+              <Avatar src={profilePic || undefined} sx={{ width: 34, height: 34, bgcolor: theme.palette.mode === 'dark' ? '#002552' : '#EAF3FF', color: METICLE_PRIMARY, fontSize: '0.8rem', fontWeight: 600 }}>
                 {profilePic ? '' : userInitial.toUpperCase()}
               </Avatar>
               <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
@@ -712,7 +713,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         component="main"
         ref={mainRef}
         tabIndex={-1}
-        sx={{ flexGrow: 1, minWidth: 0, px: 'var(--page-padding-x)', pt: 'var(--page-padding-top)', pb: 'var(--page-padding-bottom)', width: { md: `calc(100% - ${drawerWidth}px)` }, outline: 'none' }}
+        /* The bottom padding reserves the Mica orb's corner, so the last row of
+           a table, a pagination control or a form's action bar can never sit
+           under the floating orb — see MICA_GEOMETRY.reservedBottom. */
+        sx={{ flexGrow: 1, minWidth: 0, px: 'var(--page-padding-x)', pt: 'var(--page-padding-top)', pb: 'calc(var(--page-padding-bottom) + var(--mc-mica-clearance))', width: { md: `calc(100% - ${drawerWidth}px)` }, outline: 'none' }}
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
@@ -870,5 +874,19 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         </Box>
       </Drawer>
     </Box>
+  )
+}
+
+/**
+ * The shell plus its one Mica session. The provider wraps the whole shell so
+ * the global orb (`MicaFab`) and the in-page launcher (`MicaAssistant`, on the
+ * dashboard) share a single session instead of starting two — see MicaProvider
+ * for what that used to break.
+ */
+export default function Layout(props: { children?: React.ReactNode }) {
+  return (
+    <MicaProvider>
+      <LayoutShell {...props} />
+    </MicaProvider>
   )
 }

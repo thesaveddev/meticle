@@ -55,9 +55,9 @@ function PhoneFrame({ children, label }: { children: React.ReactNode; label?: st
 function ScheduleScreen() {
   const calls = [
     { time: '09:00', client: 'Margaret W.', task: 'Personal care', status: 'completed', color: '#10B981' },
-    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'in-progress', color: '#2F80ED' },
-    { time: '13:00', client: 'Patricia L.', task: 'Medication', status: 'upcoming', color: '#94A3B8' },
-    { time: '15:00', client: 'Robert H.', task: 'Companionship', status: 'upcoming', color: '#94A3B8' },
+    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'in-progress', color: '#0164C8' },
+    { time: '13:00', client: 'Patricia L.', task: 'Medication', status: 'upcoming', color: '#5D6E85' },
+    { time: '15:00', client: 'Robert H.', task: 'Companionship', status: 'upcoming', color: '#5D6E85' },
   ]
   return (
     <Box sx={{ p: 1.5 }}>

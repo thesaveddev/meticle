@@ -175,7 +175,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
       {entries.length === 0 ? (
         <EmptyState
-          icon={<ImageIcon sx={{ fontSize: 22, color: '#98A2B3' }} />}
+          icon={<ImageIcon sx={{ fontSize: 22, color: '#5D6E85' }} />}
           title="No memories recorded yet"
           description="Add photos and notes of adventures, outings, and special moments to share with family."
         />
@@ -186,17 +186,17 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
             const urls = getAllImageUrls(e)
             return (
               <Grid item xs={12} sm={6} md={4} key={e.id}>
-                <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0', transition: 'box-shadow 0.2s', cursor: 'pointer', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }} onClick={() => { setViewEntry(e); setViewImageIdx(0) }}>
+                <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', transition: 'box-shadow 0.2s', cursor: 'pointer', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }} onClick={() => { setViewEntry(e); setViewImageIdx(0) }}>
                   {urls.length > 0 && thumbnails[urls[0]] ? (
                     <CardMedia component="img" height="200" image={thumbnails[urls[0]]} alt={e.title}
                       sx={{ objectFit: 'cover' }} />
                   ) : urls.length > 0 && loadingThumbs[urls[0]] ? (
                     <Box sx={{ height: 200, bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CircularProgress size={24} sx={{ color: '#D8DEE7' }} />
+                      <CircularProgress size={24} sx={{ color: '#D6E2EE' }} />
                     </Box>
                   ) : urls.length > 0 ? (
                     <Box sx={{ height: 200, bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ImageIcon sx={{ fontSize: 48, color: '#D8DEE7' }} />
+                      <ImageIcon sx={{ fontSize: 48, color: '#D6E2EE' }} />
                     </Box>
                   ) : (
                     <Box sx={{ height: 200, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
@@ -213,18 +213,18 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                       )}
                     </Stack>
                     {e.description && (
-                      <Typography variant="body2" color="#667085" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <Typography variant="body2" color="#51637A" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {e.description}
                       </Typography>
                     )}
                     {urls.length > 1 && (
-                      <Typography variant="caption" color="#98A2B3" sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.5 }}>
+                      <Typography variant="caption" color="#5D6E85" sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.5 }}>
                         <ImageIcon sx={{ fontSize: 14 }} /> {urls.length} photos
                       </Typography>
                     )}
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
-                      <Typography variant="caption" color="#98A2B3">{dateStr}</Typography>
-                      {e.created_by_name && <Typography variant="caption" color="#98A2B3">by {e.created_by_name}</Typography>}
+                      <Typography variant="caption" color="#5D6E85">{dateStr}</Typography>
+                      {e.created_by_name && <Typography variant="caption" color="#5D6E85">by {e.created_by_name}</Typography>}
                     </Stack>
                   </CardContent>
                   <CardActions sx={{ pt: 0, justifyContent: 'flex-end' }}>
@@ -280,7 +280,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                             </IconButton>
                             <Stack direction="row" spacing={0.5} justifyContent="center" sx={{ mt: 1 }}>
                               {urls.map((_, i) => (
-                                <Box key={i} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: i === viewImageIdx ? '#2F80ED' : '#D8DEE7', cursor: 'pointer' }} onClick={() => setViewImageIdx(i)} />
+                                <Box key={i} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: i === viewImageIdx ? '#0164C8' : '#D6E2EE', cursor: 'pointer' }} onClick={() => setViewImageIdx(i)} />
                               ))}
                             </Stack>
                           </>
@@ -291,8 +291,8 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                       <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.description}</Typography>
                     )}
                     <Stack direction="row" spacing={2} alignItems="center">
-                      <Typography variant="caption" color="#98A2B3">Date: {formatDate(viewEntry.recorded_date)}</Typography>
-                      {viewEntry.created_by_name && <Typography variant="caption" color="#98A2B3">Recorded by: {viewEntry.created_by_name}</Typography>}
+                      <Typography variant="caption" color="#5D6E85">Date: {formatDate(viewEntry.recorded_date)}</Typography>
+                      {viewEntry.created_by_name && <Typography variant="caption" color="#5D6E85">Recorded by: {viewEntry.created_by_name}</Typography>}
                     </Stack>
                   </Stack>
                 )
@@ -360,7 +360,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                     </Button>
                   )}
                   {editingEntry && getAllImageUrls(editingEntry).length > 0 && (
-                    <Typography variant="caption" color="#667085">
+                    <Typography variant="caption" color="#51637A">
                       Existing images: {getAllImageUrls(editingEntry).length} photo(s). Upload new images via Edit only.
                     </Typography>
                   )}
@@ -371,7 +371,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={closeDialog} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending || updateMutation.isPending}
-              sx={{ bgcolor: '#2F80ED', textTransform: 'none' }}>
+              sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
               {createMutation.isPending || updateMutation.isPending ? <CircularProgress size={20} /> : (editingEntry ? 'Update' : 'Save Memory')}
             </Button>
           </DialogActions>

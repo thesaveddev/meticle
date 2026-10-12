@@ -325,7 +325,7 @@ export default function LocationDetailPage() {
       <PageContainer>
 
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
-          <Typography color="#98A2B3">{isDomiciliary ? 'Area not found.' : 'Location not found.'}</Typography>
+          <Typography color="#5D6E85">{isDomiciliary ? 'Area not found.' : 'Location not found.'}</Typography>
         </Paper>
       </PageContainer>
     )
@@ -353,7 +353,7 @@ export default function LocationDetailPage() {
     <Box>
       <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ p: 3.5, alignItems: { xs: 'flex-start', sm: 'center' } }}>
-          <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#2F80ED10', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#0164C810', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BuildingIcon sx={{ fontSize: 36 }} />
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: NAVY, textTransform: 'none', mb: 0.5 }}>
@@ -382,7 +382,7 @@ export default function LocationDetailPage() {
             </Box>
           )}
         </Stack>
-        <Divider sx={{ borderColor: '#F5F7FA' }} />
+        <Divider sx={{ borderColor: '#F7FAFE' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 600, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? carerCount : staffCount}</Typography>
@@ -681,7 +681,7 @@ export default function LocationDetailPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, pb: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Location Certificates</Typography>
             {canEdit && (
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openAddCert} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openAddCert} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
                 Add Certificate
               </Button>
             )}
@@ -691,7 +691,7 @@ export default function LocationDetailPage() {
             <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
           ) : !certificates || certificates.length === 0 ? (
             <Box sx={{ p: 6, textAlign: 'center' }}>
-              <Typography color="#98A2B3">No certificates for this location</Typography>
+              <Typography color="#5D6E85">No certificates for this location</Typography>
             </Box>
           ) : (
             <TableContainer>
@@ -735,7 +735,7 @@ export default function LocationDetailPage() {
                               <IconButton size="small" title="Open file" onClick={() => openCertFile(cert.file_url, cert.file_name || cert.name)}><OpenInNewIcon fontSize="small" /></IconButton>
                             </Stack>
                           ) : (
-                            <Typography variant="caption" color="#98A2B3">—</Typography>
+                            <Typography variant="caption" color="#5D6E85">—</Typography>
                           )}
                         </TableCell>
                         {canEdit && (
@@ -808,7 +808,7 @@ export default function LocationDetailPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setCertDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => certMutation.mutate()} disabled={!certForm.name} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>Save</Button>
+          <Button variant="contained" onClick={() => certMutation.mutate()} disabled={!certForm.name} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>Save</Button>
         </DialogActions>
       </Dialog>
 
@@ -891,7 +891,7 @@ export default function LocationDetailPage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setLocDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={saveLocation} disabled={!locForm.name || locSaving}
-            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>{locSaving ? <CircularProgress size={20} /> : 'Save'}</Button>
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>{locSaving ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -923,9 +923,9 @@ export default function LocationDetailPage() {
             <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
           ) : (
             <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 4 }}>
-              <Typography color="#98A2B3">This file type can't be previewed in the browser.</Typography>
+              <Typography color="#5D6E85">This file type can't be previewed in the browser.</Typography>
               {filePreview && (
-                <Button variant="contained" component="a" href={filePreview.url} download={filePreview.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#1F68C7' } }}>
+                <Button variant="contained" component="a" href={filePreview.url} download={filePreview.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
                   Download {filePreview.name}
                 </Button>
               )}

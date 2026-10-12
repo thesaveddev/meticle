@@ -18,13 +18,13 @@ interface Props {
 const BADGE_COLORS: Record<string, string> = {
   approved: '#087A55', completed: '#087A55', valid: '#087A55', active: '#087A55', resolved: '#087A55', filled: '#087A55', administered: '#087A55',
   expired: '#B42318', overdue: '#B42318', missed: '#B42318', rejected: '#B42318', critical: '#B42318', high: '#9A6700',
-  pending: '#9A6700', investigating: '#175CD3', in_progress: '#0C9E89', open: '#9A6700',
+  pending: '#9A6700', investigating: '#004085', in_progress: '#046E86', open: '#9A6700',
   expiring_30: '#B42318', expiring_90: '#9A6700',
-  ORG_ADMIN: '#175CD3', MANAGER: '#0C9E89', CARE_WORKER: '#087A55', COMPLIANCE_OFFICER: '#9A6700',
+  ORG_ADMIN: '#004085', MANAGER: '#046E86', CARE_WORKER: '#087A55', COMPLIANCE_OFFICER: '#9A6700',
 }
 
 const SEVERITY_BADGE: Record<string, string> = {
-  critical: '#B42318', high: '#9A6700', medium: '#9A6700', low: '#175CD3',
+  critical: '#B42318', high: '#9A6700', medium: '#9A6700', low: '#004085',
 }
 
 function CellValue({ value, type }: { value: any; type?: string }) {
@@ -32,7 +32,7 @@ function CellValue({ value, type }: { value: any; type?: string }) {
 
   if (type === 'badge') {
     const strVal = String(value)
-    const color = SEVERITY_BADGE[strVal] || BADGE_COLORS[strVal] || '#667085'
+    const color = SEVERITY_BADGE[strVal] || BADGE_COLORS[strVal] || '#51637A'
     return <Chip label={strVal.replace(/_/g, ' ')} size="small" sx={{ fontWeight: 600, bgcolor: `${color}15`, color, fontSize: '0.7rem', height: 22 }} />
   }
 
@@ -41,7 +41,7 @@ function CellValue({ value, type }: { value: any; type?: string }) {
     const barColor = num >= 80 ? '#10B981' : num >= 50 ? '#F59E0B' : '#EF4444'
     return (
       <Stack direction="row" alignItems="center" spacing={1}>
-        <LinearProgress variant="determinate" value={num} sx={{ width: 50, height: 5, borderRadius: 3, bgcolor: '#F5F7FA', '& .MuiLinearProgress-bar': { bgcolor: barColor } }} />
+        <LinearProgress variant="determinate" value={num} sx={{ width: 50, height: 5, borderRadius: 3, bgcolor: 'notice.subtle.bg', '& .MuiLinearProgress-bar': { bgcolor: barColor } }} />
         <Typography variant="body2" fontWeight={600} color={barColor}>{num}%</Typography>
       </Stack>
     )

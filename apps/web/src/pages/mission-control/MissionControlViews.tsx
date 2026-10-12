@@ -50,7 +50,7 @@ function Metric({ label, value, detail, icon, href, tone = 'default' }: {
       component={href ? 'button' : 'div'}
       type={href ? 'button' : undefined}
       onClick={href ? () => navigate(href) : undefined}
-      sx={{ p: 1.75, width: '100%', height: '100%', textAlign: 'left', border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', cursor: href ? 'pointer' : 'default', transition: 'border-color 120ms ease, box-shadow 120ms ease', '&:hover': href ? { borderColor: 'primary.light', boxShadow: '0 2px 8px rgba(16,24,40,0.06)' } : {}, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } }}
+      sx={{ p: 1.75, width: '100%', height: '100%', textAlign: 'left', border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', cursor: href ? 'pointer' : 'default', transition: 'border-color 120ms ease, box-shadow 120ms ease', '&:hover': href ? { borderColor: 'primary.light', boxShadow: '0 2px 8px rgba(12,27,46,0.06)' } : {}, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } }}
     >{content}</Paper>
   )
 }
@@ -59,7 +59,7 @@ function ActionRow({ icon, title, description, count, href, tone = 'warning' }: 
   icon: React.ReactNode; title: string; description: string; count: number; href: string; tone?: 'warning' | 'danger' | 'info'
 }) {
   const navigate = useNavigate()
-  const color = tone === 'danger' ? '#B42318' : tone === 'info' ? '#175CD3' : '#9A6700'
+  const color = tone === 'danger' ? '#B42318' : tone === 'info' ? '#004085' : '#9A6700'
   const soft = tone === 'danger' ? METICLE_COLORS.dangerSoft : tone === 'info' ? METICLE_COLORS.infoSoft : METICLE_COLORS.warningSoft
   return (
     <Box

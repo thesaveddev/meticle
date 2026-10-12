@@ -13,6 +13,7 @@ import { EmptyState } from '../../components/design/EmptyState'
 import { IDENTITY_DOCUMENT_TYPES } from '../../data/identityDocuments'
 import RegulatorRegistrationsPanel from '../../components/compliance/RegulatorRegistrationsPanel'
 import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
+import { P } from '../../styles/tokens'
 
 const QUALITY_RATINGS = [
   { min: 81, label: 'Good', color: '#10B981' },
@@ -25,14 +26,14 @@ function getRating(score: number) {
 }
 
 const MODULE_COLORS: Record<string, string> = {
-  training: '#2F80ED',
+  training: '#0164C8',
   competency: '#6B8AFD',
   dbs: '#10B981',
   evidence: '#8B7CF6',
   readiness: '#F59E0B',
   satisfaction: '#EF4444',
-  engagement: '#55BFD3',
-  dspt: '#2F80ED',
+  engagement: '#0187BA',
+  dspt: '#0164C8',
   nutrition: '#10B981',
 }
 
@@ -156,7 +157,7 @@ export default function CompliancePage() {
             <Box sx={{ position: 'relative', display: 'inline-flex', my: 1 }}>
               <Box sx={{
                 width: 140, height: 140, borderRadius: '50%',
-                border: `5px solid ${theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA'}`,
+                border: `5px solid ${theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE'}`,
                 position: 'absolute',
               }} />
               <Box sx={{
@@ -192,7 +193,7 @@ export default function CompliancePage() {
                 label="Active Staff"
                 value={totalStaff}
                 icon={<PeopleIcon sx={{ fontSize: 22 }} />}
-                color="#175CD3"
+                color="#004085"
                 onClick={() => navigate('/staff')}
               />
             </Grid>
@@ -342,7 +343,7 @@ export default function CompliancePage() {
             { label: 'NHS DSPT', icon: <ShieldIcon sx={{ fontSize: 20 }} />, path: '/compliance/dspt', key: 'dspt' },
             { label: 'Nutrition', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/nutrition', key: 'nutrition' },
           ].map((a) => {
-            const color = MODULE_COLORS[a.key] || '#2F80ED'
+            const color = MODULE_COLORS[a.key] || '#0164C8'
             return (
               <Grid item key={a.label}>
                 <Box
@@ -417,7 +418,7 @@ function SectionHeader({ label, count, expanded, onToggle, icon }: { label: stri
         <Box sx={{ color: 'text.primary', display: 'flex' }}>{icon}</Box>
         <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>{label}</Typography>
         {count !== undefined && (
-          <Chip label={count} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#2F80ED', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
+          <Chip label={count} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#0164C8', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
         )}
       </Stack>
       <IconButton size="small" sx={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: '0.2s', color: theme.palette.text.secondary }}>
@@ -506,7 +507,7 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
                       p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
                       borderRadius: '14px', border: `1px solid ${theme.palette.divider}`,
                       transition: 'all 0.15s',
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC', borderColor: '#1A2332' },
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#112539' : '#F7FAFE', borderColor: P.navy },
                     }}>
                     <Box sx={{ flex: 1, mr: 2 }}>
                       <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>{r.name}</Typography>
@@ -514,7 +515,7 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
                         <Box sx={{ flex: 1, maxWidth: 200 }}>
                           <LinearProgress variant="determinate" value={r.pct} sx={{
                             height: 6, borderRadius: 3,
-                            bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                            bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
                             '& .MuiLinearProgress-bar': { bgcolor: r.pct === 100 ? '#10B981' : r.pct >= 80 ? '#F59E0B' : '#EF4444', borderRadius: 3 }
                           }} />
                         </Box>
@@ -722,13 +723,13 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
 const DBS_LEVELS = ['standard', 'enhanced', 'enhanced_with_barred']
 const DBS_WORKFORCE = ['adult', 'child', 'both']
 const DBS_STATUS_COLORS: Record<string, string> = {
-  draft: '#98A2B3',
-  submitted: '#2F80ED',
+  draft: '#5D6E85',
+  submitted: '#0164C8',
   in_progress: '#F59E0B',
   awaiting_identity: '#F59E0B',
   clear: '#10B981',
   disclosure: '#8B7CF6',
-  cancelled: '#667085',
+  cancelled: '#51637A',
   error: '#EF4444',
 }
 
@@ -855,7 +856,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
                         {['submitted', 'in_progress', 'awaiting_identity'].includes(c.status) && (
                           <Tooltip title="Poll provider for status update">
                             <IconButton size="small" onClick={() => pollMutation.mutate(c.id)} disabled={pollMutation.isPending}
-                              sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA' } }}>
+                              sx={{ color: theme.palette.text.secondary, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE' } }}>
                               {pollMutation.isPending ? <Typography variant="caption">...</Typography> : <PollIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
@@ -931,7 +932,7 @@ function TrendSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; o
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} stroke={theme.palette.divider} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} stroke={theme.palette.divider} unit="%" />
                   <RechartsTooltip contentStyle={{ fontSize: 13, borderRadius: 12, border: `1px solid ${theme.palette.divider}`, backgroundColor: theme.palette.background.paper }} />
-                  <Line type="monotone" dataKey="score" stroke="#1A2332" strokeWidth={2.5} dot={{ r: 4, fill: '#1A2332', stroke: theme.palette.background.paper, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="score" stroke={P.navy} strokeWidth={2.5} dot={{ r: 4, fill: P.navy, stroke: theme.palette.background.paper, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </Box>

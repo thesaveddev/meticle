@@ -1,3 +1,5 @@
+import { P } from '../../../styles/tokens'
+
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const toLocalDateStr = (date: Date) => {
@@ -39,10 +41,10 @@ const shiftMatchesDay = (shift: any, dateStr: string) =>
 // Open = amber, agency = blue, sleep = purple, wake night = deep navy, day = emerald.
 const shiftVisual = (shift: any) => {
   const isOpen = (shift.assignments?.length || 0) === 0
-  if (isOpen) return { bar: '#F59E0B', barText: '#17202A', chipBg: '#FFF7E6', chipFg: '#9A6700' }
-  if (shift.agency_id) return { bar: '#2F80ED', barText: '#FFFFFF', chipBg: '#EAF3FF', chipFg: '#175CD3' }
-  if (shift.shift_type === 'sleep') return { bar: '#8B7CF6', barText: '#FFFFFF', chipBg: '#F4F8FF', chipFg: '#8B7CF6' }
-  if (shift.shift_type === 'wake_night') return { bar: '#8B7CF6', barText: '#F8FAFC', chipBg: '#F4F8FF', chipFg: '#3730A3' }
+  if (isOpen) return { bar: '#F59E0B', barText: '#0C1B2E', chipBg: '#FFF7E6', chipFg: '#9A6700' }
+  if (shift.agency_id) return { bar: '#0164C8', barText: '#FFFFFF', chipBg: '#EAF3FF', chipFg: '#004085' }
+  if (shift.shift_type === 'sleep') return { bar: '#8B7CF6', barText: '#FFFFFF', chipBg: '#EAF3FF', chipFg: '#8B7CF6' }
+  if (shift.shift_type === 'wake_night') return { bar: '#8B7CF6', barText: '#F7FAFE', chipBg: '#EAF3FF', chipFg: P.navyLight }
   return { bar: '#10B981', barText: '#FFFFFF', chipBg: '#EAFBF5', chipFg: '#087A55' }
 }
 

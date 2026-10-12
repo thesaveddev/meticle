@@ -19,6 +19,7 @@ import {
 import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader, StatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
+import { P } from '../../styles/tokens'
 
 interface DomiciliaryData {
   selected_date: string
@@ -44,9 +45,9 @@ function time(value: string) { return new Date(value).toLocaleTimeString('en-GB'
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   completed: { label: 'Done', color: '#087A55', bg: '#EAFBF5' },
-  checked_in: { label: 'At client', color: '#2F80ED', bg: '#EAF3FF' },
-  en_route: { label: 'En route', color: '#8B7CF6', bg: '#F4F8FF' },
-  scheduled: { label: 'Upcoming', color: 'text.secondary', bg: '#F7F9FC' },
+  checked_in: { label: 'At client', color: '#0164C8', bg: '#EAF3FF' },
+  en_route: { label: 'En route', color: '#8B7CF6', bg: '#EAF3FF' },
+  scheduled: { label: 'Upcoming', color: 'text.secondary', bg: '#F4F9FC' },
   missed: { label: 'Missed', color: '#EF4444', bg: '#FEF0F0' },
   cancelled: { label: 'Cancelled', color: '#F59E0B', bg: '#FFF7E6' },
 }
@@ -157,7 +158,7 @@ export default function DomiciliaryDashboard() {
               sx={{
                 height: 8,
                 borderRadius: 4,
-                bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
                 '& .MuiLinearProgress-bar': {
                   bgcolor: data.coverage_percent >= 90 ? '#10B981' : data.coverage_percent >= 70 ? '#F59E0B' : '#EF4444',
                   borderRadius: 4,
@@ -192,7 +193,7 @@ export default function DomiciliaryDashboard() {
         <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="overline" sx={{ color: '#2F80ED', fontWeight: 600, letterSpacing: '0.12em', fontSize: '0.65rem' }}>Operational pulse</Typography>
+              <Typography variant="overline" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.12em', fontSize: '0.65rem' }}>Operational pulse</Typography>
               <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
                 {overview.cards.map(card => (
                   <Grid item xs={6} sm={4} key={card.label}>
@@ -228,7 +229,7 @@ export default function DomiciliaryDashboard() {
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         {[
           { label: 'Completed', value: data.calls_completed, color: '#10B981', icon: <CompletedIcon />, filter: 'completed' },
-          { label: 'In Progress', value: data.calls_in_progress, color: '#2F80ED', icon: <CallIcon />, filter: 'checked_in' },
+          { label: 'In Progress', value: data.calls_in_progress, color: '#0164C8', icon: <CallIcon />, filter: 'checked_in' },
           { label: 'Upcoming', value: data.calls_scheduled, color: 'text.secondary', icon: <PendingIcon />, filter: 'scheduled' },
           { label: 'Missed', value: data.calls_missed, color: '#EF4444', icon: <MissedIcon />, filter: 'missed' },
           { label: 'Overdue backlog', value: data.overdue_calls, color: '#EF4444', icon: <PendingIcon />, filter: 'scheduled' },
@@ -250,11 +251,11 @@ export default function DomiciliaryDashboard() {
       {data.next_call && (
         <PremiumCard
           noBorder
-          sx={{ p: 3, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F4F8FF' }}
+          sx={{ p: 3, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#112539' : '#EAF3FF' }}
         >
           <Stack direction="row" alignItems="center" gap={2}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#243B5A' : '#EAF3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TimeIcon sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#2F80ED' }} />
+            <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#002552' : '#EAF3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TimeIcon sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#0164C8' }} />
             </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Next call: {time(data.next_call.scheduled_start)}</Typography>
@@ -267,7 +268,7 @@ export default function DomiciliaryDashboard() {
               size="small"
               endIcon={<ArrowIcon sx={{ fontSize: 16 }} />}
               onClick={() => navigate('/homecare')}
-              sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#2F80ED', fontWeight: 600, textTransform: 'none', fontSize: '0.8rem' }}
+              sx={{ color: theme.palette.mode === 'dark' ? '#6B8AFD' : '#0164C8', fontWeight: 600, textTransform: 'none', fontSize: '0.8rem' }}
             >
               View calls
             </Button>
@@ -309,7 +310,7 @@ export default function DomiciliaryDashboard() {
                       }}
                     >
                       <Box sx={{ width: 64, flexShrink: 0, textAlign: 'right' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#2F80ED' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#0164C8' }}>
                           {time(call.scheduled_start)}
                         </Typography>
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
@@ -356,7 +357,7 @@ export default function DomiciliaryDashboard() {
                   size="small"
                   endIcon={<ArrowIcon sx={{ fontSize: 16, transform: showAllCalls ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />}
                   onClick={() => setShowAllCalls(!showAllCalls)}
-                  sx={{ mt: 2, color: '#2F80ED', fontWeight: 600, textTransform: 'none', fontSize: '0.85rem', justifyContent: 'flex-start' }}
+                  sx={{ mt: 2, color: '#0164C8', fontWeight: 600, textTransform: 'none', fontSize: '0.85rem', justifyContent: 'flex-start' }}
                 >
                   {showAllCalls ? 'Show less' : `View all ${data.call_timeline.length} calls`}
                 </Button>
@@ -399,9 +400,9 @@ export default function DomiciliaryDashboard() {
                         sx={{
                           height: 6,
                           borderRadius: 3,
-                          bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                          bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
                           '& .MuiLinearProgress-bar': {
-                            bgcolor: progress === 100 ? '#10B981' : '#2F80ED',
+                            bgcolor: progress === 100 ? '#10B981' : '#0164C8',
                             borderRadius: 3,
                           },
                         }}
@@ -415,7 +416,7 @@ export default function DomiciliaryDashboard() {
 
           {/* Exceptions */}
           {data.exceptions.length > 0 && (
-            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare?status=missed')}>
+            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? P.navyMid : 'notice.error.bg', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare?status=missed')}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                 <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
@@ -440,16 +441,16 @@ export default function DomiciliaryDashboard() {
       </Grid>
 
       {/* Quick Actions */}
-      <PremiumCard noBorder sx={{ p: 4, mt: 3, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
+      <PremiumCard noBorder sx={{ p: 4, mt: 3, bgcolor: theme.palette.mode === 'dark' ? '#112539' : '#F7FAFE' }}>
         <SectionHeader title="Quick actions" />
         <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
           {[
             { label: 'All calls', path: '/homecare', color: '#10B981' },
-            { label: 'Schedule', path: '/call-scheduling', color: '#2F80ED' },
+            { label: 'Schedule', path: '/call-scheduling', color: '#0164C8' },
             { label: 'Mileage', path: '/mileage', color: '#8B7CF6' },
             { label: 'Carer totals', path: '/payroll-timesheets?view=carer-totals', color: '#F59E0B' },
             { label: 'Payroll', path: '/payroll-export', color: '#087A55' },
-            { label: 'Billing', path: '/client-billing', color: '#2F80ED' },
+            { label: 'Billing', path: '/client-billing', color: '#0164C8' },
           ].map(action => (
             <Button
               key={action.path}

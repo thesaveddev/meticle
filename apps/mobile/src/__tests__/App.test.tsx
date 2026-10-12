@@ -255,6 +255,11 @@ describe('App dashboard quick actions', () => {
     ] as const
 
     for (const [label, marker] of actions) {
+      // Wait for the dashboard's own data to resolve: mountApp only waits for the
+      // tab bar, and the quick actions arrive a microtask later. Querying
+      // synchronously here raced the fetch and made this test pass or fail on
+      // scheduling rather than on the wiring it is meant to prove.
+      await screen.findByText(label)
       fireEvent.press(screen.getByText(label))
 
       expect(screen.getByText(`screen:${marker}`)).toBeTruthy()

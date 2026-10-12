@@ -53,7 +53,7 @@ export default function MfaChallengePage() {
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <BrandWordmark size={22} />
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#17202A' }}>Two-Factor Authentication</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#0C1B2E' }}>Two-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Enter the code from your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
@@ -75,20 +75,20 @@ export default function MfaChallengePage() {
               }}
             />
             <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
-              sx={{ bgcolor: '#2F80ED', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
+              sx={{ bgcolor: '#0164C8', py: 1.8, fontWeight: 600, textTransform: 'none' }}>
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify'}
             </Button>
 
             {!showLostAccess ? (
               <Typography
                 onClick={() => setShowLostAccess(true)}
-                sx={{ cursor: 'pointer', textAlign: 'center', color: 'text.secondary', fontSize: '0.85rem', textDecoration: 'none', '&:hover': { color: '#2F80ED', textDecoration: 'underline' } }}>
+                sx={{ cursor: 'pointer', textAlign: 'center', color: 'text.secondary', fontSize: '0.85rem', textDecoration: 'none', '&:hover': { color: '#0164C8', textDecoration: 'underline' } }}>
                 Lost access to your authenticator?
               </Typography>
             ) : (
               <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
                 <Stack spacing={1.5}>
-                  <Typography variant="body2" color="#667085" sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" color="#51637A" sx={{ textAlign: 'center' }}>
                     Contact your organization administrator to reset your MFA. They can reset it from the Staff Directory, allowing you to log in and set up a new authenticator.
                   </Typography>
                   <Button fullWidth variant="text" onClick={() => setShowLostAccess(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>

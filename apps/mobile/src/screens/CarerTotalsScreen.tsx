@@ -28,11 +28,11 @@ function getMonthRange(monthsBack = 0) {
 const statusColor = (status: string) => {
   switch (status) {
     case 'completed': return { bg: '#EAFBF5', text: '#087A55', label: 'Completed' }
-    case 'checked_in': return { bg: '#F4F8FF', text: '#2F80ED', label: 'In progress' }
-    case 'scheduled': return { bg: '#F7F9FC', text: '#344054', label: 'Scheduled' }
+    case 'checked_in': return { bg: '#EAF3FF', text: '#0164C8', label: 'In progress' }
+    case 'scheduled': return { bg: '#F4F9FC', text: '#3A4551', label: 'Scheduled' }
     case 'missed': return { bg: '#FEF0F0', text: '#B42318', label: 'Missed' }
-    case 'cancelled': return { bg: '#F7F9FC', text: '#98A2B3', label: 'Cancelled' }
-    default: return { bg: '#F7F9FC', text: '#667085', label: status }
+    case 'cancelled': return { bg: '#F4F9FC', text: '#5D6E85', label: 'Cancelled' }
+    default: return { bg: '#F4F9FC', text: '#51637A', label: status }
   }
 }
 
@@ -41,7 +41,7 @@ const tsStatusColor = (status: string) => {
     case 'approved': return { bg: '#EAFBF5', text: '#087A55', label: 'Approved' }
     case 'submitted': return { bg: '#FFF7E6', text: '#F59E0B', label: 'Submitted' }
     case 'rejected': return { bg: '#FEF0F0', text: '#B42318', label: 'Rejected' }
-    default: return { bg: '#F7F9FC', text: '#667085', label: 'Draft' }
+    default: return { bg: '#F4F9FC', text: '#51637A', label: 'Draft' }
   }
 }
 
@@ -171,8 +171,8 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
             {[
               { label: 'Carers', value: String(totals.length), icon: 'people-outline' as const, color: c.primary },
               { label: 'Paid time', value: fmtHours(grandWork), icon: 'time-outline' as const, color: c.success },
-              { label: 'Travel', value: fmtHours(grandTravel), icon: 'car-outline' as const, color: '#2F80ED' },
-              { label: 'Mileage', value: fmtMiles(grandMileage), icon: 'map-outline' as const, color: '#0C9E89' },
+              { label: 'Travel', value: fmtHours(grandTravel), icon: 'car-outline' as const, color: '#0164C8' },
+              { label: 'Mileage', value: fmtMiles(grandMileage), icon: 'map-outline' as const, color: '#046E86' },
               { label: 'Gross pay', value: money(grandGross), icon: 'cash-outline' as const, color: c.primary },
             ].map(card => (
               <View key={card.label} style={{ flexBasis: '45%', flexGrow: 1, minWidth: 140, backgroundColor: c.surface, borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: c.border }}>
@@ -246,7 +246,7 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
             {[
               { label: 'Visits', value: String(selectedCarer.visit_count), color: c.primary },
               { label: 'Work', value: fmtHours(Number(selectedCarer.total_work_minutes || 0)), color: c.success },
-              { label: 'Travel', value: fmtHours(Number(selectedCarer.total_paid_travel_minutes || 0)), color: '#2F80ED' },
+              { label: 'Travel', value: fmtHours(Number(selectedCarer.total_paid_travel_minutes || 0)), color: '#0164C8' },
               { label: 'Pay', value: money(selectedCarer.total_gross_pay_pence), color: '#087A55' },
             ].map(s => (
               <View key={s.label} style={{ flex: 1, backgroundColor: c.surface, borderRadius: radii.lg, padding: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: c.border }}>
@@ -285,9 +285,9 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
                   {/* Chips row */}
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: spacing.sm }}>
                     {v.work_minutes != null && <View style={{ backgroundColor: '#EAFBF5', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#087A55', fontWeight: '500' }}>Work: {fmtHours(v.work_minutes)}</Text></View>}
-                    {v.paid_travel_minutes != null && <View style={{ backgroundColor: '#F4F8FF', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#175CD3', fontWeight: '500' }}>Travel: {fmtHours(v.paid_travel_minutes)}</Text></View>}
-                    {v.mileage_miles != null && <View style={{ backgroundColor: '#E8FAF6', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#0C9E89', fontWeight: '500' }}>{fmtMiles(v.mileage_miles)}</Text></View>}
-                    {durationMin != null && <View style={{ backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#475467', fontWeight: '500' }}>Duration: {fmtHours(durationMin)}</Text></View>}
+                    {v.paid_travel_minutes != null && <View style={{ backgroundColor: '#EAF3FF', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#004085', fontWeight: '500' }}>Travel: {fmtHours(v.paid_travel_minutes)}</Text></View>}
+                    {v.mileage_miles != null && <View style={{ backgroundColor: '#D2FBF4', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#046E86', fontWeight: '500' }}>{fmtMiles(v.mileage_miles)}</Text></View>}
+                    {durationMin != null && <View style={{ backgroundColor: '#F7FAFE', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#51637A', fontWeight: '500' }}>Duration: {fmtHours(durationMin)}</Text></View>}
                     {v.tasks_total != null && v.tasks_total > 0 && <View style={{ backgroundColor: v.tasks_completed === v.tasks_total ? '#EAFBF5' : '#FFF7E6', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: v.tasks_completed === v.tasks_total ? '#087A55' : '#9A6700', fontWeight: '500' }}>Tasks: {v.tasks_completed}/{v.tasks_total}</Text></View>}
                     <View style={{ backgroundColor: tc.bg, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: tc.text, fontWeight: '600' }}>{tc.label}</Text></View>
                   </View>
@@ -340,8 +340,8 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
               <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted }}>{fmtDateTime(v.scheduled_start)}</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                 <View style={{ backgroundColor: '#EAFBF5', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#087A55' }}>Work: {fmtHours(v.work_minutes)}</Text></View>
-                <View style={{ backgroundColor: '#F4F8FF', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#175CD3' }}>Travel: {fmtHours(v.paid_travel_minutes)}</Text></View>
-                <View style={{ backgroundColor: '#E8FAF6', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#0C9E89' }}>{fmtMiles(v.mileage_miles)}</Text></View>
+                <View style={{ backgroundColor: '#EAF3FF', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#004085' }}>Travel: {fmtHours(v.paid_travel_minutes)}</Text></View>
+                <View style={{ backgroundColor: '#D2FBF4', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ fontSize: 11, color: '#046E86' }}>{fmtMiles(v.mileage_miles)}</Text></View>
               </View>
               <Text style={{ fontFamily: typography.body.fontFamily, fontWeight: '700', color: c.primary, marginTop: spacing.sm }}>{money(v.gross_pay_pence)}</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>

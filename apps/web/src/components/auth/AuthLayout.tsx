@@ -5,7 +5,7 @@ import AuthBrandPanel from './AuthBrandPanel'
 import BrandWordmark from '../BrandWordmark'
 
 export const AUTH_CARD_WIDTH = 500
-export const AUTH_CARD_SHADOW = '0 12px 40px rgba(16, 24, 40, 0.06)'
+export const AUTH_CARD_SHADOW = '0 12px 40px rgba(12, 27, 46, 0.06)'
 
 /**
  * The one authentication shell every web auth page composes. Desktop is a

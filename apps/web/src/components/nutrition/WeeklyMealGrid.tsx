@@ -10,12 +10,13 @@ import {
   LocalDining as FoodIcon, OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { P } from '../../styles/tokens'
 import api from '../../services/api'
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
   { value: 'morning_snack', label: 'Morning Snack', color: '#10B981', icon: '🍎' },
-  { value: 'lunch', label: 'Lunch', color: '#2F80ED', icon: '🍽️' },
+  { value: 'lunch', label: 'Lunch', color: '#0164C8', icon: '🍽️' },
   { value: 'afternoon_snack', label: 'Afternoon Snack', color: '#8B7CF6', icon: '🥤' },
   { value: 'dinner', label: 'Dinner', color: '#EF4444', icon: '🌙' },
   { value: 'evening_snack', label: 'Evening Snack', color: '#8B7CF6', icon: '🍪' },
@@ -159,7 +160,7 @@ export default function WeeklyMealGrid({ people }: Props) {
             <IconButton
               size="small"
               onClick={() => navigate(`/people/${personId}?tab=nutrition`)}
-              sx={{ color: '#8B7CF6', border: '1px solid #E6EAF0', borderRadius: 2 }}
+              sx={{ color: '#8B7CF6', border: '1px solid #E3E9F0', borderRadius: 2 }}
             >
               <OpenInNewIcon fontSize="small" />
             </IconButton>
@@ -187,7 +188,7 @@ export default function WeeklyMealGrid({ people }: Props) {
 
           {/* Person Context */}
           {weeklyPlan.person_context && (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F8F9FA' }}>
+            <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: P.faint }}>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <Chip size="small" label={`Diet: ${weeklyPlan.person_context.dietary_summary}`} />
                 {weeklyPlan.person_context.texture_modification !== 'None' && (
@@ -232,12 +233,12 @@ export default function WeeklyMealGrid({ people }: Props) {
                     <Paper
                       sx={{
                         py: 1, px: 1.5, textAlign: 'center',
-                        bgcolor: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#F4F8FF' : '#F9FAFB',
-                        border: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '2px solid #2F80ED' : '1px solid #E6EAF0',
+                        bgcolor: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#EAF3FF' : '#F7FAFE',
+                        border: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '2px solid #0164C8' : '1px solid #E3E9F0',
                         borderRadius: 2,
                       }}
                     >
-                      <Typography variant="subtitle2" fontWeight={600} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#2F80ED' : 'inherit' }}>
+                      <Typography variant="subtitle2" fontWeight={600} sx={{ color: day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() ? '#0164C8' : 'inherit' }}>
                         {DAY_LABELS[day]}
                       </Typography>
                     </Paper>
@@ -271,7 +272,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                           onClick={() => hasData && setExpandedCell(isExpanded ? null : key)}
                           sx={{
                             py: 1, px: 1, minHeight: 60,
-                            borderColor: isExpanded ? mt.color : '#E6EAF0',
+                            borderColor: isExpanded ? mt.color : '#E3E9F0',
                             borderWidth: isExpanded ? 2 : 1,
                             cursor: hasData ? 'pointer' : 'default',
                             transition: 'all 0.15s',
@@ -292,10 +293,10 @@ export default function WeeklyMealGrid({ people }: Props) {
                               </Typography>
                               {secondary && (
                                 <>
-                                  <Box sx={{ borderTop: '1px dashed #E6EAF0', my: 0.5 }} />
+                                  <Box sx={{ borderTop: '1px dashed #E3E9F0', my: 0.5 }} />
                                   <Stack direction="row" alignItems="center" spacing={0.5}>
                                     <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: mt.color + '60', flexShrink: 0 }} />
-                                    <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem', color: '#667085' }}>
+                                    <Typography variant="caption" fontWeight={600} sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem', color: '#51637A' }}>
                                       {secondary.name}
                                     </Typography>
                                   </Stack>
@@ -305,15 +306,15 @@ export default function WeeklyMealGrid({ people }: Props) {
                                 </>
                               )}
                               {isExpanded && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E6EAF0' }}>
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E3E9F0' }}>
                                   <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
                                   {primary.items?.slice(0, 4).map((item, i) => (
-                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#667085', lineHeight: 1.4 }}>
+                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#51637A', lineHeight: 1.4 }}>
                                       • {item.name} ({item.portion})
                                     </Typography>
                                   ))}
                                   {primary.items && primary.items.length > 4 && (
-                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#98A2B3' }}>
+                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#5D6E85' }}>
                                       +{primary.items.length - 4} more
                                     </Typography>
                                   )}
@@ -321,7 +322,7 @@ export default function WeeklyMealGrid({ people }: Props) {
                                     <>
                                       <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
                                       {secondary.items?.slice(0, 4).map((item, i) => (
-                                        <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#98A2B3', lineHeight: 1.4 }}>
+                                        <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#5D6E85', lineHeight: 1.4 }}>
                                           • {item.name} ({item.portion})
                                         </Typography>
                                       ))}

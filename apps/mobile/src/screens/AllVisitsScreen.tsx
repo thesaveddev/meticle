@@ -38,11 +38,11 @@ const STATUS_FILTERS = [
 
 const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   scheduled: { bg: '#FFF7E6', text: '#9A6700' },
-  en_route: { bg: '#EAF3FF', text: '#175CD3' },
+  en_route: { bg: '#EAF3FF', text: '#004085' },
   checked_in: { bg: '#EAFBF5', text: '#087A55' },
   completed: { bg: '#EAFBF5', text: '#087A55' },
   missed: { bg: '#FEF0F0', text: '#B42318' },
-  cancelled: { bg: '#F7F9FC', text: '#667085' },
+  cancelled: { bg: '#F4F9FC', text: '#51637A' },
 }
 
 function timeStr(iso: string) {

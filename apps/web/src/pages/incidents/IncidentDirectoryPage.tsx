@@ -97,7 +97,7 @@ export default function IncidentDirectoryPage() {
       {/* Stats — 4 focused cards */}
       {stats && (
         <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Open</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{(stats.reported || 0) + (stats.investigating || 0)}</Typography>
@@ -115,7 +115,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Critical &amp; High</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1, color: '#EF4444' }}>{(stats.critical || 0)}</Typography>
@@ -123,7 +123,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Actions</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{stats.open_actions || 0}</Typography>
@@ -135,7 +135,7 @@ export default function IncidentDirectoryPage() {
             )}
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>Near Misses</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1 }}>{stats.near_misses || 0}</Typography>
@@ -149,7 +149,7 @@ export default function IncidentDirectoryPage() {
       )}
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <TextField size="small" placeholder="Search incidents..." value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -209,7 +209,7 @@ export default function IncidentDirectoryPage() {
       )}
 
       {!isLoading && filtered && filtered.length > 0 && (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -351,7 +351,7 @@ export default function IncidentDirectoryPage() {
 
 function LoadingState() {
   return (
-    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
       <CircularProgress size={28} sx={{ color: NAVY }} />
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading incidents...</Typography>
     </Paper>

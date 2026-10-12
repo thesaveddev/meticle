@@ -20,9 +20,9 @@ interface Props {
 
 /** Branded icon config for fallback */
 const APP_BRAND: Record<string, { bg: string; icon: keyof typeof Ionicons.glyphMap; iconColor: string }> = {
-  here: { bg: '#10BFA5', icon: 'navigate', iconColor: '#FFFFFF' },
+  here: { bg: '#03C6B1', icon: 'navigate', iconColor: '#FFFFFF' },
   mapfactor: { bg: '#F59E0B', icon: 'compass', iconColor: '#FFFFFF' },
-  web: { bg: '#F7F9FC', icon: 'globe-outline', iconColor: '#667085' },
+  web: { bg: '#F4F9FC', icon: 'globe-outline', iconColor: '#51637A' },
 }
 
 function MapAppIcon({ appId }: { appId: string }) {

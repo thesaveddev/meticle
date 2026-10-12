@@ -108,8 +108,8 @@ export default function LearningCenterPage() {
                     onClick={() => toggleCategory(section.id)}
                     sx={{
                       px: 2, py: 0.5,
-                      borderLeft: isSelected ? '3px solid #2F80ED' : '3px solid transparent',
-                      bgcolor: isSelected ? '#F4F8FF' : 'transparent',
+                      borderLeft: isSelected ? '3px solid #0164C8' : '3px solid transparent',
+                      bgcolor: isSelected ? '#EAF3FF' : 'transparent',
                       '&:hover': { bgcolor: 'notice.muted.bg' },
                     }}
                   >
@@ -129,14 +129,14 @@ export default function LearningCenterPage() {
                           onClick={() => selectSection(section.id, ss.id)}
                           sx={{
                             pl: 5, py: 0.25,
-                            borderLeft: subSelected ? '3px solid #2F80ED' : '3px solid transparent',
-                            bgcolor: subSelected ? '#F4F8FF' : 'transparent',
+                            borderLeft: subSelected ? '3px solid #0164C8' : '3px solid transparent',
+                            bgcolor: subSelected ? '#EAF3FF' : 'transparent',
                             '&:hover': { bgcolor: 'notice.muted.bg' },
                           }}
                         >
                           <ListItemText
                             primary={ss.title}
-                            primaryTypographyProps={{ fontSize: '0.78rem', fontWeight: subSelected ? 600 : 400, color: subSelected ? '#2F80ED' : '#344054' }}
+                            primaryTypographyProps={{ fontSize: '0.78rem', fontWeight: subSelected ? 600 : 400, color: subSelected ? '#0164C8' : '#3A4551' }}
                           />
                         </ListItemButton>
                       )
@@ -162,7 +162,7 @@ export default function LearningCenterPage() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Mobile app bar */}
       {isMobile && (
-        <AppBar position="fixed" sx={{ bgcolor: '#2F80ED', zIndex: 1201 }}>
+        <AppBar position="fixed" sx={{ bgcolor: '#0164C8', zIndex: 1201 }}>
           <Toolbar>
             <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ mr: 1 }}>
               <MenuIcon />
@@ -175,9 +175,9 @@ export default function LearningCenterPage() {
       {/* Sidebar Drawer */}
       {isMobile ? (
         <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}>
-          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E6EAF0' }}>
+          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E3E9F0' }}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <LearnIcon sx={{ color: '#2F80ED' }} />
+              <LearnIcon sx={{ color: '#0164C8' }} />
               <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
             </Stack>
             <IconButton size="small" onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
@@ -185,9 +185,9 @@ export default function LearningCenterPage() {
           {sidebar}
         </Drawer>
       ) : (
-        <Paper sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRadius: 0, borderRight: '1px solid #E6EAF0', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
-          <Box sx={{ p: 2, borderBottom: '1px solid #E6EAF0', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LearnIcon sx={{ color: '#2F80ED' }} />
+        <Paper sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRadius: 0, borderRight: '1px solid #E3E9F0', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
+          <Box sx={{ p: 2, borderBottom: '1px solid #E3E9F0', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LearnIcon sx={{ color: '#0164C8' }} />
             <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
           </Box>
           {sidebar}
@@ -203,24 +203,24 @@ export default function LearningCenterPage() {
               <Chip label={currentSection.title} size="small" color="primary" variant="outlined" />
             </Stack>
 
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#2F80ED' }}>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#0164C8' }}>
               {currentSubsection.title}
             </Typography>
 
             <Divider sx={{ mb: 3 }} />
 
-            <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: '#E6EAF0' }}>
+            <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Box
                 className="learn-content"
                 dangerouslySetInnerHTML={{ __html: currentSubsection.content }}
                 sx={{
-                  '& h2': { fontSize: '1.3rem', fontWeight: 600, color: '#2F80ED', mt: 4, mb: 1.5 },
+                  '& h2': { fontSize: '1.3rem', fontWeight: 600, color: '#0164C8', mt: 4, mb: 1.5 },
                   '& h3': { fontSize: '1.1rem', fontWeight: 600, mt: 3, mb: 1 },
                   '& p': { lineHeight: 1.8, mb: 1.5, color: 'text.primary', fontSize: '0.95rem' },
-                  '& strong': { color: '#17202A' },
+                  '& strong': { color: '#0C1B2E' },
                   '& ul, & ol': { pl: 2.5, mb: 2 },
                   '& li': { mb: 0.5, lineHeight: 1.7, color: 'text.primary', fontSize: '0.95rem' },
-                  '& ul li strong': { color: '#2F80ED' },
+                  '& ul li strong': { color: '#0164C8' },
                   '& code': { bgcolor: 'notice.muted.bg', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
                   '& em': { fontStyle: 'italic', color: 'text.secondary' },
                 }}
@@ -260,11 +260,11 @@ export default function LearningCenterPage() {
           </>
         ) : (
           <Box sx={{ textAlign: 'center', py: 10 }}>
-            <LearnIcon sx={{ fontSize: 64, color: '#D8DEE7', mb: 2 }} />
-            <Typography variant="h5" fontWeight={600} color="#2F80ED" sx={{ mb: 1 }}>
+            <LearnIcon sx={{ fontSize: 64, color: '#D6E2EE', mb: 2 }} />
+            <Typography variant="h5" fontWeight={600} color="#0164C8" sx={{ mb: 1 }}>
               Welcome to the Meticle Care Learning Center
             </Typography>
-            <Typography color="#667085" sx={{ maxWidth: 500, mx: 'auto' }}>
+            <Typography color="#51637A" sx={{ maxWidth: 500, mx: 'auto' }}>
               Select a topic from the sidebar to learn about Meticle Care features, workflows, and best practices.
               Use the search bar to quickly find what you're looking for.
             </Typography>

@@ -270,7 +270,7 @@ export default function DashboardPage() {
               height: 6,
               borderRadius: 3,
               mb: 3,
-              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#E6EAF0',
+              bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#E3E9F0',
               '& .MuiLinearProgress-bar': { bgcolor: 'text.primary' },
             }}
           />
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                                 label={apt.location_name}
                                 size="small"
                                 sx={{
-                                  bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+                                  bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
                                   color: theme.palette.text.secondary,
                                   fontWeight: 600,
                                   fontSize: '0.7rem',

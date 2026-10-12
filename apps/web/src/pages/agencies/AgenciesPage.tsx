@@ -190,7 +190,7 @@ export default function AgenciesPage() {
     <PageContainer>
 
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-        <BusinessIcon sx={{ color: '#2F80ED', fontSize: 28 }} />
+        <BusinessIcon sx={{ color: '#0164C8', fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Agency Management</Typography>
         {savings && (
           <Chip label={`Net ${Number(savings.net_savings) >= 0 ? 'Saved' : 'Cost'}: ${formatCurrency(Math.abs(savings.net_savings))}`}
@@ -216,7 +216,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAgency({ name: '', contact_name: '', contact_phone: '', contact_email: '', address: '', notes: '', status: 'active', contract_start_date: '', contract_end_date: '' }); setAgencyDialog(true) }}
-              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Agency</Button>
+              sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Add Agency</Button>
           </Stack>
           {agenciesLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -295,7 +295,7 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setAgencyDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveAgency} disabled={agencySaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+              <Button variant="contained" onClick={handleSaveAgency} disabled={agencySaving} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
                 {agencySaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
@@ -308,7 +308,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditWorker({ agency_id: agencies[0]?.id || '', first_name: '', last_name: '', role: '', phone: '', email: '', dbs_check_date: '', dbs_expiry_date: '', mandatory_training_completed: false, status: 'active', rating: '', notes: '' }); setWorkerDialog(true) }}
-              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Worker</Button>
+              sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Add Worker</Button>
           </Stack>
           {workersLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -399,7 +399,7 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setWorkerDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveWorker} disabled={workerSaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+              <Button variant="contained" onClick={handleSaveWorker} disabled={workerSaving} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
                 {workerSaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
@@ -412,7 +412,7 @@ export default function AgenciesPage() {
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditRate({ agency_id: agencies[0]?.id || '', shift_type: 'day', rate_per_hour: '', effective_from: new Date().toISOString().split('T')[0], effective_to: '' }); setRateDialog(true) }}
-              sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>Add Rate</Button>
+              sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Add Rate</Button>
           </Stack>
           {ratesLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (
             <TableContainer>
@@ -478,7 +478,7 @@ export default function AgenciesPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setRateDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveRate} disabled={rateSaving} sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#1F68C7' } }}>
+              <Button variant="contained" onClick={handleSaveRate} disabled={rateSaving} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
                 {rateSaving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
               </Button>
             </DialogActions>
@@ -547,11 +547,11 @@ export default function AgenciesPage() {
                         <ToggleButtonGroup size="small" value={h.agency_covered ? 'covered' : 'uncovered'} exclusive
                           onChange={() => handleToggleCoverage(h.id, h.agency_covered)}
                           disabled={updatingCoverage === h.id}
-                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 600, border: '1px solid #D8DEE7' } }}>
-                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#EAFBF5' : 'transparent', color: h.agency_covered ? '#087A55' : '#98A2B3', '&:hover': { bgcolor: 'notice.success.bg' } }}>
+                          sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 600, border: '1px solid #D6E2EE' } }}>
+                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#EAFBF5' : 'transparent', color: h.agency_covered ? '#087A55' : '#5D6E85', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                             Covered
                           </ToggleButton>
-                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FFF7E6' : 'transparent', color: !h.agency_covered ? '#9A6700' : '#98A2B3', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
+                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FFF7E6' : 'transparent', color: !h.agency_covered ? '#9A6700' : '#5D6E85', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
                             Uncovered
                           </ToggleButton>
                         </ToggleButtonGroup>
@@ -574,17 +574,17 @@ export default function AgenciesPage() {
               {savings && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   {[
-                    { label: 'Total Agency Shifts', value: savings.total_shifts, color: '#2F80ED' },
+                    { label: 'Total Agency Shifts', value: savings.total_shifts, color: '#0164C8' },
                     { label: 'Completed Shifts', value: savings.completed_shifts, color: '#10B981' },
                     { label: 'Total Agency Spend', value: formatCurrency(savings.total_agency_cost), color: '#EF4444' },
                     { label: 'Avg Agency Rate/hr', value: formatCurrency(savings.avg_agency_hourly_rate), color: '#F59E0B' },
-                    { label: 'Internal Rate/hr', value: formatCurrency(savings.internal_hourly_rate), color: '#2F80ED' },
+                    { label: 'Internal Rate/hr', value: formatCurrency(savings.internal_hourly_rate), color: '#0164C8' },
                     { label: 'Net Savings', value: formatCurrency(savings.net_savings), color: Number(savings.net_savings) >= 0 ? '#10B981' : '#EF4444' },
                   ].map(card => (
                     <Grid item xs={12} sm={6} md={4} key={card.label}>
                       <Card variant="outlined" sx={{ borderRadius: 1 }}>
                         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                          <Typography variant="caption" color="#667085" sx={{ fontWeight: 600 }}>{card.label}</Typography>
+                          <Typography variant="caption" color="#51637A" sx={{ fontWeight: 600 }}>{card.label}</Typography>
                           <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5 }}>{card.value}</Typography>
                         </CardContent>
                       </Card>

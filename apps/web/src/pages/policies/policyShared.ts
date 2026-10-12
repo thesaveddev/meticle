@@ -1,3 +1,6 @@
+import { CATEGORY_COLORS, P } from '../../styles/tokens'
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
+
 export interface Policy {
   id: string
   title: string
@@ -38,25 +41,31 @@ export const STATUS_OPTIONS = [
   { value: 'archived', label: 'Archived' },
 ]
 
+/**
+ * Each policy category draws its hue from the shared categorical ramp
+ * (`CATEGORY_COLORS` in styles/tokens.ts) rather than a page-local set: ten
+ * categories need ten readable hues, and a ramp declared per page is a ramp
+ * that drifts the moment a second page wants the same categories.
+ */
 export const categoryColors: Record<string, string> = {
-  'Risk Management': '#B42318',
-  'Human Resources': '#2F80ED',
-  'Health & Safety': '#9A6700',
-  'GDPR & Data Protection': '#8B7CF6',
-  'Infection Control': '#027A8B',
-  'Equality & Diversity': '#087443',
-  'Mental Health': '#087E8B',
-  'Fire Safety': '#C4320A',
-  Medication: '#087A55',
-  Safeguarding: '#9F1239',
+  'Risk Management': CATEGORY_COLORS.crimson,
+  'Human Resources': CATEGORY_COLORS.blue,
+  'Health & Safety': CATEGORY_COLORS.amber,
+  'GDPR & Data Protection': CATEGORY_COLORS.violet,
+  'Infection Control': CATEGORY_COLORS.teal,
+  'Equality & Diversity': CATEGORY_COLORS.green,
+  'Mental Health': CATEGORY_COLORS.cyan,
+  'Fire Safety': CATEGORY_COLORS.rust,
+  Medication: CATEGORY_COLORS.mint,
+  Safeguarding: CATEGORY_COLORS.plum,
 }
 
-export const INK = '#17212B'
-export const MUTED = '#607080'
-export const NAVY = '#2F80ED'
-export const EMERALD = '#087A55'
-export const BONE = '#F7F9FC'
-export const HAIRLINE = '#E6EAF0'
+export const INK = P.navy
+export const MUTED = P.slate
+export const NAVY = P.primary
+export const EMERALD = NOTICE_COLORS.success.fg
+export const BONE = P.warm
+export const HAIRLINE = P.hairline
 
 export function statusLabel(status: string) {
   return status === 'active' ? 'Published' : status.charAt(0).toUpperCase() + status.slice(1)
@@ -64,7 +73,7 @@ export function statusLabel(status: string) {
 
 export function statusColor(status: string) {
   if (status === 'published' || status === 'active') return EMERALD
-  if (status === 'archived') return '#667085'
+  if (status === 'archived') return '#51637A'
   return '#9A6700'
 }
 

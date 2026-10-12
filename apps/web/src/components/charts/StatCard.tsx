@@ -9,7 +9,7 @@ interface StatCardProps {
   trend?: { value: number; direction: 'up' | 'down' | 'flat' }
 }
 
-export default function StatCard({ label, value, color = '#2F80ED', subtitle, trend }: StatCardProps) {
+export default function StatCard({ label, value, color = '#0164C8', subtitle, trend }: StatCardProps) {
   return (
     <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
       <Stack spacing={1}>

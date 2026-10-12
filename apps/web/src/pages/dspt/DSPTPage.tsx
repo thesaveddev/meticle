@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Chip, Button, Stack, LinearProgress, Alert, Cir
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Security as ShieldIcon, CheckCircle, Refresh as RefreshIcon, OpenInNew as ExternalIcon, Verified as VerifiedIcon, PlaylistAddCheck as AssessmentIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import { P } from '../../styles/tokens'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   not_started: { label: 'Not Started', color: 'text.secondary' },
@@ -20,7 +21,7 @@ const STD_STATUS = [
 ]
 
 const DSPT_THEMES = [
-  { key: 'Managing Data Protection', color: '#2F80ED' },
+  { key: 'Managing Data Protection', color: '#0164C8' },
   { key: 'Confidentiality & Data Security', color: '#10B981' },
   { key: 'Protecting & Sharing Information', color: '#6B8AFD' },
   { key: 'Minimising Impact', color: '#8B7CF6' },
@@ -104,7 +105,7 @@ export default function DSPTPage() {
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <ShieldIcon sx={{ fontSize: 32, color: '#2F80ED' }} />
+          <ShieldIcon sx={{ fontSize: 32, color: '#0164C8' }} />
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>NHS DSPT Certification</Typography>
             <Typography variant="body2" color="text.secondary">Your organisation's Data Security & Protection Toolkit self-assessment — 2025/26</Typography>
@@ -113,7 +114,7 @@ export default function DSPTPage() {
         <Stack direction="row" spacing={1}>
           <Button variant="contained" startIcon={<AssessmentIcon />} onClick={() => setAssessOpen(true)}
             disabled={!!active || createAssessment.isPending}
-            sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#004B93' } }}>
+            sx={{ bgcolor: P.primary, '&:hover': { bgcolor: P.primaryHover } }}>
             {createAssessment.isPending ? <CircularProgress size={18} /> : 'New Assessment'}
           </Button>
           <Button startIcon={<RefreshIcon />} onClick={() => qc.invalidateQueries({ queryKey: ['dspt-status'] })} />
@@ -130,7 +131,7 @@ export default function DSPTPage() {
             </Stack>
           </CardContent>
         </Card>
-        <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${daysLeft < 60 ? '#EF4444' : '#2F80ED'}` }}>
+        <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${daysLeft < 60 ? '#EF4444' : '#0164C8'}` }}>
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Submission Deadline</Typography>
             <Typography variant="h6" fontWeight={600}>{new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
@@ -153,7 +154,7 @@ export default function DSPTPage() {
             Track your organisation's progress against the 10 Data Security Standards here. When ready, complete your official submission on the NHS DSPT portal.
           </Typography>
           <Button variant="outlined" size="small" endIcon={<ExternalIcon />} href="https://www.dsptoolkit.nhs.uk/" target="_blank"
-            sx={{ borderColor: '#2F80ED', color: 'notice.info.fg', whiteSpace: 'nowrap' }}>
+            sx={{ borderColor: '#0164C8', color: 'notice.info.fg', whiteSpace: 'nowrap' }}>
             Open DSPT Portal
           </Button>
         </Stack>
@@ -166,7 +167,7 @@ export default function DSPTPage() {
             <Button size="small" variant="contained"
               onClick={() => submitAssessment.mutate()}
               disabled={submitAssessment.isPending || active.status !== 'draft'}
-              sx={{ bgcolor: '#2F80ED' }}>
+              sx={{ bgcolor: '#0164C8' }}>
               {submitAssessment.isPending ? <CircularProgress size={16} /> : 'Mark as Submitted to Portal'}
             </Button>
           </Stack>
@@ -204,8 +205,8 @@ export default function DSPTPage() {
                               </Typography>}
                             </Box>
                             <Chip label={ss?.label || 'Not Assessed'} size="small" sx={{
-                              color: ss?.color || '#98A2B3',
-                              bgcolor: `${ss?.color || '#98A2B3'}15`,
+                              color: ss?.color || '#5D6E85',
+                              bgcolor: `${ss?.color || '#5D6E85'}15`,
                               fontWeight: 600,
                               minWidth: 90,
                             }} />
@@ -227,14 +228,14 @@ export default function DSPTPage() {
       )}
 
       {!active && (
-        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'notice.subtle.bg', border: '2px dashed #D8DEE7' }}>
-          <ShieldIcon sx={{ fontSize: 48, color: '#D8DEE7', mb: 2 }} />
+        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'notice.subtle.bg', border: '2px dashed #D6E2EE' }}>
+          <ShieldIcon sx={{ fontSize: 48, color: '#D6E2EE', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No Active Assessment</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Start your organisation's 2025/26 NHS DSPT self-assessment to track progress against the 10 Data Security Standards.
           </Typography>
           <Button variant="contained" startIcon={<AssessmentIcon />} onClick={() => setAssessOpen(true)}
-            sx={{ bgcolor: '#2F80ED', '&:hover': { bgcolor: '#004B93' } }}>
+            sx={{ bgcolor: P.primary, '&:hover': { bgcolor: P.primaryHover } }}>
             Start Assessment
           </Button>
         </Paper>
@@ -269,7 +270,7 @@ export default function DSPTPage() {
           <Button onClick={() => setAssessOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={() => createAssessment.mutate()}
             disabled={createAssessment.isPending}
-            sx={{ bgcolor: '#2F80ED' }}>
+            sx={{ bgcolor: '#0164C8' }}>
             {createAssessment.isPending ? <CircularProgress size={20} /> : 'Create Assessment'}
           </Button>
         </DialogActions>
@@ -302,7 +303,7 @@ export default function DSPTPage() {
               evidence_notes: editing.evidence_notes,
             })
           }} disabled={updateStd.isPending}
-            sx={{ bgcolor: '#2F80ED' }}>
+            sx={{ bgcolor: '#0164C8' }}>
             {updateStd.isPending ? <CircularProgress size={20} /> : 'Save'}
           </Button>
         </DialogActions>

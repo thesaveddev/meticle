@@ -116,7 +116,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
     pending: { bg: '#FFF7E6', text: '#9A6700' },
     approved: { bg: '#EAFBF5', text: '#087A55' },
     rejected: { bg: '#FEF0F0', text: '#B42318' },
-    draft: { bg: '#F7F9FC', text: '#667085' },
+    draft: { bg: '#F4F9FC', text: '#51637A' },
   }
 
   return (
@@ -182,7 +182,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
           {[
             { label: 'Visits', value: String(filtered.length), color: c.primary },
             { label: 'Work', value: fmtHours(totalWork), color: c.success },
-            { label: 'Travel', value: fmtHours(totalTravel), color: '#2F80ED' },
+            { label: 'Travel', value: fmtHours(totalTravel), color: '#0164C8' },
             { label: 'Pay', value: money(totalPay), color: '#087A55' },
           ].map(s => (
             <View key={s.label} style={{ flex: 1, backgroundColor: c.surface, borderRadius: radii.md, padding: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: c.border }}>
@@ -260,9 +260,9 @@ export function TimesheetsScreen({ session, onBack }: Props) {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
                     {[
                       { label: 'Work', value: fmtHours(ts.work_minutes), bg: '#EAFBF5', color: '#087A55' },
-                      { label: 'Travel', value: fmtHours(ts.paid_travel_minutes), bg: '#F4F8FF', color: '#175CD3' },
-                      { label: 'Miles', value: fmtMiles(ts.mileage_miles), bg: '#E8FAF6', color: '#0C9E89' },
-                      { label: 'Tasks', value: tasksTotal > 0 ? `${tasksDone}/${tasksTotal}` : '—', bg: tasksTotal > 0 && tasksDone === tasksTotal ? '#EAFBF5' : tasksTotal > 0 ? '#FFF7E6' : '#F7F9FC', color: tasksTotal > 0 && tasksDone === tasksTotal ? '#087A55' : tasksTotal > 0 ? '#9A6700' : '#667085' },
+                      { label: 'Travel', value: fmtHours(ts.paid_travel_minutes), bg: '#EAF3FF', color: '#004085' },
+                      { label: 'Miles', value: fmtMiles(ts.mileage_miles), bg: '#D2FBF4', color: '#046E86' },
+                      { label: 'Tasks', value: tasksTotal > 0 ? `${tasksDone}/${tasksTotal}` : '—', bg: tasksTotal > 0 && tasksDone === tasksTotal ? '#EAFBF5' : tasksTotal > 0 ? '#FFF7E6' : '#F4F9FC', color: tasksTotal > 0 && tasksDone === tasksTotal ? '#087A55' : tasksTotal > 0 ? '#9A6700' : '#51637A' },
                     ].map(chip => (
                       <View key={chip.label} style={{ backgroundColor: chip.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, fontWeight: '500', color: chip.color }}>{chip.label}: {chip.value}</Text>

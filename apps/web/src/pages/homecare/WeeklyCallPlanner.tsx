@@ -123,7 +123,7 @@ export default function WeeklyCallPlanner() {
         </Box>
         <Stack direction="row" spacing={1}>
           <Button variant="text" onClick={() => { window.location.href = '/call-scheduling/day' }} sx={{ textTransform: 'none' }}>Daily list</Button>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)} sx={{ textTransform: 'none', borderColor: '#2F80ED', color: '#2F80ED', fontWeight: 600 }}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)} sx={{ textTransform: 'none', borderColor: '#0164C8', color: '#0164C8', fontWeight: 600 }}>
             Add call
           </Button>
           <Button aria-label="Previous week" size="small" onClick={() => setWeekOffset(w => w - 1)} sx={{ minWidth: 'auto' }}><ChevronLeftIcon /></Button>
@@ -145,9 +145,9 @@ export default function WeeklyCallPlanner() {
                 const dayVisits = dayMap.get(d) || []
                 return (
                   <Box key={d} sx={{ flex: 1, textAlign: 'center', px: 0.5 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: isToday ? '#2F80ED' : '#344054' }}>{dayName(d)}</Typography>
-                    <Typography variant="caption" sx={{ display: 'block', color: isToday ? '#2F80ED' : '#667085' }}>{dayNum(d)}</Typography>
-                    <Chip label={dayVisits.length} size="small" sx={{ mt: 0.5, height: 18, fontSize: '0.6rem', bgcolor: dayVisits.length > 0 ? '#EAF3FF' : '#F7F9FC', color: dayVisits.length > 0 ? '#2F80ED' : '#98A2B3', fontWeight: 600 }} />
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: isToday ? '#0164C8' : '#3A4551' }}>{dayName(d)}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: isToday ? '#0164C8' : '#51637A' }}>{dayNum(d)}</Typography>
+                    <Chip label={dayVisits.length} size="small" sx={{ mt: 0.5, height: 18, fontSize: '0.6rem', bgcolor: dayVisits.length > 0 ? '#EAF3FF' : '#F4F9FC', color: dayVisits.length > 0 ? '#0164C8' : '#5D6E85', fontWeight: 600 }} />
                   </Box>
                 )
               })}
@@ -155,7 +155,7 @@ export default function WeeklyCallPlanner() {
 
             {/* Time grid */}
             {HOURS.map(hour => (
-              <Stack key={hour} direction="row" sx={{ borderTop: '1px solid #F7F9FC' }}>
+              <Stack key={hour} direction="row" sx={{ borderTop: '1px solid #F4F9FC' }}>
                 <Box sx={{ width: 60, flexShrink: 0, py: 1, px: 1, textAlign: 'right' }}>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{String(hour).padStart(2, '0')}:00</Typography>
                 </Box>
@@ -176,7 +176,7 @@ export default function WeeklyCallPlanner() {
                             border: `1px solid ${v.assigned_staff_id ? (v.status === 'completed' ? '#EAFBF5' : '#EAF3FF') : '#FFF7E6'}`,
                             borderRadius: 1,
                             cursor: 'pointer',
-                            '&:hover': { borderColor: '#2F80ED' },
+                            '&:hover': { borderColor: '#0164C8' },
                           }}
                           title={`${v.person_name} - ${v.label}${(v.carer_name || v.assigned_staff_name) ? ` (${v.carer_name || v.assigned_staff_name})` : ' (Unassigned)'}`}
                           onClick={() => { setReassignVisit(v); setReassignStaffId(v.assigned_staff_id || '') }}
@@ -184,7 +184,7 @@ export default function WeeklyCallPlanner() {
                           <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.65rem', display: 'block', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {time(v.scheduled_start)} {v.person_name}
                           </Typography>
-                          <Typography variant="caption" sx={{ fontSize: '0.55rem', color: v.assigned_staff_id ? '#667085' : '#F59E0B', display: 'block', lineHeight: 1.2 }}>
+                          <Typography variant="caption" sx={{ fontSize: '0.55rem', color: v.assigned_staff_id ? '#51637A' : '#F59E0B', display: 'block', lineHeight: 1.2 }}>
                             {v.carer_name || v.assigned_staff_name || 'Unassigned'}
                           </Typography>
                         </Paper>
@@ -202,7 +202,7 @@ export default function WeeklyCallPlanner() {
       <Dialog open={!!reassignVisit} onClose={() => setReassignVisit(null)} fullWidth maxWidth="xs">
         <DialogTitle>
           <Stack direction="row" alignItems="center" gap={1}>
-            <SwapHoriz sx={{ color: '#2F80ED' }} />
+            <SwapHoriz sx={{ color: '#0164C8' }} />
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Assign carer</Typography>
               {reassignVisit && <Typography variant="caption" color="text.secondary">{reassignVisit.person_name} · {time(reassignVisit.scheduled_start)}–{time(reassignVisit.scheduled_end)}</Typography>}
@@ -222,7 +222,7 @@ export default function WeeklyCallPlanner() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReassignVisit(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" disabled={reassignStaffId === (reassignVisit?.assigned_staff_id || '') || assignVisit.isPending} onClick={() => { if (reassignVisit) assignVisit.mutate({ visitId: reassignVisit.id, staffId: reassignStaffId || null }) }} sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}>
+          <Button variant="contained" disabled={reassignStaffId === (reassignVisit?.assigned_staff_id || '') || assignVisit.isPending} onClick={() => { if (reassignVisit) assignVisit.mutate({ visitId: reassignVisit.id, staffId: reassignStaffId || null }) }} sx={{ textTransform: 'none', bgcolor: '#0164C8' }}>
             {assignVisit.isPending ? <CircularProgress size={18} color="inherit" /> : 'Assign'}
           </Button>
         </DialogActions>
@@ -273,7 +273,7 @@ export default function WeeklyCallPlanner() {
                 assigned_staff_id: createForm.assigned_staff_id || undefined,
               })
             }).catch((e: any) => alert(e.message || 'Could not create call'))
-          }} sx={{ textTransform: 'none', bgcolor: '#2F80ED' }}>
+          }} sx={{ textTransform: 'none', bgcolor: '#0164C8' }}>
             {createVisit.isPending ? <CircularProgress size={18} color="inherit" /> : 'Add call'}
           </Button>
         </DialogActions>

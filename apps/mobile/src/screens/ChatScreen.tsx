@@ -584,7 +584,7 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
             <Image source={{ uri: imageUris[previewImage.messageId] }} style={previewStyles.image} resizeMode="contain" />
           ) : imageErrors[previewImage.messageId] ? (
             <View style={previewStyles.emptyState}>
-              <Ionicons name="image-outline" size={48} color="#98A2B3" />
+              <Ionicons name="image-outline" size={48} color="#5D6E85" />
               <Text style={previewStyles.emptyTitle}>Image unavailable</Text>
               <Text style={previewStyles.emptySub}>This image could not be loaded. Try downloading it again.</Text>
               <Pressable onPress={downloadPreviewImage} style={[previewStyles.retryButton, { backgroundColor: c.primary }]}>
@@ -1130,7 +1130,7 @@ const previewStyles = StyleSheet.create({
   image: { flex: 1, width: '100%' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   emptyTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', fontFamily: FONT, textAlign: 'center' },
-  emptySub: { color: '#98A2B3', fontSize: 13, fontFamily: FONT, textAlign: 'center', lineHeight: 19 },
+  emptySub: { color: '#5D6E85', fontSize: 13, fontFamily: FONT, textAlign: 'center', lineHeight: 19 },
   retryButton: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radii.lg },
   retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', fontFamily: FONT },
   downloadButton: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.lg, marginVertical: spacing.lg },

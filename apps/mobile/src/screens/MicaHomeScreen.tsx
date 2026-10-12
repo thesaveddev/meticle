@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Image, Pressable, StyleSheet, Text, View, ScrollView, Modal } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme'
 import { spacing, radii, shadows, mcType, mica } from '../theme'
-import { FloatingMicaOrb, SosContact, MICA_IDLE_IMAGE, MICA_ORB_IMAGE } from '../components/FloatingMicaOrb'
-import type { AuthSession, SessionOrganisation } from '../types'
+import { MICA_IDLE_IMAGE, MICA_ORB_IMAGE } from '../components/FloatingMicaOrb'
+import type { AuthSession } from '../types'
 
 interface Props {
   navigation: {
@@ -15,42 +15,18 @@ interface Props {
   onOpenSheet: () => void
 }
 
-function orgContacts(org: SessionOrganisation | null | undefined): SosContact[] {
-  if (!org) return []
-  const pairs = [
-    { label: org.emergency_contact_1_label as string | undefined || 'Office', phone: org.emergency_contact_1_phone as string | undefined | null || '' },
-    { label: org.emergency_contact_2_label as string | undefined || 'Supervisor', phone: org.emergency_contact_2_phone as string | undefined | null || '' },
-  ]
-  return pairs.filter(c => c.phone).map(c => ({ label: c.label, phone: c.phone }))
-}
-
-export function MicaHomeScreen({ navigation, session, onCloseSheet, onOpenSheet }: Props) {
+/**
+ * The Mica surface. It deliberately mounts no orb of its own: the screen frame
+ * already mounts exactly one on every screen, and mounting a second here put two
+ * floating controls on one screen — one over the other, neither obviously the
+ * real one. The frame's orb keeps Mica reachable from this screen too.
+ */
+export function MicaHomeScreen({ navigation, onCloseSheet }: Props) {
   const { colors: c } = useTheme()
-  const contacts: SosContact[] = orgContacts(session?.organization)
-  const managerPhone: string | undefined = session?.organization?.manager_phone as string | undefined
-
   const [sheetOpen, setSheetOpen] = useState(false)
-
-  const handleMicaPress = useCallback(() => {
-    onOpenSheet()
-  }, [onOpenSheet])
-
-  const handleSosPress = useCallback(() => {
-    // Long-press the floating orb reappears here only on the Mica home screen.
-    // The SOS targets are the same ones the SOS/Help screen offers.
-    onOpenSheet()
-  }, [onOpenSheet])
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
-      <FloatingMicaOrb
-        onMicaPress={handleMicaPress}
-        onSosPress={handleSosPress}
-        sosContacts={contacts}
-        managerPhone={managerPhone}
-        listeningImage={MICA_ORB_IMAGE}
-        listening={sheetOpen}
-      />
       <ScrollView contentContainerStyle={styles.body}>
         <View style={[styles.header, { borderBottomColor: c.border }]}>
           <Pressable onPress={navigation.pop} style={styles.back}>
@@ -143,23 +119,23 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', padding: spacing.xs, borderRadius: radii.sm },
   hero: { alignItems: 'center', paddingVertical: spacing.xl, paddingHorizontal: spacing.md },
   orb: { width: 120, height: 120, ...shadows.lg, marginBottom: spacing.md },
-  title: { fontSize: 24, fontWeight: '700', color: '#17202A', marginBottom: spacing.xs },
-  subtitle: { fontSize: 14, color: '#667085', lineHeight: 20, textAlign: 'center', marginBottom: spacing.xs },
+  title: { fontSize: 24, fontWeight: '700', color: '#0C1B2E', marginBottom: spacing.xs },
+  subtitle: { fontSize: 14, color: '#51637A', lineHeight: 20, textAlign: 'center', marginBottom: spacing.xs },
   section: { paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderTopWidth: 1 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#667085', textTransform: 'uppercase', marginBottom: spacing.sm, letterSpacing: 0.4 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#51637A', textTransform: 'uppercase', marginBottom: spacing.sm, letterSpacing: 0.4 },
   openButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderRadius: radii.md, borderWidth: 1 },
   openButtonLabel: { flex: 1, fontSize: 15, fontWeight: '600', marginLeft: spacing.sm },
-  footnote: { fontSize: 13, color: '#98A2B3', textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
+  footnote: { fontSize: 13, color: '#5D6E85', textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
   modal: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { flex: 1, backgroundColor: '#00000040' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%', padding: spacing.md, paddingBottom: spacing.xxl },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderBottomWidth: 1 },
   sheetBody: { padding: spacing.md },
-  sheetTitle: { fontSize: 22, fontWeight: '700', color: '#17202A' },
-  sheetSubtitle: { fontSize: 14, color: '#667085', lineHeight: 20, marginTop: spacing.xs, marginBottom: spacing.lg },
-  card: { backgroundColor: '#FFFFFF', borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: '#E6EAF0', elevation: 2 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#17202A', marginBottom: spacing.xs },
-  cardSubtitle: { fontSize: 14, color: '#667085', lineHeight: 20 },
-  closeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: '#E6EAF0', backgroundColor: '#F7F9FC', marginTop: spacing.md },
-  closeButtonLabel: { fontSize: 15, fontWeight: '600', color: '#2F80ED' },
+  sheetTitle: { fontSize: 22, fontWeight: '700', color: '#0C1B2E' },
+  sheetSubtitle: { fontSize: 14, color: '#51637A', lineHeight: 20, marginTop: spacing.xs, marginBottom: spacing.lg },
+  card: { backgroundColor: '#FFFFFF', borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: '#E3E9F0', elevation: 2 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0C1B2E', marginBottom: spacing.xs },
+  cardSubtitle: { fontSize: 14, color: '#51637A', lineHeight: 20 },
+  closeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: '#E3E9F0', backgroundColor: '#F4F9FC', marginTop: spacing.md },
+  closeButtonLabel: { fontSize: 15, fontWeight: '600', color: '#0164C8' },
 })

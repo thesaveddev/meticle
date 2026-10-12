@@ -17,7 +17,7 @@ export function PremiumCard({ children, noBorder = false, sx, ...props }: Premiu
         transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
         overflow: 'hidden',
         border: noBorder && theme.palette.mode === 'dark' ? 'none' : `1px solid ${theme.palette.divider}`,
-        ...(props.onClick ? { cursor: 'pointer', '&:hover': { borderColor: theme.palette.mode === 'dark' ? '#43536A' : '#D8DEE7', boxShadow: 'var(--shadow-sm)' } } : {}),
+        ...(props.onClick ? { cursor: 'pointer', '&:hover': { borderColor: theme.palette.mode === 'dark' ? '#354357' : '#D6E2EE', boxShadow: 'var(--shadow-sm)' } } : {}),
         ...sx,
       }}
       {...props}
@@ -47,7 +47,7 @@ export function StatCard({ label, value, icon, color, onClick }: StatCardProps) 
         display: 'flex',
         flexDirection: 'column',
         cursor: onClick ? 'pointer' : 'default',
-        '&:hover': onClick ? { borderColor: theme.palette.mode === 'dark' ? '#43536A' : '#CBD5E1' } : {},
+        '&:hover': onClick ? { borderColor: theme.palette.mode === 'dark' ? '#354357' : '#C3D2E2' } : {},
         '&:focus-visible': onClick ? { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 } : {},
       }}
       onClick={onClick}
@@ -60,7 +60,7 @@ export function StatCard({ label, value, icon, color, onClick }: StatCardProps) 
           sx={{
             width: 38,
             height: 38,
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(47,128,237,0.16)' : `${accentColor}12`,
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.16)' : `${accentColor}12`,
             color: accentColor,
             borderRadius: '10px',
             display: 'flex',
@@ -99,10 +99,10 @@ interface StatusBadgeProps {
 
 const STATUS_STYLES = {
   completed: { bg: '#EAFBF5', color: '#087A55' },
-  scheduled: { bg: '#EAF3FF', color: '#175CD3' },
+  scheduled: { bg: '#EAF3FF', color: '#004085' },
   missed: { bg: '#FEF0F0', color: '#B42318' },
   'in-progress': { bg: '#FFF7E6', color: '#9A6700' },
-  pending: { bg: '#F2F4F7', color: '#475467' },
+  pending: { bg: '#F0F5FC', color: '#51637A' },
 }
 
 export function StatusBadge({ variant = 'pending', label, size = 'small', sx }: StatusBadgeProps) {
@@ -193,7 +193,7 @@ export function ProgressCard({ value, max, color = METICLE_COLORS.success, label
               mt: 1.5,
               height: 6,
               borderRadius: 3,
-              bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#F5F7FA',
+              bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
               '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 3 },
             }}
           />

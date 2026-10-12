@@ -15,6 +15,7 @@ import {
   FilterList as FilterIcon,
 } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import api from '../../services/api'
 import AppButton from '../../components/design/AppButton'
 
@@ -147,11 +148,11 @@ export default function SwapTransferPage() {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   {req.request_type === 'swap' ? (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAF3FF', color: '#175CD3' }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAF3FF', color: '#004085' }}>
                       <SwapIcon sx={{ fontSize: 18 }} />
                     </Avatar>
                   ) : (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAFBF5', color: '#2E7D32' }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAFBF5', color: NOTICE_COLORS.success.fg }}>
                       <TransferIcon sx={{ fontSize: 18 }} />
                     </Avatar>
                   )}

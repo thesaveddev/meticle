@@ -1,6 +1,7 @@
 import { useMemo, useState, type MouseEvent } from 'react'
 import { Box, Typography, Stack, Tooltip, Chip } from '@mui/material'
 import { Add as AddIcon, Warning as WarningIcon, Check as CheckIcon } from '@mui/icons-material'
+import { P } from '../../../styles/tokens'
 import type { RotaViewProps } from './types'
 import { rotaHelpers } from './helpers'
 
@@ -92,9 +93,9 @@ export default function TimelineView(props: RotaViewProps) {
                 sx={{
                   cursor: 'pointer', fontWeight: 600, fontSize: '0.65rem', minWidth: 58, textAlign: 'center',
                   '& .MuiChip-icon': { ml: '6px', mr: '-4px' },
-                  bgcolor: i === dayIndex ? '#2F80ED' : isToday ? '#E6EAF0' : '#F7F9FC',
-                  color: i === dayIndex ? '#FFFFFF' : isToday ? '#2F80ED' : '#475467',
-                  '&:hover': { bgcolor: i === dayIndex ? '#2674D9' : '#E6EAF0' },
+                  bgcolor: i === dayIndex ? '#0164C8' : isToday ? '#E3E9F0' : '#F4F9FC',
+                  color: i === dayIndex ? '#FFFFFF' : isToday ? '#0164C8' : '#51637A',
+                  '&:hover': { bgcolor: i === dayIndex ? '#0251B3' : '#E3E9F0' },
                 }}
               />
             </Tooltip>
@@ -117,10 +118,10 @@ export default function TimelineView(props: RotaViewProps) {
           {HOURS.map(h => (
             <Box key={h} sx={{
               position: 'absolute', left: h * PIXELS_PER_HOUR, top: 0, bottom: 0,
-              borderLeft: h % 4 === 0 ? '1px solid #E6EAF0' : '1px dashed #F5F7FA',
+              borderLeft: h % 4 === 0 ? '1px solid #E3E9F0' : '1px dashed #F7FAFE',
             }} />
           ))}
-          <Box sx={{ position: 'absolute', left: totalWidth, top: 0, bottom: 0, borderLeft: '1px solid #E6EAF0' }} />
+          <Box sx={{ position: 'absolute', left: totalWidth, top: 0, bottom: 0, borderLeft: '1px solid #E3E9F0' }} />
           {isToday && (
             <Box sx={{ position: 'absolute', left: nowMinutes / 60 * PIXELS_PER_HOUR, top: 0, bottom: 0 }}>
               <Box sx={{ position: 'absolute', top: -3, left: -3, width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981' }} />
@@ -137,7 +138,7 @@ export default function TimelineView(props: RotaViewProps) {
               {/* Location label */}
               <Box sx={{ position: 'absolute', left: -140, top: 2, width: 130, pr: 1 }}>
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.72rem', color: '#17202A', lineHeight: 1.15 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.72rem', color: '#0C1B2E', lineHeight: 1.15 }}>
                     {loc.name}
                   </Typography>
                   {stats && (
@@ -158,7 +159,7 @@ export default function TimelineView(props: RotaViewProps) {
               {/* Lane background */}
               <Box sx={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: laneContainerHeight,
-                bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #EEF1F4',
+                bgcolor: 'notice.subtle.bg', borderRadius: 1, border: `1px solid ${P.hairline}`,
               }} />
 
               {/* Shift bars (above the add zone so they stay clickable) */}
@@ -218,7 +219,7 @@ export default function TimelineView(props: RotaViewProps) {
                   <Box className="rota-add-pill" sx={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(0.96)',
                     display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, borderRadius: '999px',
-                    bgcolor: '#2F80ED', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 600, pointerEvents: 'none',
+                    bgcolor: '#0164C8', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 600, pointerEvents: 'none',
                     opacity: 0, transition: 'opacity 0.15s ease, transform 0.15s ease',
                   }}>
                     <AddIcon sx={{ fontSize: 12 }} />Add shift

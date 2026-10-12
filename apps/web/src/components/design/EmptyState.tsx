@@ -48,7 +48,7 @@ export function EmptyState({ icon, title, description, action, variant = 'defaul
           alignItems: 'center',
           justifyContent: 'center',
           mb: 2,
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : variant === 'error' ? '#FEF0F0' : '#F2F4F7',
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : variant === 'error' ? '#FEF0F0' : '#F0F5FC',
           color,
         }}
       >

@@ -7,7 +7,7 @@
  * palette swaps to slate backgrounds — so the page stayed light while the rest
  * of the application went dark, and the notice a carer is asked to trust
  * rendered dark forest-green text on a mid-saturated green. The page also forced
- * `bgcolor: 'white'` and `#17202A` headings on every route, so the whole flow
+ * `bgcolor: 'white'` and `#0C1B2E` headings on every route, so the whole flow
  * was a white flash in a dark application.
  *
  * MUI's `Alert` derives its background, text and icon from the active palette,
@@ -38,9 +38,9 @@ function stripComments(source: string): string {
 /** Light-mode-only values that have no meaning once the palette swaps. */
 const LIGHT_ONLY_VALUES: Record<string, string> = {
   "'white'": "use 'background.default' or 'background.paper'",
-  "'#F8FAFC'": "use a theme token such as 'background.paper' or 'action.hover'",
-  '#E6EAF0': "use 'divider'",
-  '#17202A': "use 'text.primary'",
+  "'#F7FAFE'": "use a theme token such as 'background.paper' or 'action.hover'",
+  '#E3E9F0': "use 'divider'",
+  '#0C1B2E': "use 'text.primary'",
   '#B42318': 'Alert severity="error" derives this from the active palette',
   '#EAFBF5': 'Alert severity="success" derives its border from the active palette',
   '#087A55': 'Alert severity="success" derives its text from the active palette',

@@ -51,7 +51,7 @@ export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   if (!token) return <Navigate to="/login" replace />
   if (checking) return (
     <Box role="status" aria-live="polite" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-      <CircularProgress size={36} sx={{ color: '#2F80ED' }} />
+      <CircularProgress size={36} sx={{ color: '#0164C8' }} />
     </Box>
   )
 

@@ -170,12 +170,12 @@ export default function MyEarningsPanel() {
           <input
             type="date" value={period.from} aria-label="From"
             onChange={e => setPeriod(p => ({ ...p, from: e.target.value }))}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E6EAF0', fontSize: 13 }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E3E9F0', fontSize: 13 }}
           />
           <input
             type="date" value={period.to} aria-label="To"
             onChange={e => setPeriod(p => ({ ...p, to: e.target.value }))}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E6EAF0', fontSize: 13 }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E3E9F0', fontSize: 13 }}
           />
           <AppButton
             variant="secondary"
@@ -218,10 +218,10 @@ export default function MyEarningsPanel() {
           {/* Summary stat cards */}
           <Stack direction="row" gap={1.5} flexWrap="wrap">
             <StatCard
-              icon={<MoneyIcon sx={{ fontSize: 20, color: '#2F80ED' }} />}
+              icon={<MoneyIcon sx={{ fontSize: 20, color: '#0164C8' }} />}
               label="Gross pay"
               value={fmtPence(s.total_gross_pay_pence)}
-              color="#2F80ED"
+              color="#0164C8"
             />
             <StatCard
               icon={<ReceiptIcon sx={{ fontSize: 20, color: '#10B981' }} />}
@@ -237,16 +237,16 @@ export default function MyEarningsPanel() {
               color="#8B7CF6"
             />
             <StatCard
-              icon={<CarIcon sx={{ fontSize: 20, color: '#2F80ED' }} />}
+              icon={<CarIcon sx={{ fontSize: 20, color: '#0164C8' }} />}
               label="Mileage"
               value={`${Number(s.total_mileage_miles || 0).toFixed(1)} mi`}
-              color="#2F80ED"
+              color="#0164C8"
             />
           </Stack>
 
           {!hasData && (
             <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
-              <ReceiptIcon sx={{ fontSize: 40, color: '#D8DEE7', mb: 1 }} />
+              <ReceiptIcon sx={{ fontSize: 40, color: '#D6E2EE', mb: 1 }} />
               <Typography sx={{ color: 'text.secondary' }}>
                 No completed calls in this period. Pay appears here as soon as you clock in and out of a call.
               </Typography>
@@ -266,8 +266,8 @@ export default function MyEarningsPanel() {
                   label="Work hours"
                   detail={`${fmtMins(s.total_work_minutes)} at ${fmtPence(s.hourly_rate_pence)}/hr`}
                   amount={fmtPence(workPay)}
-                  color="#2F80ED"
-                  icon={<ClockIcon sx={{ fontSize: 16, color: '#2F80ED' }} />}
+                  color="#0164C8"
+                  icon={<ClockIcon sx={{ fontSize: 16, color: '#0164C8' }} />}
                 />
                 {Number(s.total_paid_travel_minutes || 0) > 0 && (
                   <BreakdownCard
@@ -324,7 +324,7 @@ export default function MyEarningsPanel() {
               <Stack direction="row" gap={2} flexWrap="wrap" mb={(data.ytd.months || []).length ? 2 : 0}>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Gross pay</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#2F80ED' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#0164C8' }}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Calls</Typography>
@@ -377,12 +377,12 @@ export default function MyEarningsPanel() {
                         p: 2, display: 'flex', alignItems: 'center', gap: 2,
                         border: '1px solid', borderColor: 'divider', borderRadius: 2,
                         transition: 'border-color 0.15s',
-                        '&:hover': { borderColor: '#2F80ED30' },
+                        '&:hover': { borderColor: '#0164C830' },
                       }}
                     >
                       <Box sx={{
                         width: 8, height: 8, borderRadius: '50%',
-                        bgcolor: v.tasks_completed === v.tasks_total && v.tasks_total > 0 ? '#10B981' : '#E6EAF0',
+                        bgcolor: v.tasks_completed === v.tasks_total && v.tasks_total > 0 ? '#10B981' : '#E3E9F0',
                         flexShrink: 0,
                       }} />
                       <Box flex={1} sx={{ minWidth: 0 }}>
@@ -410,7 +410,7 @@ export default function MyEarningsPanel() {
                           <Chip size="small" label={`${Number(v.mileage_miles).toFixed(1)} mi`} sx={{ height: 22, fontSize: '0.7rem', bgcolor: '#EAFBF5', color: '#087A55' }} />
                         )}
                       </Stack>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#2F80ED', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#0164C8', flexShrink: 0 }}>{fmtPence(v.gross_pay_pence)}</Typography>
                     </Paper>
                   ))}
                 </Stack>

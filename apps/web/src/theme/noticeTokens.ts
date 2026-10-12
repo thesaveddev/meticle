@@ -24,8 +24,9 @@
  * same derivation, resolved once and named.
  *
  * `subtle` and `muted` replace `grey.50`/`grey.100`, which MUI also leaves
- * light-only: `#F9FAFB`/`#F7F9FC` are near-white in both modes, so they render
- * as white boxes on a dark page.
+ * light-only: those are near-white in both modes, so they render as white boxes
+ * on a dark page. Named brand neutrals stand in instead — `#F7FAFE` (Window
+ * Chrome) and `#F0F5FC` — and the info pair is the brand blue `#0164C8` hue.
  */
 
 export interface NoticePair {
@@ -56,13 +57,13 @@ declare module '@mui/material/styles' {
 }
 
 const LIGHT: NoticeTokens = {
-  // Light mode: master-palette surfaces with readable text (4.5:1+).
+  // Light mode: brand-palette surfaces with readable text (4.5:1+).
   success: { bg: '#EAFBF5', fg: '#087A55' },
   error: { bg: '#FEF0F0', fg: '#B42318' },
   warning: { bg: '#FFF7E6', fg: '#9A6700' },
-  info: { bg: '#EAF3FF', fg: '#175CD3' },
-  subtle: { bg: '#F8FAFC' },
-  muted: { bg: '#F2F4F7' },
+  info: { bg: '#EAF3FF', fg: '#004085' },
+  subtle: { bg: '#F7FAFE' },
+  muted: { bg: '#F0F5FC' },
 }
 
 const DARK: NoticeTokens = {
@@ -72,12 +73,14 @@ const DARK: NoticeTokens = {
   success: { bg: 'rgba(34,197,94,0.16)', fg: '#86EFAC' },
   error: { bg: 'rgba(239,68,68,0.16)', fg: '#FCA5A5' },
   warning: { bg: 'rgba(245,158,11,0.16)', fg: '#F59E0B' },
-  info: { bg: 'rgba(14,165,233,0.16)', fg: '#7DD3FC' },
+  info: { bg: 'rgba(1,100,200,0.18)', fg: '#92C1FF' },
   // Both insets need to clear their own surface against `background.paper`,
-  // or a "subtle" row is just the page again. The first dark `muted` value
-  // tried was `#1F2A3D`, which measured 1.01:1 against `#1E293B`.
-  subtle: { bg: '#161F31' },
-  muted: { bg: '#2A3A52' },
+  // or a "subtle" row is just the page again. An earlier `muted` value measured
+  // 1.01:1 against its paper — indistinguishable from the page. Measured against
+  // the current dark paper #112539 these give 1.06:1 (`subtle`) and 1.15:1
+  // (`muted`): an inset that reads as a panel without becoming a block.
+  subtle: { bg: '#101F33' },
+  muted: { bg: '#1B2F47' },
 }
 
 export function noticeTokens(mode: 'light' | 'dark'): NoticeTokens {

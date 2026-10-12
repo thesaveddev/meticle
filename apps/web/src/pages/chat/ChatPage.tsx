@@ -161,7 +161,7 @@ export default function ChatPage() {
                     py: 1, px: 2, cursor: 'pointer', fontSize: 13, fontWeight: activeTab === i ? 700 : 500,
                     color: activeTab === i ? NAVY : MIST, borderBottom: `2px solid ${activeTab === i ? NAVY : 'transparent'}`,
                     transition: 'all 0.15s', borderRadius: '4px 4px 0 0',
-                    '&:hover': { color: NAVY, bgcolor: activeTab === i ? 'transparent' : '#F5F3EF' },
+                    '&:hover': { color: NAVY, bgcolor: activeTab === i ? 'transparent' : BONE },
                   }}>
                   {label}
                 </Box>

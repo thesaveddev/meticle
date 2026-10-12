@@ -17,7 +17,7 @@ interface Props {
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   active: { bg: '#EAFBF5', text: '#087A55' },
-  discharged: { bg: '#F7F9FC', text: '#667085' },
+  discharged: { bg: '#F4F9FC', text: '#51637A' },
   deceased: { bg: '#FEF0F0', text: '#B42318' },
 }
 

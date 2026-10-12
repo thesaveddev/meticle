@@ -4,13 +4,12 @@ import PageContainer from '../../components/design/PageContainer'
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell,
-  TableHead, TableRow, TextField, Typography, Tooltip, TablePagination,
+  TableHead, TableRow, TextField, Typography, TablePagination,
 } from '@mui/material'
 import {
   Warning as IncidentIcon,
   FilterList as FilterIcon,
   CheckCircle as ResolveIcon,
-  Visibility as ViewIcon,
   Close as CloseIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
@@ -57,10 +56,10 @@ const severityConfig: Record<string, { label: string; color: string; bg: string 
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  reported: { label: 'Reported', color: 'text.secondary', bg: '#F7F9FC' },
-  investigating: { label: 'Investigating', color: '#2F80ED', bg: '#EAF3FF' },
+  reported: { label: 'Reported', color: 'text.secondary', bg: '#F4F9FC' },
+  investigating: { label: 'Investigating', color: '#0164C8', bg: '#EAF3FF' },
   resolved: { label: 'Resolved', color: '#087A55', bg: '#EAFBF5' },
-  closed: { label: 'Closed', color: 'text.secondary', bg: '#F7F9FC' },
+  closed: { label: 'Closed', color: 'text.secondary', bg: '#F4F9FC' },
 }
 
 function dateLabel(d: string) {
@@ -159,7 +158,7 @@ export default function IncidentsPage() {
       {stats && (
         <Grid container spacing={2.5} sx={{ mb: 4 }}>
           <Grid item xs={6} sm={4} md={2.4}>
-            <StatCard label="Total" value={stats.total} icon={<IncidentIcon />} color="#667085" />
+            <StatCard label="Total" value={stats.total} icon={<IncidentIcon />} color="#51637A" />
           </Grid>
           <Grid item xs={6} sm={4} md={2.4}>
             <StatCard label="Open" value={stats.open} icon={<IncidentIcon />} color="#F59E0B" />
@@ -258,7 +257,7 @@ export default function IncidentsPage() {
                           <Stack direction="row" alignItems="center" gap={1}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{inc.title}</Typography>
                             {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
-                            {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#F4F8FF', color: '#8B7CF6' }} />}
+                            {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#EAF3FF', color: '#8B7CF6' }} />}
                             {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
                           </Stack>
                           {inc.description && (
@@ -290,13 +289,10 @@ export default function IncidentsPage() {
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>None</Typography>
                           )}
                         </TableCell>
-                        <TableCell align="right">
-                          <Tooltip title="View details">
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); openDetail(inc) }}>
-                              <ViewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
+                        {/* The row itself opens the incident: a separate eye-icon
+                            "view" control duplicates that and is banned by the
+                            design contract. */}
+                        <TableCell align="right" />
                       </TableRow>
                     )
                   })}
@@ -322,7 +318,7 @@ export default function IncidentsPage() {
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack direction="row" alignItems="center" gap={1.5}>
-                <IncidentIcon sx={{ color: severityConfig[selectedIncident.severity]?.color || '#667085' }} />
+                <IncidentIcon sx={{ color: severityConfig[selectedIncident.severity]?.color || '#51637A' }} />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{selectedIncident.title}</Typography>
               </Stack>
               <IconButton onClick={() => setSelectedIncident(null)} size="small"><CloseIcon /></IconButton>
@@ -338,7 +334,7 @@ export default function IncidentsPage() {
                       sx={{ bgcolor: severityConfig[selectedIncident.severity]?.bg, color: severityConfig[selectedIncident.severity]?.color, fontWeight: 600 }} />
                     <Chip label={statusConfig[selectedIncident.status]?.label || selectedIncident.status}
                       sx={{ bgcolor: statusConfig[selectedIncident.status]?.bg, color: statusConfig[selectedIncident.status]?.color, fontWeight: 600 }} />
-                    {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#F4F8FF', color: '#8B7CF6' }} />}
+                    {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#EAF3FF', color: '#8B7CF6' }} />}
                     {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
                     {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
                   </Stack>

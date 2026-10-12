@@ -7,17 +7,21 @@ import { Email, Phone, AccessTime } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import api from '../../services/api'
 import PageMeta from '../../components/PageMeta'
+import { P } from '../../styles/tokens'
+import { NOTICE_COLORS } from '../../theme/noticeTokens'
 
-// Brand tokens — shared with the rest of the marketing site.
-const INK = '#17202A'
-const INK_DARK = '#141C24'
-const NAVY = '#2F80ED'
-const NAVY_DEEP = '#1F68C7'
-const EMERALD = '#10B981'
-const EMERALD_DEEP = '#087A55'
-const BONE = '#F7F9FC'
-const MIST = '#475467'
-const HAIRLINE = '#E6EAF0'
+// Brand colours resolve to the shared design tokens (styles/tokens.ts) so this
+// page cannot drift from the app palette.
+const INK = P.navy
+const INK_DARK = P.navyMid
+const NAVY = P.primary
+const NAVY_DEEP = P.primaryDeep
+const EMERALD = P.green
+// The success foreground on a mint fill (theme/noticeTokens.ts).
+const EMERALD_DEEP = NOTICE_COLORS.success.fg
+const BONE = P.warm
+const MIST = P.slate
+const HAIRLINE = P.hairline
 
 const contactMethods = [
   {

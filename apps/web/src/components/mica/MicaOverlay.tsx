@@ -4,6 +4,7 @@ import { Autocomplete, Box, Button, IconButton, InputAdornment, TextField, Typog
 import CloseIcon from '@mui/icons-material/Close'
 import SendIcon from '@mui/icons-material/Send'
 import MicaOrb, { type MicaState } from './MicaOrb'
+import { MICA_ANNOUNCEMENT, MICA_LABEL, MICA_STATE_COPY, MICA_Z } from './mica.identity'
 import type { MicaPerson } from './useMica'
 import api from '../../services/api'
 
@@ -28,21 +29,11 @@ interface MicaOverlayProps {
   onCancel: () => void
 }
 
-const STATE_COPY: Record<Exclude<MicaState, 'idle'>, { title: string; sub: string; action: string }> = {
-  listening: { title: 'MICA', sub: 'is listening…', action: 'Tap to cancel · Esc' },
-  thinking: { title: 'MICA', sub: 'is thinking…', action: 'Esc to cancel' },
-  responding: { title: 'MICA', sub: 'responding…', action: 'Done · Esc' },
-}
-
+// State copy and screen-reader announcements come from the shared identity
+// contract, so the overlay, the orb and the mobile app cannot describe Mica's
+// states differently (and adding a state fails the type check until copy for
+// it exists).
 const personName = (p: PersonOption) => `${p.first_name} ${p.last_name}`.trim()
-
-/** Screen-reader announcements for state changes that carry no response text. */
-const STATE_ANNOUNCEMENT: Record<MicaState, string> = {
-  idle: '',
-  listening: 'Mica is listening. Speak your care note, or press Escape to cancel.',
-  thinking: 'Mica is thinking.',
-  responding: 'Mica is responding.',
-}
 
 /**
  * Full-screen Mica overlay. Dimmed dashboard behind, live orb, waveform and
@@ -85,7 +76,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
   // ARIA live region text: announces what the assistant is doing without
   // requiring sight. The spoken-response text is the priority announcement;
   // state copy is the fallback for transitions with no response yet.
-  const liveText = responseMessage ?? STATE_ANNOUNCEMENT[state]
+  const liveText = responseMessage ?? MICA_ANNOUNCEMENT[state]
 
   // Escape to cancel, and a Tab focus trap while the dialog is open.
   // Tab-handling must run only while state !== 'idle': at idle the overlay
@@ -150,7 +141,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
   if (state === 'idle') {
     return null
   }
-  const copy = STATE_COPY[state]
+  const copy = MICA_STATE_COPY[state]
 
   return (
     <AnimatePresence>
@@ -164,7 +155,10 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 1300,
+          // Above MUI's modal layer (1300) — see MICA_Z: the overlay is the
+          // top-level surface whenever it is open, so a dialog must not sit
+          // over it by accident of DOM order.
+          zIndex: MICA_Z.overlay,
           background: 'rgba(15, 23, 42, 0.62)',
           backdropFilter: 'blur(6px)',
           display: 'flex',
@@ -175,7 +169,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
         }}
         role="dialog"
         aria-modal="true"
-        aria-label="MICA voice assistant"
+        aria-label={MICA_LABEL.overlay}
         tabIndex={-1}
       >
         {/* Announcements for screen readers: the live region is always in the
@@ -249,10 +243,10 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
                 inputProps={{
                   // MUI maps aria-label on the multiline TextField into
                   // inputProps, and testing-library reads it there.
-                  'aria-label': 'Type to Mica',
+                  'aria-label': MICA_LABEL.type,
                 }}
                 placeholder="Type instead of speaking — questions, notes or tasks"
-                aria-label="Type to Mica"
+                aria-label={MICA_LABEL.type}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#FFFFFF',
@@ -268,7 +262,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
                       <IconButton
                         type="submit"
                         size="small"
-                        aria-label="Send to Mica"
+                        aria-label={MICA_LABEL.send}
                         disabled={!typed.trim()}
                         sx={{ color: 'rgba(255,255,255,0.8)' }}
                       >
@@ -333,7 +327,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
           )}
 
           <AnimatePresence>
-            {state === 'responding' && responseMessage && (
+            {(state === 'responding' || state === 'error') && responseMessage && (
               <motion.div
                 initial={{ y: 16, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -342,9 +336,10 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
                 style={{ width: '100%', marginTop: 24 }}
               >
                 <Box
+                  data-mica-message={state}
                   sx={{
-                    bgcolor: 'rgba(255,255,255,0.14)',
-                    border: '1px solid rgba(255,255,255,0.18)',
+                    bgcolor: state === 'error' ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.14)',
+                    border: state === 'error' ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.18)',
                     borderRadius: 3,
                     px: 2.5,
                     py: 2,

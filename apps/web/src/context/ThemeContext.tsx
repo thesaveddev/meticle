@@ -33,32 +33,62 @@ export function useThemeMode() {
   return ctx
 }
 
-export const METICLE_PRIMARY = '#2F80ED'
-export const METICLE_SECONDARY = '#10BFA5'
-export const METICLE_ACCENT = '#10BFA5'
+export const METICLE_PRIMARY = '#0164C8'
+export const METICLE_SECONDARY = '#03C6B1'
+export const METICLE_ACCENT = '#03C6B1'
 
+/**
+ * Branding colours persisted in localStorage by earlier releases. They are
+ * mapped onto the current brand rather than trusted: a user (or org) who saved
+ * the previous blue keeps a primary that matches the product instead of a
+ * stranded off-brand accent.
+ *
+ * These arrays are the one place in the app that must still name superseded
+ * palette values, so each carries the palette-audit exemption marker. Any other
+ * file needs a token, not a literal.
+ */
+const LEGACY_PRIMARY_HEXES = ['#2F80ED', '#2674D9', '#1F68C7', '#0164C8'] // palette-audit: allow-legacy
+const LEGACY_SECONDARY_HEXES = ['#475467', '#667085', '#10BFA5', '#10B981', '#03C6B1'] // palette-audit: allow-legacy
+
+/**
+ * Chart series order. Slots 1-2 are brand Blue and brand Mint; 3-5 are the
+ * semantic trio; 6-7 are the documented charts-only support hues (a categorical
+ * scale needs hue variety the logo ramp does not have); 8 is the brand slate.
+ */
 export const METICLE_CHART_PALETTE = [
-  '#2F80ED',
-  '#10BFA5',
+  '#0164C8',
+  '#03C6B1',
   '#10B981',
   '#F59E0B',
   '#EF4444',
   '#8B7CF6',
   '#6B8AFD',
-  '#94A3B8',
+  '#5D6E85',
 ] as const
 
+/**
+ * The master UI palette, re-pointed onto the logo-derived brand ramp in
+ * `scripts/design/palette.mjs` (Brand Blue #0164C8, Mint #03C6B1, Ink #0C1B2E,
+ * Mist Ground #F4F9FC, Hairline #E3E9F0).
+ *
+ * Every value here is either a branded slot from that ramp or a derived stop of
+ * one: `*Soft` is the brand hue at ramp L=0.92, `*Subtle` is that stop blended
+ * 50% into white, and text-on-soft is ramp L=0.38. Semantics (success /
+ * warning / danger) are deliberately *not* brand-derived — they carry meaning,
+ * not identity, and their foregrounds are the accessibility-tested pairs.
+ */
 export const METICLE_COLORS = {
   primary: METICLE_PRIMARY,
-  primaryHover: '#2674D9',
-  primaryActive: '#1F68C7',
-  primarySoft: '#EAF3FF',
-  primaryVerySoft: '#F4F8FF',
+  primaryHover: '#0251B3',
+  primaryActive: '#014FB5',
+  primarySoft: '#D4E6FF',
+  primaryVerySoft: '#EAF3FF',
+  sky: '#3DB8FD',
   secondary: METICLE_SECONDARY,
-  secondaryHover: '#0FAF97',
-  secondaryActive: '#0C9E89',
-  secondarySoft: '#E8FAF6',
-  secondaryVerySoft: '#F3FCFA',
+  secondaryHover: '#02A995',
+  secondaryActive: '#046E86',
+  secondarySoft: '#D2FBF4',
+  secondaryVerySoft: '#E9FDF9',
   success: '#10B981',
   successSoft: '#EAFBF5',
   successText: '#087A55',
@@ -68,50 +98,50 @@ export const METICLE_COLORS = {
   danger: '#EF4444',
   dangerSoft: '#FEF0F0',
   dangerText: '#B42318',
-  info: '#2F80ED',
+  info: METICLE_PRIMARY,
   infoSoft: '#EAF3FF',
-  infoText: '#175CD3',
-  background: '#F7F9FC',
-  backgroundSubtle: '#F9FAFB',
+  infoText: '#004085',
+  background: '#F4F9FC',
+  backgroundSubtle: '#F7FAFE',
   surface: '#FFFFFF',
-  surfaceSubtle: '#FBFCFE',
-  surfaceHover: '#F5F7FA',
-  surfaceSelected: '#F0F6FF',
-  border: '#E6EAF0',
-  borderStrong: '#D8DEE7',
-  borderHover: '#CBD5E1',
-  text: '#17202A',
-  textSecondary: '#667085',
-  textMuted: '#98A2B3',
-  textDisabled: '#B8C0CC',
+  surfaceSubtle: '#FCFDFF',
+  surfaceHover: '#F7FAFE',
+  surfaceSelected: '#EAF3FF',
+  border: '#E3E9F0',
+  borderStrong: '#D6E2EE',
+  borderHover: '#C3D2E2',
+  text: '#0C1B2E',
+  textSecondary: '#51637A',
+  textMuted: '#5D6E85',
+  textDisabled: '#B0BFD2',
   supportIndigo: '#6B8AFD',
   supportPurple: '#8B7CF6',
-  supportTeal: '#5CC8B7',
-  supportSlate: '#94A3B8',
-  supportCyan: '#55BFD3',
-  micaGradient: 'linear-gradient(135deg, #2F80ED 0%, #10BFA5 100%)',
+  supportTeal: '#2DAE9D',
+  supportSlate: '#5D6E85',
+  supportCyan: '#0187BA',
+  micaGradient: 'linear-gradient(135deg, #0164C8 0%, #03C6B1 100%)',
 } as const
 
 export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingColors = { primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#EAF3FF' }) {
-  const primary = !colors.primary_color || ['#2F80ED', '#1F68C7', '#1F68C7', '#2F80ED'].includes(colors.primary_color.toUpperCase()) ? METICLE_PRIMARY : colors.primary_color
-  const secondaryColor = !colors.secondary_color || ['#475467', '#667085', '#10B981'].includes(colors.secondary_color.toUpperCase()) ? METICLE_SECONDARY : colors.secondary_color
+  const primary = !colors.primary_color || LEGACY_PRIMARY_HEXES.includes(colors.primary_color.toUpperCase()) ? METICLE_PRIMARY : colors.primary_color
+  const secondaryColor = !colors.secondary_color || LEGACY_SECONDARY_HEXES.includes(colors.secondary_color.toUpperCase()) ? METICLE_SECONDARY : colors.secondary_color
   const dark = mode === 'dark'
   const palette = {
-    background: dark ? { default: '#0F172A', paper: '#172235' } : { default: METICLE_COLORS.background, paper: METICLE_COLORS.surface },
-    text: dark ? { primary: '#F5F7FA', secondary: '#A8B3C3', disabled: '#738096' } : { primary: METICLE_COLORS.text, secondary: METICLE_COLORS.textSecondary, disabled: METICLE_COLORS.textMuted },
-    divider: dark ? '#2B394D' : METICLE_COLORS.border,
+    background: dark ? { default: '#081320', paper: '#112539' } : { default: METICLE_COLORS.background, paper: METICLE_COLORS.surface },
+    text: dark ? { primary: '#E8EEF6', secondary: '#B0BFD2', disabled: '#8A9AAF' } : { primary: METICLE_COLORS.text, secondary: METICLE_COLORS.textSecondary, disabled: METICLE_COLORS.textMuted },
+    divider: dark ? '#2A3C54' : METICLE_COLORS.border,
   }
 
   return createTheme({
     palette: {
       mode,
-      primary: { main: primary, light: dark ? '#243B5A' : METICLE_COLORS.primarySoft, dark: primary === METICLE_PRIMARY ? '#1F68C7' : primary, contrastText: '#FFFFFF' },
-      secondary: { main: secondaryColor, light: dark ? '#164638' : METICLE_COLORS.secondarySoft, dark: '#0C9E89', contrastText: '#FFFFFF' },
+      primary: { main: primary, light: dark ? '#002552' : METICLE_COLORS.primarySoft, dark: primary === METICLE_PRIMARY ? '#0251B3' : primary, contrastText: '#FFFFFF' },
+      secondary: { main: secondaryColor, light: dark ? '#002E28' : METICLE_COLORS.secondarySoft, dark: '#02A995', contrastText: '#FFFFFF' },
       success: { main: '#10B981', light: '#EAFBF5', dark: '#087A55', contrastText: '#FFFFFF' },
-      warning: { main: '#F59E0B', light: '#FFF7E6', dark: '#9A6700', contrastText: '#17202A' },
+      warning: { main: '#F59E0B', light: '#FFF7E6', dark: '#9A6700', contrastText: '#0C1B2E' },
       error: { main: '#EF4444', light: '#FEF0F0', dark: '#B42318', contrastText: '#FFFFFF' },
-      info: { main: '#2F80ED', light: '#EAF3FF', dark: '#175CD3', contrastText: '#FFFFFF' },
-      action: { hover: dark ? 'rgba(255,255,255,0.055)' : '#F5F7FA', selected: dark ? 'rgba(47,128,237,0.16)' : '#F0F6FF', disabled: dark ? 'rgba(255,255,255,0.28)' : '#B8C0CC', disabledBackground: dark ? 'rgba(255,255,255,0.08)' : 'rgba(23,32,42,0.08)' },
+      info: { main: '#0164C8', light: '#EAF3FF', dark: '#004085', contrastText: '#FFFFFF' },
+      action: { hover: dark ? 'rgba(255,255,255,0.055)' : '#F7FAFE', selected: dark ? 'rgba(1,100,200,0.16)' : '#EAF3FF', disabled: dark ? 'rgba(255,255,255,0.28)' : '#B0BFD2', disabledBackground: dark ? 'rgba(255,255,255,0.08)' : 'rgba(12,27,46,0.08)' },
       notice: noticeTokens(mode),
       ...palette,
     },
@@ -138,28 +168,28 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           root: { minHeight: 40, padding: '8px 14px', borderRadius: 10, boxShadow: 'none', fontWeight: 600, transition: 'background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease', '&:hover': { boxShadow: 'none' }, '&.Mui-disabled': { opacity: 0.58 } },
           sizeSmall: { minHeight: 34, padding: '6px 10px', borderRadius: 9 },
           sizeLarge: { minHeight: 44, padding: '10px 18px' },
-          containedPrimary: { backgroundColor: '#2F80ED', color: '#FFFFFF', '&:hover': { backgroundColor: '#2674D9' }, '&:active': { backgroundColor: '#1F68C7' } },
-          contained: { color: '#FFFFFF', '&:hover': { backgroundColor: dark ? primary : (primary === METICLE_PRIMARY ? '#2674D9' : primary) }, '&:active': { backgroundColor: '#1F68C7' } },
-          outlined: { borderColor: dark ? '#43536A' : '#D8DEE7', color: dark ? '#E7EDF5' : '#344054', '&:hover': { borderColor: '#CBD5E1', backgroundColor: dark ? 'rgba(47,128,237,0.1)' : '#F7F9FC' } },
-          text: { '&:hover': { backgroundColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(23,32,42,0.045)' } },
+          containedPrimary: { backgroundColor: '#0164C8', color: '#FFFFFF', '&:hover': { backgroundColor: '#0251B3' }, '&:active': { backgroundColor: '#014FB5' } },
+          contained: { color: '#FFFFFF', '&:hover': { backgroundColor: dark ? primary : (primary === METICLE_PRIMARY ? '#0251B3' : primary) }, '&:active': { backgroundColor: '#014FB5' } },
+          outlined: { borderColor: dark ? '#354357' : '#D6E2EE', color: dark ? '#E8EEF6' : '#3A4551', '&:hover': { borderColor: '#C3D2E2', backgroundColor: dark ? 'rgba(1,100,200,0.12)' : '#F4F9FC' } },
+          text: { '&:hover': { backgroundColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(12,27,46,0.045)' } },
         },
       },
       MuiIconButton: { styleOverrides: { root: { borderRadius: 10, transition: 'background-color 160ms ease, color 160ms ease' } } },
       MuiPaper: { defaultProps: { elevation: 0 }, styleOverrides: { root: { backgroundImage: 'none', borderRadius: 12 } } },
       MuiCard: { styleOverrides: { root: { borderRadius: 16, border: `1px solid ${palette.divider}`, boxShadow: 'none', backgroundImage: 'none' } } },
-      MuiOutlinedInput: { styleOverrides: { root: { minHeight: 44, borderRadius: 10, backgroundColor: dark ? '#111C2D' : '#FFFFFF', '& .MuiOutlinedInput-notchedOutline': { borderColor: dark ? '#3A4A60' : '#D8DEE7' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: dark ? '#667085' : '#CBD5E1' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#2F80ED', borderWidth: 1, boxShadow: '0 0 0 3px rgba(47,128,237,0.12)' }, '&.Mui-focused': { backgroundColor: dark ? '#111C2D' : '#FFFFFF' }, '&.Mui-error .MuiOutlinedInput-notchedOutline': { borderColor: '#EF4444' }, '&.MuiInputBase-sizeSmall': { minHeight: 40, borderRadius: 9 } }, input: { padding: '11px 14px', color: dark ? '#F5F7FA' : '#17202A', '&.MuiInputBase-inputSizeSmall': { padding: '9px 12px' }, '&::placeholder': { color: '#98A2B3', opacity: 1 } } } },
-      MuiInputLabel: { styleOverrides: { root: { color: dark ? '#A8B3C3' : '#667085', fontSize: '0.875rem', '&.Mui-focused': { color: primary } } } },
+      MuiOutlinedInput: { styleOverrides: { root: { minHeight: 44, borderRadius: 10, backgroundColor: dark ? '#0E1F33' : '#FFFFFF', '& .MuiOutlinedInput-notchedOutline': { borderColor: dark ? '#354357' : '#D6E2EE' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: dark ? '#B0BFD2' : '#C3D2E2' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#0164C8', borderWidth: 1, boxShadow: '0 0 0 3px rgba(1,100,200,0.14)' }, '&.Mui-focused': { backgroundColor: dark ? '#0E1F33' : '#FFFFFF' }, '&.Mui-error .MuiOutlinedInput-notchedOutline': { borderColor: '#EF4444' }, '&.MuiInputBase-sizeSmall': { minHeight: 40, borderRadius: 9 } }, input: { padding: '11px 14px', color: dark ? '#E8EEF6' : '#0C1B2E', '&.MuiInputBase-inputSizeSmall': { padding: '9px 12px' }, '&::placeholder': { color: '#5D6E85', opacity: 1 } } } },
+      MuiInputLabel: { styleOverrides: { root: { color: dark ? '#B0BFD2' : '#51637A', fontSize: '0.875rem', '&.Mui-focused': { color: primary } } } },
       MuiFormLabel: { styleOverrides: { root: { fontSize: '0.875rem', fontWeight: 500 } } },
       MuiSelect: { styleOverrides: { select: { minHeight: '1.5em', display: 'flex', alignItems: 'center' } } },
       MuiChip: { styleOverrides: { root: { height: 26, borderRadius: 8, fontWeight: 600 }, sizeSmall: { height: 22, borderRadius: 7, fontSize: '0.75rem' } } },
       MuiTableContainer: { styleOverrides: { root: { border: `1px solid ${palette.divider}`, borderRadius: 12, boxShadow: 'none', backgroundColor: palette.background.paper } } },
-      MuiTableCell: { styleOverrides: { root: { borderBottom: `1px solid ${dark ? '#2B394D' : '#E6EAF0'}`, padding: '13px 16px', fontSize: '0.875rem' }, head: { color: dark ? '#A8B3C3' : '#667085', fontWeight: 600, backgroundColor: dark ? '#172235' : '#F8FAFC', whiteSpace: 'nowrap' } } },
-      MuiTableRow: { styleOverrides: { root: { '&.MuiTableRow-hover:hover': { backgroundColor: dark ? 'rgba(255,255,255,0.035)' : '#F7FAFC' }, '&.Mui-selected': { backgroundColor: '#F0F6FF' }, '&.Mui-selected:hover': { backgroundColor: '#F0F6FF' } } } },
-      MuiDialog: { styleOverrides: { paper: { borderRadius: 16, border: `1px solid ${palette.divider}`, boxShadow: dark ? '0 20px 60px rgba(0,0,0,0.32)' : '0 16px 48px rgba(16,24,40,0.12)' } } },
+      MuiTableCell: { styleOverrides: { root: { borderBottom: `1px solid ${dark ? '#2A3C54' : '#E3E9F0'}`, padding: '13px 16px', fontSize: '0.875rem' }, head: { color: dark ? '#B0BFD2' : '#51637A', fontWeight: 600, backgroundColor: dark ? '#112539' : '#F7FAFE', whiteSpace: 'nowrap' } } },
+      MuiTableRow: { styleOverrides: { root: { '&.MuiTableRow-hover:hover': { backgroundColor: dark ? 'rgba(255,255,255,0.035)' : '#F7FAFE' }, '&.Mui-selected': { backgroundColor: '#EAF3FF' }, '&.Mui-selected:hover': { backgroundColor: '#EAF3FF' } } } },
+      MuiDialog: { styleOverrides: { paper: { borderRadius: 16, border: `1px solid ${palette.divider}`, boxShadow: dark ? '0 20px 60px rgba(0,0,0,0.32)' : '0 16px 48px rgba(12,27,46,0.12)' } } },
       MuiDialogTitle: { styleOverrides: { root: { padding: '22px 24px 8px', fontSize: '1.125rem', fontWeight: 600 } } },
       MuiDialogContent: { styleOverrides: { root: { padding: '12px 24px 20px' } } },
       MuiDialogActions: { styleOverrides: { root: { padding: '12px 24px 22px', gap: 8 } } },
-      MuiMenu: { styleOverrides: { paper: { marginTop: 6, border: `1px solid ${palette.divider}`, boxShadow: dark ? '0 12px 32px rgba(0,0,0,0.28)' : '0 8px 24px rgba(16,24,40,0.10)' } } },
+      MuiMenu: { styleOverrides: { paper: { marginTop: 6, border: `1px solid ${palette.divider}`, boxShadow: dark ? '0 12px 32px rgba(0,0,0,0.28)' : '0 8px 24px rgba(12,27,46,0.10)' } } },
       MuiMenuItem: { styleOverrides: { root: { minHeight: 40, borderRadius: 8, margin: '2px 6px', paddingLeft: 10, paddingRight: 10, fontSize: '0.875rem' } } },
       MuiTabs: { styleOverrides: { root: { minHeight: 42 }, indicator: { height: 2, borderRadius: 2 } } },
       MuiTab: { styleOverrides: { root: { minHeight: 42, padding: '8px 14px', textTransform: 'none', fontSize: '0.875rem', fontWeight: 500, '&.Mui-selected': { fontWeight: 600 } } } },
@@ -169,10 +199,10 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       MuiCssBaseline: {
         styleOverrides: {
           html: { colorScheme: mode },
-          body: { scrollbarColor: dark ? '#536176 #111C2D' : undefined, backgroundColor: palette.background.default, color: palette.text.primary },
-          '*, *::before, *::after': { borderColor: dark ? '#2B394D' : undefined },
-          'input::placeholder, textarea::placeholder': { color: dark ? '#8C9AAF' : METICLE_COLORS.textMuted, opacity: 1 },
-          'input:-webkit-autofill': { WebkitBoxShadow: `0 0 0 1000px ${dark ? '#111C2D' : '#FFFFFF'} inset`, WebkitTextFillColor: dark ? '#F5F7FA' : METICLE_COLORS.text },
+          body: { scrollbarColor: dark ? '#536176 #0E1F33' : undefined, backgroundColor: palette.background.default, color: palette.text.primary },
+          '*, *::before, *::after': { borderColor: dark ? '#2A3C54' : undefined },
+          'input::placeholder, textarea::placeholder': { color: dark ? '#8A9AAF' : METICLE_COLORS.textMuted, opacity: 1 },
+          'input:-webkit-autofill': { WebkitBoxShadow: `0 0 0 1000px ${dark ? '#0E1F33' : '#FFFFFF'} inset`, WebkitTextFillColor: dark ? '#E8EEF6' : METICLE_COLORS.text },
           '@media (prefers-reduced-motion: reduce)': { '*, *::before, *::after': { scrollBehavior: 'auto !important', animationDuration: '0.01ms !important', animationIterationCount: '1 !important', transitionDuration: '0.01ms !important' } },
         },
       },
@@ -205,8 +235,8 @@ function loadBranding(): { colors: BrandingColors; logo: string } {
     const raw = localStorage.getItem(STORAGE_KEY_BRANDING)
     if (raw) {
       const saved = JSON.parse(raw)
-      if (saved?.colors?.primary_color?.toUpperCase?.() === '#2F80ED') saved.colors.primary_color = METICLE_PRIMARY
-      if (['#475467', '#667085'].includes(saved?.colors?.secondary_color?.toUpperCase?.())) saved.colors.secondary_color = METICLE_SECONDARY
+      if (LEGACY_PRIMARY_HEXES.includes(saved?.colors?.primary_color?.toUpperCase?.())) saved.colors.primary_color = METICLE_PRIMARY
+      if (LEGACY_SECONDARY_HEXES.includes(saved?.colors?.secondary_color?.toUpperCase?.())) saved.colors.secondary_color = METICLE_SECONDARY
       return saved
     }
   } catch {}
@@ -265,8 +295,8 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const setMode = (m: ThemeMode) => setModeState(m)
   const setZoomScale = (z: ZoomScale) => setZoomScaleState(z)
   const updateBranding = (newColors: BrandingColors, newLogo: string) => {
-    const primary_color = newColors.primary_color?.toUpperCase() === '#2F80ED' ? METICLE_PRIMARY : newColors.primary_color
-    const secondary_color = ['#475467', '#667085'].includes(newColors.secondary_color?.toUpperCase()) ? METICLE_SECONDARY : newColors.secondary_color
+    const primary_color = LEGACY_PRIMARY_HEXES.includes(newColors.primary_color?.toUpperCase()) ? METICLE_PRIMARY : newColors.primary_color
+    const secondary_color = LEGACY_SECONDARY_HEXES.includes(newColors.secondary_color?.toUpperCase()) ? METICLE_SECONDARY : newColors.secondary_color
     setBrandingState({ colors: { ...newColors, primary_color, secondary_color }, logo: newLogo })
   }
 

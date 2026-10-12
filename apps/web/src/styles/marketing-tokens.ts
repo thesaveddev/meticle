@@ -1,34 +1,36 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Split Studio · tone: clear, calm care operations · theme: MeticleCare white-first
  * H2 ratio=7/5, proof=care-day sequence, divider=negative-space · nav=N1b compact five-link cluster · footer=Ft2 inline close
- * theme_axes: light paper / grotesk sans / chromatic green · Inter retained per brand commitment
+ * theme_axes: mist-ground paper / grotesk sans / chromatic brand blue · Inter retained per brand commitment
  */
 
 /**
- * Shared MeticleCare marketing tokens. Keep brand identity in deep navy,
- * emerald accents, warm bone surfaces, and charcoal ink. M.teal is reserved
- * for small marks; use M.tealDeep for text on light surfaces.
+ * Shared MeticleCare marketing tokens. The identity is the logo-derived brand
+ * ramp — Brand Blue #0164C8, Mint #03C6B1, Ink #0C1B2E and Mist Ground
+ * #F4F9FC — the same values the product UI ships from, so the marketing
+ * surface and the application present one blue and one mint. M.teal is
+ * reserved for small marks; use M.tealDeep for text on light surfaces.
  */
 
 export const M = {
   /* ── Palette ─────────────────────────────────────── */
-  ink:        '#17202A',
-  slate:      '#475467',
-  muted:      '#475467',
-  subtle:     '#98A2B3',
-  faint:      '#E6EAF0',
+  ink:        '#0C1B2E',
+  slate:      '#51637A',
+  muted:      '#51637A',
+  subtle:     '#5D6E85',
+  faint:      '#E3E9F0',
 
-  paper:      '#F7F9FC',
-  warm:       '#F7F9FC',
+  paper:      '#F4F9FC',
+  warm:       '#F4F9FC',
   card:       '#FFFFFF',
 
-  /* Emerald accents; deep emerald is used for text on light surfaces. */
-  teal:       '#10BFA5',
-  tealDark:   '#0FAF97',
-  tealSoft:   '#E8FAF6',
-  tealDeep:   '#087A55',
-  tealMuted:  '#5CC8B7',
-  cyan:       '#55BFD3',
-  sky:        '#6B8AFD',
+  /* Brand mint accents; deep mint is used for text on light surfaces. */
+  teal:       '#03C6B1',
+  tealDark:   '#02A995',
+  tealSoft:   '#D2FBF4',
+  tealDeep:   '#004E45',
+  tealMuted:  '#2DAE9D',
+  cyan:       '#0187BA',
+  sky:        '#3DB8FD',
 
   /* Status */
   amber:      '#F59E0B',
@@ -38,14 +40,14 @@ export const M = {
   green:      '#087A55',
   greenLight: '#EAFBF5',
 
-  /* Deep navy identity, per PRODUCT.md brand commitment. */
-  navy:       '#2F80ED',
-  navyMid:    '#1F68C7',
-  navyLight:  '#2674D9',
+  /* Brand blue identity, per PRODUCT.md brand commitment. */
+  navy:       '#0164C8',
+  navyMid:    '#014FB5',
+  navyLight:  '#0251B3',
 
   /* Retained for existing non-marketing consumers. */
-  dark:       '#17202A',
-  darkMid:    '#111923',
+  dark:       '#0C1B2E',
+  darkMid:    '#081320',
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -93,11 +95,11 @@ export const M = {
 
   /* ── Shadows ─────────────────────────────────────── */
   shadow: {
-    xs:   '0 1px 2px rgba(27,36,48,0.04)',
-    sm:   '0 1px 3px rgba(27,36,48,0.06), 0 1px 2px rgba(27,36,48,0.04)',
-    md:   '0 4px 16px rgba(27,36,48,0.08)',
-    lg:   '0 12px 32px rgba(27,36,48,0.10)',
-    xl:   '0 24px 56px rgba(27,36,48,0.14)',
+    xs:   '0 1px 2px rgba(12,27,46,0.04)',
+    sm:   '0 1px 3px rgba(12,27,46,0.06), 0 1px 2px rgba(12,27,46,0.04)',
+    md:   '0 4px 16px rgba(12,27,46,0.08)',
+    lg:   '0 12px 32px rgba(12,27,46,0.10)',
+    xl:   '0 24px 56px rgba(12,27,46,0.14)',
   },
 
   /* ── Transitions ─────────────────────────────────── */

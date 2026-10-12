@@ -102,7 +102,7 @@ export default function SurveyFormPage() {
   return (
     <Box sx={{ maxWidth: 560, mx: 'auto', mt: 4, p: 2 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" sx={{ color: '#2F80ED', mb: 1 }}>
+        <Typography variant="h5" sx={{ color: '#0164C8', mb: 1 }}>
           {type === 'satisfaction' ? 'Share Your Feedback' : 'Staff Engagement Survey'}
         </Typography>
         {formData?.org_name && (
