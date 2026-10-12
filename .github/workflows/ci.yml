@@ -125,7 +125,7 @@ jobs:
         run: npm run design:lint
 
   visual-regression:
-    name: Visual regression (marketing)
+    name: Visual regression (marketing + app)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,7 +139,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       # Never --update-snapshots here. Regenerating the baseline in CI would
       # make the job unfailable and turn it into a slow no-op.
-      - name: Marketing screenshots match baselines
+      - name: Screenshots match their baselines
         run: npm run visual:test
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -257,7 +257,7 @@ usages left are the two password show/hide toggles on auth forms, which the rule
 | MICA | `components/mica/*`, mobile `FloatingMicaOrb`, `MicaHomeScreen` | Orb, overlay, idle/listening/responding/error states and positioning kept; colour only, animated per the existing direction, reduced-motion respected | `MicaOverlay.test.tsx`, mobile jest |
 | Mobile application | 20 files: `theme.tsx`, `Icons.tsx`, `MapAppLogos`, splash background, 12 screens, `patchStaticStyles`, `App.tsx` consumers | Same ramp and semantics as web | mobile typecheck + jest 286/286 |
 | Transactional email | `email.template.ts`, `billing.controller.ts`, `leave.controller.ts`, `familyFeedback.controller.ts` | Brand blue aligned to `#0164C8` | `email.typography.test.ts` (2), typecheck |
-| Design tooling & docs | `palette.mjs` consumers, `lint.mjs`, `audit-inventory.mjs`, `route-tracker.mjs`, `brand-migration.mjs`, `DESIGN.md`, `tests/visual/marketing.spec.ts` | Inventory generation, per-route tracker, regenerated front-matter/appendix | `design:check`, `design:lint`, `design:test` |
+| Design tooling & docs | `palette.mjs` consumers, `lint.mjs`, `audit-inventory.mjs`, `route-tracker.mjs`, `brand-migration.mjs`, `DESIGN.md`, `tests/visual/marketing.spec.ts`, `tests/visual/app.spec.ts` | Inventory generation, per-route tracker, regenerated front-matter/appendix | `design:check`, `design:lint`, `design:test` |
 
 **Not marked complete:** the full 129-route regression sweep (Phase F) and the viewport
 matrix (§11). Routes were reviewed through their source, tokens and guards, and the

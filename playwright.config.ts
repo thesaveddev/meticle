@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Visual regression for the marketing surface.
+ * Visual regression for the marketing and authenticated app surfaces.
  *
  * This exists because nothing else noticed that the design system had drifted.
  * Unit tests cannot tell you a shade of navy moved. These can.
