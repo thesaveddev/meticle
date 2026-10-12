@@ -159,9 +159,10 @@ test('marketing home page paints with the master brand palette', async ({ page }
   const colours = await renderedColours(page, 8)
   // Primary #0164C8 — the CTA fills and links.
   expect(colours, 'brand primary should reach the rendered page').toContain('rgb(1, 100, 200)')
-  // Success deep #087A55 — the AA-safe darkened sibling of emerald #10B981,
-  // used for small text where the raw emerald is too light.
-  expect(colours, 'text-safe emerald should reach the rendered page').toContain('rgb(8, 122, 85)')
+  // Brand mint deep #004E45 — `M.tealDeep`, the AA-safe deepened sibling of the
+  // brand accent (#03C6B1), used for the small eyebrow text and icon marks where
+  // the raw accent is too light to read (9:1 on the bone paper).
+  expect(colours, 'text-safe brand accent should reach the rendered page').toContain('rgb(0, 78, 69)')
   // Ink #0C1B2E — the headline on the now-white hero.
   expect(colours, 'brand ink should reach the rendered page').toContain('rgb(12, 27, 46)')
 })

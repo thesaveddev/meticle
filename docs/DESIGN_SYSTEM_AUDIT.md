@@ -452,6 +452,46 @@ data-attribute hooks instead of a colour. And `App.test.tsx`'s quick-action test
 dashboard synchronously after waiting only for the tab bar, so it raced the dashboard's own
 fetch; it now awaits the quick action, which fixes the race rather than masking it.
 
+**The visual gate went red, and was repaired with the pipeline's own rendering.** The first CI
+run on this work failed the `visual-regression` job for two independent reasons, not one:
+
+| # | Command | Result |
+|---|---|---|
+| 20 | `npx playwright test --project=mobile-light --grep-invert "matches its baseline"` (local dev server, Chromium 1.63, Pixel 7) | **pass** — 5 tests, 31.4s (`PLAYWRIGHT_EXIT=0`), including the repaired palette assertion below |
+| 21 | `gh run view <run> --log-failed` and its artifact | both causes identified from the log and the uploaded expected/actual/diff images (below) |
+
+*Cause 1 — a stale assertion, not a stale colour.* `marketing home page paints with the
+master brand palette` asserted `rgb(8, 122, 85)`: the retired `M.tealDeep` (`#087A55`, the old
+emerald's text-safe sibling). The sweep re-pointed that token to the brand mint's own deep
+sibling `#004E45`, and it is the token that paints the eyebrow labels on every marketing page,
+so the assertion was pinning a colour the identity no longer has. The CI log's received array
+settled it — `["rgb(12, 27, 46)", "rgb(81, 99, 122)", "rgb(0, 78, 69)", "rgb(1, 100, 200)", …]`
+— and a local Chromium render of `/` reproduced that array element for element. The expectation
+is now `rgb(0, 78, 69)`, the comment names `M.tealDeep`, and the contrast claim was measured
+rather than asserted: **9.10:1** on the bone paper `#F4F9FC`, against **2.04:1** for the raw
+accent `#03C6B1` — which is precisely why the deepened sibling exists for text.
+
+*Cause 2 — a baseline that predated the code it guarded.* `pricing.png` was committed on 8
+October; `BrandWordmark` and the nav that renders it landed on 11 October. Decoding the two
+PNGs (custom inflate + defilter, RGBA) showed the delta was confined to two things and nothing
+else: the palette re-point — `#F7F9FC→#F4F9FC` (250 k px, the canvas), `#10BFA5→#03C6B1`,
+`#17202A→#0C1B2E`, `#475467→#51637A`, `#2F80ED→#0164C8`, `#E6EAF0→#E3E9F0` — and roughly 570
+pixels of brand-blue glyphs at x 49–124, y 21–33, where the committed baseline is 100% white:
+the header wordmark, which a fresh local render paints exactly as CI's capture does. So the gate
+was red against a *stale* baseline, and the correct new baseline is the settled current render.
+
+The two `pricing.png` baselines are therefore **adopted from the CI artifact, not regenerated
+locally**. That is deliberate and now measured: a Windows render of the same page at the same
+viewport differs from the Linux capture by **7.75%** of the frame (26,798 pixels across 262 rows,
+all text rasterisation), so a locally-generated baseline could never clear the gate's 1%
+`maxDiffPixelRatio`. The committed baseline carries the provenance the comparison runs in.
+
+**Observation for §11, not fixed here:** that 1% tolerance is what let the header regression sit
+undetected. The wordmark's own delta was ~0.17% of the frame, comfortably inside it, so
+`pricing.png` passed for a week against a baseline that no longer matched its page — the sweep's
+canvas-wide change is the only reason the mismatch became visible. Tightening the tolerance is a
+decision with its own cross-platform risk, so it is recorded rather than taken.
+
 **Not run (blocked by environment, not by the code):** the full web vitest suite
 (~170 files), the API integration suite, `npm run visual:test` (Playwright snapshots), and
 any interactive browser pass over the 129 routes.
@@ -502,6 +542,13 @@ any interactive browser pass over the 129 routes.
    renders them, so they are dead code or pages whose route was removed — and several were
    tokenised during the colour sweep, which is effort spent on code that does not ship. Each
    needs a route-or-delete decision; the tracker keeps listing them until then.
+10. **The visual gate's 1% `maxDiffPixelRatio` is wider than the regressions it should
+    catch.** A header change worth ~0.17% of the frame passed against a baseline that no
+    longer matched its page for a week (see §10). The tolerance exists for cross-platform
+    font rasterisation, and this repository sidesteps that by making the baselines
+    Linux-rendered, so it can probably come down — but tightening a gate in the same change
+    that repairs it would confuse cause and effect, and a too-strict gate gets switched off.
+    Decide it deliberately, with a CI-rendered baseline set to test against.
 
 <!-- BEGIN generated route tracker -->
 
