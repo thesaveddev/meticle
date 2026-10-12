@@ -130,14 +130,14 @@ async function renderedColours(page: import('@playwright/test').Page, minChroma 
  *
  * The application-wide colour overhaul made the master palette (see
  * context/ThemeContext.tsx METICLE_COLORS and scripts/design/palette.mjs) the
- * identity: primary blue #2F80ED replaced the retired navy #0F4C81 family.
+ * identity: primary blue #0164C8 replaced the retired navy #0F4C81 family.
  * /login genuinely renders it — so this asserts it there, where the claim is
  * true today.
  */
 test('brand primary reaches the rendered login surface', async ({ page }) => {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
   await settle(page)
-  expect(await renderedColours(page)).toContain('rgb(47, 128, 237)') // #2F80ED
+  expect(await renderedColours(page)).toContain('rgb(1, 100, 200)') // #0164C8
 })
 
 /**
@@ -157,13 +157,13 @@ test('marketing home page paints with the master brand palette', async ({ page }
   await settle(page)
 
   const colours = await renderedColours(page, 8)
-  // Primary #2F80ED — the CTA fills and links.
-  expect(colours, 'brand primary should reach the rendered page').toContain('rgb(47, 128, 237)')
+  // Primary #0164C8 — the CTA fills and links.
+  expect(colours, 'brand primary should reach the rendered page').toContain('rgb(1, 100, 200)')
   // Success deep #087A55 — the AA-safe darkened sibling of emerald #10B981,
   // used for small text where the raw emerald is too light.
   expect(colours, 'text-safe emerald should reach the rendered page').toContain('rgb(8, 122, 85)')
-  // Ink #17202A — the headline on the now-white hero.
-  expect(colours, 'brand ink should reach the rendered page').toContain('rgb(23, 32, 42)')
+  // Ink #0C1B2E — the headline on the now-white hero.
+  expect(colours, 'brand ink should reach the rendered page').toContain('rgb(12, 27, 46)')
 })
 
 /**

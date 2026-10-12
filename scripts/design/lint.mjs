@@ -7,15 +7,18 @@
  * palette that will drift, because there is nothing stopping the 449th literal
  * from being a slightly different navy.
  *
- * So this lints, but it lints against a recorded baseline rather than refusing
- * to run on an existing codebase:
+ * The recorded baseline that made this lintable on a live codebase has since
+ * been retired: every off-palette literal was routed onto a token and the
+ * (empty) `hex-baseline.json` was deleted, so the rule is now absolute.
  *
- *   - hexes in `palette.mjs`                -> allowed, that is the definition
- *   - hexes already recorded in the baseline -> reported, not failing (debt)
- *   - any NEW off-palette hex                -> exit 1
+ *   - a hex a token module declares          -> allowed, that is the definition
+ *   - anything else in a scanned component   -> exit 1
  *
- * The debt count only goes down. `--update` re-records the baseline and should
- * be paired with actually routing the colours through tokens.
+ * `--update` survives for the case where a colour legitimately has to land
+ * inline first — a print sheet mid-migration, say. It re-records whatever it
+ * finds and writes the baseline file back, which is a decision to argue for in
+ * review rather than a routine step: a baseline that quietly reappears is drift
+ * that someone signed off on by accident.
  *
  *   node scripts/design/lint.mjs
  *   node scripts/design/lint.mjs --update
