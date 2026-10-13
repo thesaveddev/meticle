@@ -136,8 +136,8 @@ export default function MicaMiniBar({
             }}
           >
             {/* The orb's two eyes, kept so the bar still reads as Mica. */}
-            <Box sx={{ width: 3, height: 11, borderRadius: 2, bgcolor: '#fff' }} />
-            <Box sx={{ width: 3, height: 11, borderRadius: 2, bgcolor: '#fff' }} />
+            <Box sx={{ width: 3, height: 11, borderRadius: 2, bgcolor: '#FFFFFF' }} />
+            <Box sx={{ width: 3, height: 11, borderRadius: 2, bgcolor: '#FFFFFF' }} />
           </Box>
         </Box>
 
@@ -163,7 +163,7 @@ export default function MicaMiniBar({
               size="small"
               onClick={onExpand}
               aria-label={MICA_LABEL.expand}
-              sx={{ color: 'rgba(255,255,255,0.82)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.12)' } }}
+              sx={{ color: 'rgba(255,255,255,0.82)', '&:hover': { color: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.12)' } }}
             >
               <OpenInFullIcon sx={{ fontSize: 17 }} />
             </IconButton>
@@ -173,7 +173,7 @@ export default function MicaMiniBar({
               size="small"
               onClick={onEnd}
               aria-label={MICA_LABEL.end}
-              sx={{ color: 'rgba(255,255,255,0.82)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.12)' } }}
+              sx={{ color: 'rgba(255,255,255,0.82)', '&:hover': { color: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.12)' } }}
             >
               <CloseIcon sx={{ fontSize: 17 }} />
             </IconButton>
