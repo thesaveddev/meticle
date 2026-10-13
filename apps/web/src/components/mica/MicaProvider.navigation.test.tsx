@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { MicaProvider } from './MicaProvider'
@@ -88,6 +88,17 @@ const say = async (rec: FakeRecognition, text: string) => {
   await waitFor(() => expect(screen.getByText(`“${text}”`)).toBeInTheDocument())
   await act(async () => { rec.onend?.() })
 }
+
+/**
+ * The overlay and the bar arrive as lazy chunks (see `mica.surfaces.tsx`). A
+ * carer warms them by hovering or pressing the orb before the tap, and
+ * `fireEvent.click` fires neither, so fetch them once here: these tests are about
+ * routing, and a module fetch on a cold cache would otherwise be what `say`'s
+ * waitFor was really waiting for.
+ */
+beforeAll(async () => {
+  await Promise.all([import('./MicaOverlay'), import('./MicaMiniBar')])
+})
 
 const renderShell = () => render(
   <MemoryRouter initialEntries={['/dashboard']}>
@@ -201,6 +212,40 @@ describe('MicaProvider — a spoken destination becomes a real route', () => {
       sessionId: 's1',
     }))
     expect(await screen.findByRole('status', { name: 'Mica — listening while you work' })).toBeInTheDocument()
+  })
+
+  it('answers a training-expiry question instead of drafting a renewal task', async () => {
+    // The client's own write intent used to win here: "whose training is expiring"
+    // contains the training and expiry words the renewal-task regex anchors on, so
+    // the sentence was drafted as a generic "Training renewal follow-up" and the
+    // answer never arrived. Two things have to hold: the question reaches the
+    // endpoint that answers it, and the care-note and draft endpoints are not
+    // touched at all.
+    vi.mocked(api.post).mockImplementation(async (url: string) => {
+      if (url === '/ai/mica/ask') {
+        return {
+          data: {
+            answer: '2 training records are expiring soon: Priya Sharma — Fire Safety, expired on 1 October.',
+            sessionId: 's1',
+          },
+        } as never
+      }
+      throw new Error('no tts')
+    })
+
+    renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Mica assistant' }))
+    await waitFor(() => expect(FakeRecognition.last).not.toBeNull())
+
+    await say(FakeRecognition.last as FakeRecognition, 'whose training is expiring')
+
+    expect(await screen.findByText(/2 training records are expiring soon/)).toBeInTheDocument()
+    expect(api.post).toHaveBeenCalledWith('/ai/mica/ask', expect.objectContaining({
+      question: 'whose training is expiring',
+    }))
+    // Neither the note nor the action draft: a question is not a write.
+    expect(api.post).not.toHaveBeenCalledWith('/ai/voice/notes', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/ai/mica/actions', expect.anything())
   })
 
   it('ends the session when the carer says bye', async () => {

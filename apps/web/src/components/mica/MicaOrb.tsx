@@ -1,15 +1,21 @@
-import { useEffect, useMemo } from 'react'
-import { motion, useMotionValue, useSpring, useTransform, animate, type MotionValue } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 
 import { MICA_LABEL, type MicaState } from './mica.identity'
+import { useDocumentVisible, usePrefersReducedMotion } from './mica.motion'
+import type { MicaAudioChannel } from './mica.audio'
+import './mica-orb.css'
 
 /** Re-exported so existing importers keep working; the union lives in one place. */
 export type { MicaState }
 
 interface MicaOrbProps {
   state: MicaState
-  /** 0 → 1 microphone / TTS amplitude. Drives scale + waveform energy. */
-  audioLevel?: number
+  /**
+   * The session's amplitude channel. The level is deliberately *not* a prop:
+   * a number here would be React state, and a number that changes sixty times a
+   * second is sixty renders of the assistant — see `mica.audio.ts`.
+   */
+  audio?: MicaAudioChannel
   onPress?: () => void
 }
 
@@ -28,115 +34,131 @@ const COLORS = {
   white: '#FFFFFF',
 }
 
-export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps) {
+/**
+ * The orb.
+ *
+ * ## What it is now
+ *
+ * A *visual* component with three inputs and no lifecycle of its own: a state, a
+ * channel to read amplitude from, and a press handler. It does not own the
+ * session, start the microphone, fetch anything or run a loop. The art and the
+ * motion live in `mica.identity.ts` and `mica-orb.css`.
+ *
+ * ## Why it was rewritten
+ *
+ * Three separate costs, all of which showed up as the same symptom — an orb that
+ * arrived late and stuttered:
+ *
+ *   1. **Seven infinite animation loops per state, restarted on every state
+ *      change.** They are gone: the motion is CSS keyed off `data-mica-state`,
+ *      so a state change is an attribute write and the browser's animation layer
+ *      does the rest — no JavaScript per frame, and nothing to leak.
+ *   2. **A 42px `filter: blur()` disc and a 60px `box-shadow` on the layer being
+ *      scaled** — two properties that force a re-rasterisation of the layer on
+ *      every frame. The glow is a radial gradient fading to transparent now (see
+ *      `mica-orb.css`), which scales as a composited transform, and the orb's
+ *      own halo is a static layer that never moves.
+ *   3. **The amplitude arriving as a prop.** It arrives through the session's
+ *      channel and is written straight onto two elements' `transform`, so the orb
+ *      reacts to the room without React being asked. Measured in
+ *      `mica.renderBudget.test.tsx`: 42 commits and 2339ms of render work across
+ *      30 audio frames before, 0 commits after.
+ *
+ * The component also no longer imports an animation library. Mica was that
+ * library's only consumer in this app, so keeping it out of the orb takes ~35kB
+ * (gzipped) of JavaScript out of the entry bundle every page loads before the
+ * orb can paint; the two surfaces that still animate an entrance (the overlay
+ * and the bar) load on demand instead.
+ *
+ * Everything the tests and the screens depend on is unchanged: the same gradient
+ * and eyes, the same ambient glow in every state, one extra signal per state
+ * (orbit and waveform while speaking, the danger ring on failure), the same
+ * accessible name and the same disabled-while-active rule.
+ */
+export default function MicaOrb({ state, audio, onPress }: MicaOrbProps) {
   const isIdle = state === 'idle'
   const isError = state === 'error'
+  const reducedMotion = usePrefersReducedMotion()
+  const visible = useDocumentVisible()
 
   const orbSize = isIdle ? 62 : 170
   const orbitSize = isIdle ? 78 : 250
 
-  // Smoothed audio level (spring) — mirrors the mobile audio useSharedValue.
-  const audioRaw = useMotionValue(0)
-  const audio = useSpring(audioRaw, { damping: 18, stiffness: 180 })
+  const coreRef = useRef<HTMLDivElement | null>(null)
+  const waveformRef = useRef<HTMLDivElement | null>(null)
+
+  /**
+   * Amplitude, written where it is drawn.
+   *
+   * The meter already smooths the level over a rolling window (useMica), so the
+   * value goes through rather than being sprung: a spring here would be a second
+   * animation loop running for the whole session to smooth a number that arrives
+   * pre-smoothed, and the orb is meant to have no loops of its own. `transform`
+   * is the only thing written, so the browser composites the change instead of
+   * re-laying anything out.
+   */
+  const applyLevel = useCallback((level: number) => {
+    const clamped = Number.isNaN(level) ? 0 : Math.max(0, Math.min(1, level))
+    if (coreRef.current) coreRef.current.style.transform = `scale(${(1 + clamped * 0.06).toFixed(4)})`
+    if (waveformRef.current) waveformRef.current.style.transform = `scaleY(${(1 + clamped * 0.25).toFixed(4)})`
+  }, [])
+
   useEffect(() => {
-    audioRaw.set(Math.max(0, Math.min(1, audioLevel)))
-  }, [audioLevel, audioRaw])
-
-  // Orb scale driven by state (restarted on state change).
-  const scale: MotionValue<number> = useMotionValue(1)
-  const glowOpacity: MotionValue<number> = useMotionValue(0.28)
-  const glowScale: MotionValue<number> = useMotionValue(1)
-  const rotation: MotionValue<number> = useMotionValue(0)
-  const innerRotation: MotionValue<number> = useMotionValue(0)
-  const waveScale: MotionValue<number> = useMotionValue(1)
-  const barPhase: MotionValue<number> = useMotionValue(0)
-
-  useEffect(() => {
-    const controls = [] as ReturnType<typeof animate>[]
-    // Reset base values on state transition (same intent as mobile reset).
-    controls.push(animate(scale, 1, { duration: 0.25 }))
-    controls.push(animate(glowOpacity, isIdle ? 0.28 : 0.55, { duration: 0.3 }))
-
-    if (state === 'idle') {
-      // Extremely subtle breathing — barely alive.
-      controls.push(animate(scale, [1, 1.025, 1], { duration: 4.8, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowOpacity, [0.38, 0.22, 0.38], { duration: 5.2, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowScale, [1, 1.04, 1], { duration: 5.2, ease: 'easeInOut', repeat: Infinity }))
-      // Very slow orbital movement.
-      controls.push(animate(rotation, [0, 360], { duration: 18, ease: 'linear', repeat: Infinity }))
-    } else if (state === 'listening') {
-      controls.push(animate(scale, [1, 1.055, 1], { duration: 1.8, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowOpacity, [0.8, 0.45, 0.8], { duration: 1.8, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowScale, [1, 1.12, 1], { duration: 1.8, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(rotation, [0, 360], { duration: 6.5, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(innerRotation, [0, -360], { duration: 8.5, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(waveScale, [1, 1.15, 0.9, 1], { duration: 1, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(barPhase, [0, 1], { duration: 0.7, ease: 'linear', repeat: Infinity }))
-    } else if (state === 'thinking') {
-      // Between "stops speaking" and "AI responds": contained, purposeful energy.
-      controls.push(animate(scale, [1, 1.04, 1], { duration: 1.1, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowOpacity, [0.7, 0.5, 0.7], { duration: 1.1, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowScale, [1, 1.09, 1], { duration: 1.1, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(rotation, [0, 360], { duration: 4.5, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(innerRotation, [0, -360], { duration: 6, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(barPhase, [0, 1], { duration: 1, ease: 'linear', repeat: Infinity }))
-    } else if (state === 'responding') {
-      // Calmer than listening; the orb is speaking.
-      controls.push(animate(scale, [1, 1.045, 1], { duration: 1.4, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowOpacity, [0.7, 0.4, 0.7], { duration: 1.4, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(glowScale, [1, 1.08, 1], { duration: 1.4, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(rotation, [0, 360], { duration: 10, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(innerRotation, [0, -360], { duration: 13, ease: 'linear', repeat: Infinity }))
-      controls.push(animate(waveScale, [1, 1.1, 0.92, 1], { duration: 1.3, ease: 'easeInOut', repeat: Infinity }))
-      controls.push(animate(barPhase, [0, 1], { duration: 0.9, ease: 'linear', repeat: Infinity }))
-    } else if (state === 'error') {
-      // Deliberately still: a looping animation reads as progress, and a failed
-      // request is not progressing. The orb keeps its size, gradient, eyes and
-      // ambient glow — the danger ring is the only new signal, so an error can
-      // never be mistaken for a different assistant.
-      controls.push(animate(scale, 1, { duration: 0.25 }))
-      controls.push(animate(glowOpacity, 0.3, { duration: 0.3 }))
+    if (!audio) return undefined
+    if (reducedMotion) {
+      // Reduced motion means *still*: no amplitude response either, so nothing
+      // is quietly moving for a user who asked it not to.
+      applyLevel(0)
+      return undefined
     }
-    return () => controls.forEach(c => c.stop())
-  }, [state])
-
-  const audioScale = useTransform(audio, [0, 1], [1, 1.06])
-  const orbStyle = useTransform<number, number>([scale, audioScale], ([s, a]) => s * a)
-  const audioWave = useTransform(audio, [0, 1], [0.9, 1.25])
-  const waveformStyle = useTransform<number, number>([waveScale, audioWave], ([w, a]) => w * a)
+    return audio.subscribe(applyLevel)
+  }, [audio, applyLevel, reducedMotion])
 
   const waveBars = useMemo(() => [8, 14, 22, 32, 44, 29, 54, 36, 25, 15, 8], [])
 
   return (
     <div
+      className="mica-root"
+      data-mica-state={state}
+      data-mica-motion={reducedMotion ? 'reduced' : 'full'}
+      data-mica-paused={visible ? 'false' : 'true'}
       style={{
         width: isIdle ? 90 : '100%',
         height: isIdle ? 90 : 330,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}
+        // Read by the gradient in mica-orb.css, so the palette has one home.
+        '--mica-blue': COLORS.primaryBlue,
+        '--mica-deep-blue': COLORS.deepBlue,
+        '--mica-cyan': COLORS.cyan,
+        '--mica-mint': COLORS.mint,
+      } as CSSProperties}
     >
-      {/* AMBIENT GLOW — exactly one in every state; the orb's resting signal. */}
-      <motion.div
+      {/* AMBIENT GLOW — exactly one in every state; the orb's resting signal.
+          A gradient to transparent rather than a blurred disc: same halo, and it
+          stays a composited transform at every scale. */}
+      <div
         aria-hidden
         data-mica-glow="on"
+        className="mica-glow"
+        style={{ width: orbSize * 2.2, height: orbSize * 2.2 }}
+      />
+
+      {/* HUGGING HALO — the glow the orb itself sits in. Static on purpose: it
+          never animates, so it is rasterised once and from then on only moved
+          with the layer. */}
+      <div
+        aria-hidden
+        data-mica-halo="on"
         style={{
           position: 'absolute',
-          width: orbSize * 1.65,
-          height: orbSize * 1.65,
-          borderRadius: orbSize,
-          background: COLORS.cyan,
-          filter: `blur(${isIdle ? 18 : 42}px)`,
-          boxShadow: `0 0 ${isIdle ? 30 : 60}px ${COLORS.cyan}`,
-          opacity: glowOpacity,
-          scale: glowScale,
+          width: orbSize * 1.3,
+          height: orbSize * 1.3,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${COLORS.cyan}55 0%, ${COLORS.cyan}22 55%, ${COLORS.cyan}00 78%)`,
         }}
       />
 
       {/* OUTER ORBIT */}
-      <motion.div aria-hidden style={{ position: 'absolute', rotate: rotation }}>
+      <div aria-hidden className="mica-orbit" style={{ width: orbitSize, height: orbitSize * 0.62 }}>
         <svg width={orbitSize} height={orbitSize * 0.62} viewBox="0 0 250 155" style={{ overflow: 'visible' }}>
           <ellipse
             cx="125"
@@ -155,16 +177,16 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
             </>
           )}
         </svg>
-      </motion.div>
+      </div>
 
       {/* INNER ORBIT (counter-rotating) */}
       {!isIdle && (
-        <motion.div aria-hidden style={{ position: 'absolute', rotate: innerRotation }}>
+        <div aria-hidden className="mica-orbit mica-orbit--inner" style={{ width: 210, height: 110 }}>
           <svg width={210} height={110} viewBox="0 0 210 110" style={{ overflow: 'visible' }}>
             <ellipse cx="105" cy="55" rx="82" ry="28" fill="none" stroke={COLORS.mint} strokeWidth="1" opacity={0.35} />
             <circle cx="23" cy="55" r="2.5" fill={COLORS.mint} />
           </svg>
-        </motion.div>
+        </div>
       )}
 
       {/* ERROR RING — the one signal that distinguishes a failure from speech. */}
@@ -178,6 +200,8 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
             height: orbSize + 18,
             borderRadius: '50%',
             border: '3px solid var(--mc-danger)',
+            // Static: the ring is a state, not an animation, so it is painted
+            // once rather than re-shadowed every frame.
             boxShadow: '0 0 24px var(--mc-danger)',
           }}
         />
@@ -199,29 +223,11 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
           zIndex: 1,
         }}
       >
-        <motion.div
-          style={{
-            width: orbSize,
-            height: orbSize,
-            borderRadius: orbSize / 2,
-            overflow: 'hidden',
-            scale: orbStyle,
-            boxShadow: `0 0 ${isIdle ? 18 : 32}px ${COLORS.cyan}cc`,
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: 'inherit',
-              background: `linear-gradient(135deg, ${COLORS.deepBlue} 0%, ${COLORS.primaryBlue} 38%, ${COLORS.cyan} 72%, ${COLORS.mint} 100%)`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
+        {/* The wrapper the microphone scale is written to. Kept off `.mica-core`
+            so the breath (CSS) and the amplitude (a style write) multiply instead
+            of overwriting each other. */}
+        <div ref={coreRef} className="mica-core-scale">
+          <div className="mica-core" style={{ width: orbSize, height: orbSize }}>
             {/* GLASS HIGHLIGHT */}
             <div
               aria-hidden
@@ -256,49 +262,41 @@ export default function MicaOrb({ state, audioLevel = 0, onPress }: MicaOrbProps
               </svg>
             )}
           </div>
-        </motion.div>
+        </div>
       </button>
 
       {/* VOICE WAVEFORM — speech states only; an error has nothing to meter. */}
       {!isIdle && !isError && (
-        <motion.div
+        <div
+          ref={waveformRef}
           aria-hidden
           data-mica-waveform="on"
+          className="mica-waveform"
           style={{
-            position: 'absolute',
             bottom: -4,
             height: 58,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             gap: 4,
-            scaleY: waveformStyle,
           }}
         >
           {waveBars.map((height, index) => (
-            <WaveBar key={index} baseHeight={height} tall={index % 2 === 0} phase={barPhase} />
+            <div
+              // The bars are a fixed, ordered sequence with no identity of their
+              // own — the index *is* the phase.
+              key={index}
+              data-mica-bar="on"
+              className="mica-bar"
+              style={{
+                width: 4,
+                height,
+                background: COLORS.cyan,
+                // Negative, and a fraction of the wave's period, so the crest
+                // travels along the row instead of every bar rising together.
+                animationDelay: `${-(index * 0.07).toFixed(2)}s`,
+              }}
+            />
           ))}
-        </motion.div>
+        </div>
       )}
     </div>
-  )
-}
-
-/** One waveform bar. The phase MotionValue scrolls a pseudo-wave per bar. */
-function WaveBar({ baseHeight, tall, phase }: { baseHeight: number; tall: boolean; phase: MotionValue<number> }) {
-  const scaleYTarget = useTransform(phase, [0, 1], [1, 1])
-  const height = baseHeight * (tall ? 0.8 : 1)
-  return (
-    <motion.div
-      data-mica-bar="on"
-      style={{
-        width: 4,
-        height,
-        borderRadius: 5,
-        background: COLORS.cyan,
-        scaleY: scaleYTarget,
-        transformOrigin: 'center',
-      }}
-    />
   )
 }

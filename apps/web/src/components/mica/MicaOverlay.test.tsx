@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import MicaOverlay from './MicaOverlay'
+import { createMicaAudioChannel } from './mica.audio'
 
 /**
  * The overlay is deliberately smaller than it was: the typing box and the
@@ -9,7 +10,9 @@ import MicaOverlay from './MicaOverlay'
  * in the middle of a spoken conversation.
  */
 const baseProps = {
-  audioLevel: 0,
+  // The amplitude channel, not a level: a number here would be state changing
+  // sixty times a second, and this dialog must not re-render for any of them.
+  audio: createMicaAudioChannel(),
   transcript: '',
   responseMessage: null,
   lastNavigation: null,

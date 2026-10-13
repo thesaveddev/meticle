@@ -2,20 +2,31 @@ import { useEffect } from 'react'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import OpenInFullIcon from '@mui/icons-material/OpenInFull'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, useTransform } from 'framer-motion'
 import { MICA_LABEL, MICA_STATE_COPY, MICA_Z, type MicaActiveState } from './mica.identity'
+import { usePrefersReducedMotion } from './mica.motion'
+import type { MicaAudioChannel } from './mica.audio'
 import type { MicaNavigateTarget } from './useMica'
 
 interface MicaMiniBarProps {
+  /**
+   * Whether the bar is on screen. The bar owns its own presence — it is the only
+   * thing that animates an exit, and keeping that animation here is what lets the
+   * provider (and therefore every page) do without an animation library.
+   */
+  open?: boolean
   /** A live session only: the bar has no idle form (it is not the resting orb). */
   state: MicaActiveState
-  audioLevel: number
+  /** The session's amplitude channel — see `mica.audio.ts`. */
+  audio?: MicaAudioChannel
   transcript: string
   responseMessage: string | null
   lastNavigation: MicaNavigateTarget | null
   onExpand: () => void
   onEnd: () => void
 }
+
+type MicaMiniBarSurfaceProps = Omit<MicaMiniBarProps, 'open'>
 
 /**
  * Mica, minimised: the bar the session lives in once it has opened a page.
@@ -33,15 +44,23 @@ interface MicaMiniBarProps {
  * those tokens (including the same gradient) at strip scale rather than
  * inventing a second Mica that would eventually drift from the first.
  */
-export default function MicaMiniBar({
+export default function MicaMiniBar({ open = true, ...surface }: MicaMiniBarProps) {
+  return (
+    <AnimatePresence>
+      {open && <MicaMiniBarSurface {...surface} />}
+    </AnimatePresence>
+  )
+}
+
+function MicaMiniBarSurface({
   state,
-  audioLevel,
+  audio,
   transcript,
   responseMessage,
   lastNavigation,
   onExpand,
   onEnd,
-}: MicaMiniBarProps) {
+}: MicaMiniBarSurfaceProps) {
   // Escape ends the conversation from here too: the overlay owns it while the
   // overlay is open, and the bar owns it while the bar is.
   useEffect(() => {
@@ -57,6 +76,33 @@ export default function MicaMiniBar({
   }, [onEnd])
 
   const listening = state === 'listening'
+  const reducedMotion = usePrefersReducedMotion()
+
+  /**
+   * The pulse: a ring whose scale tracks the live audio level, so the carer can
+   * see that Mica is hearing them without looking at a waveform.
+   *
+   * The level moves a motion value rather than React state. It used to be a
+   * prop, which meant every audio frame re-rendered this bar *and* restarted its
+   * 180ms scale animation — the animation never finished, because a new one
+   * began 16ms later, and the strip visibly juddered for the whole session.
+   * Written this way the ring is a composited transform, and the bar re-renders
+   * only when what it *says* changes.
+   */
+  const level = useMotionValue(0)
+
+  useEffect(() => {
+    if (!audio) return undefined
+    if (reducedMotion) {
+      level.set(0)
+      return undefined
+    }
+    return audio.subscribe(value => level.set(value))
+  }, [audio, level, reducedMotion])
+
+  const pulseScale = useTransform(level, [0, 1], [1, reducedMotion ? 1 : 1.5])
+  const pulseOpacity = useTransform(level, [0, 1], [0.28, 0.55])
+
   // What the bar says, in priority order: the failure, then the reply being
   // spoken, then the live words, then the page Mica just opened, then the
   // state's own copy. A voice-first surface has to say something true at every
@@ -67,10 +113,6 @@ export default function MicaMiniBar({
         : transcript ? `“${transcript}”`
           : lastNavigation ? `${MICA_LABEL.opened} ${lastNavigation.label}`
             : MICA_STATE_COPY[state].sub
-
-  // The pulse: a ring whose scale tracks the live audio level, so the carer can
-  // see that Mica is hearing them without looking at a waveform.
-  const pulse = 1 + Math.max(0, Math.min(1, audioLevel)) * 0.5
 
   return (
     <motion.div
@@ -110,16 +152,17 @@ export default function MicaMiniBar({
       >
         {/* The status light: same gradient as the orb, at strip scale. */}
         <Box sx={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }} aria-hidden>
-          <Box
-            component={motion.span}
-            animate={{ scale: listening ? pulse : 1, opacity: listening ? 0.55 : 0.28 }}
-            transition={{ duration: 0.18 }}
-            sx={{
+          {/* A gradient ring rather than a blurred disc: it scales as a
+              composited transform instead of being re-blurred every frame. */}
+          <motion.span
+            data-mica-mini-pulse="on"
+            style={{
               position: 'absolute',
-              inset: -3,
+              inset: -6,
               borderRadius: '50%',
-              background: '#03C6B1',
-              filter: 'blur(7px)',
+              background: 'radial-gradient(circle, rgba(3, 198, 177, 0.55) 0%, rgba(3, 198, 177, 0) 70%)',
+              scale: listening ? pulseScale : 1,
+              opacity: listening ? pulseOpacity : 0.28,
             }}
           />
           <Box

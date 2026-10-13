@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../services/api'
 import { MICA_STOP_PHRASES, type MicaState } from './mica.identity'
+import { createMicaAudioChannel, type MicaAudioChannel } from './mica.audio'
 
 /** Re-exported so existing importers keep working; the union lives in one place. */
 export type { MicaState }
@@ -61,6 +62,30 @@ export function extractExpiringSubject(text: string): { name?: string; what?: st
   return { name: owner?.[1], what }
 }
 
+/**
+ * Does this utterance ask, rather than state?
+ *
+ * The expiry intent below is Mica's one *implicit* write: a statement that
+ * someone's training has run out — "Tom's manual handling expires soon" — is a
+ * renewal task, and has been since the voice path was built. A question about the
+ * same fact is a different request entirely: "whose training is expiring" and
+ * "which staff training has expired" want the roster read back, and the server
+ * answers those from the organisation's own rows with no provider at all
+ * (`mica.facts.ts`). Without this guard the expiry regex swallowed the question
+ * and drafted a generic "Training renewal follow-up" task out of it — the answer
+ * never arrived, and a task nobody asked for was filed instead.
+ *
+ * A leading question word is the signal, and a trailing question mark catches the
+ * sentences whose opener is not one of them ("Priya's MAR chart is overdue?").
+ */
+const MICA_QUESTION_OPENER =
+  /^(who|whose|which|what|when|where|why|how|is|are|was|were|do|does|did|can|could|should|would|has|have|list|show|tell|give|any|anyone)\b/i
+
+export function looksLikeQuestion(text: string): boolean {
+  const raw = text.trim()
+  return /\?\s*$/.test(raw) || MICA_QUESTION_OPENER.test(raw)
+}
+
 export function detectMicaActionIntent(text: string, source: MicaSource = 'voice'): MicaActionIntent | null {
   if (/\b(create|add|make|set|remind me (about|to)|schedule|book|arrange)\b/i.test(text) && /\b(task|reminder|to-do|todo)\b/i.test(text)) {
     return { action: 'CREATE_TASK', utterance: text }
@@ -69,7 +94,11 @@ export function detectMicaActionIntent(text: string, source: MicaSource = 'voice
     return { action: 'CREATE_APPOINTMENT', utterance: text }
   }
   // Training-expiry → expiring task, e.g. "Tom's manual handling expires soon".
-  const expiry = /\b(training|certificate|certification)\b/i.test(text) && /\b(expir\w+|runs? out|needs? renew\w*|due for renewal|renew\w*)\b/i.test(text)
+  // A question about the same fact is not a write: it is answered from the roster
+  // (see `looksLikeQuestion`), so it must fall through to the ask endpoint.
+  const expiry = !looksLikeQuestion(text)
+    && /\b(training|certificate|certification)\b/i.test(text)
+    && /\b(expir\w+|runs? out|needs? renew\w*|due for renewal|renew\w*)\b/i.test(text)
   if (expiry) {
     const subject = extractExpiringSubject(text)
     return {
@@ -322,7 +351,23 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
  */
 export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => void } = {}) {
   const [state, setState] = useState<MicaState>('idle')
-  const [audioLevel, setAudioLevel] = useState(0)
+  /**
+   * The amplitude channel, and the reason it is not `useState`.
+   *
+   * The microphone meter samples the analyser every animation frame, and the
+   * level is consumed by exactly one thing: the orb's transform. As state it
+   * was a render of the whole assistant per frame (measured: 42 commits and
+   * 2339ms of render work across 30 audio frames — see
+   * `mica.renderBudget.test.tsx`). As a channel it reaches the orb directly and
+   * React never hears about it.
+   *
+   * `audioLevelRef` is kept in step from the same subscription, because the
+   * voice-activity detection in `beginRecognition` reads the level from a timer
+   * and must not depend on a render having happened.
+   */
+  const audioChannelRef = useRef<MicaAudioChannel | null>(null)
+  if (!audioChannelRef.current) audioChannelRef.current = createMicaAudioChannel()
+  const audio = audioChannelRef.current
   const [transcript, setTranscript] = useState('')
   const [responseMessage, setResponseMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -404,8 +449,8 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     streamRef.current = null
     audioCtxRef.current?.close().catch(() => undefined)
     audioCtxRef.current = null
-    setAudioLevel(0)
-  }, [])
+    audio.publish(0)
+  }, [audio])
 
   /** Stops any in-flight server-TTS playback and its amplitude meter. */
   const stopTtsPlayback = useCallback(() => {
@@ -413,8 +458,8 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     try { ttsSourceRef.current?.stop() } catch { /* already stopped */ }
     ttsSourceRef.current = null
     if (ttsCtxRef.current) { ttsCtxRef.current.close().catch(() => undefined); ttsCtxRef.current = null }
-    setAudioLevel(0)
-  }, [])
+    audio.publish(0)
+  }, [audio])
 
   const startMicMeter = useCallback(async () => {
     // One mic stream for the whole session: continuous listening must not
@@ -439,7 +484,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         levelWindowRef.current.push(rms)
         if (levelWindowRef.current.length > 6) levelWindowRef.current.shift()
         const smoothed = levelWindowRef.current.reduce((a, b) => a + b, 0) / levelWindowRef.current.length
-        setAudioLevel(Math.max(0, Math.min(1, smoothed * 2.4)))
+        audio.publish(Math.max(0, Math.min(1, smoothed * 2.4)))
         rafRef.current = requestAnimationFrame(tick)
       }
       rafRef.current = requestAnimationFrame(tick)
@@ -447,7 +492,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       // Mic denied / unavailable: Mica still listens via the recognizer; the
       // orb simply rests at zero amplitude rather than dying.
     }
-  }, [])
+  }, [audio])
 
   /**
    * Speaks a reply through real TTS audio and drives the orb from its literal
@@ -493,13 +538,13 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         levelWindowRef.current.push(rms)
         if (levelWindowRef.current.length > 6) levelWindowRef.current.shift()
         const smoothed = levelWindowRef.current.reduce((a, b) => a + b, 0) / levelWindowRef.current.length
-        setAudioLevel(Math.max(0, Math.min(1, smoothed * 2.4)))
+        audio.publish(Math.max(0, Math.min(1, smoothed * 2.4)))
         ttsRafRef.current = requestAnimationFrame(tick)
       }
       ttsRafRef.current = requestAnimationFrame(tick)
       source.onended = () => {
         stopTtsPlayback()
-        setAudioLevel(0)
+        audio.publish(0)
         onDone()
       }
       ttsSourceRef.current = source
@@ -531,13 +576,13 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       const tick = (now: number) => {
         if (now - lastBoundaryAt > 650) target = 0.08
         level += (target - level) * 0.3
-        setAudioLevel(Math.max(0, Math.min(1, level)))
+        audio.publish(Math.max(0, Math.min(1, level)))
         raf = requestAnimationFrame(tick)
       }
       const stopEnvelope = () => {
         if (raf !== null) cancelAnimationFrame(raf)
         raf = null
-        setAudioLevel(0)
+        audio.publish(0)
       }
       const wordWeight = (word: string) => {
         const w = word.replace(/[^\p{L}\p{N}']/gu, '')
@@ -565,7 +610,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     } catch {
       onDone()
     }
-  }, [stopTtsPlayback])
+  }, [audio, stopTtsPlayback])
 
   const stopListening = useCallback(() => {
     // Clear the live flag first: the recogniser's onend reads it to decide
@@ -603,7 +648,8 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
   const transcriptRef = useRef('')
   const audioLevelRef = useRef(0)
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
-  useEffect(() => { audioLevelRef.current = audioLevel }, [audioLevel])
+  // Mirror the channel into the ref the VAD timer reads. No state, no render.
+  useEffect(() => audio.subscribe(level => { audioLevelRef.current = level }), [audio])
 
   const sendToAiRef = useRef<(t: string, source?: MicaSource) => void>(() => undefined)
   const beginRecognitionRef = useRef<() => void>(() => undefined)
@@ -887,7 +933,11 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       return
     }
 
-    if (looksLikeNavigationIntent(text) || /^(who|what|when|where|how|why|is|are|do|does|did|can|could|should|show|list|tell|give|any|anyone|how many|what's|whats|where's)\b/i.test(text)) {
+    // A question — or an imperative that wants the answer spoken ("show me the
+    // rota") — goes to the endpoint that answers it. The question shapes are the
+    // same ones the server reads, and "whose"/"which"/"has" are here because the
+    // list facts ask that way now ("whose training is expiring").
+    if (looksLikeNavigationIntent(text) || looksLikeQuestion(text)) {
       await askMica(text)
       return
     }
@@ -996,6 +1046,27 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       setError('Voice input is not supported in this browser. Try Chrome or Edge.')
       return
     }
+    // The session is live from the tap, not from the microphone.
+    //
+    // Everything below this point is asynchronous, and the slowest of them is the
+    // probe — it is where the browser asks for permission, so on a first use it
+    // waits for a person to answer a dialog. Awaiting it first meant a tap showed
+    // *nothing*: no overlay, no pendant, no cue that anything had happened, for
+    // as long as the person took to decide. The state change is what the press is
+    // owed, and it costs nothing to give it first.
+    continuousRef.current = true
+    setError(null)
+    setTranscript('')
+    setResponseMessage(null)
+    setLastNavigation(null)
+    setMinimised(false)
+    setState('listening')
+    silentEndsRef.current = 0
+    pendingRef.current = null
+    // A session that just started has heard no offer, whatever the server still
+    // holds: the carer did not hear it in this session either.
+    offeredPageRef.current = false
+
     // Fail fast (and visibly) when the mic is actually unusable, instead of
     // opening the display that listens to nothing. The Permissions API advisory
     // state is NOT trusted as a denial: some embedded webviews report 'denied'
@@ -1005,30 +1076,32 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       const probe = await navigator.mediaDevices.getUserMedia({ audio: true })
       probe.getTracks().forEach(t => t.stop())
     } catch {
-      setSupported(false)
-      setError('Microphone permission is blocked. Allow mic access for this site, then try Mica again.')
+      // Close the session this tap opened, and only then say why: a listening
+      // overlay over a microphone the browser refused would be a lie the user
+      // cannot correct, while the notice is the house treatment for a failure
+      // that never started a session.
+      if (continuousRef.current) {
+        stopListening()
+        setSupported(false)
+        setError('Microphone permission is blocked. Allow mic access for this site, then try Mica again.')
+      }
       return
     }
-    setError(null)
-    setTranscript('')
-    setResponseMessage(null)
-    setLastNavigation(null)
-    setMinimised(false)
-    silentEndsRef.current = 0
-    pendingRef.current = null
-    // A session that just started has heard no offer, whatever the server still
-    // holds: the carer did not hear it in this session either.
-    offeredPageRef.current = false
-    // From here the session is live until the carer says so.
-    continuousRef.current = true
+    // The permission dialog is exactly where a session can end underneath us —
+    // Escape and the end control are both reachable, because the overlay is up
+    // while the probe runs. Opening a recogniser after that would listen to a
+    // room nobody asked us to hear.
+    if (!continuousRef.current) return
     await startMicMeter()
+    if (!continuousRef.current) return
     beginRecognition()
-  }, [beginRecognition, startMicMeter])
+  }, [beginRecognition, startMicMeter, stopListening])
 
   return {
     state,
     setState,
-    audioLevel,
+    /** The session's amplitude channel; the orb subscribes, React does not. */
+    audio,
     transcript,
     responseMessage,
     error,

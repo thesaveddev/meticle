@@ -1,5 +1,5 @@
 import React from 'react';
-import { AccessibilityInfo, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../utils/useReducedMotion';
 
 /**
  * The MeticleCare splash background: three slow, independently drifting layers
@@ -41,28 +42,6 @@ const CYAN_X = 30;
 const CYAN_Y = -10;
 const TEAL_X = -20;
 const TEAL_Y = -12;
-
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((enabled) => {
-        if (!cancelled) setReduced(enabled);
-      })
-      .catch(() => {});
-
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => {
-      cancelled = true;
-      subscription?.remove?.();
-    };
-  }, []);
-
-  return reduced;
-}
 
 export default function MeticleSplashBackground() {
   const reducedMotion = useReducedMotion();

@@ -1,0 +1,261 @@
+/*
+ * The orb's motion, as CSS.
+ *
+ * ## Why it lives here
+ *
+ * The orb used to animate from JavaScript: seven infinite `animate()` loops
+ * (scale, glow opacity, glow scale, two rotations, waveform scale, bar phase)
+ * started on every state change, plus a 42px `filter: blur()` and a 60px
+ * `box-shadow` on the layer being scaled — the two properties a browser cannot
+ * animate cheaply, because a blurred or shadowed layer has to be re-rasterised
+ * at every size instead of being moved. The visible result was the stutter, and
+ * the invisible one was a compositor job per frame for an orb that is on screen
+ * on every page of the product.
+ *
+ * So the motion is declarative now:
+ *
+ *   - **Every animated property is `transform` or `opacity`.** Nothing here
+ *     changes a size, a layout box, a filter radius or a shadow, so each state
+ *     is composited rather than re-painted.
+ *   - **No JavaScript per frame.** There is no loop to start, stop, leak or
+ *     forget to clean up; a state change is a `data-mica-state` attribute, and
+ *     the browser's own animation layer does the rest.
+ *   - **The glow is a gradient, not a blurred disc.** A radial gradient fading
+ *     to transparent is pixel-identical in intent to a blurred solid circle at
+ *     a fraction of the raster cost, and it never needs re-blurring when it
+ *     scales.
+ *   - **One state, one rhythm.** Each state's numbers (breath depth, breath
+ *     duration, glow pulse, orbit speed, waveform speed) are custom properties
+ *     declared once per state below, so the three states differ by data rather
+ *     than by three copies of the same code.
+ *
+ * The orb keeps the identity it had: same blue-to-mint gradient, same eyes,
+ * same ambient glow in every state, one extra signal per state.
+ */
+
+.mica-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Ambient glow ──────────────────────────────────────────────────────
+   One per state, always. A gradient disc whose opacity and scale breathe:
+   the orb's resting signal, and the cheapest thing on screen. */
+.mica-glow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(3, 198, 177, 0.55) 0%,
+    rgba(3, 198, 177, 0.22) 42%,
+    rgba(3, 198, 177, 0) 72%
+  );
+  will-change: transform, opacity;
+  animation: mica-glow var(--mica-glow-ms) ease-in-out infinite;
+}
+
+/* ── Orbits ────────────────────────────────────────────────────────────
+   The two rings around the orb during a session. Rotation is a transform,
+   so the SVG inside is rasterised once and then spun. */
+.mica-orbit {
+  position: absolute;
+  animation: mica-spin var(--mica-spin-ms) linear infinite;
+  will-change: transform;
+}
+
+.mica-orbit--inner {
+  animation-direction: reverse;
+  animation-duration: var(--mica-spin-inner-ms);
+}
+
+/* ── Core ─────────────────────────────────────────────────────────────*/
+.mica-core {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--mica-deep-blue) 0%,
+    var(--mica-blue) 38%,
+    var(--mica-cyan) 72%,
+    var(--mica-mint) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: mica-breathe var(--mica-breathe-ms) ease-in-out infinite;
+  will-change: transform;
+}
+
+/* The wrapper the microphone scale lives on. Kept out of `.mica-core` so the
+   breath (CSS) and the amplitude (a motion value written by a subscription)
+   multiply instead of overwriting each other. */
+.mica-core-scale {
+  display: block;
+  will-change: transform;
+}
+
+/* ── Waveform ──────────────────────────────────────────────────────────
+   Eleven bars, each with its own negative delay, so the wave travels across
+   the row rather than pulsing in place. This is the travelling wave the old
+   implementation intended and never drew: every bar was animated from a
+   `phase` motion value mapped to `[1, 1]`, which cost eleven subscriptions to
+   animate nothing at all. */
+.mica-waveform {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.mica-bar {
+  border-radius: 5px;
+  transform-origin: center;
+  animation: mica-wave var(--mica-wave-ms) ease-in-out infinite alternate;
+}
+
+/* ── Per-state rhythms ────────────────────────────────────────────────── */
+.mica-root[data-mica-state='idle'] {
+  --mica-breathe-ms: 4.8s;
+  --mica-glow-ms: 5.2s;
+  --mica-spin-ms: 18s;
+}
+
+.mica-root[data-mica-state='listening'] {
+  --mica-breathe-ms: 1.8s;
+  --mica-glow-ms: 1.8s;
+  --mica-spin-ms: 6.5s;
+  --mica-spin-inner-ms: 8.5s;
+  --mica-wave-ms: 0.7s;
+}
+
+.mica-root[data-mica-state='thinking'] {
+  --mica-breathe-ms: 1.1s;
+  --mica-glow-ms: 1.1s;
+  --mica-spin-ms: 4.5s;
+  --mica-spin-inner-ms: 6s;
+  --mica-wave-ms: 1s;
+}
+
+.mica-root[data-mica-state='responding'] {
+  --mica-breathe-ms: 1.4s;
+  --mica-glow-ms: 1.4s;
+  --mica-spin-ms: 10s;
+  --mica-spin-inner-ms: 13s;
+  --mica-wave-ms: 0.9s;
+}
+
+/* Deliberately still: a looping animation reads as progress, and a failed
+   request is not progressing. */
+.mica-root[data-mica-state='error'] {
+  --mica-breathe-ms: 0s;
+  --mica-glow-ms: 0s;
+  --mica-spin-ms: 0s;
+  --mica-spin-inner-ms: 0s;
+  --mica-wave-ms: 0s;
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────*/
+@keyframes mica-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(var(--mica-breathe-scale, 1.025));
+  }
+}
+
+@keyframes mica-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: var(--mica-glow-min, 0.32);
+  }
+  50% {
+    transform: scale(var(--mica-glow-scale, 1.04));
+    opacity: var(--mica-glow-max, 0.72);
+  }
+}
+
+@keyframes mica-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mica-wave {
+  from {
+    transform: scaleY(0.55);
+  }
+  to {
+    transform: scaleY(1.14);
+  }
+}
+
+/* A live session breathes deeper and glows harder than a resting one. */
+.mica-root[data-mica-state='listening'] {
+  --mica-breathe-scale: 1.055;
+  --mica-glow-min: 0.45;
+  --mica-glow-max: 0.8;
+  --mica-glow-scale: 1.12;
+}
+
+.mica-root[data-mica-state='thinking'] {
+  --mica-breathe-scale: 1.04;
+  --mica-glow-min: 0.5;
+  --mica-glow-max: 0.7;
+  --mica-glow-scale: 1.09;
+}
+
+.mica-root[data-mica-state='responding'] {
+  --mica-breathe-scale: 1.045;
+  --mica-glow-min: 0.4;
+  --mica-glow-max: 0.7;
+  --mica-glow-scale: 1.08;
+}
+
+.mica-root[data-mica-state='error'] {
+  --mica-glow-min: 0.3;
+  --mica-glow-max: 0.3;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────
+   Static, not merely slower: the orb keeps its size, its gradient, its eyes
+   and its glow, and states are still told apart by the copy, the extra rings
+   and the error ring. `data-mica-motion` is set from framer-motion's
+   `useReducedMotion`; the media query below covers the first paint, before
+   that hook has read the preference. */
+.mica-root[data-mica-motion='reduced'] .mica-glow,
+.mica-root[data-mica-motion='reduced'] .mica-orbit,
+.mica-root[data-mica-motion='reduced'] .mica-core,
+.mica-root[data-mica-motion='reduced'] .mica-bar {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mica-glow,
+  .mica-orbit,
+  .mica-core,
+  .mica-bar {
+    animation: none;
+  }
+}
+
+/* ── Backgrounded pages ─────────────────────────────────────────────────
+   Nothing here is visible when the tab is hidden, and an infinite animation
+   off screen is work for nobody. Paused at the animation layer, so this costs
+   no render and resumes exactly where it left off. */
+.mica-root[data-mica-paused='true'] .mica-glow,
+.mica-root[data-mica-paused='true'] .mica-orbit,
+.mica-root[data-mica-paused='true'] .mica-core,
+.mica-root[data-mica-paused='true'] .mica-bar {
+  animation-play-state: paused;
+}

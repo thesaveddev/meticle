@@ -7,6 +7,7 @@ import {
   isStopUtterance,
   looksLikeConfirmation,
   looksLikeNavigationIntent,
+  looksLikeQuestion,
 } from './useMica'
 
 /**
@@ -51,6 +52,25 @@ describe('detectMicaActionIntent — shared by the voice and text entry points',
     expect(detectMicaActionIntent('Priya completed medication safety training today')).toBeNull()
   })
 
+  it('will not draft a renewal task out of a question about expiry', () => {
+    // Each of these was swallowed by the expiry regex and filed as a generic
+    // "Training renewal follow-up" task, so the answer never arrived. The roster
+    // questions are read by the server (mica.facts.ts) instead.
+    for (const question of [
+      'whose training is expiring',
+      'whose training is expiring soon',
+      'which staff training has expired',
+      'how many staff have expired training',
+      "is Priya Sharma's training expiring",
+      'who has out of date training',
+    ]) {
+      expect(detectMicaActionIntent(question), question).toBeNull()
+    }
+    // The statement keeps its long-standing write intent: it is a renewal to
+    // arrange, not a list to read back.
+    expect(detectMicaActionIntent("Tom's manual handling training runs out soon")?.action).toBe('CREATE_TASK')
+  })
+
   it('keeps the explicit task and appointment intents working from both entries', () => {
     expect(detectMicaActionIntent('create a task to restock PPE', 'text')?.action).toBe('CREATE_TASK')
     expect(detectMicaActionIntent('book an appointment for the podiatry clinic', 'text')?.action).toBe('CREATE_APPOINTMENT')
@@ -83,6 +103,28 @@ describe('detectMicaActionIntent — shared by the voice and text entry points',
       expect(looksLikeNavigationIntent('Grace had a good day at the day centre')).toBe(false)
       expect(looksLikeNavigationIntent('book an appointment for the podiatry clinic')).toBe(false)
       expect(looksLikeNavigationIntent('create a task to restock PPE')).toBe(false)
+    })
+
+    it('recognises every list question a carer asks, so none is drafted as a note', () => {
+      // The routing table sends a question to the endpoint that answers it; the
+      // care-note fallback is only for statements. Every phrase the server reads as
+      // a list fact has to be one this predicate catches — including the ones whose
+      // opener is "whose" or "which", which the earlier vocabulary missed.
+      for (const question of [
+        'who is on shift today',
+        "give me today's appointments",
+        'how is the medication round looking today',
+        'who is on leave today',
+        'who is supporting Grace Roberts today',
+        'whose training is expiring soon',
+        'how much leave does Priya Sharma have left',
+        'how many incidents this month',
+      ]) {
+        expect(looksLikeQuestion(question), question).toBe(true)
+      }
+      // And a statement is still a statement: "Grace had a good lunch" is a note.
+      expect(looksLikeQuestion('Grace had a good lunch')).toBe(false)
+      expect(looksLikeQuestion('the fire door check is still outstanding')).toBe(false)
     })
 
     it('sends the answer to Mica\'s offer back to the endpoint that can open it', () => {

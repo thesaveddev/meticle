@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import MicaMiniBar from './MicaMiniBar'
+import { createMicaAudioChannel } from './mica.audio'
 
 /**
  * The bar is the surface Mica lives in after it opens a page, so what is pinned
@@ -10,7 +11,8 @@ import MicaMiniBar from './MicaMiniBar'
  */
 const baseProps = {
   state: 'listening' as const,
-  audioLevel: 0,
+  // The amplitude channel, not a level — see MicaOverlay.test.tsx.
+  audio: createMicaAudioChannel(),
   transcript: '',
   responseMessage: null,
   lastNavigation: null,

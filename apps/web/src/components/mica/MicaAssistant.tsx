@@ -1,6 +1,7 @@
 import { Box, Typography, Stack, Paper } from '@mui/material'
 import MicaOrb from './MicaOrb'
 import { useMicaSession } from './MicaProvider'
+import { preloadMicaSurfaces } from './mica.surfaces'
 import { MICA_LABEL } from './mica.identity'
 
 const TRY_PROMPTS = [
@@ -22,9 +23,17 @@ export default function MicaAssistant() {
   const mica = useMicaSession()
   const active = mica.state !== 'idle'
 
+  // Nothing to launch once a session is live, and an orb that only *looks* gone
+  // (display: none) would still be animating — twice on this page, since the
+  // floating orb is in the corner too.
+  if (active) return null
+
   return (
     <Paper
       elevation={0}
+      onPointerEnter={preloadMicaSurfaces}
+      onPointerDown={preloadMicaSurfaces}
+      onFocus={preloadMicaSurfaces}
       sx={{
         mt: 3,
         p: { xs: 2.5, md: 3 },
@@ -32,13 +41,15 @@ export default function MicaAssistant() {
         border: '1px solid',
         borderColor: 'divider',
         bgcolor: 'var(--mc-surface)',
-        display: active ? 'none' : 'flex',
+        display: 'flex',
         alignItems: 'center',
         gap: { xs: 2, md: 3 },
         flexWrap: { xs: 'wrap', md: 'nowrap' },
       }}
     >
       <Box sx={{ flexShrink: 0 }}>
+        {/* No amplitude channel: at rest there is no microphone, and the level is
+            always zero. The orb subscribes when the session starts. */}
         <MicaOrb state="idle" onPress={mica.startListening} />
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>

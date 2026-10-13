@@ -5,13 +5,22 @@ import CloseIcon from '@mui/icons-material/Close'
 import MinimizeIcon from '@mui/icons-material/Minimize'
 import MicaOrb, { type MicaState } from './MicaOrb'
 import { MICA_ANNOUNCEMENT, MICA_LABEL, MICA_STATE_COPY, MICA_Z } from './mica.identity'
+import type { MicaAudioChannel } from './mica.audio'
 import type { MicaNavigateTarget } from './useMica'
 
 export type { MicaState }
 
 interface MicaOverlayProps {
   state: MicaState
-  audioLevel: number
+  /**
+   * The session's amplitude channel, handed straight to the orb.
+   *
+   * It is deliberately not a number. As a prop it was React state changing sixty
+   * times a second, which re-rendered this entire dialog — transcript, message,
+   * destination chip and all — once per animation frame, for a value the orb
+   * turns into a `scale()`. See `mica.audio.ts`.
+   */
+  audio?: MicaAudioChannel
   transcript: string
   responseMessage: string | null
   /** The page Mica last opened, shown as a confirmation rather than a claim. */
@@ -42,7 +51,7 @@ interface MicaOverlayProps {
  */
 export default function MicaOverlay({
   state,
-  audioLevel,
+  audio,
   transcript,
   responseMessage,
   lastNavigation,
@@ -157,7 +166,7 @@ export default function MicaOverlay({
           component="div"
           sx={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', px: 3 }}
         >
-          <MicaOrb state={state} audioLevel={audioLevel} />
+          <MicaOrb state={state} audio={audio} />
 
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
             <Typography

@@ -78,6 +78,9 @@ jest.mock('react-native-reanimated', () => {
     withSequence: (...values: unknown[]) => values[values.length - 1],
     interpolate: (value: number) => value,
     runOnJS: (fn: unknown) => fn,
+    // Stops a running animation in the real library; inert here, but the orb
+    // calls it on every state change and on unmount, so it has to exist.
+    cancelAnimation: () => {},
   }
 })
 

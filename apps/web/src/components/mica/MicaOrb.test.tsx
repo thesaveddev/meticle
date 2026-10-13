@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import MicaOrb from './MicaOrb'
+import { createMicaAudioChannel } from './mica.audio'
 import { MICA_LABEL, MICA_STATES } from './mica.identity'
 
 /**
@@ -58,12 +59,12 @@ describe('MicaOrb', () => {
 
   it('invokes onPress only in the idle state', () => {
     const onPress = vi.fn()
-    const idle = render(<MicaOrb state="idle" audioLevel={0} onPress={onPress} />)
+    const idle = render(<MicaOrb state="idle" onPress={onPress} />)
     fireEvent.click(screen.getByRole('button', { name: MICA_LABEL.orb }))
     expect(onPress).toHaveBeenCalledTimes(1)
     idle.unmount()
 
-    render(<MicaOrb state="listening" audioLevel={0.5} onPress={onPress} />)
+    render(<MicaOrb state="listening" onPress={onPress} />)
     // Disabled button: the click must not trigger a new listening session.
     fireEvent.click(screen.getByRole('button', { name: MICA_LABEL.orb }))
     expect(onPress).toHaveBeenCalledTimes(1)
@@ -78,8 +79,79 @@ describe('MicaOrb', () => {
     expect(onPress).not.toHaveBeenCalled()
   })
 
-  it('clamps out-of-range audio levels without throwing', () => {
-    expect(() => render(<MicaOrb state="listening" audioLevel={5} />)).not.toThrow()
-    expect(() => render(<MicaOrb state="listening" audioLevel={-2} />)).not.toThrow()
+  it('clamps out-of-range audio levels instead of throwing or overscaling', () => {
+    // The level reaches the orb through the session's channel, not as a prop, so
+    // this is also the test that the orb listens at all: a level published for a
+    // live state has to land on the elements that are supposed to move.
+    const audio = createMicaAudioChannel()
+    const { container } = render(<MicaOrb state="listening" audio={audio} />)
+    const core = container.querySelector('.mica-core-scale') as HTMLElement
+    const waveform = container.querySelector('[data-mica-waveform]') as HTMLElement
+
+    act(() => audio.publish(5))
+    expect(core.style.transform).toBe('scale(1.0600)')
+
+    act(() => audio.publish(-2))
+    expect(core.style.transform).toBe('scale(1.0000)')
+
+    act(() => audio.publish(Number.NaN))
+    expect(core.style.transform).toBe('scale(1.0000)')
+
+    act(() => audio.publish(0.5))
+    expect(core.style.transform).toBe('scale(1.0300)')
+    // Straight onto the transform, and only ever the transform: nothing here
+    // triggers a React render, which is the whole point of the channel.
+    expect(waveform.style.transform).toBe('scaleY(1.1250)')
   })
+
+  it('stalls its motion when the tab is hidden', () => {
+    const { container } = render(<MicaOrb state="idle" />)
+    const root = container.querySelector('.mica-root') as HTMLElement
+    expect(root).toHaveAttribute('data-mica-paused', 'false')
+
+    // Hiding the document pauses the animation at the animation layer, so the
+    // cost disappears without a render and resumes exactly where it stopped.
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    act(() => { document.dispatchEvent(new Event('visibilitychange')) })
+    expect(root).toHaveAttribute('data-mica-paused', 'true')
+
+    visibility.mockReturnValue('visible')
+    act(() => { document.dispatchEvent(new Event('visibilitychange')) })
+    expect(root).toHaveAttribute('data-mica-paused', 'false')
+  })
+
+  it('goes still under prefers-reduced-motion, and stays responsive', () => {
+    const media = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: (query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+
+    try {
+      const audio = createMicaAudioChannel()
+      const onPress = vi.fn()
+      const { container } = render(<MicaOrb state="idle" audio={audio} onPress={onPress} />)
+
+      // Flagged for the CSS, which is where "still" is actually implemented —
+      // the states, the gradient, the eyes and the glow all stay exactly as they
+      // are, so nothing is lost but the movement.
+      expect(container.querySelector('.mica-root')).toHaveAttribute('data-mica-motion', 'reduced')
+      // And the orb is still the way in.
+      fireEvent.click(screen.getByRole('button', { name: MICA_LABEL.orb }))
+      expect(onPress).toHaveBeenCalledTimes(1)
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, value: media })
+    }
+  })
+
+  afterEach(() => { vi.restoreAllMocks() })
 })
