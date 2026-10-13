@@ -227,7 +227,12 @@ export const MICA_TOOLS: MicaTool[] = [
                (SELECT COUNT(*)::int FROM risk_assessments ra WHERE ra.person_id = pe.id AND ra.risk_level IN ('high','critical')) AS open_risks,
                (SELECT a.title FROM appointments a WHERE a.person_id = pe.id AND a.start_time >= NOW() AND a.status = 'scheduled' ORDER BY a.start_time LIMIT 1) AS next_appointment,
                (SELECT COUNT(*)::int FROM homecare_visits hv WHERE hv.person_id = pe.id AND hv.scheduled_start::date = CURRENT_DATE) AS visits_today
-        FROM people pe WHERE pe.id = ANY($2::uuid[])
+        -- The org predicate is load-bearing twice over: it is the tenant boundary
+        -- (the candidate ids come from an org-scoped lookup, but the read should
+        -- not depend on that), and without it parameter $1 is never referenced and
+        -- Postgres refuses the statement outright - "could not determine data type
+        -- of parameter $1" - so this tool could never have answered anything.
+        FROM people pe WHERE pe.organization_id = $1 AND pe.id = ANY($2::uuid[])
         LIMIT 5
       `,
         [orgId, matches.map((m) => m.id)],
@@ -272,6 +277,48 @@ export const MICA_TOOLS: MicaTool[] = [
         [orgId, daysBack],
       );
       return [...summary.rows, ...result.rows];
+    },
+  },
+  {
+    name: 'get_incidents_in_month',
+    description:
+      'Counts incidents in a calendar month (default the current one): the total, the severity breakdown, how many were near misses and how many are still open. Counts only — no titles, no names, and confidential incidents are excluded, exactly as the incidents stats endpoint excludes them. Use for "how many incidents this month".',
+    parameters: {
+      type: 'object',
+      properties: {
+        month: { type: 'string', description: 'Optional YYYY-MM, defaults to the current month' },
+      },
+    },
+    async execute(orgId, args) {
+      const requested = typeof args.month === 'string' ? args.month.trim() : '';
+      const month = /^\d{4}-\d{2}$/.test(requested)
+        ? requested
+        : (await query(`SELECT to_char(CURRENT_DATE, 'YYYY-MM') AS month`)).rows[0].month;
+      // Scope by `incident_date`, not `created_at`: the incidents module's own
+      // filters and list ordering use when an incident happened, so "this month"
+      // means the same thing here as it does on the incidents page. The range is
+      // half-open so the month's last day is included without a time cast.
+      // Confidential rows are excluded for the same reason the stats endpoint
+      // excludes them: that count is the one a manager is allowed to see.
+      const result = await query(
+        `
+        SELECT $2::text AS month,
+               COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE severity = 'critical')::int AS critical,
+               COUNT(*) FILTER (WHERE severity = 'high')::int AS high,
+               COUNT(*) FILTER (WHERE severity = 'medium')::int AS medium,
+               COUNT(*) FILTER (WHERE severity = 'low')::int AS low,
+               COUNT(*) FILTER (WHERE is_near_miss = TRUE)::int AS near_misses,
+               COUNT(*) FILTER (WHERE status IN ('reported', 'investigating'))::int AS open
+        FROM incidents
+        WHERE organization_id = $1
+          AND is_confidential = FALSE
+          AND incident_date >= ($2 || '-01')::date
+          AND incident_date < ($2 || '-01')::date + interval '1 month'
+      `,
+        [orgId, month],
+      );
+      return result.rows;
     },
   },
   {

@@ -86,15 +86,15 @@ describe('parseFactQuestion — everything that must stay where it was', () => {
   it('leaves a question needing judgement on the model path', () => {
     // The stock urgency bands are the model's job (mica.tools.ts says so), and a
     // deterministic path that quoted a number without them would be worse than
-    // the round trip.
+    // the round trip. The same rule keeps a *summary* of the month's incidents out
+    // of the count that is answered: a count is a fact, a summary is judgement.
     expect(parseFactQuestion('Any medication overdue today?', TODAY)).toBeNull()
     expect(parseFactQuestion('how urgent is the Risperidone reorder', TODAY)).toBeNull()
     expect(parseFactQuestion('summarise this month\'s incidents', TODAY)).toBeNull()
-    expect(parseFactQuestion('how many incidents this month', TODAY)).toBeNull()
     expect(parseFactQuestion('how is the rota looking today', TODAY)).toBeNull()
     expect(parseFactQuestion('is Grace on shift today', TODAY)).toBeNull()
-    expect(parseFactQuestion('how much leave does Priya Sharma have left', TODAY)).toBeNull()
-    expect(parseFactQuestion('whose training is expiring soon', TODAY)).toBeNull()
+    expect(parseFactQuestion('how is our training compliance looking', TODAY)).toBeNull()
+    expect(parseFactQuestion('what happened with the fire door incident', TODAY)).toBeNull()
   })
 
   it('leaves a write to the action gateway', () => {
@@ -278,6 +278,188 @@ describe('formatFactAnswer — leave', () => {
   it('says so when nobody is off', () => {
     expect(formatFactAnswer(request({ kind: 'leave', tool: 'get_staff_on_leave' }), []))
       .toBe('Nobody is on approved leave today.')
+  })
+})
+
+describe('parseFactQuestion — the second batch of list questions', () => {
+  it('reads who is supporting one person, however the verb is said', () => {
+    for (const said of [
+      'who is supporting Grace Roberts today',
+      "who's caring for Grace Roberts today",
+      'who is working with Grace Roberts today',
+    ]) {
+      expect(parseFactQuestion(said, TODAY)).toMatchObject({
+        kind: 'support', tool: 'who_supports_person', personName: 'Grace Roberts', date: TODAY,
+      })
+    }
+    // The name follows the verb, so it is found without a possessive or a "for".
+    expect(parseFactQuestion("who's caring for Nora Whitfield today", TODAY)?.personName).toBe('Nora Whitfield')
+    expect(parseFactQuestion('who is supporting Ade Okafor tomorrow', TODAY)?.dayLabel).toBe('tomorrow')
+  })
+
+  it('reads whose training is expiring, for the roster or for one member of staff', () => {
+    expect(parseFactQuestion('whose training is expiring soon', TODAY)).toMatchObject({
+      kind: 'training-expiry', tool: 'get_training_expiring', windowDays: 30, args: { days: 30 },
+    })
+    expect(parseFactQuestion('whose training is expiring soon', TODAY)?.personName).toBeUndefined()
+    // A name makes it one person's records, and the name is a *staff* name: the
+    // caller resolves it against the staff directory, not the resident roster.
+    expect(parseFactQuestion("is Priya Sharma's training expiring", TODAY)).toMatchObject({
+      kind: 'training-expiry', staffName: 'Priya Sharma', personName: 'Priya Sharma',
+    })
+    expect(parseFactQuestion("Priya Sharma's training has lapsed", TODAY)?.staffName).toBe('Priya Sharma')
+  })
+
+  it('reads a staff member\'s leave balance, and only when a name is said', () => {
+    expect(parseFactQuestion('how much leave does Priya Sharma have left', TODAY)).toMatchObject({
+      kind: 'leave-balance', tool: 'get_leave_balance', staffName: 'Priya Sharma',
+    })
+    expect(parseFactQuestion('how many days leave has Jane Doyle got left', TODAY)?.staffName).toBe('Jane Doyle')
+    // No name: the balance would have to be the whole organisation's, which is not
+    // what the question meant, so it stays the model's.
+    expect(parseFactQuestion('how much leave is left', TODAY)).toBeNull()
+  })
+
+  it('reads the month a count of incidents covers', () => {
+    expect(parseFactQuestion('how many incidents this month', TODAY)).toMatchObject({
+      kind: 'incidents', tool: 'get_incidents_in_month', month: '2026-10', dayLabel: 'this month', args: { month: '2026-10' },
+    })
+    expect(parseFactQuestion('how many incidents last month', TODAY)?.month).toBe('2026-09')
+    // January is the case worth stating: last month is December of the year before.
+    expect(parseFactQuestion('how many incidents last month', '2026-01-08')?.month).toBe('2025-12')
+    // A named month, and a week, are windows this module will not invent.
+    expect(parseFactQuestion('how many incidents in September', TODAY)).toBeNull()
+    expect(parseFactQuestion('how many incidents this week', TODAY)).toBeNull()
+  })
+
+  it('keeps the questions with no person to answer about on the model path', () => {
+    expect(parseFactQuestion('who is supporting today', TODAY)).toBeNull()
+    expect(parseFactQuestion('how are we supporting people today', TODAY)).toBeNull()
+  })
+})
+
+describe('formatFactAnswer — who is supporting one person', () => {
+  const support = (overrides: Partial<MicaFactRequest> = {}) =>
+    request({ kind: 'support', tool: 'who_supports_person', personName: 'Grace Roberts', ...overrides })
+  const shift = {
+    source: 'rota', staff_name: 'Priya Sharma', shift_type: 'day', location_name: 'Oak House',
+    start_time: '2026-10-12T07:00:00.000Z', end_time: '2026-10-12T19:00:00.000Z',
+  }
+  const visit = {
+    source: 'visit', staff_name: 'Jane Doyle', label: 'Lunch call',
+    scheduled_start: '2026-10-12T11:00:00.000Z', scheduled_end: '2026-10-12T11:30:00.000Z',
+  }
+
+  it('reads rota shifts and visits as one list, in UK wall-clock', () => {
+    expect(formatFactAnswer(support(), [shift, visit])).toBe(
+      '2 people are supporting Grace Roberts today: Priya Sharma (day shift, Oak House, 8am to 8pm); ' +
+      'Jane Doyle (Lunch call, 12pm to 12:30pm).',
+    )
+  })
+
+  it('says a visit with nobody assigned rather than hiding it', () => {
+    // "Grace has two visits and no carer" is the answer a manager needs; listing
+    // only the one assigned carer would not be.
+    expect(formatFactAnswer(support(), [{ ...visit, staff_name: null }]))
+      .toBe('Grace Roberts has 1 visit today, with nobody assigned yet.')
+    expect(formatFactAnswer(support(), [shift, { ...visit, staff_name: null }]))
+      .toBe('One person is supporting Grace Roberts today: Priya Sharma (day shift, Oak House, 8am to 8pm). ' +
+        '1 visit has nobody assigned yet.')
+  })
+
+  it('says nobody is assigned rather than leaving a silence', () => {
+    expect(formatFactAnswer(support(), [])).toBe('Nobody is assigned to support Grace Roberts today.')
+  })
+})
+
+describe('formatFactAnswer — training expiry', () => {
+  const training = (overrides: Partial<MicaFactRequest> = {}) =>
+    request({ kind: 'training-expiry', tool: 'get_training_expiring', dayNamed: false, windowDays: 30, args: { days: 30 }, ...overrides })
+
+  it('says expired and expiring records apart by the phrasing of the date', () => {
+    const answer = formatFactAnswer(training(), [
+      { staff_name: 'Priya Sharma', module: 'Fire Safety', expires_at: '2026-10-01' },
+      { staff_name: 'Jane Doyle', module: 'Safeguarding', expires_at: '2026-11-03' },
+    ])
+    expect(answer).toBe(
+      '2 training records are expiring soon: Priya Sharma — Fire Safety, expired on 1 October; ' +
+      'Jane Doyle — Safeguarding, expires 3 November.',
+    )
+  })
+
+  it('does not repeat the name when the records are already theirs', () => {
+    const answer = formatFactAnswer(
+      training({ staffName: 'Priya Sharma' }),
+      [{ staff_name: 'Priya Sharma', module: 'Fire Safety', expires_at: '2026-10-01' }],
+    )
+    expect(answer).toBe('Priya Sharma has 1 training record expiring soon: Fire Safety, expired on 1 October.')
+  })
+
+  it('says so when nothing is expiring, for the roster and for one person', () => {
+    expect(formatFactAnswer(training(), [])).toBe('No staff training is expiring in the next 30 days.')
+    expect(formatFactAnswer(training({ staffName: 'Priya Sharma' }), []))
+      .toBe('Priya Sharma has no training expiring in the next 30 days.')
+  })
+})
+
+describe('formatFactAnswer — a leave balance', () => {
+  const balance = (overrides: Partial<MicaFactRequest> = {}) =>
+    request({ kind: 'leave-balance', tool: 'get_leave_balance', dayNamed: false, staffName: 'Priya Sharma', ...overrides })
+  const row = (leave_type: string, days_remaining: number, hours_remaining: number, days_allocated = 28) => ({
+    staff_name: 'Priya Sharma', leave_type, duration_type: 'days', days_allocated, days_taken: days_allocated - days_remaining,
+    days_remaining, hours_allocated: 0, hours_taken: 0, hours_remaining,
+  })
+
+  it('aggregates the balance the way the leave cards do: days plus hours', () => {
+    expect(formatFactAnswer(balance(), [row('Annual Leave', 12, 6), row('Sick', 8, 0, 10)])).toBe(
+      'Priya Sharma has 20 days + 6 hours of leave left in 2026: Annual Leave 12 days + 6 hours; Sick 8 days.',
+    )
+  })
+
+  it('does not say the same number twice when there is one type', () => {
+    expect(formatFactAnswer(balance(), [row('Annual Leave', 12, 6)]))
+      .toBe('Priya Sharma has 12 days + 6 hours of leave left in 2026.')
+  })
+
+  it('says an exhausted balance as "no leave left", not as zero days', () => {
+    expect(formatFactAnswer(balance(), [row('Annual Leave', 0, 0)])).toBe('Priya Sharma has no leave left in 2026.')
+  })
+
+  it('says over-taken leave as "over" rather than as a negative number', () => {
+    expect(formatFactAnswer(balance(), [row('Annual Leave', -2, 0)]))
+      .toBe('Priya Sharma is 2 days over their 2026 allowance.')
+  })
+
+  it('drops a leave type that was never allocated, and says when none was', () => {
+    expect(formatFactAnswer(balance(), [row('Annual Leave', 12, 6), row('Unpaid', 0, 0, 0)]))
+      .toBe('Priya Sharma has 12 days + 6 hours of leave left in 2026.')
+    expect(formatFactAnswer(balance(), [row('Unpaid', 0, 0, 0)]))
+      .toBe('Priya Sharma has no leave allowance set up for 2026.')
+  })
+})
+
+describe('formatFactAnswer — how many incidents this month', () => {
+  const incidents = request({
+    kind: 'incidents', tool: 'get_incidents_in_month', dayLabel: 'this month', month: '2026-10', args: { month: '2026-10' },
+  })
+
+  it('reads the count, the severity breakdown, the near misses and the open ones', () => {
+    expect(formatFactAnswer(incidents, [
+      { total: 7, critical: 1, high: 2, medium: 3, low: 1, near_misses: 1, open: 4 },
+    ])).toBe(
+      'There have been 7 incidents this month: 1 critical, 2 high, 3 medium and 1 low. ' +
+      '1 was a near miss. 4 are still open.',
+    )
+  })
+
+  it('drops the severities that did not happen rather than reading out zeros', () => {
+    expect(formatFactAnswer(incidents, [
+      { total: 1, critical: 0, high: 1, medium: 0, low: 0, near_misses: 0, open: 0 },
+    ])).toBe('There have been 1 incident this month: 1 high. None were near misses. All of them are closed.')
+  })
+
+  it('says so when the month has had none', () => {
+    expect(formatFactAnswer(incidents, [{ total: 0 }])).toBe('There have been no incidents this month.')
   })
 })
 

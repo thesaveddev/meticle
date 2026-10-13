@@ -100,6 +100,42 @@ async function resolveServiceUserName(
 }
 
 /**
+ * A spoken name → the one member of staff it names, or why it does not.
+ *
+ * The service-user resolver's twin, and deliberately a separate lookup: a leave
+ * balance and a training record belong to a colleague, and the two name spaces
+ * overlap (a "Grace" is a resident in one home and a carer in the next), so a
+ * single resolver would happily answer a question about a resident with a staff
+ * member's record. Org scoping runs through `users` here for the same reason the
+ * navigation path does: `staff_profiles` carries no organization_id of its own.
+ */
+async function resolveStaffName(
+  orgId: string,
+  name: string,
+): Promise<
+  | { status: 'one'; id: string; name: string }
+  | { status: 'many'; names: string[] }
+  | { status: 'none' }
+> {
+  const staff = await query(
+    `SELECT u.id AS id, sp.first_name || ' ' || sp.last_name AS name
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+      WHERE u.organization_id = $1
+        AND (sp.first_name || ' ' || sp.last_name) ILIKE $2
+      ORDER BY (lower(sp.first_name || ' ' || sp.last_name) = lower($3)) DESC,
+               sp.last_name, sp.first_name
+      LIMIT 2`,
+    [orgId, `%${name}%`, name],
+  );
+  if (staff.rows.length > 1) return { status: 'many', names: staff.rows.map((row) => row.name as string) };
+  if (staff.rows.length === 1) {
+    return { status: 'one', id: staff.rows[0].id as string, name: staff.rows[0].name as string };
+  }
+  return { status: 'none' };
+}
+
+/**
  * Resolves a list question — "who is on shift today", "give me today's
  * appointments", "how is Nora's medication round looking" — into the sentence
  * Mica speaks, from the organisation's own rows.
@@ -127,8 +163,34 @@ async function resolveMicaFact(
   const parsed = parseFactQuestion(utterance, today);
   if (!parsed) return null;
 
+  // Two name spaces, and the question decides which one is looked in: a leave
+  // balance and a training record belong to a member of staff, and every other
+  // answer here is about a resident.
+  const staffScoped = parsed.kind === 'leave-balance' || parsed.kind === 'training-expiry';
+
   let request = parsed;
-  if (parsed.personName) {
+  if (parsed.personName && staffScoped) {
+    const staff = await resolveStaffName(orgId, parsed.personName);
+    if (staff.status === 'many') {
+      return {
+        kind: 'staff-ambiguous',
+        answer: `I found more than one match for ${parsed.personName}: ${staff.names.join(' and ')}. Say the full name.`,
+      };
+    }
+    if (staff.status === 'none') {
+      return {
+        kind: 'staff-unknown',
+        answer: `I couldn't find a staff member called ${parsed.personName}. Say the name again and I'll try.`,
+      };
+    }
+    // The resolved full name goes to the tool, not what was heard: "Priya" must
+    // not be left to the tool's own ILIKE, which would happily blend two Priyas.
+    request = {
+      ...parsed,
+      staffName: staff.name,
+      args: { ...parsed.args, staff_name: staff.name },
+    };
+  } else if (parsed.personName) {
     const resolved = await resolveServiceUserName(orgId, parsed.personName);
     if (resolved.status === 'many') {
       return {
@@ -201,25 +263,15 @@ async function resolveMicaNavigation(orgId: string, utterance: string): Promise<
   // Org scoping runs through `users` here, not `staff_profiles`: the profile
   // table carries no organization_id of its own (mica.tools.ts scopes staff the
   // same way, for the same reason).
-  const staff = await query(
-    `SELECT u.id AS user_id, sp.first_name || ' ' || sp.last_name AS name
-       FROM staff_profiles sp
-       JOIN users u ON u.id = sp.user_id
-      WHERE u.organization_id = $1
-        AND (sp.first_name || ' ' || sp.last_name) ILIKE $2
-      ORDER BY (lower(sp.first_name || ' ' || sp.last_name) = lower($3)) DESC, sp.last_name, sp.first_name
-      LIMIT 2`,
-    [orgId, `%${name}%`, name],
-  );
-  if (staff.rows.length > 1) {
-    return { answer: `I found more than one ${name}: ${staff.rows.map((r) => r.name).join(' and ')}. Say the full name.` };
+  const staff = await resolveStaffName(orgId, name);
+  if (staff.status === 'many') {
+    return { answer: `I found more than one ${name}: ${staff.names.join(' and ')}. Say the full name.` };
   }
-  if (staff.rows.length === 1) {
-    const row = staff.rows[0] as { user_id: string; name: string };
-    const label = `${row.name}'s profile`;
+  if (staff.status === 'one') {
+    const label = `${staff.name}'s profile`;
     // No `person` here on purpose: a staff member is not a care-note subject, so
     // the id must not become the next note's target.
-    return { answer: `Here's ${label}.`, navigate: { destination: 'person', path: `/staff/${row.user_id}`, label } };
+    return { answer: `Here's ${label}.`, navigate: { destination: 'person', path: `/staff/${staff.id}`, label } };
   }
 
   return { answer: `I couldn't find anyone called ${name}. Say the name again and I'll try.` };

@@ -186,10 +186,12 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
     label: 'Ask about your records',
     summary: 'Answers a question in plain English against the records in the period you select: staff on shift, who '
       + 'supports a person, appointments, incidents, the medication round (including overdue doses and medicines '
-      + 'running low), expiring training and leave balances. The common list questions — who is on shift, today\u2019s '
-      + 'appointments, a medication round, who is on leave — are read straight from your own records and answered '
-      + 'without sending anything to the AI provider. The rota and appointment answers also offer to open that '
-      + 'page, and open it when the carer says yes — the same way, and without the provider.',
+      + 'running low), expiring training and leave balances. Every question whose answer is a list or a count of your '
+      + 'own rows — who is on shift, today\u2019s appointments, a medication round, who is on leave, whose training is '
+      + 'expiring, a staff member\u2019s leave balance, who is supporting one person, and how many incidents the month '
+      + 'has had — is read straight from your own records and answered without sending anything to the AI provider, '
+      + 'and the incident count excludes confidential incidents. The rota and appointment answers also offer to open '
+      + 'that page, and open it when the carer says yes — the same way, and without the provider.',
     promptKey: 'unified_intelligence',
     requiresNarrative: true,
     // What the Mica question-answering tool loop can fetch and pass to the

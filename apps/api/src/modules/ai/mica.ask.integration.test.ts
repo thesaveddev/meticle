@@ -66,7 +66,14 @@ function outboundText(): string {
 }
 
 describe('POST /ai/mica/ask', () => {
-  it('answers "who is supporting Grace Roberts today" with real names restored and none sent to the model', async () => {
+  /**
+   * The pseudonymisation boundary, pinned with a question that still needs the
+   * model. "who is supporting Grace Roberts today" used to be this test's fixture
+   * and is now read by `mica.facts.ts` with no provider in the loop at all (the
+   * fact suite answers it end to end), so the boundary is exercised here with the
+   * one question about a person that genuinely stays on this path.
+   */
+  it('answers "tell me about Grace Roberts" with real names restored and none sent to the model', async () => {
     const org = await createOrg()
     const manager = await createUser({
       email: `micaask-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
@@ -127,18 +134,20 @@ describe('POST /ai/mica/ask', () => {
     // The scripted final answer uses the pseudonyms the controller generates
     // from real names. The controller must restore them before responding.
     script = [
-      () => TOOL_CALL('call_1', 'who_supports_person', { person_name: 'Grace Roberts' }),
-      () => FINAL('Grace Roberts is supported by Fatima Iqbal on the day shift at Willow House today, 08:00 to 20:00.'),
+      () => TOOL_CALL('call_1', 'get_person_overview', { person_name: 'Grace Roberts' }),
+      () => FINAL('Grace Roberts is active, in room A1, with one appointment today at 11:30.'),
     ]
 
     const res = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${token}`)
-      .send({ question: 'Who is supporting Grace Roberts today?' })
+      .send({ question: 'Tell me about Grace Roberts' })
 
     expect(res.status).toBe(200)
     expect(res.body.answer).toContain('Grace Roberts')
-    expect(res.body.answer).toContain('Fatima Iqbal')
+    // A fact from the tool result, spoken back: the answer is built from rows this
+    // organisation owns rather than from the model's imagination.
+    expect(res.body.answer).toContain('room A1')
     expect(res.body.tokens).toBeGreaterThan(0)
 
     // Boundary: no real name crosses the LLM boundary. The user's question
@@ -154,9 +163,10 @@ describe('POST /ai/mica/ask', () => {
     expect(toolPayloads).not.toContain('Roberts')
     expect(toolPayloads).not.toContain('Iqbal')
     expect(toolPayloads).toContain('Client ')
-    expect(toolPayloads).toContain('Staff ')
+    // The staff half of the same boundary — a colleague's name never crossing — is
+    // pinned by the medication and training payloads further down this file.
     // And the tool result the model did see is the JSON we sent.
-    expect(outboundText()).toContain('who_supports_person')
+    expect(outboundText()).toContain('get_person_overview')
   })
 
   it('answers "today\'s appointments" via the appointments tool', async () => {
@@ -313,7 +323,7 @@ describe('POST /ai/mica/ask', () => {
     expect(foreignUserMsgs).toEqual(['What about tomorrow?'])
   })
 
-  it('answers medication-round, training-expiry and leave-balance questions via the new tools', async () => {
+  it('answers the medication and training questions through the tools, and the leave balance with no provider at all', async () => {
     const org = await createOrg()
     const admin = await createUser({
       email: `micaask7-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
@@ -463,38 +473,35 @@ describe('POST /ai/mica/ask', () => {
     expect(medToolPayloads).toMatch(/"given_28d":0,"daily_usage":null,"days_until_empty":null/)
 
     // 2. Training expiry.
+    // A stated span is the one training question the deterministic path refuses: it
+    // answers the tool's own 30-day window, and silently substituting that for
+    // "within 14 days" is the wrong answer it must not give. So the model reads
+    // this one, and passes the window the carer actually said.
     script = [
-      () => TOOL_CALL('m2', 'get_training_expiring', {}),
+      () => TOOL_CALL('m2', 'get_training_expiring', { days: 14 }),
       () => FINAL('Priya Sharma\'s Medication Administration training expires in 10 days.'),
     ]
     const training = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${token}`)
-      .send({ question: 'Whose training is expiring soon?' })
+      .send({ question: 'Whose training is expiring within 14 days?' })
     expect(training.status).toBe(200)
     expect(training.body.answer).toContain('Priya Sharma')
 
-    // 3. Leave balance.
-    script = [
-      () => TOOL_CALL('m3', 'get_leave_balance', { staff_name: 'Priya Sharma' }),
-      () => FINAL('Priya Sharma has 20 days of Annual Leave left out of 25.'),
-    ]
+    // 3. Leave balance: read from the rows with no provider call at all. The same
+    // boundary seen from the other side, and the stronger half of it — nothing
+    // leaves the building — which `outbound` proves: the provider sees no call for
+    // this question, so the balance and the name on it never left at all.
+    const callsBefore = outbound.length
     const leave = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${token}`)
       .send({ question: 'How much leave does Priya Sharma have left?' })
     expect(leave.status).toBe(200)
+    expect(leave.body.answer).toContain('Priya Sharma')
     expect(leave.body.answer).toContain('20 days')
-    const leaveToolPayloads = outbound
-      .flatMap((b: any) => b.messages)
-      .filter((m: any) => m.role === 'tool')
-      .map((m: any) => m.content)
-      .join('\n')
-    expect(leaveToolPayloads).toContain('Annual Leave')
-    expect(leaveToolPayloads).toContain('20')
-    // ...and staff/medication names must still be pseudonymised.
-    expect(leaveToolPayloads).not.toContain('Priya')
-    expect(leaveToolPayloads).not.toContain('Sharma')
+    expect(leave.body.tokens).toBeUndefined()
+    expect(outbound.length).toBe(callsBefore)
   })
 
   it('400s when AI is not configured', async () => {

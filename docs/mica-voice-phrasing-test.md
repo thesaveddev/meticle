@@ -260,8 +260,9 @@ is audited as `mica_navigation` with `confirmed: true` and the path.
 
 Three rules keep it from being a trap:
 
-- **Two pages, not four.** Only the rota and the appointments list are offered. A
-  medication round and who is on leave are answered by the sentence itself, and the
+- **Two pages, not eight.** Only the rota and the appointments list are offered. A
+  medication round, who is on leave, whose training is expiring, who is supporting one
+  person and the month's incident count are answered by the sentence itself, and the
   chart behind a round is reached by naming it ("open Nora's MAR chart").
 - **Whole-utterance, like the stop phrases.** "yes, but what about tomorrow" is a
   new question and opens nothing; "no" is not a confirmation, and the offer simply
@@ -286,16 +287,96 @@ latest offer winning, a second "yes" opening nothing, and a "yes" that answered 
 question opening nothing), plus `MicaProvider.navigation.test.tsx` for the client
 routing.
 
+### 7. The next four list questions, and a corpus that keeps them honest (13 Oct)
+
+Section 5 said the deterministic set was the four answers a day's rows could give,
+and that the obvious next additions were the questions a manager asks as often as a
+carer asks who is on shift. They are now read the same way, before every AI gate:
+
+- **whose training is expiring** — "2 training records are expiring soon: Priya
+  Sharma — Fire Safety, expired on 1 October; Jane Doyle — Safeguarding, expires 3
+  November."
+- **how much leave a staff member has left** — "Priya Sharma has 12 days + 6 hours of
+  leave left in 2026." The aggregate the leave cards use, never a decimal, and an
+  over-taken balance is said as "2 days over" rather than as a negative number.
+- **who is supporting one person** — "One person is supporting Grace Roberts today:
+  Priya Sharma (day shift, Oak House, 8am to 8pm). 1 visit has nobody assigned yet."
+  Rota shifts and domiciliary visits in one sentence, and an unassigned visit is said
+  rather than hidden — "Grace has a visit and no carer" is the answer a manager
+  needs.
+- **how many incidents this month** — "There have been 7 incidents this month: 1
+  critical, 2 high, 3 medium and 1 low. 1 was a near miss. 4 are still open."
+
+Four decisions are worth stating, because each is a rule a later widening could
+break:
+
+- **A count is not a narrative.** "how many incidents this month" is answered;
+  "summarise this month's incidents" is not. The count is scoped by `incident_date`
+  (what the incidents page itself filters on), **excludes confidential incidents**
+  exactly as the incidents stats endpoint does, and returns the summary row alone —
+  no titles, no names — so this path cannot become a second door onto a confidential
+  record.
+- **Two name spaces, resolved separately.** A balance and a training record belong to
+  a member of staff; every other answer here is about a resident. `resolveStaffName`
+  is the service-user resolver's twin, and the question decides which one is used, so
+  a "Grace" who is a resident cannot answer a colleague's leave question. Two
+  colleagues sharing a first name produce the same spoken "say the full name" two
+  residents do, and no balance is read out in the meantime.
+- **A window it cannot parse is still refused, in every shape.** "within 7 days",
+  "in the next 90 days", "last year" and "3 weeks from now" all return `null` rather
+  than being answered with the tool's own default window — the same rule that refuses
+  "next Tuesday" for the rota. The model can pass the window the carer actually said;
+  this module cannot, so it does not guess.
+- **Two pages, still.** None of the four offers a page: three are answered by the
+  sentence, and a count offers nothing at all.
+- **The question has to reach the answer.** The client has a vocabulary of its own,
+  and its training-expiry rule treated *any* sentence with a training word and an
+  expiry word as a renewal-task draft — so "whose training is expiring" was filed as
+  a generic "Training renewal follow-up" and the answer never arrived. This is the
+  misroute class the settle fallback exists for, one layer down. `looksLikeQuestion`
+  now guards that implicit write (a leading question word, or a trailing question
+  mark) and the routing table sends the question to the endpoint that answers it:
+  the answer is spoken instead of a task being drafted, and neither the note nor the
+  action endpoint is touched. The *statement* keeps its long-standing draft — "Tom's
+  manual handling runs out soon" is still a renewal task — so the write path is
+  unchanged; only questions moved.
+
+And the corpus. `mica.facts.corpus.test.ts` holds the vocabulary as a table instead
+of as scattered assertions: 40 phrases that must resolve (each naming the kind and the
+read-only tool, with every kind covered by at least two), 28 that must stay on the
+model path (each labelled with the class of refusal it guards — judgement, write,
+window, statement, no-person — and every class held by more than one phrase). Around
+the table sit the invariants no table can hold: every kind formats without leaking
+`undefined` or `NaN`, every argument the parser builds is one the tool actually
+declares, the pages offered are still exactly two, and a list answer's offer is still
+appended to the sentence it already had. Widening the vocabulary is now one row;
+narrowing it is one failing row.
+
+Pinned by `mica.facts.test.ts` (51 unit tests: the phrases, the refusals and the exact
+sentences), `mica.facts.corpus.test.ts` (14: the corpus and the invariants around it,
+including that the capability disclosure an admin reads names every answer this path
+gives) and `mica.facts.integration.test.ts` (19 tests, still with
+`ai_config.enabled = false`: the four new answers end to end, including a month's
+count that excludes both the confidential row and last month's, plus the controls that
+a summary and a nameless balance still get the gate). The voice path is pinned from
+the transcript in `MicaProvider.navigation.test.tsx`, and the client-side vocabulary
+in `useMica.intents.test.ts`.
+
 ### Still open, and honestly so
 
 - **No live pass.** Everything above is pinned by scripted tests
-  (`mica.navigation.test.ts` 54, `mica.navigate.integration.test.ts` 6,
-  `mica.facts.test.ts` 32, `mica.facts.integration.test.ts` 13, `mica.session.test.ts`
-  6, and the web tests across `src/components/mica`). Nothing here has been re-run
-  against a real provider or a real microphone since the change.
-- **The deterministic set is intentionally small.** Training expiry, leave
-  *balances*, "who is supporting X" and the Incidents count are still model
-  questions; the first three are the obvious next additions.
+  (`mica.navigation.test.ts` 56, `mica.navigate.integration.test.ts` 6,
+  `mica.facts.test.ts` 51, `mica.facts.corpus.test.ts` 13,
+  `mica.facts.integration.test.ts` 19, `mica.session.test.ts` 6, and 51 web tests
+  across `src/components/mica`). Nothing here has been re-run against a real provider
+  or a real microphone since the change.
+- **The deterministic set is still deliberately narrow.** It answers lists and counts
+  of the organisation's own rows, and nothing else: a percentage, a trend, a summary
+  and advice all stay the model's. The next candidates — "how is the rota looking
+  today" and "any medication overdue" — are both judgement questions rather than list
+  reads, so they are not next; the list-shaped gaps are a person's care plan and
+  incident *reporting* status, which have pages that would have to accept a filter
+  first (see the query-parameter note below).
 - **The voice loop itself is component-tested, not browser-tested.** Continuous
   listening, the VAD hand-off and the bar's audio pulse need a browser and a
   device; what is asserted is the vocabulary, the routing, the surfaces and the

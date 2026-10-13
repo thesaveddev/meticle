@@ -4,7 +4,8 @@ import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import {
   createOrg, createUser, createPerson, createLocation, createStaffProfile,
-  createShift, createLeaveType, createLeaveRequest, generateToken, sessionDay,
+  createShift, createLeaveType, createLeaveRequest, createTrainingModule, createTrainingRecord,
+  generateToken, sessionDay,
 } from '../../test/factories'
 import { migrateQuery } from '../../shared/database'
 
@@ -309,5 +310,142 @@ describe('POST /ai/mica/ask — the list answer offers its page, and a "yes" ope
     expect(res.status).toBe(200)
     expect(res.body.offer).toBeUndefined()
     expect(res.body.answer).not.toMatch(/want me to open/i)
+  })
+})
+
+/**
+ * The second batch of list questions, end to end and with no provider configured.
+ *
+ * Same condition as every answer above (`ai_config.enabled = false`), for the same
+ * reason: these four were the questions this path used to hand to the tool loop,
+ * and they are the ones an organisation with no OpenAI key could not ask at all.
+ * Each case seeds real rows through the real tools' SQL and asserts the sentence a
+ * carer hears, plus the two controls that keep the boundary honest — a summary is
+ * still the model's, and a balance with no name is still the model's.
+ *
+ * Dates are inserted relative to the *database's* CURRENT_DATE rather than a
+ * JavaScript timestamp: the month the incident count is scoped to is the database
+ * session's month, and a suite that computed its own would fail for a few hours
+ * every month end — the same trap `sessionDay` exists to close.
+ */
+describe('POST /ai/mica/ask — the next four list questions, still with no provider', () => {
+  const inDays = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+
+  it('answers whose training is expiring from the training records', async () => {
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const module = await createTrainingModule({ organization_id: seeded.org.id, name: 'Fire Safety' })
+    await createTrainingRecord({ module_id: module.id, staff_id: carer.profile.id, expires_at: inDays(10) })
+
+    const res = await ask(seeded.token, 'Whose training is expiring soon?')
+
+    expect(res.status).toBe(200)
+    expect(res.body.answer).toContain('Priya Sharma')
+    expect(res.body.answer).toContain('Fire Safety')
+    expect(res.body.answer).toContain('expiring soon')
+    expect(res.body.tokens).toBeUndefined()
+  })
+
+  it('answers how much leave a staff member has left, aggregated as days plus hours', async () => {
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const leaveType = await createLeaveType({ organization_id: seeded.org.id, name: 'Annual Leave', days_allowed: 28 })
+    await migrateQuery(
+      `INSERT INTO leave_balances (id, staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
+       VALUES (gen_random_uuid(), $1, $2, EXTRACT(YEAR FROM CURRENT_DATE)::int, 28, 16, 0, 0)`,
+      [carer.profile.id, leaveType.id],
+    )
+
+    const res = await ask(seeded.token, 'How much leave does Priya Sharma have left?')
+
+    expect(res.status).toBe(200)
+    expect(res.body.answer).toContain('Priya Sharma has 12 days of leave left')
+    expect(res.body.tokens).toBeUndefined()
+  })
+
+  it('will not answer a balance for a name it cannot place, and says which', async () => {
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const first = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const second = await seedCarer(seeded.org.id, location.id, 'Priya', 'Kapoor')
+    const leaveType = await createLeaveType({ organization_id: seeded.org.id, name: 'Annual Leave' })
+    for (const carer of [first, second]) {
+      await migrateQuery(
+        `INSERT INTO leave_balances (id, staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
+         VALUES (gen_random_uuid(), $1, $2, EXTRACT(YEAR FROM CURRENT_DATE)::int, 28, 0, 0, 0)`,
+        [carer.profile.id, leaveType.id],
+      )
+    }
+
+    const res = await ask(seeded.token, 'How much leave does Priya have left?')
+
+    expect(res.status).toBe(200)
+    expect(res.body.answer).toMatch(/more than one match/i)
+    expect(res.body.answer).toContain('Priya Sharma')
+    expect(res.body.answer).toContain('Priya Kapoor')
+    // Two colleagues, two balances: neither is read out against the other.
+    expect(res.body.answer).not.toMatch(/days of leave left/)
+  })
+
+  it('answers who is supporting one person, across the rota', async () => {
+    const seeded = await seedOrg()
+    const person = await createPerson({
+      organization_id: seeded.org.id, first_name: 'Grace', last_name: 'Roberts', status: 'active',
+    })
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const shift = await createShift({
+      location_id: location.id, person_id: person.id, start_time: at(8), end_time: at(20), status: 'filled',
+    })
+    await migrateQuery(
+      `INSERT INTO shift_assignments (id, shift_id, staff_id, status) VALUES (gen_random_uuid(), $1, $2, 'assigned')`,
+      [shift.id, carer.profile.id],
+    )
+
+    const res = await ask(seeded.token, 'Who is supporting Grace Roberts today?')
+
+    expect(res.status).toBe(200)
+    expect(res.body.answer).toContain('Priya Sharma')
+    expect(res.body.answer).toContain('supporting Grace Roberts today')
+    expect(res.body.tokens).toBeUndefined()
+  })
+
+  it('counts the month\'s incidents, excluding confidential ones and other months', async () => {
+    const seeded = await seedOrg()
+    // Four rows in one statement, three of them this month: the two the count must
+    // find, the confidential one it must not, and last month's, outside the window.
+    await migrateQuery(
+      `INSERT INTO incidents (id, organization_id, title, description, incident_date, severity, status, is_near_miss, is_confidential)
+       VALUES (gen_random_uuid(), $1, 'Fire door held open', 'test', CURRENT_DATE, 'high', 'reported', FALSE, FALSE),
+              (gen_random_uuid(), $1, 'Near miss on stairs', 'test', CURRENT_DATE, 'low', 'reported', TRUE, FALSE),
+              (gen_random_uuid(), $1, 'Confidential matter', 'test', CURRENT_DATE, 'critical', 'reported', FALSE, TRUE),
+              (gen_random_uuid(), $1, 'Last month', 'test', (CURRENT_DATE - interval '40 days')::date, 'medium', 'closed', FALSE, FALSE)`,
+      [seeded.org.id],
+    )
+
+    const res = await ask(seeded.token, 'How many incidents this month?')
+
+    expect(res.status).toBe(200)
+    expect(res.body.answer).toContain('There have been 2 incidents this month')
+    expect(res.body.answer).toContain('1 was a near miss')
+    // A count, never a record: no title, and nothing from a confidential row.
+    expect(res.body.answer).not.toMatch(/fire door|confidential|last month/i)
+    expect(res.body.tokens).toBeUndefined()
+  })
+
+  it('leaves the two questions with no answer to read on the model path — and its gate closed', async () => {
+    const seeded = await seedOrg()
+
+    // A summary of the same incidents the count answers: judgement, not a count.
+    const summary = await ask(seeded.token, "Summarise this month's incidents")
+    expect(summary.status).toBe(400)
+    expect(summary.body.error.message).toMatch(/AI not configured/i)
+
+    // A balance with no name in it: whose balance would be read out?
+    const balance = await ask(seeded.token, 'How much leave is left?')
+    expect(balance.status).toBe(400)
+    expect(balance.body.answer).toBeUndefined()
   })
 })

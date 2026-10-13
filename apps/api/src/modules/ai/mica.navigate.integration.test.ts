@@ -125,7 +125,10 @@ describe('POST /ai/mica/ask — navigation', () => {
 
   it('leaves a question on the question path — which needs the provider it is missing', async () => {
     const seeded = await seedOrg()
-    const res = await ask(seeded.token, 'how many incidents this month')
+    // Reading coverage needs open-versus-filled judgement, so the fact path answers
+    // neither this question nor any part of it — and the word "rota" in the
+    // sentence must not tempt navigation into opening the planner either.
+    const res = await ask(seeded.token, 'how is the rota looking today')
 
     // The gate, not a route: this is the proof that the question path was taken
     // and that navigation did not swallow a question.
