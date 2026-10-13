@@ -186,6 +186,9 @@ describe('POST /ai/mica/ask', () => {
       }), org.id],
     )
 
+    // The phrasing is a future window on purpose: "today's appointments" is now
+    // answered deterministically (mica.facts.integration.test.ts), and what this
+    // test is for is the tool loop, so it asks the question that still needs it.
     script = [
       () => TOOL_CALL('call_1', 'get_appointments', {}),
       () => FINAL('Ade Okafor has a dental check today at 14:00.'),
@@ -194,7 +197,7 @@ describe('POST /ai/mica/ask', () => {
     const res = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${generateToken(admin)}`)
-      .send({ question: 'Give me the appointments of today' })
+      .send({ question: 'Are there any appointments coming up for Ade Okafor?' })
 
     expect(res.status).toBe(200)
     expect(res.body.answer).toContain('Ade Okafor')
@@ -218,7 +221,9 @@ describe('POST /ai/mica/ask', () => {
     const res = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${generateToken(admin)}`)
-      .send({ question: 'Who is on shift?' })
+      // A narrative question, not one of the deterministic list answers: the
+      // gate is what is under test, and "who is on shift" no longer reaches it.
+      .send({ question: "Summarise this month's incidents" })
     expect(res.status).toBe(403)
     expect(outbound.length).toBe(0)
   })
@@ -243,20 +248,24 @@ describe('POST /ai/mica/ask', () => {
     )
     const token = generateToken(admin)
 
-    // Turn 1: a normal question answered by a tool.
-    script = [
-      () => TOOL_CALL('c1', 'get_staff_on_shift', {}),
-      () => FINAL('Three staff are on shift today.'),
-    ]
+    // Turn 1: a deterministic list answer — no provider call at all, because the
+    // rota question is answered from the organisation's own rows.
     const first = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${token}`)
       .send({ question: 'Who is on shift today?' })
     expect(first.status).toBe(200)
+    expect(first.body.tokens).toBeUndefined()
+    expect(outbound.length).toBe(0)
     const sessionId = first.body.sessionId as string
+    // The deterministic answer still opens a conversation, which is what makes
+    // the follow-up below resolverable.
     expect(sessionId).toBeTruthy()
+    const deterministicAnswer = first.body.answer as string
+    expect(deterministicAnswer).toMatch(/shift today/)
 
-    // Turn 2: the elliptical follow-up. The model must see the prior turn.
+    // Turn 2: the elliptical follow-up. The model must see the prior turn —
+    // including the deterministic answer the carer actually heard.
     script = [
       () => FINAL('Tomorrow has two staff rostered.'),
     ]
@@ -274,12 +283,12 @@ describe('POST /ai/mica/ask', () => {
     // Prior question replayed, then the new one — the follow-up is grounded.
     expect(secondUserMsgs).toContain('Who is on shift today?')
     expect(secondUserMsgs).toContain('What about tomorrow?')
-    // And the prior assistant answer is in context too.
+    // And the prior assistant answer — the deterministic one — is in context too.
     const assistantMsgs = outbound
       .flatMap((b: any) => b.messages)
       .filter((m: any) => m.role === 'assistant' && typeof m.content === 'string')
       .map((m: any) => m.content)
-    expect(assistantMsgs).toContain('Three staff are on shift today.')
+    expect(assistantMsgs).toContain(deterministicAnswer)
 
     // Security: another user's token with the same sessionId gets a fresh
     // conversation — no cross-user leak of the prior turn.
@@ -499,7 +508,8 @@ describe('POST /ai/mica/ask', () => {
     const res = await request(app)
       .post('/ai/mica/ask')
       .set('Authorization', `Bearer ${generateToken(admin)}`)
-      .send({ question: 'Who is on shift?' })
+      // Not a deterministic list answer, so the gate is still the wall it was.
+      .send({ question: "Summarise this month's incidents" })
     expect(res.status).toBe(400)
   })
 })

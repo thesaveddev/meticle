@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined, Person as PersonIcon, Search as SearchIcon, Today as TodayIcon } from '@mui/icons-material'
@@ -193,9 +193,13 @@ export default function EMedicationPage() {
   const [personMedicationSearch, setPersonMedicationSearch] = useState('')
   const [selectedLocationFilter, setSelectedLocationFilter] = useState('all')
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+  // Mica navigates with a month in the URL (/emedication?personId=…&month=2026-03),
+  // so a requested month seeds the state. An unparseable value keeps today's month
+  // rather than leaving the page pointed at a chart that cannot exist.
   const [month, setMonth] = useState(() => {
-    const m = todayStr().slice(0, 7)
-    return m
+    const requested = searchParams.get('month')
+    if (requested && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested)) return requested
+    return todayStr().slice(0, 7)
   })
   const [recordDialog, setRecordDialog] = useState(false)
   const [editRecord, setEditRecord] = useState<MedicationRecord | null>(null)
@@ -276,6 +280,20 @@ export default function EMedicationPage() {
     queryKey: ['people-list'],
     queryFn: async () => { const res = await api.get('/people'); return res.data as any[] }
   })
+
+  // Deep link: /emedication?personId=<uuid> selects that person once the list has
+  // loaded — this is how Mica opens "Evan Turner's MAR chart" after hearing the
+  // name. Applied once per mount, so a person the user picks afterwards is not
+  // dragged back by the URL still carrying the id it arrived with.
+  const requestedPersonId = searchParams.get('personId')
+  const deepLinkPersonApplied = useRef(false)
+  useEffect(() => {
+    if (deepLinkPersonApplied.current || !requestedPersonId || !people) return
+    const match = (people as any[]).find((p: any) => p.id === requestedPersonId)
+    if (!match) return
+    deepLinkPersonApplied.current = true
+    setSelectedPerson(match)
+  }, [requestedPersonId, people])
   const { data: locations = [], isError: locationsError } = useQuery({
     queryKey: ['emedication-authorized-locations'],
     queryFn: async () => {

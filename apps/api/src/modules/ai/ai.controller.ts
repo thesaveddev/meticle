@@ -12,7 +12,11 @@ import type { AiCapability } from './ai.capabilities';
 import { AuditRepository } from '../audit/audit.repository';
 import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE, AI_FLAG_DISCLOSURES, getDisclosureForFeature } from './ai.capabilities';
 import { PROMPTS } from './ai.prompts';
-import { migrateQuery } from '../../shared/database';
+import { migrateQuery, query } from '../../shared/database';
+import { parseNavigationRequest, formatNavigationMonth } from './mica.navigation';
+import { parseFactQuestion, formatFactReply, parseFactConfirmation } from './mica.facts';
+import type { MicaFactPage } from './mica.facts';
+import type { MicaPendingPage } from './mica.session';
 import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
 import { decryptField } from '../../shared/utils/encryption';
@@ -22,6 +26,205 @@ import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
  * Centralised AI call helper with budget enforcement and provider fallback.
  * All AI calls should go through this function.
  */
+/**
+ * The reply Mica's navigation path returns: what to say, and where to go.
+ *
+ * `navigate` is absent when the destination could not be honoured — a spoken
+ * name that matches nobody, or matches more than one person. In those cases the
+ * answer says so and no route is pushed, because opening a page that looks like
+ * the answer when it is not is worse than saying the name back and asking again.
+ */
+interface MicaNavigationReply {
+  answer: string;
+  navigate?: {
+    destination: string;
+    path: string;
+    label: string;
+    person?: { id: string; name: string };
+  };
+}
+
+/**
+ * Resolves a spoken destination into a route the client can push.
+ *
+ * The deterministic half lives in `mica.navigation.ts` (no model sees this); the
+ * only thing that cannot be resolved without a database is which *person* a name
+ * refers to, so that lookup — org-scoped and LIMITed, exactly like the read-only
+ * Mica tools — is all this does. Two consequences are deliberate:
+ *
+ *   1. No model, no tokens, no budget. Navigation runs before the AI config
+ *      gates in `micaAsk`, so "open the incidents" works for an organisation
+ *      that has not configured a provider at all.
+ *   2. An ambiguous or unknown name is never guessed. "There's more than one
+ *      Evan" is spoken and the next sentence retries the name; the alternative
+ *      — picking one and opening their chart — is the single failure this flow
+ *      must not make with medication records.
+ */
+/**
+ * A spoken name → the one service user it names, or why it does not.
+ *
+ * One query, org-scoped and LIMITed, exported to both deterministic Mica paths
+ * (navigation and the list facts) so a name resolves identically whichever way
+ * the carer asked. The ordering is the disambiguation rule: an exact full-name
+ * match wins over a substring one, a former resident never outranks an active
+ * one, and only then does the alphabet decide.
+ *
+ * `many` is deliberately not a guess. Two people share a first name often enough
+ * that "which Grace?" is a normal question, and picking one silently is the
+ * single failure neither path may make with a person's records.
+ */
+async function resolveServiceUserName(
+  orgId: string,
+  name: string,
+): Promise<
+  | { status: 'one'; id: string; name: string }
+  | { status: 'many'; names: string[] }
+  | { status: 'none' }
+> {
+  const people = await query(
+    `SELECT id, first_name || ' ' || last_name AS name
+       FROM people
+      WHERE organization_id = $1
+        AND (first_name || ' ' || last_name) ILIKE $2
+      ORDER BY (lower(first_name || ' ' || last_name) = lower($3)) DESC,
+               (status = 'active') DESC,
+               last_name, first_name
+      LIMIT 2`,
+    [orgId, `%${name}%`, name],
+  );
+  if (people.rows.length > 1) return { status: 'many', names: people.rows.map((row) => row.name as string) };
+  if (people.rows.length === 1) {
+    return { status: 'one', id: people.rows[0].id as string, name: people.rows[0].name as string };
+  }
+  return { status: 'none' };
+}
+
+/**
+ * Resolves a list question — "who is on shift today", "give me today's
+ * appointments", "how is Nora's medication round looking" — into the sentence
+ * Mica speaks, from the organisation's own rows.
+ *
+ * No model, no tokens, no budget, no network: the parsing and the phrasing are
+ * pure (`mica.facts.ts`) and the only database work is the one name lookup a
+ * parser cannot do plus the tool's own bounded SELECT. That is what lets this
+ * run before the AI gates in `micaAsk` and answer for an organisation that has
+ * not configured a provider at all.
+ *
+ * `null` means "not one of these facts" — a question needing judgement, a write,
+ * or a day window this module has no arithmetic for — and the utterance carries
+ * on to the paths that already handle it.
+ *
+ * When the list came from a page, the reply carries that page too (`page`) and
+ * ends by asking whether to open it; `micaAsk` remembers it in the conversation so
+ * the carer's next word opens it, still with no provider in the loop.
+ */
+async function resolveMicaFact(
+  orgId: string,
+  utterance: string,
+): Promise<{ answer: string; kind: string; page?: MicaFactPage } | null> {
+  const todayRes = await query('SELECT CURRENT_DATE::text AS day');
+  const today = String(todayRes.rows[0]?.day || new Date().toISOString().slice(0, 10));
+  const parsed = parseFactQuestion(utterance, today);
+  if (!parsed) return null;
+
+  let request = parsed;
+  if (parsed.personName) {
+    const resolved = await resolveServiceUserName(orgId, parsed.personName);
+    if (resolved.status === 'many') {
+      return {
+        kind: 'person-ambiguous',
+        answer: `I found more than one match for ${parsed.personName}: ${resolved.names.join(' and ')}. Say the full name.`,
+      };
+    }
+    if (resolved.status === 'none') {
+      return {
+        kind: 'person-unknown',
+        answer: `I couldn't find anyone called ${parsed.personName}. Say the name again and I'll try.`,
+      };
+    }
+    // The resolved full name goes to the tool, not what was heard: "Nora" must
+    // not be left to the tool's own ILIKE, which would happily sum two Noras.
+    request = {
+      ...parsed,
+      personName: resolved.name,
+      args: { ...parsed.args, person_name: resolved.name },
+    };
+  }
+
+  const tool = findMicaTool(request.tool);
+  if (!tool) return null;
+  const rows = await tool.execute(orgId, request.args);
+  // `formatFactReply` decides the sentence and the page offer together, so a
+  // reply that could not read a list can never end up offering the page it would
+  // have come from.
+  const reply = formatFactReply(request, rows);
+  return { answer: reply.answer, kind: request.kind, ...(reply.page ? { page: reply.page } : {}) };
+}
+
+async function resolveMicaNavigation(orgId: string, utterance: string): Promise<MicaNavigationReply | null> {
+  const todayRes = await query('SELECT CURRENT_DATE::text AS day');
+  const today = String(todayRes.rows[0]?.day || new Date().toISOString().slice(0, 10));
+  const parsed = parseNavigationRequest(utterance, today);
+  if (!parsed) return null;
+
+  const name = parsed.needsPerson ? parsed.personName : undefined;
+
+  // No person to resolve: the destination stands on its own, with its month if
+  // it has one.
+  if (!name) {
+    const search = parsed.monthParam && parsed.month ? `?${parsed.monthParam}=${parsed.month}` : '';
+    const label = parsed.month ? `${parsed.label} — ${formatNavigationMonth(parsed.month)}` : parsed.label;
+    return { answer: `Opening ${label}.`, navigate: { destination: parsed.destination, path: `${parsed.path}${search}`, label } };
+  }
+
+  const people = await resolveServiceUserName(orgId, name);
+
+  if (people.status === 'many') {
+    return { answer: `I found more than one match for ${name}: ${people.names.join(' and ')}. Say the full name.` };
+  }
+
+  if (people.status === 'one') {
+    const person = { id: people.id, name: people.name };
+    if (parsed.destination === 'person') {
+      const label = `${person.name}'s profile`;
+      return { answer: `Here's ${label}.`, navigate: { destination: parsed.destination, path: `/people/${person.id}`, label, person } };
+    }
+    const monthPrefix = parsed.month ? `${formatNavigationMonth(parsed.month)} ` : '';
+    const label = `${person.name}'s ${monthPrefix}MAR chart`;
+    const search = `?personId=${person.id}${parsed.month ? `&month=${parsed.month}` : ''}`;
+    return { answer: `Here's ${label}.`, navigate: { destination: parsed.destination, path: `${parsed.path}${search}`, label, person } };
+  }
+
+  // Nobody in this organisation's service-user records: the other place a
+  // spoken name lives is the staff directory, and "open Priya's profile" is a
+  // staff page. `/staff/:userId` takes the user id, not the staff profile id.
+  // Org scoping runs through `users` here, not `staff_profiles`: the profile
+  // table carries no organization_id of its own (mica.tools.ts scopes staff the
+  // same way, for the same reason).
+  const staff = await query(
+    `SELECT u.id AS user_id, sp.first_name || ' ' || sp.last_name AS name
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+      WHERE u.organization_id = $1
+        AND (sp.first_name || ' ' || sp.last_name) ILIKE $2
+      ORDER BY (lower(sp.first_name || ' ' || sp.last_name) = lower($3)) DESC, sp.last_name, sp.first_name
+      LIMIT 2`,
+    [orgId, `%${name}%`, name],
+  );
+  if (staff.rows.length > 1) {
+    return { answer: `I found more than one ${name}: ${staff.rows.map((r) => r.name).join(' and ')}. Say the full name.` };
+  }
+  if (staff.rows.length === 1) {
+    const row = staff.rows[0] as { user_id: string; name: string };
+    const label = `${row.name}'s profile`;
+    // No `person` here on purpose: a staff member is not a care-note subject, so
+    // the id must not become the next note's target.
+    return { answer: `Here's ${label}.`, navigate: { destination: 'person', path: `/staff/${row.user_id}`, label } };
+  }
+
+  return { answer: `I couldn't find anyone called ${name}. Say the name again and I'll try.` };
+}
+
 function sourceUrl(sourceType: string, sourceId: string, record?: any): string | undefined {
   switch (sourceType) {
     case 'daily_note':
@@ -1431,6 +1634,130 @@ export class AIController {
     const userId = req.user?.userId;
     if (!orgId || !userId) {
       return res.status(400).json({ error: { message: 'Organization and user required' } });
+    }
+
+    // Navigation first, and before every AI gate below it. A destination
+    // request is resolved deterministically (no provider, no tokens), so
+    // "open the incidents" or "give me Evan Turner's MAR chart for March"
+    // works for an organisation that has not configured a model at all — and
+    // costs nothing for the ones that have.
+    try {
+      const startedAt = Date.now();
+      const navigation = await resolveMicaNavigation(orgId, (req.body as { question: string }).question);
+      if (navigation) {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'mica_navigation',
+          model: 'deterministic',
+          provider: 'deterministic',
+          durationMs: Date.now() - startedAt,
+          createdBy: userId,
+          requestData: { question: (req.body as { question: string }).question },
+          responseSummary: navigation.navigate ? navigation.navigate.path : 'no-destination',
+        }).catch(() => undefined);
+        return res.json(navigation);
+      }
+    } catch (err: any) {
+      // A resolver failure must not take the question path down with it: the
+      // model below can still answer, and a failed lookup is not a failed ask.
+      logger.warn({ message: err?.message }, 'Mica navigation resolution failed');
+    }
+
+    // List questions next — "who is on shift today", "give me today's
+    // appointments", "how is Nora's medication round looking" — and still before
+    // every AI gate, for the same reason as navigation: the answer is a bounded
+    // set of the organisation's own rows, so it needs no provider, no tokens and
+    // no budget, and an organisation with no AI configured still gets it.
+    try {
+      const startedAt = Date.now();
+      const question = (req.body as { question: string }).question;
+      const fact = await resolveMicaFact(orgId, question);
+      if (fact) {
+        // The answer joins the conversation memory exactly as a model answer
+        // does, so the elliptical follow-up ("what about tomorrow?") is grounded
+        // in what the carer just heard. A session store failure costs nothing
+        // here: the answer is already formed, so it is still spoken.
+        const session = await loadOrCreateSession(
+          orgId,
+          userId,
+          (req.body as { sessionId?: string }).sessionId,
+        );
+        // The page the answer came from, when there is one, is remembered in the
+        // conversation: the carer's next word is answered by the server that
+        // asked the question, and recording this turn is also what retires any
+        // earlier offer. Only a route travels — never a name or an id.
+        const page: MicaPendingPage | undefined = fact.page
+          ? { destination: fact.page.destination, path: fact.page.path, label: fact.page.label }
+          : undefined;
+        if (session) await recordTurn(session, question, fact.answer, page).catch(() => undefined);
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'mica_fact',
+          model: 'deterministic',
+          provider: 'deterministic',
+          durationMs: Date.now() - startedAt,
+          createdBy: userId,
+          requestData: { question },
+          // The kind, never the answer: this log is readable by ORG_ADMINs and
+          // the answer echoes record data (names, medication, rota).
+          responseSummary: fact.kind,
+        }).catch(() => undefined);
+        return res.json({
+          answer: fact.answer,
+          // `navigate` means "go there now"; `offer` means "this page is waiting on
+          // your yes". The client needs only to know one is outstanding — it
+          // routes the next utterance back here, and the route is opened here.
+          ...(page ? { offer: page } : {}),
+          ...(session ? { sessionId: session.sessionId } : {}),
+        });
+      }
+    } catch (err: any) {
+      // Same rule as navigation: a failed lookup is not a failed ask.
+      logger.warn({ message: err?.message }, 'Mica fact resolution failed');
+    }
+
+    // The other half of a list answer: the carer confirms the page Mica offered
+    // in it. "yes", "okay", "go on" are not questions and not care notes, and a
+    // destination spoken once is not worth parsing twice — the route was resolved
+    // when the list was read and remembered in the conversation, so confirming it
+    // costs one session read and no parse at all. Like the answer it confirms, it
+    // runs before every AI gate: an organisation with no provider configured hears
+    // "want me to open the rota planner?" and can still say yes.
+    //
+    // Only an utterance shaped like a confirmation touches the store, so an
+    // ordinary question pays nothing for this. A "yes" with nothing outstanding
+    // falls through untouched to the paths that already handled it.
+    const response = req.body as { question: string; sessionId?: string };
+    const answering = response.question;
+    if (parseFactConfirmation(answering)) {
+      try {
+        const startedAt = Date.now();
+        const session = await loadOrCreateSession(orgId, userId, response.sessionId);
+        const offered = session?.pendingPage;
+        if (session && offered) {
+          const confirmed: MicaNavigationReply = {
+            answer: `Opening ${offered.label}.`,
+            navigate: { destination: offered.destination, path: offered.path, label: offered.label },
+          };
+          // The confirmation is itself a turn, and recording it is what retires
+          // the offer: a second "yes" cannot re-open the same page.
+          await recordTurn(session, answering, confirmed.answer).catch(() => undefined);
+          await AIRepository.logAudit({
+            organizationId: orgId,
+            feature: 'mica_navigation',
+            model: 'deterministic',
+            provider: 'deterministic',
+            durationMs: Date.now() - startedAt,
+            createdBy: userId,
+            requestData: { question: answering, confirmed: true },
+            responseSummary: offered.path,
+          }).catch(() => undefined);
+          return res.json({ ...confirmed, sessionId: session.sessionId });
+        }
+      } catch (err: any) {
+        // Same rule as the rest: a failed lookup is not a failed ask.
+        logger.warn({ message: err?.message }, 'Mica page confirmation failed');
+      }
     }
 
     const config = await AIRepository.getConfig(orgId);

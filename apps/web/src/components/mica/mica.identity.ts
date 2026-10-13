@@ -33,6 +33,14 @@ export type MicaState = 'idle' | 'listening' | 'thinking' | 'responding' | 'erro
 export const MICA_STATES: readonly MicaState[] = ['idle', 'listening', 'thinking', 'responding', 'error']
 
 /**
+ * The states a live session can be in. The surfaces a session owns — the
+ * overlay, the minimised bar — render only for these, so typing them on the
+ * active union means "what does the bar say at idle?" is not a question a
+ * component can be asked.
+ */
+export type MicaActiveState = Exclude<MicaState, 'idle'>
+
+/**
  * Accessible names. `orb` and `overlay` are the two names a screen reader
  * announces most often, so they are the ones pinned; mobile carries the same
  * `orb` wording (plus its long-press clause) in `apps/mobile/src/theme.tsx`,
@@ -45,10 +53,14 @@ export const MICA_STATES: readonly MicaState[] = ['idle', 'listening', 'thinking
 export const MICA_LABEL = {
   orb: 'Mica assistant',
   overlay: 'Mica voice assistant',
-  type: 'Type to Mica',
-  send: 'Send to Mica',
   suggestions: 'Mica suggestions',
   orbNeedsVoiceBrowser: 'Mica needs Chrome or Edge for voice',
+  /** The minimised bar, which is what the session lives in once it has navigated. */
+  mini: 'Mica — listening while you work',
+  minimise: 'Minimise Mica and keep listening',
+  expand: 'Expand Mica',
+  end: 'End the conversation with Mica',
+  opened: 'Opened',
 } as const
 
 /**
@@ -83,20 +95,26 @@ export const MICA_GEOMETRY = {
  *   a control the user needs.
  * - `overlay` 1350 — above dialogs (it is the top-level surface while open),
  *   below app snackbars, so unrelated app feedback is still visible.
+ * - `mini` 1250 — the minimised bar. Above the resting orb (it replaces it while
+ *   a session is live) and **below** dialogs, for the same reason the orb is: a
+ *   medication administration dialog or a confirmation must be able to paint
+ *   over it. It stays visible across a route change because it is a shell
+ *   surface, not a page one.
  * - `notice` 1500 — above everything: a blocked-mic explanation must never be
  *   hidden behind the surface that failed to open.
  */
 export const MICA_Z = {
   orb: 1200,
+  mini: 1250,
   overlay: 1350,
   notice: 1500,
 } as const
 
 /** Visible copy for each active state. `error` is required by the type. */
-export const MICA_STATE_COPY: Record<Exclude<MicaState, 'idle'>, { title: string; sub: string; action: string }> = {
-  listening: { title: 'Mica', sub: 'is listening…', action: 'Tap to cancel · Esc' },
-  thinking: { title: 'Mica', sub: 'is thinking…', action: 'Esc to cancel' },
-  responding: { title: 'Mica', sub: 'responding…', action: 'Done · Esc' },
+export const MICA_STATE_COPY: Record<MicaActiveState, { title: string; sub: string; action: string }> = {
+  listening: { title: 'Mica', sub: 'is listening…', action: 'Minimise, or Esc to end' },
+  thinking: { title: 'Mica', sub: 'is thinking…', action: 'Esc to end' },
+  responding: { title: 'Mica', sub: 'responding…', action: 'Minimise, or Esc to end' },
   error: { title: 'Mica', sub: 'could not finish that', action: 'Close · Esc' },
 }
 
@@ -106,8 +124,40 @@ export const MICA_STATE_COPY: Record<Exclude<MicaState, 'idle'>, { title: string
  */
 export const MICA_ANNOUNCEMENT: Record<MicaState, string> = {
   idle: '',
-  listening: 'Mica is listening. Speak your care note, or press Escape to cancel.',
+  listening: 'Mica is listening, and will keep listening after each reply. Say bye, or press Escape, to end.',
   thinking: 'Mica is thinking.',
   responding: 'Mica is responding.',
   error: 'Mica could not complete that request. The message above explains why. Press Escape to close.',
 }
+
+/**
+ * The phrases that end a conversation, matched against the *whole* utterance
+ * (after punctuation is stripped) rather than searched for inside it.
+ *
+ * That whole-utterance rule is the safety property: "close the incident" and
+ * "stop the fire door task" contain stop words, and a session that ended on
+ * them would be unusable — the carer would be cut off mid-sentence, mid-task.
+ * "stop", "bye" and "that's all" on their own are unambiguous, so only those
+ * end the session.
+ */
+export const MICA_STOP_PHRASES: readonly string[] = [
+  'bye',
+  'byebye',
+  'goodbye',
+  'good bye',
+  'exit',
+  'stop',
+  'stop listening',
+  'stop mica',
+  'close mica',
+  'end',
+  'finish',
+  'finished',
+  'that is all',
+  "that's all",
+  'thats all',
+  'no more questions',
+  'thanks mica',
+  'thank you mica',
+  'thanks that is all',
+]

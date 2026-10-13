@@ -1,84 +1,65 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Autocomplete, Box, Button, IconButton, InputAdornment, TextField, Typography } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import SendIcon from '@mui/icons-material/Send'
+import MinimizeIcon from '@mui/icons-material/Minimize'
 import MicaOrb, { type MicaState } from './MicaOrb'
 import { MICA_ANNOUNCEMENT, MICA_LABEL, MICA_STATE_COPY, MICA_Z } from './mica.identity'
-import type { MicaPerson } from './useMica'
-import api from '../../services/api'
+import type { MicaNavigateTarget } from './useMica'
 
 export type { MicaState }
-
-interface PersonOption {
-  id: string
-  first_name: string
-  last_name: string
-  room_number?: string
-}
 
 interface MicaOverlayProps {
   state: MicaState
   audioLevel: number
   transcript: string
   responseMessage: string | null
-  person: MicaPerson | null
-  onPersonChange: (person: MicaPerson | null) => void
-  /** Submitted typed text — the text/keyboard Mica entry point. */
-  onSendText?: (text: string) => void
+  /** The page Mica last opened, shown as a confirmation rather than a claim. */
+  lastNavigation: MicaNavigateTarget | null
+  /** Drop to the bottom bar and keep the session (and the microphone) live. */
+  onMinimise: () => void
+  /** End the conversation. */
   onCancel: () => void
 }
 
-// State copy and screen-reader announcements come from the shared identity
-// contract, so the overlay, the orb and the mobile app cannot describe Mica's
-// states differently (and adding a state fails the type check until copy for
-// it exists).
-const personName = (p: PersonOption) => `${p.first_name} ${p.last_name}`.trim()
-
 /**
- * Full-screen Mica overlay. Dimmed dashboard behind, live orb, waveform and
- * response card in front — mirrors the mobile listening/responding screens.
- * The listening state also carries the keyboard entry path: the same typing
- * box the hearing-impaired or quiet-room user reaches for, wired through the
- * identical intent pipeline as the mic so a typed sentence behaves exactly
- * like a spoken one.
+ * Full-screen Mica, while the carer is looking at Mica rather than at a page.
+ *
+ * Two things are deliberately absent from this surface, and their absence is
+ * the point:
+ *
+ *   1. **No typing box.** Mica is the voice assistant; a text field in the
+ *      middle of it invites a second, quieter conversation that the room cannot
+ *      hear and that the continuous-listening flow then talks over.
+ *   2. **No "who is this about?" picker.** A dropdown is a demand for data entry
+ *      in the middle of a spoken sentence. The subject now comes from the
+ *      utterance, and when it genuinely cannot be told, Mica asks aloud and the
+ *      carer answers — see useMica's pending-clarification handling.
+ *
+ * What replaces them: the destination chip, which says where Mica just took the
+ * user, and a minimise control, because a reply that opens a page should get out
+ * of that page's way instead of covering it.
  */
-export default function MicaOverlay({ state, audioLevel, transcript, responseMessage, person, onPersonChange, onSendText, onCancel }: MicaOverlayProps) {
-  const [people, setPeople] = useState<PersonOption[]>([])
-  const [typed, setTyped] = useState('')
-
+export default function MicaOverlay({
+  state,
+  audioLevel,
+  transcript,
+  responseMessage,
+  lastNavigation,
+  onMinimise,
+  onCancel,
+}: MicaOverlayProps) {
   // Focus management refs.
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-
-  // Active people for the "who is this about?" picker. Loaded while the
-  // overlay is open (it only renders in a non-idle state) so the dashboard
-  // never pays for it.
-  useEffect(() => {
-    let cancelled = false
-    api
-      .get('/people', { params: { status: 'active' } })
-      .then((r: { data: unknown }) => {
-        if (cancelled) return
-        const rows = Array.isArray(r.data) ? r.data : (r.data as { people?: PersonOption[] } | null)?.people || []
-        setPeople(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setPeople([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const value = useMemo(() => people.find(p => p.id === person?.id) ?? null, [people, person?.id])
+  const active = state !== 'idle'
 
   // ARIA live region text: announces what the assistant is doing without
   // requiring sight. The spoken-response text is the priority announcement;
   // state copy is the fallback for transitions with no response yet.
   const liveText = responseMessage ?? MICA_ANNOUNCEMENT[state]
 
-  // Escape to cancel, and a Tab focus trap while the dialog is open.
+  // Escape ends the conversation, and a Tab focus trap while the dialog is open.
   // Tab-handling must run only while state !== 'idle': at idle the overlay
   // returns null and the close button (inside the dialog subtree) is gone.
   useEffect(() => {
@@ -114,18 +95,13 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
   }, [onCancel])
 
   // Focus handoff: move focus into the dialog on open, restore it on close.
-  // The close button is a stable, always-present target inside the dialog,
-  // so initial focus lands somewhere sensible whichever state we open into.
+  // The first control inside the dialog is a stable, always-present target, so
+  // initial focus lands somewhere sensible whichever state we open into.
   useEffect(() => {
-    const isActive = state !== 'idle'
-    if (isActive) {
+    if (active) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
-      // Defer one tick so the picker (autofocus target in listening state)
-      // finishes rendering before we pick.
       const raf = requestAnimationFrame(() => {
-        const target =
-          dialogRef.current?.querySelector<HTMLElement>('[data-mica-autofocus]') ??
-          dialogRef.current?.querySelector<HTMLElement>('button')
+        const target = dialogRef.current?.querySelector<HTMLElement>('button')
         ;(target ?? dialogRef.current)?.focus()
       })
       return () => cancelAnimationFrame(raf)
@@ -136,7 +112,7 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
     }
     previousFocusRef.current = null
     return undefined
-  }, [state])
+  }, [active])
 
   if (state === 'idle') {
     return null
@@ -165,7 +141,6 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          outline: 'none',
         }}
         role="dialog"
         aria-modal="true"
@@ -209,121 +184,25 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
             </Box>
           )}
 
-          {/* Keyboard entry (listening state): type instead of speak. Shares
-              the voice pipeline; source is recorded as 'text' server-side. */}
-          {state === 'listening' && onSendText && (
+          {/* Where Mica just took the user. Stated as a fact, because it is one:
+              the route was pushed before this line was spoken. */}
+          {lastNavigation && state !== 'listening' && (
             <Box
-              component="form"
-              onSubmit={(e: React.FormEvent) => {
-                e.preventDefault()
-                if (!typed.trim()) return
-                onSendText(typed)
-                setTyped('')
+              data-mica-destination={lastNavigation.path}
+              sx={{
+                mt: 2,
+                px: 1.75,
+                py: 0.75,
+                borderRadius: 'var(--radius-pill, 999px)',
+                bgcolor: 'rgba(16, 185, 129, 0.16)',
+                border: '1px solid rgba(16, 185, 129, 0.42)',
+                maxWidth: '100%',
               }}
-              sx={{ width: '100%', mt: 2 }}
             >
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                maxRows={3}
-                value={typed}
-                onChange={e => setTyped(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  // Enter sends, Shift+Enter adds a line — the convention every
-                  // other composer in this app follows.
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    if (typed.trim()) {
-                      onSendText(typed)
-                      setTyped('')
-                    }
-                  }
-                }}
-                inputProps={{
-                  // MUI maps aria-label on the multiline TextField into
-                  // inputProps, and testing-library reads it there.
-                  'aria-label': MICA_LABEL.type,
-                }}
-                placeholder="Type instead of speaking — questions, notes or tasks"
-                aria-label={MICA_LABEL.type}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: '#FFFFFF',
-                    bgcolor: 'rgba(255,255,255,0.08)',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
-                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.45)' },
-                    '&.Mui-focused fieldset': { borderColor: 'rgba(255,255,255,0.7)' },
-                  },
-                }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        type="submit"
-                        size="small"
-                        aria-label={MICA_LABEL.send}
-                        disabled={!typed.trim()}
-                        sx={{ color: 'rgba(255,255,255,0.8)' }}
-                      >
-                        <SendIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+              <Typography variant="caption" sx={{ color: 'var(--mc-success-soft)' }}>
+                {MICA_LABEL.opened} {lastNavigation.label}
+              </Typography>
             </Box>
-          )}
-
-          {state === 'listening' && (
-            <Autocomplete
-              disablePortal
-              options={people}
-              value={value}
-              getOptionLabel={personName}
-              isOptionEqualToValue={(o, v) => o.id === v.id}
-              onChange={(_, option) =>
-                onPersonChange(option ? { id: option.id, name: personName(option) } : null)
-              }
-              sx={{ width: '100%', mt: 2 }}
-              renderOption={(props, option) => (
-                <Box component="li" {...props} key={option.id}>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{personName(option)}</Typography>
-                    {option.room_number ? (
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Room {option.room_number}</Typography>
-                    ) : null}
-                  </Box>
-                </Box>
-              )}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  label="Who is this note about?"
-                  placeholder="Pick a person"
-                  inputProps={{ ...params.inputProps, 'data-mica-autofocus': true }}
-                  InputLabelProps={{
-                    sx: { color: 'rgba(255,255,255,0.7)', '&.Mui-focused': { color: 'rgba(255,255,255,0.9)' } },
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: '#FFFFFF',
-                      bgcolor: 'rgba(255,255,255,0.08)',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
-                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.45)' },
-                      '&.Mui-focused fieldset': { borderColor: 'rgba(255,255,255,0.7)' },
-                    },
-                    '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.7)' },
-                  }}
-                />
-              )}
-            />
-          )}
-
-          {state !== 'listening' && person && (
-            <Typography variant="body2" aria-live="polite" sx={{ color: 'rgba(255,255,255,0.65)', mt: 1.5 }}>
-              Note about {person.name}
-            </Typography>
           )}
 
           <AnimatePresence>
@@ -355,26 +234,47 @@ export default function MicaOverlay({ state, audioLevel, transcript, responseMes
             )}
           </AnimatePresence>
 
-          <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Button
-              onClick={onCancel}
-              aria-label={`Cancel Mica (or press Escape). ${copy.action}`}
-              sx={{
-                width: 56,
-                height: 56,
-                minWidth: 0,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                color: '#FFFFFF',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
-              }}
-            >
-              <CloseIcon />
-            </Button>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', mt: 1 }}>
-              {copy.action}
-            </Typography>
+          <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            {state !== 'error' && (
+              <Button
+                onClick={onMinimise}
+                startIcon={<MinimizeIcon />}
+                aria-label={MICA_LABEL.minimise}
+                sx={{
+                  color: 'rgba(255,255,255,0.9)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  bgcolor: 'rgba(255,255,255,0.08)',
+                  borderRadius: 'var(--radius-pill, 999px)',
+                  px: 2.5,
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.4)' },
+                }}
+              >
+                Minimise and keep listening
+              </Button>
+            )}
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Button
+                onClick={onCancel}
+                aria-label={`End the conversation with Mica (or press Escape). ${copy.action}`}
+                sx={{
+                  width: 56,
+                  height: 56,
+                  minWidth: 0,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  color: '#FFFFFF',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
+                }}
+              >
+                <CloseIcon />
+              </Button>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', mt: 1 }}>
+                {copy.action}
+              </Typography>
+            </Box>
           </Box>
         </Box>
       </motion.div>

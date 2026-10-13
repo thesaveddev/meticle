@@ -23,6 +23,12 @@
  *     snapshot, which also keeps the stored data identical to what was already
  *     spoken aloud in the room.
  *
+ *   - One exception, and it carries no record data: the page Mica just offered
+ *     to open — a route, a label and a destination, never a name or an id — so
+ *     that a bare "yes" can be answered by the server that asked the question.
+ *     It is replaced by every recorded turn, so an offer never outlives the next
+ *     thing said.
+ *
  *   - Bounded: 6 turns max, 30-minute inactivity TTL. Long enough for a shift
  *     handover's worth of follow-ups, short enough that "today" in a stored
  *     question almost always still means the same day.
@@ -42,6 +48,7 @@
  */
 
 import { getRedisClient } from '../../shared/redis';
+import type { MicaNavigationDestination } from './mica.navigation';
 import logger from '../../shared/utils/logger';
 
 const MAX_TURNS = 6;
@@ -67,6 +74,21 @@ export interface MicaSession {
   createdAt: number;
   updatedAt: number;
   turns: MicaTurn[];
+  /**
+   * The page Mica offered to open in its last answer, waiting on the next word
+   * ("yes", "go on"). The client is told *that* an offer is outstanding so it can
+   * route the next utterance to the endpoint that can open it; what it will open
+   * is decided here. Absent when nothing was offered — or when the offer has been
+   * replaced by a later turn.
+   */
+  pendingPage?: MicaPendingPage;
+}
+
+/** A page waiting on the carer's confirmation. A route, not a record. */
+export interface MicaPendingPage {
+  destination: MicaNavigationDestination;
+  path: string;
+  label: string;
 }
 
 const sessions = new Map<string, MicaSession>();
@@ -190,17 +212,25 @@ async function loadOrCreateSessionAsync(
  * (authoritative across instances), then the in-process map. The in-process
  * copy is updated regardless so a Redis blip mid-conversation still resolves
  * *this* worker's next turn from memory.
+ *
+ * `pendingPage` is the page this turn offered to open, and every call replaces
+ * whatever the previous turn offered — including with nothing. That is what keeps
+ * an offer answerable only by the sentence straight after it: the carer who hears
+ * "want me to open the rota?" and then asks something else is not one "yes" away
+ * from being taken there.
  */
 export async function recordTurn(
   session: MicaSession,
   question: string,
   answer: string,
+  pendingPage?: MicaPendingPage,
 ): Promise<void> {
   session.turns.push({ question, answer, at: Date.now() });
   session.updatedAt = Date.now();
   if (session.turns.length > MAX_TURNS) {
     session.turns.splice(0, session.turns.length - MAX_TURNS);
   }
+  session.pendingPage = pendingPage;
   sessions.set(session.sessionId, session);
   await withTimeout((c) =>
     c.set(KEY_PREFIX + session.sessionId, JSON.stringify(session), {

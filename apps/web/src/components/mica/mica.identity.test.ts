@@ -78,7 +78,12 @@ describe('Mica identity contract', () => {
     expect(MICA_Z.overlay).toBeGreaterThan(MUI_MODAL) // overlay is the top surface
     expect(MICA_Z.overlay).toBeLessThan(MUI_SNACKBAR) // app feedback stays visible
     expect(MICA_Z.notice).toBeGreaterThan(MUI_SNACKBAR) // a failed start is never hidden
-    const rungs = [MICA_Z.orb, MICA_Z.overlay, MICA_Z.notice]
+    // The minimised bar replaces the orb while a session is live, so it sits
+    // above it — but still below the modal layer, for the same reason the orb
+    // does: a medication administration dialog must paint over both.
+    expect(MICA_Z.mini).toBeGreaterThan(MICA_Z.orb)
+    expect(MICA_Z.mini).toBeLessThan(MUI_MODAL)
+    const rungs = [MICA_Z.orb, MICA_Z.mini, MICA_Z.overlay, MICA_Z.notice]
     expect(new Set(rungs).size).toBe(rungs.length)
   })
 
@@ -107,6 +112,13 @@ describe('Mica identity contract', () => {
       read(`${dir}/${name}`).includes('<Snackbar'),
     )
     expect(noticeOwners).toEqual(['MicaProvider.tsx'])
+
+    // And for the minimised bar: a second copy would be a second live-looking
+    // session on screen, contradicting the one session both entry points share.
+    const miniOwners = ['MicaProvider.tsx', 'MicaFab.tsx', 'MicaAssistant.tsx', 'MicaOverlay.tsx'].filter(name =>
+      read(`${dir}/${name}`).includes('<MicaMiniBar'),
+    )
+    expect(miniOwners).toEqual(['MicaProvider.tsx'])
   })
 
   it('gives the orb a footprint the reserved corner is measured against', () => {

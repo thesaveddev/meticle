@@ -106,11 +106,208 @@ the container's.
 | "put podiatry in the diary" | settle (no regex vocabulary needed) | yes, if a time is spoken |
 | "schedule fire door check" | settle → `CREATE_TASK`, subject "fire door check" | n/a |
 
-**Still open, and honestly so:** the settle call runs on the path where a person
-is already selected; with nobody selected `useMica.ts` still routes the utterance
-to `/ai/mica/ask` first, which is a routing decision of its own and was not
-changed here. Item 6 (person resolution for *"Joyce's podiatry is due"*) is
-unchanged: a name that matches nobody stays a question, because guessing a person
-is the one failure this flow must not make. And none of the above has been
-re-run against a live provider since the change — the pinned evidence is the
-scripted tests named above, not a fresh end-to-end pass with a real key.
+**Still open at that point:** item 6 (person resolution for *"Joyce's podiatry
+is due"*) stayed unchanged: a name that matches nobody stays a question, because
+guessing a person is the one failure this flow must not make. And none of the
+above has been re-run against a live provider since the change — the pinned
+evidence is the scripted tests named above, not a fresh end-to-end pass with a
+real key.
+
+---
+
+## Status — the voice-first session (12 Oct, later the same day)
+
+The note above ended with a routing caveat and, more importantly, with Mica still
+behaving as a *modal*: tap, say one sentence, hear one reply, session over. The
+carer's request that changed that, in their words: no text box, no "select a
+person" step, recognise *"give me Evan Turner's Mar chart for March"*, open the
+page instead of reciting it, minimise while still listening, keep listening until
+"bye", and perform actions rather than only talk.
+
+### 1. Voice only, and nobody to pick
+
+The overlay's typing box and person picker are gone, along with their tests.
+Voice is the only entry point. The subject of a care note is read from the
+sentence (`extractPersonNameFromUtterance`), and when the organisation's own
+roster cannot place that name, `/ai/voice/notes` rejects it and Mica **asks
+aloud** — "Multiple people match \"Grace\". Please choose one." — and the next
+sentence is the answer. That message is the one the picker existed to satisfy;
+it is now a conversational turn rather than a dropdown.
+
+### 2. A destination is a place, not a monologue
+
+`mica.navigation.ts` (pure; nothing imported, no clock, no database) reads a
+spoken destination, and `AIController.resolveMicaNavigation` resolves the only
+thing a parser cannot know — which person or staff member a name refers to — then
+returns `{ answer, navigate: { destination, path, label, person? } }`, which
+`useMica` pushes through the router and `MicaProvider` performs. "give me Evan
+Turner's mar chart for march" now opens
+`/emedication?personId=…&month=2026-03`, and `/emedication` was taught to honour
+exactly those two parameters (`?personId`, `?month`; an impossible month such as
+`2026-13` falls back to the current one rather than breaking the page).
+
+Three properties are deliberate:
+
+- **It runs before every AI gate in `micaAsk`.** Navigation needs no provider and
+  no tokens, so it works for an organisation with AI switched off —
+  `mica.navigate.integration.test.ts` asserts exactly that, and separately that
+  the *same* endpoint still refuses a question in that state.
+- **An ambiguous or unknown name is never guessed.** Two people called Grace, or
+  a name matching nobody, produce a spoken sentence and no route. Opening the
+  wrong medication chart is the one failure this flow must not make.
+- **"give me" is weak.** "give me today's appointments" and "give me the
+  incidents" stay questions — the list is the answer. (Since §5, that list is
+  answered deterministically rather than recited by the tool loop.) Only a named
+  person or a named chart turns "give me" into a destination. "open"/"show"/"take
+  me to" navigate on any destination.
+
+Audited as `mica_navigation` with `model: 'deterministic'`, so the AI audit log
+does not read as if a model answered.
+
+### 3. It keeps listening, and gets out of the way
+
+After a reply, listening resumes on its own. The session ends on a stop phrase
+said **on its own** (`MICA_STOP_PHRASES`, matched whole-utterance, so "close the
+incident" and "stop the fire door task" do not cut the carer off), on Escape, on
+the close button, or after three consecutive turns that heard nothing — spoken,
+not silent-failed. A navigation reply also minimises the session into the bottom
+bar (`MicaMiniBar`), where it stays live over the page it just opened instead of
+covering it; the bar restates the live words, the reply, or the destination, in
+that order.
+
+The microphone opens once per session and is reused across turns
+(`startMicMeter` returns early when a stream is already open), so continuous
+listening does not renegotiate the device between sentences.
+
+### 4. A failure is either retryable or not
+
+`402` (budget) and `403` (feature disabled) stop the session with the error
+treatment, because no sentence changes them. Every other failure — including
+`400`/`404` from the Mica gates and from person resolution — is spoken and then
+listening continues, because "multiple people match" is fixed by saying the full
+name.
+
+### 5. The list answers need no model either (12 Oct)
+
+Navigation made "take me to X" free. The questions a carer actually asks most —
+"who is on shift today", "give me today's appointments", "how is Nora's
+medication round looking", "who is on leave" — were still going to the tool loop,
+which needs an OpenAI key, the `natural_language_assistant` feature, budget
+headroom and a round trip; with AI switched off they did not degrade, they failed
+with *"AI not configured"*, even though the answer was four rows and a sentence.
+
+`mica.facts.ts` (pure: no clock, no database, `today` is a parameter) parses those
+phrases and phrases the answer, and `AIController.resolveMicaFact` runs the one
+bounded read-only tool that supplies the rows. It runs **before every AI gate**,
+in the same place and for the same reason as navigation, and the answer joins the
+same conversation memory (`sessionId`), so "what about tomorrow?" is still a
+grounded follow-up.
+
+What it answers, in the house style: "2 staff are on shift today: Fatima Iqbal
+(day shift, Oak House, 8am to 8pm); …"; "There are 2 appointments today: 2pm
+Dental check for Ade Okafor; …"; "Across the home, 2 doses are scheduled today:
+1 given, 0 still due, 1 overdue. Overdue: Nora Whitfield's Risperidone 1 mg was
+due at 1am. Stock to watch: …"; "2 staff are on approved leave today: …". Times
+are spoken in UK wall-clock (`Europe/London`), the same zone the action drafts
+use.
+
+What it deliberately does **not** answer, because a confident wrong answer is
+worse than a round trip:
+
+- **Anything needing judgement.** "Any medication overdue today?" and "how urgent
+  is the Risperidone reorder?" depend on the stock urgency bands the tool
+descriptions define, and "summarise this month's incidents" is a narrative.
+  Those stay on the model path — and with AI off they still return the gate.
+- **Writes.** "book an appointment for the podiatry clinic" names appointments and
+  is a draft; a write verb sends it to the action gateway untouched.
+- **Any day it cannot resolve.** "who is on shift next Tuesday", "appointments
+  coming up", "who is on shift on 5 November" return `null` rather than answer
+  about today. A day window this module has no arithmetic for is the model's.
+- **A person it cannot place.** One named person is resolved by one org-scoped
+  query (`resolveServiceUserName`, shared with navigation); two matches or none
+  produce a spoken sentence instead of an answer about a stranger.
+
+Audited as `mica_fact` with `model: 'deterministic'` and the *kind* (never the
+answer — that log is readable by ORG_ADMINs and the answer echoes names). The
+assistant capability disclosure in Settings now states the same thing to admins:
+these list questions are read from their own records and nothing is sent to the
+provider.
+
+Pinned by `mica.facts.test.ts` (32 unit tests: the phrases, the refusals, and the
+exact sentences) and `mica.facts.integration.test.ts` (13 tests: the real tools and
+real SQL, end to end, with `ai_config.enabled = false` — plus the control that a
+question needing judgement still gets the gate).
+
+### 6. The list answer hands you the page it came from (13 Oct)
+
+The list answers above are the one shape a page beats: "who is on shift today" is
+answered by a count and five names, and the rota itself is a 7x24 grid. So the two
+answers that have a page behind them now end by asking whether to open it —
+*"2 staff are on shift today: Fatima Iqbal (day shift, Oak House, 8am to 8pm); …
+Want me to open the rota planner?"* — and the carer's next word opens it:
+
+> "who is on shift today" → the list, then the question
+> "yes" → "Opening the rota planner." and the rota is pushed
+
+Both halves are deterministic. The destination was already known when the list was
+read (`factPageFor`), the offer is remembered in the same conversation memory the
+follow-ups use (a `pendingPage` on the session: a route, a label and a destination —
+never a name or an id), and the confirmation is matched whole-utterance against a
+spoken-yes set (`parseFactConfirmation`: "yes", "okay", "go on", "please do", …).
+Confirming runs **before every AI gate**, like the answer it confirms, so an
+organisation with no provider configured hears the offer and can still say yes. It
+is audited as `mica_navigation` with `confirmed: true` and the path.
+
+Three rules keep it from being a trap:
+
+- **Two pages, not four.** Only the rota and the appointments list are offered. A
+  medication round and who is on leave are answered by the sentence itself, and the
+  chart behind a round is reached by naming it ("open Nora's MAR chart").
+- **Whole-utterance, like the stop phrases.** "yes, but what about tomorrow" is a
+  new question and opens nothing; "no" is not a confirmation, and the offer simply
+  lapses.
+- **One turn of life.** Every recorded turn replaces the offer, so a carer who hears
+  the question and then asks something else is not one "yes" away from being taken
+  there. The one case where a lapsed offer can still be answered is a turn that
+  failed a gate before it could be recorded (no provider, no budget): the offer
+  stands until the conversation moves on, bounded by the 30-minute session TTL.
+
+The client's half is small but load-bearing. A bare "yes" is not a question and not
+a destination, so without it the routing table would draft a care note from the
+word; `looksLikeConfirmation` is checked before the care-note fallback in
+`useMica.ts`, and the server still owns the route — the client only decides which
+endpoint the word goes to, exactly as it does for navigation.
+
+Pinned by `mica.facts.test.ts` (unit: the offer text, the two pages that offer,
+the two that must not, and the confirmations that are refused) and
+`mica.facts.integration.test.ts` (13 tests, still with `ai_config.enabled = false`:
+the offer on the answer, "yes" opening the rota and the appointments list, the
+latest offer winning, a second "yes" opening nothing, and a "yes" that answered no
+question opening nothing), plus `MicaProvider.navigation.test.tsx` for the client
+routing.
+
+### Still open, and honestly so
+
+- **No live pass.** Everything above is pinned by scripted tests
+  (`mica.navigation.test.ts` 54, `mica.navigate.integration.test.ts` 6,
+  `mica.facts.test.ts` 32, `mica.facts.integration.test.ts` 13, `mica.session.test.ts`
+  6, and the web tests across `src/components/mica`). Nothing here has been re-run
+  against a real provider or a real microphone since the change.
+- **The deterministic set is intentionally small.** Training expiry, leave
+  *balances*, "who is supporting X" and the Incidents count are still model
+  questions; the first three are the obvious next additions.
+- **The voice loop itself is component-tested, not browser-tested.** Continuous
+  listening, the VAD hand-off and the bar's audio pulse need a browser and a
+  device; what is asserted is the vocabulary, the routing, the surfaces and the
+  deep link, not the acoustics.
+- **Only `/emedication` honours query parameters.** The parser therefore gives
+  every other destination a bare path rather than inventing parameters those
+  pages ignore. If Mica should open the rota on a given week, that page has to
+  accept a date first.
+- **The offer is not permission-aware.** It is made from the answer, so a carer
+  whose role or modules exclude the rota can be offered it and land on the same
+  guard screen the nav bar would give them. That is no worse than the spoken
+  destination ("open the rota") it sits beside, and making the offer
+  permission-aware would mean asking about the person's modules on the answer
+  path, which the list facts deliberately do not do.
+- **Item 6 stands.** "Joyce's podiatry is due" is still a question, not a guess.

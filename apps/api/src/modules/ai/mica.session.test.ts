@@ -75,4 +75,34 @@ describe('mica.session', () => {
     expect(buildFollowUpMessages(check!, 'SYS', 'still there?').priorTurns).toBe(0)
     expect(sweepCount()).toBeGreaterThan(0)
   })
+
+  it('remembers the page it offered, and retires it on the next turn', async () => {
+    const s = await loadOrCreateSession('org1', 'user-offer')
+    await recordTurn(s!, 'who is on shift today?', 'One staff member is on shift today: Fatima Iqbal.', {
+      destination: 'rota', path: '/scheduling', label: 'the rota planner',
+    })
+    expect(s!.pendingPage?.path).toBe('/scheduling')
+
+    // It is part of the session, not this worker's memory: a read through the
+    // store finds it, which is the read the carer's next word performs.
+    const reloaded = await loadOrCreateSession('org1', 'user-offer', s!.sessionId)
+    expect(reloaded!.pendingPage?.label).toBe('the rota planner')
+
+    // Any later turn replaces it — including with nothing, which is what makes an
+    // offer answerable only by the sentence straight after it.
+    await recordTurn(s!, 'what about tomorrow?', 'Nobody is rostered tomorrow yet.')
+    expect(s!.pendingPage).toBeUndefined()
+  })
+
+  it("keeps one conversation's offer out of another user's session", async () => {
+    const s = await loadOrCreateSession('org1', 'user-offer-a')
+    await recordTurn(s!, 'who is on shift today?', 'Fatima Iqbal.', {
+      destination: 'rota', path: '/scheduling', label: 'the rota planner',
+    })
+
+    // Same id, different user → a fresh session, with no offer carried across.
+    const other = await loadOrCreateSession('org1', 'user-offer-b', s!.sessionId)
+    expect(other!.sessionId).not.toBe(s!.sessionId)
+    expect(other!.pendingPage).toBeUndefined()
+  })
 })

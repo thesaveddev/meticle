@@ -2,7 +2,7 @@ import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, createPerson, generateToken } from '../../test/factories'
+import { createOrg, createUser, createPerson, generateToken, sessionDay } from '../../test/factories'
 import { migrateQuery } from '../../shared/database'
 
 /**
@@ -93,6 +93,24 @@ async function setupOrg(minimisation: 'full' | 'minimal') {
 
 const NARRATIVE = 'Declined her risperidone and seemed very withdrawn all afternoon'
 
+/**
+ * The report range, read as the database session reads the calendar.
+ *
+ * `new Date().toISOString().slice(0, 10)` slices the day in **UTC**, while every
+ * query in these routes filters with `::date` in the session's TimeZone
+ * (`Europe/London`). For the hour after London crosses midnight and before UTC
+ * does, "today" computed here is a day behind the day the seeded note is dated,
+ * so the note falls outside its own report and the boundary assertions fail on
+ * an empty payload — a failure that appears only in that hour. `sessionDay` asks
+ * the database, the only clock guaranteed to agree with the query.
+ */
+async function lastSevenDays(): Promise<{ from: string; to: string }> {
+  return {
+    from: await sessionDay(new Date(Date.now() - 6 * 86400000)),
+    to: await sessionDay(new Date()),
+  }
+}
+
 async function insertNote(personId: string, authorId: string) {
   // The organisation is reached through people, exactly as the intelligence
   // query does it, so the test exercises the real join rather than a shortcut.
@@ -111,7 +129,7 @@ describe('LLM boundary, end to end', () => {
     const res = await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
 
     expect(res.status).toBe(200)
     expect(outbound.length).toBeGreaterThan(0)
@@ -132,7 +150,7 @@ describe('LLM boundary, end to end', () => {
     const res = await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
 
     expect(res.status).toBe(200)
     expect(outbound.length).toBeGreaterThan(0)
@@ -156,7 +174,7 @@ describe('LLM boundary, end to end', () => {
     const res = await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
 
     expect(res.body.data_boundary).toMatchObject({
       direct_identifiers_removed: true,
@@ -178,7 +196,7 @@ describe('LLM boundary, end to end', () => {
     const res = await request(app)
       .post('/ai/anomaly-detection')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
 
     expect(res.status).toBe(200)
     // The frozen feature-flag key, for anyone integrating against the old name.
@@ -198,7 +216,7 @@ describe('LLM boundary, end to end', () => {
     const res = await request(app)
       .post('/ai/assistant')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ question: 'Which clients refused medication this week?', from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send({ question: 'Which clients refused medication this week?', ...(await lastSevenDays()) })
 
     expect(res.status).toBe(200)
     expect(outboundText()).toContain('Which clients refused medication this week')
@@ -214,14 +232,14 @@ describe('LLM boundary, end to end', () => {
     await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(minimal.manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
     expect(outboundText()).not.toContain('Declined her risperidone')
 
     outbound.length = 0
     await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(full.manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
     // A different tenant with the default setting must be unaffected. Reading
     // the setting from the wrong place is the failure mode that would make this
     // control worse than having none.
@@ -235,7 +253,7 @@ describe('LLM boundary, end to end', () => {
     await request(app)
       .post('/ai/change-detection')
       .set('Authorization', `Bearer ${generateToken(manager)}`)
-      .send({ from: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) })
+      .send(await lastSevenDays())
 
     expect(outbound.length).toBeGreaterThan(0)
     expect(outbound.every((b) => b.store === false)).toBe(true)

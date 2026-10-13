@@ -52,11 +52,11 @@ beforeEach(() => {
   vi.mocked(api.post).mockImplementation(async () => ({ data: {} }) as any)
 })
 
-function renderPage() {
+function renderPage(entry = '/emedication') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/emedication']}>
+      <MemoryRouter initialEntries={[entry]}>
         <EMedicationPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -139,5 +139,77 @@ describe('Add Medication dialog', () => {
     expect(within(dialog).getByLabelText(/Medication name/)).toHaveValue('Paracetamol')
     expect(within(dialog).getByLabelText(/Dosage/)).toHaveValue('500')
     expect(within(dialog).getByRole('button', { name: 'Add Medication' })).toBeEnabled()
+  })
+})
+
+/**
+ * Mica opens a person's MAR chart by route rather than by reciting the answer, so
+ * the page has to honour ?personId and ?month on arrival: /emedication?personId=…&month=…
+ * must land on that person's chart for that month with no click.
+ *
+ * The proof used throughout is the request the page can only make once a person is
+ * selected: the records query is `enabled: !!selectedPerson`, and the chart query needs
+ * the month's record, so a chart request naming that record and that month date cannot
+ * happen without both params having been applied.
+ */
+describe('deep links (?personId and ?month)', () => {
+  const MARCH_RECORD = {
+    id: 'r2',
+    title: 'March 2026 MAR',
+    person_id: 'p1',
+    person_name: 'Ada Lovelace',
+    start_date: '2026-03-01',
+    end_date: '2026-03-31',
+    status: 'active',
+  }
+
+  it('selects the named person and month without a click and charts that month', async () => {
+    vi.mocked(api.get).mockClear()
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === '/people') return { data: [PERSON] } as any
+      if (url.startsWith('/emedication/records/r2/chart')) return { data: { record: MARCH_RECORD, days: ['2026-03-01'], items: [], adminMap: {} } } as any
+      if (url.startsWith('/emedication/records')) return { data: [MARCH_RECORD] } as any
+      if (url === '/emedication/stock') return { data: [] } as any
+      if (url === '/staff/org-members') return { data: { staff: [], admins: [] } } as any
+      if (url === '/emedication/overdue/count') return { data: { count: 0 } } as any
+      if (url === '/emedication/overdue') return { data: [] } as any
+      return { data: {} } as any
+    })
+
+    renderPage('/emedication?personId=p1&month=2026-03')
+
+    // Records are only fetched for a selected person — so this request proves the
+    // URL selected Ada, with no click on her name.
+    await waitFor(
+      () => expect(vi.mocked(api.get).mock.calls.some(([url]) => String(url) === '/emedication/records?personId=p1')).toBe(true),
+      { timeout: 5000 },
+    )
+    // And the chart that resolved is March 2026's, not the current month's: the only
+    // record in the list is the March one, so a chart for r2 on 2026-03-01 is exactly
+    // "the month from the URL, applied".
+    await waitFor(
+      () => expect(
+        vi.mocked(api.get).mock.calls.some(([url]) => String(url).startsWith('/emedication/records/r2/chart?date=2026-03-01')),
+      ).toBe(true),
+      { timeout: 5000 },
+    )
+  })
+
+  it('still selects the person when ?month is not a real month, falling back to the current month', async () => {
+    vi.mocked(api.get).mockClear()
+    renderPage('/emedication?personId=p1&month=2026-13')
+
+    await waitFor(
+      () => expect(vi.mocked(api.get).mock.calls.some(([url]) => String(url) === '/emedication/records?personId=p1')).toBe(true),
+      { timeout: 5000 },
+    )
+    // The current month's record is the one charted; an impossible month cannot blank
+    // the page or send it looking for a chart that does not exist.
+    await waitFor(
+      () => expect(
+        vi.mocked(api.get).mock.calls.some(([url]) => String(url).startsWith('/emedication/records/r1/chart') && String(url).includes(`date=${monthKey}-01`)),
+      ).toBe(true),
+      { timeout: 5000 },
+    )
   })
 })

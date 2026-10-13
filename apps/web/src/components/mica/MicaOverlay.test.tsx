@@ -2,22 +2,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import MicaOverlay from './MicaOverlay'
 
-// The overlay fetches person options whenever it is open; keep the request
-// local to the test so no XHR escapes into jsdom.
-vi.mock('../../services/api', () => ({
-  default: {
-    get: vi.fn().mockResolvedValue({
-      data: [{ id: 'p1', first_name: 'Grace', last_name: 'Roberts', room_number: '4' }],
-    }),
-  },
-}))
-
+/**
+ * The overlay is deliberately smaller than it was: the typing box and the
+ * "who is this about?" picker are gone. Both removals are asserted here, because
+ * a regression that quietly re-adds either one would put a data-entry step back
+ * in the middle of a spoken conversation.
+ */
 const baseProps = {
   audioLevel: 0,
   transcript: '',
   responseMessage: null,
-  person: null,
-  onPersonChange: vi.fn(),
+  lastNavigation: null,
+  onMinimise: vi.fn(),
   onCancel: vi.fn(),
 }
 
@@ -27,88 +23,60 @@ describe('MicaOverlay', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('shows the listening dialog with the live transcript and person picker', () => {
+  it('shows the listening dialog with the live transcript and no data entry', () => {
     render(<MicaOverlay {...baseProps} state="listening" transcript="Grace had a good lunch" />)
 
     const dialog = screen.getByRole('dialog', { name: 'Mica voice assistant' })
     expect(dialog).toBeInTheDocument()
     expect(screen.getByText('“Grace had a good lunch”')).toBeInTheDocument()
-    expect(screen.getByLabelText(/who is this note about/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Cancel Mica/ })).toBeInTheDocument()
+
+    // No typing box and no person picker: voice is the only entry point, and a
+    // note's subject comes from what was said (useMica asks aloud if it cannot
+    // tell who the note is about).
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(screen.queryByLabelText(/who is this note about/i)).toBeNull()
+
+    // Both exits are present: minimise (keep listening over the page) and end.
+    expect(screen.getByRole('button', { name: /minimise mica and keep listening/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /end the conversation with mica/i })).toBeInTheDocument()
   })
 
-  it('cancels cleanly: the cancel button calls onCancel and the unmount is silent', () => {
+  it('minimises without ending the session, and ends it when asked', () => {
+    const onMinimise = vi.fn()
     const onCancel = vi.fn()
-    const active = render(
+    render(<MicaOverlay {...baseProps} state="listening" onMinimise={onMinimise} onCancel={onCancel} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /minimise mica and keep listening/i }))
+    expect(onMinimise).toHaveBeenCalledTimes(1)
+    // Minimising is not closing: the session continues in the bar.
+    expect(onCancel).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: /end the conversation with mica/i }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('ends on Escape, since that is the keyboard exit from a live session', () => {
+    const onCancel = vi.fn()
+    render(<MicaOverlay {...baseProps} state="responding" responseMessage="Here's the rota." onCancel={onCancel} />)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('says where Mica just took the user', () => {
+    render(
       <MicaOverlay
         {...baseProps}
         state="responding"
-        responseMessage="Care note drafted."
-        person={{ id: 'p1', name: 'Grace Roberts' }}
-        onCancel={onCancel}
+        responseMessage="Here's Evan Turner's March 2026 MAR chart."
+        lastNavigation={{ path: '/emedication?personId=p9&month=2026-03', label: "Evan Turner's March 2026 MAR chart" }}
       />,
     )
 
-    // The visible response card carries the message; the screen-reader live
-    // region duplicates it (a11y), so assert on the visible card only.
-    expect(screen.getAllByText('Care note drafted.').length).toBeGreaterThan(0)
-    expect(screen.getByText('Note about Grace Roberts')).toBeInTheDocument()
-
-    // The responding-state action doubles as the cancel affordance.
-    fireEvent.click(screen.getByRole('button', { name: /Cancel Mica/ }))
-    expect(onCancel).toHaveBeenCalledTimes(1)
-
-    // Returning to idle (what stopListening triggers) tears the overlay down
-    // to nothing, and unmounting mid-session must not throw.
-    active.rerender(<MicaOverlay {...baseProps} state="idle" onCancel={onCancel} />)
-    expect(active.container.innerHTML).toBe('')
-    expect(() => active.unmount()).not.toThrow()
-  })
-
-  it('offers the typing box only while listening and when a text handler is wired', () => {
-    const onSendText = vi.fn()
-    const { unmount } = render(
-      <MicaOverlay {...baseProps} state="listening" onSendText={onSendText} />,
-    )
-    expect(screen.getByRole('textbox', { name: /type to mica/i })).toBeInTheDocument()
-    unmount()
-
-    // Once thinking/responding the entry window has closed.
-    render(<MicaOverlay {...baseProps} state="thinking" onSendText={onSendText} />)
-    expect(screen.queryByRole('textbox')).toBeNull()
-    unmount()
-
-    // No handler wired (defensive mount paths) → no textbox, no dead input.
-    render(<MicaOverlay {...baseProps} state="listening" />)
-    expect(screen.queryByRole('textbox')).toBeNull()
-  })
-
-  it('sends typed text through the text entry point and clears the input', () => {
-    const onSendText = vi.fn()
-    render(
-      <MicaOverlay {...baseProps}
-        state="listening"
-        transcript="Aisha's medication training expires next month"
-        onSendText={onSendText}
-      />,
-    )
-    const box = screen.getByRole('textbox', { name: /type to mica/i }) as HTMLInputElement
-    fireEvent.change(box, { target: { value: "Aisha's medication training expires next month" } })
-    fireEvent.keyDown(box, { key: 'Enter', shiftKey: false })
-    expect(onSendText).toHaveBeenCalledTimes(1)
-    expect(onSendText).toHaveBeenCalledWith("Aisha's medication training expires next month")
-    // The controlled value clears after send so the next sentence starts fresh.
-    expect(box.value).toBe('')
-
-    // Shift+Enter is a newline, not a send.
-    fireEvent.change(box, { target: { value: 'line one' } })
-    fireEvent.keyDown(box, { key: 'Enter', shiftKey: true })
-    expect(onSendText).toHaveBeenCalledTimes(1)
-
-    // Empty input cannot send — Enter on whitespace is a no-op.
-    fireEvent.change(box, { target: { value: '   ' } })
-    fireEvent.keyDown(box, { key: 'Enter', shiftKey: false })
-    expect(onSendText).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByText(/Here's Evan Turner's March 2026 MAR chart\./).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Opened Evan Turner's March 2026 MAR chart/)).toBeInTheDocument()
+    expect(document.querySelector('[data-mica-destination="/emedication?personId=p9&month=2026-03"]')).not.toBeNull()
   })
 
   it('renders a failure as the error state, not as a calm response', () => {
@@ -135,10 +103,12 @@ describe('MicaOverlay', () => {
     expect(container.querySelector('[data-mica-ring="error"]')).not.toBeNull()
     expect(container.querySelector('[data-mica-waveform]')).toBeNull()
 
-    // And the failure is announced for screen-reader users.
+    // A failure is not minimisable — there is nothing left to listen for — and
+    // it is announced for screen-reader users.
+    expect(screen.queryByRole('button', { name: /minimise mica/i })).toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent('could not reach the AI service')
 
-    fireEvent.click(screen.getByRole('button', { name: /Cancel Mica/ }))
+    fireEvent.click(screen.getByRole('button', { name: /end the conversation with mica/i }))
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 })

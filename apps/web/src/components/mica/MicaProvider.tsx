@@ -1,7 +1,10 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, type ReactNode } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { Alert, Snackbar } from '@mui/material'
-import { useMica } from './useMica'
+import { useNavigate } from 'react-router-dom'
+import { useMica, type MicaNavigateTarget } from './useMica'
 import MicaOverlay from './MicaOverlay'
+import MicaMiniBar from './MicaMiniBar'
 import { MICA_Z } from './mica.identity'
 
 type MicaSession = ReturnType<typeof useMica>
@@ -18,32 +21,65 @@ const MicaContext = createContext<MicaSession | null>(null)
  * sessions at once: two orb states, two speech recognisers, and two overlays
  * that could be open simultaneously — the second one painted over the first.
  * Both entry points now resolve to this single session, so the orb state, the
- * overlay and the conversation memory are one thing whichever entry point the
+ * surfaces and the conversation memory are one thing whichever entry point the
  * user reached for.
  *
- * The provider also owns the two surfaces that must exist **once** per session:
- * the overlay, and the notice for a failure that happens before a session starts
- * (a blocked mic, an unsupported browser). They used to be rendered by each entry
- * point, which — once the entry points share a session — would put two identical
- * modal dialogs and two copies of the same alert in the DOM at the same time.
+ * ## What it does now
+ *
+ * The provider is also where Mica's navigation is actually performed, because
+ * it is the only place in the Mica tree that sits both inside the router and
+ * above every page: `Layout` is a route, so `useNavigate` is available here, and
+ * a route pushed from here keeps the session alive across the change — the carer
+ * lands on the MAR chart with the microphone still open and the bar still up.
+ *
+ * It owns the three surfaces that must exist **once** per session: the overlay,
+ * the minimised bar, and the notice for a failure that happens before a session
+ * starts (a blocked mic, an unsupported browser). They used to be rendered by
+ * each entry point, which would put two identical modal dialogs, two copies of
+ * the same alert and two status strips in the DOM at the same time.
  */
 export function MicaProvider({ children }: { children: ReactNode }) {
-  const mica = useMica()
-  const active = mica.state !== 'idle'
+  const navigate = useNavigate()
+  const mica = useMica({
+    onNavigate: useCallback((target: MicaNavigateTarget) => {
+      navigate(target.path)
+    }, [navigate]),
+  })
+  // Destructured so the narrowing below survives into the JSX: the bar is only
+  // ever rendered for a live session, and its props say so.
+  const { state } = mica
+  const active = state !== 'idle'
+  // One surface at a time: the overlay while the carer is looking at Mica, the
+  // bar once Mica has opened a page and got out of its way.
+  const showMini = mica.minimised && active
 
   return (
     <MicaContext.Provider value={mica}>
       {children}
-      <MicaOverlay
-        state={mica.state}
-        audioLevel={mica.audioLevel}
-        transcript={mica.transcript}
-        responseMessage={mica.responseMessage}
-        person={mica.selectedPerson}
-        onPersonChange={mica.setSelectedPerson}
-        onSendText={mica.sendText}
-        onCancel={mica.stopListening}
-      />
+      {!showMini && (
+        <MicaOverlay
+          state={state}
+          audioLevel={mica.audioLevel}
+          transcript={mica.transcript}
+          responseMessage={mica.responseMessage}
+          lastNavigation={mica.lastNavigation}
+          onMinimise={mica.minimise}
+          onCancel={mica.stopListening}
+        />
+      )}
+      <AnimatePresence>
+        {showMini && (
+          <MicaMiniBar
+            state={state}
+            audioLevel={mica.audioLevel}
+            transcript={mica.transcript}
+            responseMessage={mica.responseMessage}
+            lastNavigation={mica.lastNavigation}
+            onExpand={mica.expand}
+            onEnd={mica.stopListening}
+          />
+        )}
+      </AnimatePresence>
       {/* A failure that never opened the overlay must still be visible, or the
           tap looks dead. Above the overlay so it can never be hidden. */}
       <Snackbar
