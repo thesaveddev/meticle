@@ -492,6 +492,41 @@ undetected. The wordmark's own delta was ~0.17% of the frame, comfortably inside
 canvas-wide change is the only reason the mismatch became visible. Tightening the tolerance is a
 decision with its own cross-platform risk, so it is recorded rather than taken.
 
+**The next release went red for a baselines-only reason, and the repair was to make a
+regeneration complete rather than partial.** The failing tests were the eight mobile screenshot
+comparisons — `home`, `login`, `pricing` and `mission-control-today` in `mobile-light` and
+`mobile-dark`; all four desktop comparisons and all twenty non-screenshot tests passed. Every
+committed baseline rendered the *retired* palette — `#2F80ED` primary, `#17202A` ink, `#F7F9FC`
+canvas — while the current render paints `#0164C8`, `#0C1B2E` and `#F4F9FC`. The commit under
+test was not what drifted: checked out over its parent, the same mobile capture is byte-identical
+except for 50 of 345,668 pixels (one glyph edge), so the change under test moved no pixels at
+all. The baselines were simply old — the mobile captures are dated 8 October, the mobile
+`pricing.png` 12 October, the desktop captures 11 October — and the mobile deltas are 1.8%
+(`login`), 2.7% (`mission-control-today`), 4.6% (`home`) and 12.5% (`pricing`) of the frame.
+
+The regeneration as it stood returned a set that was only half new, which is the part worth
+recording. `playwright test --update-snapshots` rewrites a snapshot only when its comparison
+failed, and the comparator cannot see this drift: its default `threshold` of 0.2 is 1,408 units of
+squared-YIQ distance, while `#2F80ED` → `#0164C8` measures 625. So the four desktop captures came
+back as the committed files and the mobile ones as fresh renders — an artifact that looks
+regenerated but carries two epochs of the design system. The workflow now deletes
+`tests/visual/__screenshots__` before regenerating, so every file in the artifact is a capture of
+the commit it ran on, and that is the only kind of baseline worth adopting.
+
+Two things about this harness are now measured rather than assumed. The runner's rendering is
+deterministic: two independent dispatches of that workflow on one commit returned byte-identical
+PNGs in all sixteen files — a zero-pixel noise floor, not the ~3% the workflow header assumes.
+And a baseline is only ever worth adopting from the artifact, never generated locally: a Windows
+render of the same page sits 4.7% of the frame from the Linux capture.
+
+All sixteen baselines are adopted from that run, and every one is verified to paint the master
+palette — no retired blue, ink or canvas value survives in any of them.
+
+**Observation, not fixed here:** the `*-dark` captures are md5-identical to their `*-light`
+counterparts in every case, old set and new. The dark projects therefore duplicate the light ones
+rather than exercising a dark surface — either the harness should make the app answer
+`prefers-color-scheme`, or those two projects are dead weight in the matrix.
+
 **Not run (blocked by environment, not by the code):** the full web vitest suite
 (~170 files), the API integration suite, `npm run visual:test` (Playwright snapshots), and
 any interactive browser pass over the 129 routes.

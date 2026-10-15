@@ -16,6 +16,15 @@ name: Visual baselines
 # It is deliberately a separate workflow rather than an input on CI. CI must
 # never be able to rewrite the thing it is checking — if the baseline job could
 # update snapshots, the visual job would become an unfailable slow no-op.
+#
+# The committed baselines are deleted before regenerating, and that is load-
+# bearing rather than tidy-up. `playwright test --update-snapshots` rewrites only
+# the snapshots whose comparison failed, so a baseline the comparison *cannot*
+# see stays exactly as it is: on 15 October 2026 the artifact came back with the
+# retired palette still in all four desktop captures and the new one in the
+# mobile captures, because #2F80ED -> #0164C8 sits under the comparator's
+# threshold. Delete first, and every file in the artifact is a capture of the
+# current commit — which is the only thing worth adopting.
 on:
   workflow_dispatch:
 
@@ -34,7 +43,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Regenerate baselines
-        run: npm run visual:update
+        run: |
+          rm -rf tests/visual/__screenshots__
+          npm run visual:update
       - uses: actions/upload-artifact@v4
         with:
           name: visual-baselines
