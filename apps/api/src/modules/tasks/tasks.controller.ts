@@ -3,8 +3,9 @@ import { TaskRepository } from './tasks.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { AuditRepository } from '../audit/audit.repository';
+import { EmailService } from '../../shared/utils/email.service';
 import pool from '../../shared/database';
-import { UserRole } from '@meticle/shared';
+import { UserRole, micaRecordPath } from '@meticle/shared';
 
 async function assertTaskReferencesInOrg(orgId: string, data: any) {
   if (data.assigned_to) {
@@ -40,9 +41,45 @@ export class TaskController {
     AuditRepository.log({ user_id: user.userId, action: 'create', entity_type: 'task', entity_id: task.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
     if (task.assigned_to) {
       try {
-        const staffRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [task.assigned_to]);
-        if (staffRes.rows[0]?.user_id) {
-          NotificationsController.createNotification(staffRes.rows[0].user_id, 'New Task Assigned', `You have been assigned: "${task.title}" (${task.priority})`, 'general').catch(() => {});
+        const staffRes = await pool.query(
+          `SELECT sp.user_id, sp.first_name, sp.last_name, u.email
+             FROM staff_profiles sp
+             JOIN users u ON u.id = sp.user_id
+            WHERE sp.id = $1`,
+          [task.assigned_to],
+        );
+        const assignee = staffRes.rows[0];
+        if (assignee?.user_id) {
+          // Both the bell entry and the email carry the link to the task they are
+          // about, built by the one contract every other channel uses, so the person
+          // told about the task does not have to go and find it: the sentence and the
+          // row it names arrive together.
+          // Awaited, like the push and email paths elsewhere: the row still cannot fail
+          // the write (the catch is the same), but the response is not sent until the
+          // bell has it. Left floating, the assignee's bell and the 201 answer raced,
+          // and an assignment could look like it had notified nobody.
+          const taskPath = micaRecordPath({ kind: 'task', id: task.id });
+          await NotificationsController.createNotification(
+            assignee.user_id,
+            'New Task Assigned',
+            `You have been assigned: "${task.title}" (${task.priority})`,
+            'general',
+            taskPath,
+          ).catch(() => {});
+
+          // The email is for the assignee who is not in the app right now. Best
+          // effort, like the notification above: the task is already saved and a mail
+          // failure must never fail the write. Not sent when the assigner assigned the
+          // task to themselves — they have just seen it.
+          if (assignee.email && assignee.user_id !== user.userId) {
+            const assigneeName = [assignee.first_name, assignee.last_name].filter(Boolean).join(' ');
+            EmailService.sendTaskAssignedEmail(
+              assignee.email,
+              assigneeName || 'there',
+              { title: task.title, priority: task.priority, dueDate: task.due_date },
+              EmailService.recordUrl({ kind: 'task', id: task.id }),
+            ).catch(() => {});
+          }
         }
       } catch { /* notification non-critical */ }
     }

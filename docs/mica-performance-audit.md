@@ -204,21 +204,33 @@ The printed line from the run: `[mica render budget] 0 commits / 30 audio frames
 itself records from when the change landed; it can be re-measured by reverting the
 channel — the harness is unchanged.
 
-### Bytes before the first paint (two builds, back to back, same machine)
+### Bytes before the first paint (three builds, same machine, two runs)
 
-Measured with `scripts/perf/first-load.mjs` against `dist`, once with the surfaces
-imported eagerly (the pre-split shape) and once as shipped:
+Measured with `scripts/perf/first-load.mjs` against `dist`: the pre-split shape with
+the surfaces imported eagerly, the same shape as shipped after the split, and the
+current build with the timing instrument in it:
 
 | Build | First-load files | JS+CSS raw | JS+CSS gzip | Entry chunk raw / gzip |
 |---|---|---|---|---|
 | Surfaces eager (pre-split) | 5 | 1024.0 kB | 319.5 kB | 307.2 kB / 95.2 kB |
-| **Surfaces lazy (shipped)** | 5 | **889.8 kB** | **275.7 kB** | **172.9 kB / 51.4 kB** |
+| Surfaces lazy (the animation revision, shipped) | 5 | 889.8 kB | 275.7 kB | 172.9 kB / 51.4 kB |
+| **Surfaces lazy + the timing instrument (current)** | 5 | **893.9 kB** | **277.2 kB** | **177.0 kB / 52.9 kB** |
 
-That is **−134.2 kB raw / −43.8 kB gzip** off the path, all of it the entry chunk
-(−134.3 kB raw / −43.8 kB gzip). The animation library the surfaces use is now its
-own 128.9 kB / 42.4 kB gzip chunk, and `index.html` does not reference it. Note
-that the eager variant is a *lower bound* on the old cost: the orb itself imported
+Against the pre-split build that is **−130.1 kB raw / −42.3 kB gzip** off the path,
+all of it the entry chunk. The animation library the surfaces use is now its own
+128.9 kB / 42.4 kB gzip chunk, and `index.html` does not reference it. Note that the
+eager variant is a *lower bound* on the old cost: the orb itself imported
 framer-motion too, which the current orb does not.
+
+The **instrument costs 4.1 kB raw / 1.5 kB gzip** on the first-load path, which is
+worth naming rather than rounding away: `useMica` imports the recorder module
+statically, so the recorder and its formatting travel with the entry chunk on every
+page. The readout itself does not — `MicaTimingsPanel` is a `lazy()` chunk, so a
+session with `?micaTimings=1` off pays nothing for it, and the panel's own weight is
+outside these five files. The two build rows were measured in different runs on the
+same machine (the eager/lazy pair back to back in the animation revision, this row
+in the timing revision), so read the 4.1 kB as this addition's size rather than as a
+between-machine comparison.
 
 ### Other
 
@@ -226,8 +238,9 @@ framer-motion too, which the current orb does not.
   call, permission prompt or network activity (asserted).
 - Mobile: `npx tsc --noEmit` clean; 37 suites / **310 tests** pass, including the
   new geometry proofs for tablet, small Android and both iPhone insets.
-- Web: `npx tsc --noEmit` clean; the Mica suites are 10 files / 65 tests, and the
-  full web suite is green (see "Verification" below).
+- Web: `npx tsc --noEmit` clean, and the full web suite green (see "Verification"
+  below). The Mica suites were 10 files / 65 tests at this revision; after the stage
+  timings work they are **12 files / 102 tests**.
 
 ## Targets
 
@@ -242,6 +255,87 @@ framer-motion too, which the current orb does not.
 | 60 fps on typical devices, ~16.7 ms frame work | Not measured on device |
 | Reduced motion respected, with a meaningful accessible name and state | Met — both platforms; the orb is a labelled button, the state is announced through a live region, and reduced motion parks rather than slows |
 
+## Measuring it on a device: the eight stage timings
+
+Every number earlier in this document came from a harness. That is the right
+instrument for "was the work removed" and the wrong one for "how long does this
+make the carer wait" — and the gap recorded below, no microphone → speech → reply →
+playback breakdown, is now closed by an instrument rather than an argument.
+`apps/web/src/components/mica/mica.timings.ts` records when each stage actually
+happened, `useMica` marks it, and the numbers are readable on the device you are
+holding.
+
+| Stage | The moment | Marked in |
+| --- | --- | --- |
+| `tap` | The orb was pressed — the origin of the turn | `startListening` |
+| `listening` | The session is live and listening; the press has been acknowledged | the state entry for `listening` |
+| `micReady` | A real microphone stream is open and feeding the orb | after the meter opens |
+| `speechDone` | The recogniser returned a final transcript — the sentence is over | `rec.onend`, before dispatch |
+| `replyStarted` | Mica began producing an answer | the `thinking` entry in each reply path |
+| `firstToken` | The first reply content existed and was about to be spoken | `reply()` / `fail()` |
+| `done` | The reply finished playing | the TTS completion path |
+| `idle` | The session closed | the state entry for `idle` |
+
+`firstToken` is not a token. `/ai/mica/ask` is a single request and response — no
+`EventSource`, no `text/event-stream`, no `ReadableStream` in either app — so the
+mark is the first moment reply content existed, which on this pipeline is when the
+response arrived. If streaming is ever added the mark moves to the first delta and
+every consumer keeps working.
+
+### How to take the numbers
+
+1. Open the app on the device — or in Chrome's device mode, which is better than
+   nothing and worse than a phone — and add `?micaTimings=1` to the URL. The flag is
+   stored, because Mica *navigates*: a query string would be lost the first time a
+   reply opened a page, and a readout that disappears when the feature works is
+   worse than no readout.
+2. Tap the orb and speak. The panel sits top-left, deliberately outside Mica's own
+   layering ladder (`MICA_Z.notice + 1`), so it stays legible while the overlay it is
+   measuring is on screen. Eight rows fill in as the pipeline reaches them, and a
+   stage that never fired reads `—` — that dash is the finding, not a zero.
+3. Read the gaps and the spans under the rows: **tap → first token** (the number a
+   user feels first), tap → done, tap → idle, speech done → reply, reply → first
+   token. Each row carries its gap from the previous stage, so the panel answers
+   *where* the wait was and not just how long it was.
+4. `?micaTimings=0` removes it again, which is how you clear it on a phone without
+   opening a console.
+
+Without the panel, `window.__micaTimings` is installed always:
+
+```js
+__micaTimings.text()   // the session's eight stages, ready to paste into a report
+__micaTimings.spans()  // the named spans
+__micaTimings.table()  // every turn held, one row each
+__micaTimings.reset()
+```
+
+Nothing leaves the device: there is no analytics endpoint, no beacon and no `fetch`
+in the timing module. This pipeline carries health data, and a timing module that
+phoned home would be a new processor in that path for no benefit. The handle
+exposes timings only — no transcript, no reply, no identifiers — which is why it can
+be left on permanently: the tap that felt slow is not one you think to switch
+instrumentation on for in advance.
+
+### Why the reading is a session, not the latest turn
+
+A reply reopens the microphone, so a finished turn is followed by a turn with no tap
+in it. Per-turn numbers are correct and are kept (`turns()`, `console.table`), but
+the readout reports the **session**: the turn the tap opened, with the stages of the
+turns that followed merged onto its origin. Without that, the number the carer had
+just read would be replaced by dashes a beat after the reply finished. A stage keeps
+its *first* occurrence, so `tap → first token` cannot drift into "tap to the latest
+reply"; `idle` is the one exception, because the session closes once and at the end.
+
+### Reading it
+
+There is no target in this document to compare the numbers against, and that is
+intentional — the point of the readout is that the next conversation about Mica
+feeling slow can start from a measurement instead of an opinion. Two things to watch
+when someone takes the reading: `tap → mic-ready` is where a locked-down Android
+shows up (the permission dialog plus `getUserMedia`), and `speech-done → reply
+started` separates the turn dispatcher's own cost from the speech API, which is the
+difference between looking at the routing table and looking at the recogniser.
+
 ## What could not be verified
 
 Stated plainly, because none of it is claimed above:
@@ -255,10 +349,14 @@ Stated plainly, because none of it is claimed above:
   the API, Postgres and a session, so the orb's independence from network activity
   is asserted in the test harness rather than observed in Chromium with a
   performance trace. The bundle numbers above are measured from the real build.
-- **No microphone → speech → reply → playback timing breakdown.** Those stages now
-  fail independently (a dead mic is a notice, a failed reply is the error state, and
-  a slow reply no longer leaves the orb idle), but the timings themselves were not
-  measured on a device.
+- **No device measurement of the voice pipeline — its instrument now exists.**
+  Microphone, speech, reply and playback timings are recorded, surfaced on the device
+  and covered end to end on a controlled clock (see *Measuring it on a device*). What
+  is still missing is a person with a phone and a locked-down mobile browser to run
+  it. So no claim in this document rests on a latency number taken from real
+  hardware; those stages do at least fail independently, which they did not before
+  (a dead mic is a notice, a failed reply is the error state, and a slow reply no
+  longer leaves the orb idle).
 - **Mobile reduce-motion and backgrounding are wired and unit-tested, not
   device-verified.** `AppState` and `AccessibilityInfo` are mocked under jest.
 - **Text-to-speech amplitude on mobile.** The mobile orb cannot meter TTS audio, so
@@ -274,16 +372,26 @@ Stated plainly, because none of it is claimed above:
 
 ## Verification
 
-- `apps/web`: `npx tsc --noEmit` clean. Full suite on the final source:
-  **46 of 47 files pass, 365 of 366 tests** — every Mica file green (10 files, 65
-  tests). The one failure is `src/components/Layout.test.tsx`
-  ("requests the carer-location setting for a domiciliary organisation"): its
-  assertion is a default-1 s `waitFor` on a fetch chained behind `/settings/org`,
-  and under a single-worker full-suite run that second can be missed. Both
-  `Layout.tsx` and that test are untouched by this work (`git status` is clean for
-  them), it passes 3/3 in isolation, and it passed in the previous full run — a
-  load-sensitive flake in a pre-existing test, recorded rather than papered over.
-- `apps/api`: `npx tsc --noEmit` clean (this work touched no API code).
+### As of the timing instrument (this revision)
+
+- `apps/web`: `npx tsc --noEmit` clean; `npx eslint . --ext ts,tsx
+  --report-unused-disable-directives --max-warnings 0` clean (whole app, exit 0);
+  full suite **49 files / 403 tests, all passing**. The `Layout.test.tsx` flake
+  recorded in the previous revision of this section did not recur in this run.
+- The Mica files specifically: **12 files, 102 tests green** — including the two new
+  ones, `mica.timings.test.ts` (the recorder: absent-not-zero, turn boundaries, the
+  ring buffer, the session merge) and `mica.timings.e2e.test.tsx` (a real turn
+  through the provider on a frozen clock, asserting all eight stages, their offsets,
+  the gaps, the spans, the continuation and the panel's rendering of them).
+- Design guards, since the readout is new UI: `npm run design:check` (the palette and
+  the route tracker match; the `DESIGN.md` component inventory regenerated to 52
+  shared components), `npm run design:lint` (0 off-palette hex occurrences, 0
+  baselined), `npm run design:test` (23 pass, 0 fail).
+- This revision touched `apps/web` and documentation only.
+
+### As of the animation and render work (the previous revision)
+
+- `apps/api`: `npx tsc --noEmit` clean (that work touched no API code).
 - `apps/mobile`: `npx tsc --noEmit` clean; `npx jest` 37 suites / 310 tests green.
 
 ## Re-running the measurements
@@ -295,4 +403,11 @@ cd apps/web && npx vitest run src/components/mica/mica.renderBudget.test.tsx
 # Bytes on the first-load path, from a real build
 cd apps/web && npx vite build
 node scripts/perf/first-load.mjs apps/web/dist --list
+
+# The eight stage timings: the recorder's contract, then a real turn end to end
+cd apps/web && npx vitest run src/components/mica/mica.timings.test.ts src/components/mica/mica.timings.e2e.test.tsx
 ```
+
+The last pair proves the instrument against a frozen clock; it does not take the
+reading. For that: `?micaTimings=1` on the device, tap the orb, speak, and read the
+panel — see *Measuring it on a device*.

@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* Inter, self-hosted. It used to be a Google Fonts `@import` here, which the
+   production CSP's `style-src 'self'` blocked — an `@import` is a stylesheet
+   request, so the @font-face rules never arrived and the app quietly rendered in
+   the system sans. See `scripts/fetch-fonts.mjs` for the whole story. */
+@import './styles/fonts.css';
 
 :root {
   /* MeticleCare master palette — single source of truth.

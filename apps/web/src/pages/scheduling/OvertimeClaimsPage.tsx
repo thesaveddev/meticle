@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Box, Typography, Paper, Button, Stack, Chip, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
+import { useState, useEffect, useRef } from 'react'
+import { Box, Typography, Paper, Button, Stack, Chip, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material'
+import { useSearchParams } from 'react-router-dom'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import PageContainer from '../../components/design/PageContainer'
 import { PageHeader } from '../../components/ui'
 import { PremiumCard } from '../../components/design/PremiumCard'
@@ -25,6 +27,15 @@ export default function OvertimeClaimsPage() {
   const [swapOTDialog, setSwapOTDialog] = useState<{ shiftId: string; currentStaffId: string; currentStaffName: string } | null>(null)
   const [swapOTStaffList, setSwapOTStaffList] = useState<any[]>([])
   const [swapOTNewStaffId, setSwapOTNewStaffId] = useState('')
+  // The one claim a row — or a link — opens, read from the URL rather than passed
+  // in state, because the URL is the only thing that survives a reload. It is the
+  // claim a notification or an email is about: `?claim=<id>`.
+  const [detailClaim, setDetailClaim] = useState<any | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedClaimId = searchParams.get(MICA_RECORD_PARAMS['overtime-claim'])
+  // Held alongside the URL so the same link opens its claim once: a refetch, a
+  // filter change or a re-render must not re-open a dialog the manager has closed.
+  const linkedClaimRef = useRef<string | null>(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -50,6 +61,51 @@ export default function OvertimeClaimsPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  // Opens the one claim a link names.
+  //
+  // The claim has to open whether or not it is on screen, so the search is over
+  // every list this page has already fetched — its own claims, the pending queue,
+  // the approved ones — rather than over the rows in front of the manager. The tab
+  // and the status filter decide what the table holds, and a link arrives from
+  // outside both: a claim hidden by a filter is exactly the claim a manager would
+  // otherwise have to hunt for, which is what the link exists to stop.
+  //
+  // The id is the claim's own (`assignment_id`, the row's key). A link built from
+  // the *shift* opens the one claim on that shift, because that is all an email
+  // composed from a shift has to hand — and where two staff claim the same shift it
+  // opens nothing rather than guessing which of them the mail meant.
+  useEffect(() => {
+    if (!linkedClaimId || linkedClaimRef.current === linkedClaimId) return
+    if (loading) return
+    const lists: Array<[number, any[]]> = isAdminOrManager
+      ? [[0, myClaims], [1, allClaims], [2, approvedClaims]]
+      : [[0, myClaims]]
+    let claim: any | undefined
+    let claimTab = 0
+    for (const [tabIndex, list] of lists) {
+      const found = list.find((c: any) => c.assignment_id === linkedClaimId)
+      if (found) { claim = found; claimTab = tabIndex; break }
+    }
+    if (!claim) {
+      const onShift = lists.flatMap(([, list]) => list).filter((c: any) => c.shift_id === linkedClaimId)
+      if (onShift.length === 1) {
+        claim = onShift[0]
+        claimTab = lists.find(([, list]) => list.includes(onShift[0]))?.[0] ?? 0
+      }
+    }
+    // Once-only before the decision, so a claim this caller cannot read is not
+    // retried by every later render.
+    linkedClaimRef.current = linkedClaimId
+    if (!claim) {
+      setError('That overtime claim could not be opened.')
+      return
+    }
+    // The claim's own tab, unfiltered, so the row is on screen behind the dialog.
+    setTab(claimTab)
+    setStatusFilter('')
+    setDetailClaim(claim)
+  }, [linkedClaimId, loading, myClaims, allClaims, approvedClaims, isAdminOrManager])
 
   const handleApprove = async (shiftId: string, staffId: string) => {
     setError(''); setSuccess(''); setActionLoading(`approve-${shiftId}-${staffId}`)
@@ -155,6 +211,13 @@ export default function OvertimeClaimsPage() {
     return <Typography variant="caption" color="#51637A">{Math.round(hrs)}h until start</Typography>
   }
 
+  // Closing the record also drops its link, so a reload or a later render cannot
+  // put the manager back in a dialog they just closed.
+  function closeDetail() {
+    setDetailClaim(null)
+    if (linkedClaimId) setSearchParams({}, { replace: true })
+  }
+
   const myFiltered = statusFilter
     ? myClaims.filter((c: any) => c.assignment_status === statusFilter)
     : myClaims
@@ -212,7 +275,7 @@ export default function OvertimeClaimsPage() {
               {myFiltered.length === 0 ? (
                 <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No claims yet</TableCell></TableRow>
               ) : myFiltered.map((c: any) => (
-                <TableRow key={c.assignment_id} hover>
+                <TableRow key={c.assignment_id} hover onClick={() => setDetailClaim(c)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatDateShort(c.start_time)}</Typography>
                   </TableCell>
@@ -262,7 +325,7 @@ export default function OvertimeClaimsPage() {
               {allFiltered.length === 0 ? (
                 <TableRow><TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>No claims to review</TableCell></TableRow>
               ) : allFiltered.map((c: any) => (
-                <TableRow key={c.assignment_id} hover>
+                <TableRow key={c.assignment_id} hover onClick={() => setDetailClaim(c)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
@@ -291,7 +354,7 @@ export default function OvertimeClaimsPage() {
                   <TableCell align="right">
                     <Typography variant="caption" color="#51637A">{timeAgo(c.claimed_at)}</Typography>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" onClick={e => e.stopPropagation()}>
                     {c.assignment_status === 'pending' ? (
                       <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Tooltip title="Approve">
@@ -340,7 +403,7 @@ export default function OvertimeClaimsPage() {
               {approvedClaims.length === 0 ? (
                 <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No approved overtime claims</TableCell></TableRow>
               ) : approvedClaims.map((c: any) => (
-                <TableRow key={c.assignment_id} hover>
+                <TableRow key={c.assignment_id} hover onClick={() => setDetailClaim(c)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
@@ -368,7 +431,7 @@ export default function OvertimeClaimsPage() {
                   <TableCell align="right">
                     <Typography variant="caption" color="#51637A">{timeAgo(c.claimed_at)}</Typography>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" onClick={e => e.stopPropagation()}>
                     <Stack direction="row" spacing={0.5} justifyContent="center">
                       <Tooltip title="Swap to another staff">
                         <Button size="small" variant="outlined" color="primary"
@@ -441,6 +504,47 @@ export default function OvertimeClaimsPage() {
           )}
         </Box>
       )}
+      {/* The claim as it reads: what a row opens, and where a link from an email or a
+          notification lands. Actions stay on the row behind it — this is the record,
+          not a second place to approve it from. */}
+      <Dialog open={!!detailClaim} onClose={closeDetail} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>Overtime claim</DialogTitle>
+        <DialogContent>
+          {detailClaim && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                {statusChip(detailClaim.assignment_status)}
+                {shiftTypeChip(detailClaim.shift_type)}
+              </Stack>
+              <Divider />
+              {(detailClaim.first_name || detailClaim.last_name) && (
+                <Typography variant="body2"><strong>Staff:</strong> {detailClaim.first_name} {detailClaim.last_name}</Typography>
+              )}
+              <Typography variant="body2">
+                <strong>When:</strong> {formatDateShort(detailClaim.start_time)} — {formatTimeOnly(detailClaim.start_time)} to {formatTimeOnly(detailClaim.end_time)}
+                {' ('}{calcDurationHours(detailClaim.start_time, detailClaim.end_time)}h{')'}
+              </Typography>
+              <Typography variant="body2"><strong>Location:</strong> {detailClaim.location_name}</Typography>
+              <Typography variant="body2">
+                <strong>Person:</strong>{' '}
+                {detailClaim.su_first_name
+                  ? `${detailClaim.su_first_name} ${detailClaim.su_last_name || ''}`.trim()
+                  : 'Not recorded'}
+              </Typography>
+              <Stack spacing={0.5}>
+                <Typography variant="caption" color="#51637A">Claimed at</Typography>
+                <Typography variant="body2">
+                  {detailClaim.claimed_at ? timeAgo(detailClaim.claimed_at) : 'Not recorded'}
+                </Typography>
+              </Stack>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={closeDetail}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Swap Overtime Dialog */}
       <Dialog open={!!swapOTDialog} onClose={() => !actionLoading && setSwapOTDialog(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>Swap Overtime</DialogTitle>

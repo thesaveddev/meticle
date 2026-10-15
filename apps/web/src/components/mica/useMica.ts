@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../services/api'
 import { MICA_STOP_PHRASES, type MicaState } from './mica.identity'
 import { createMicaAudioChannel, type MicaAudioChannel } from './mica.audio'
+import { createMicaTimings, type MicaTimingsRecorder } from './mica.timings'
 
 /** Re-exported so existing importers keep working; the union lives in one place. */
 export type { MicaState }
@@ -21,7 +22,48 @@ export interface MicaNavigateTarget {
   person?: MicaPerson
 }
 
+/**
+ * A record Mica has prepared and is waiting for the carer to save.
+ *
+ * This is the client half of the confirm-before-persist contract the action
+ * gateway has always had (`apps/api/src/modules/ai/actions/`): the server
+ * resolves and disambiguates, answers with a draft, and the row exists only when
+ * `/ai/mica/actions/confirm` is called with that same envelope. The draft used
+ * to be written to `sessionStorage` and read by nobody, so no write prepared by
+ * voice could ever be saved — the card below is the missing half.
+ */
+export interface MicaDraft {
+  action: 'CREATE_TASK' | 'CREATE_APPOINTMENT'
+  /** The server's own read-back of the draft, as it was spoken aloud. */
+  summary: string
+  /** The fields the draft would create, for the card to list. */
+  output: Record<string, unknown>
+  /**
+   * The reply from `/ai/mica/actions`, verbatim: the envelope `confirm`
+   * expects back. Held whole rather than rebuilt, because the server
+   * re-validates it as the thing it issued.
+   */
+  envelope: Record<string, unknown>
+}
+
+/**
+ * The page a saved record lives on, waiting on the carer's next word.
+ *
+ * Returned by both read and write flows under the same key (`offer`), so the
+ * *spoken* route into a record is one thing. This is the visible half: the
+ * server holds the same page for a bare "yes", and tapping the control sends
+ * the carer to the identical path.
+ */
+export interface MicaOffer {
+  path: string
+  label: string
+  /** The question the reply ended with, e.g. "Want me to open the new task?". */
+  question: string
+}
+
 const PERSON_STORAGE_KEY = 'mica.selectedPerson'
+const DRAFT_STORAGE_KEY = 'mica.pendingDraft'
+const SESSION_STORAGE_KEY = 'mica.sessionId'
 /**
  * Follow-up memory handle. The server issues an opaque sessionId on each
  * answered question; we echo it back on the next ask so "what about
@@ -31,6 +73,67 @@ const PERSON_STORAGE_KEY = 'mica.selectedPerson'
  * subject person changes, since a new person starts a new topic.
  */
 const micaSessionIdRef: { current: string | null } = { current: null }
+
+/**
+ * Writes the session id down as well as holding it.
+ *
+ * The id is opaque and scoped server-side to (organizationId, userId), so a copy
+ * in this tab's storage is a handle, not a transcript — the module header above
+ * has always claimed this persistence and the code did not do it. It matters
+ * now for one concrete reason: a record Mica prepared survives a reload, and the
+ * offer that follows saving it is only answerable by the conversation it was
+ * prepared in. Without the id, a reloaded draft would save and then leave the
+ * carer's "yes" addressing a conversation the server no longer has.
+ */
+const rememberSessionId = (id: string | undefined): void => {
+  if (!id) return
+  micaSessionIdRef.current = id
+  try { window.sessionStorage.setItem(SESSION_STORAGE_KEY, id) } catch { /* unavailable */ }
+}
+
+/** Clears the handle from memory *and* from the tab, so neither can outlive its topic. */
+const forgetSessionId = (): void => {
+  micaSessionIdRef.current = null
+  try { window.sessionStorage.removeItem(SESSION_STORAGE_KEY) } catch { /* unavailable */ }
+}
+
+/**
+ * The draft this tab was in the middle of, if any.
+ *
+ * Restored rather than re-prepared: a reload is not a decision to abandon the
+ * record Mica read back, and the card is one tap from saving it. Validation is
+ * deliberately strict — a shape this does not recognise is discarded rather than
+ * handed to a card that would render blanks and a Save button.
+ */
+const readStoredDraft = (): MicaDraft | null => {
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as MicaDraft
+    const usable =
+      parsed &&
+      (parsed.action === 'CREATE_TASK' || parsed.action === 'CREATE_APPOINTMENT') &&
+      typeof parsed.summary === 'string' &&
+      !!parsed.envelope && typeof parsed.envelope === 'object'
+    if (!usable) return null
+    return { ...parsed, output: parsed.output && typeof parsed.output === 'object' ? parsed.output : {} }
+  } catch {
+    return null
+  }
+}
+
+/** The session id this tab was last using, read once on the first hook mount. */
+let sessionIdRestored = false
+const restoreSessionId = (): void => {
+  if (sessionIdRestored) return
+  sessionIdRestored = true
+  try {
+    const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY)
+    if (stored) micaSessionIdRef.current = stored
+  } catch {
+    // Storage unavailable (private mode): the in-memory handle still works.
+  }
+}
 
 /** How the words reached Mica. Voice is the only entry point the overlay has. */
 export type MicaSource = 'voice' | 'text' | 'manual'
@@ -350,7 +453,38 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
  * utterance's word-boundary events.
  */
 export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => void } = {}) {
-  const [state, setState] = useState<MicaState>('idle')
+  const [state, setStateRaw] = useState<MicaState>('idle')
+  /**
+   * The voice-pipeline timings, one recorder per session.
+   *
+   * Held in a ref for the same reason the amplitude channel is: eight marks per
+   * turn are written by the pipeline and read by whoever is looking, and none of
+   * them may cost a render of the assistant. See `mica.timings.ts`.
+   */
+  const timingsRef = useRef<MicaTimingsRecorder | null>(null)
+  if (!timingsRef.current) timingsRef.current = createMicaTimings()
+  const timings = timingsRef.current
+
+  /**
+   * Every entry into a state, in one place, so the timings cannot miss a path.
+   *
+   * Two of Mica's states are also two of the eight stages — `listening` and
+   * `idle` — and they are entered from about a dozen places: every reply path,
+   * the dispatcher, the recogniser's own error and end handlers, the tear-down,
+   * and `MicaProvider` closing the notice. Marking at each call site would be one
+   * omission away from a stage that silently reads "never happened", which is the
+   * failure `mica.timings.ts` is most careful about.
+   *
+   * Wrapping keeps the name `setState`, so every existing call site — including
+   * the one `MicaProvider` holds — and every dependency array is untouched and
+   * all of them are now instrumented. The wrapper is stable (its only dependency
+   * is the ref-held recorder), so it is a drop-in for React's own setter.
+   */
+  const setState = useCallback((next: MicaState) => {
+    if (next === 'listening') timings.mark('listening')
+    else if (next === 'idle') timings.mark('idle')
+    setStateRaw(next)
+  }, [timings])
   /**
    * The amplitude channel, and the reason it is not `useState`.
    *
@@ -393,6 +527,30 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
    */
   const offeredPageRef = useRef(false)
 
+  /**
+   * The record Mica has prepared and not yet saved.
+   *
+   * Restored from the tab on mount (see `readStoredDraft`): a draft is
+   * work-in-progress, not session state, so it outlives a reload and a session
+   * that ended — nothing is written server-side until it is approved, so dropping
+   * it silently would be losing data the carer asked for.
+   */
+  const [draft, setDraft] = useState<MicaDraft | null>(() => {
+    restoreSessionId()
+    return readStoredDraft()
+  })
+  const draftRef = useRef<MicaDraft | null>(draft)
+  /** True while the draft is being saved, so the card's control can say so. */
+  const [savingDraft, setSavingDraft] = useState(false)
+  const savingDraftRef = useRef(false)
+  /** The page the last saved record lives on, waiting on the carer's word. */
+  const [offer, setOffer] = useState<MicaOffer | null>(null)
+
+  // The ref is what the turn dispatcher reads: it decides *which endpoint* the
+  // next word reaches, inside a callback that must not be rebuilt (and must not
+  // see a stale draft) on every render.
+  useEffect(() => { draftRef.current = draft }, [draft])
+
   useEffect(() => {
     selectedPersonRef.current = selectedPerson
     try {
@@ -410,10 +568,12 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     const id = selectedPerson?.id ?? null
     if (lastPersonIdRef.current !== id) {
       lastPersonIdRef.current = id
-      micaSessionIdRef.current = null
+      forgetSessionId()
       // A new subject starts a new topic: a page offered about the last one is
-      // not this conversation's to open.
+      // not this conversation's to open, and an offer still on screen belongs to
+      // the conversation that ended.
       offeredPageRef.current = false
+      setOffer(null)
     }
   }, [selectedPerson])
 
@@ -461,10 +621,18 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     audio.publish(0)
   }, [audio])
 
-  const startMicMeter = useCallback(async () => {
+  /**
+   * Opens the session's microphone.
+   *
+   * Returns whether a real stream is now feeding the meter, rather than
+   * swallowing the failure. The caller needs to know: the `micReady` timing stage
+   * must not report a microphone that never opened, and a failed open is the
+   * difference between "the room is quiet" and "there is nothing to hear".
+   */
+  const startMicMeter = useCallback(async (): Promise<boolean> => {
     // One mic stream for the whole session: continuous listening must not
     // re-open (and re-close) the microphone on every turn.
-    if (streamRef.current) return
+    if (streamRef.current) return true
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
@@ -488,9 +656,11 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         rafRef.current = requestAnimationFrame(tick)
       }
       rafRef.current = requestAnimationFrame(tick)
+      return true
     } catch {
       // Mic denied / unavailable: Mica still listens via the recognizer; the
       // orb simply rests at zero amplitude rather than dying.
+      return false
     }
   }, [audio])
 
@@ -508,6 +678,19 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
   const speak = useCallback(async (text: string, onDone: () => void) => {
     // Tear down any previous TTS playback before starting a new one.
     stopTtsPlayback()
+
+    /**
+     * The reply has finished playing. This is the `done` stage.
+     *
+     * Wrapped rather than marked at each exit, because this function has four ways
+     * out — the server-TTS `onended`, the synthesiser's `onend`, its `onerror`, and
+     * the two fallbacks that give up entirely — and a missed one would leave the
+     * last turn reading as a session that is still talking.
+     */
+    const complete = () => {
+      timings.mark('done')
+      onDone()
+    }
 
     // ---- Primary: server TTS through Web Audio -------------------------
     try {
@@ -545,7 +728,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       source.onended = () => {
         stopTtsPlayback()
         audio.publish(0)
-        onDone()
+        complete()
       }
       ttsSourceRef.current = source
       source.start()
@@ -558,7 +741,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     // ---- Fallback: browser speechSynthesis + word-boundary envelope ----
     try {
       const synth = window.speechSynthesis
-      if (!synth) { onDone(); return }
+      if (!synth) { complete(); return }
       const utter = new SpeechSynthesisUtterance(text)
       utter.lang = 'en-GB'
       utter.rate = 1.02
@@ -603,14 +786,14 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         const phraseBreak = /[.!?;:,]\s*$/.test(text.slice(0, e.charIndex))
         target = phraseBreak ? 0.08 : wordWeight(word)
       }
-      utter.onend = () => { stopEnvelope(); onDone() }
-      utter.onerror = () => { stopEnvelope(); onDone() }
+      utter.onend = () => { stopEnvelope(); complete() }
+      utter.onerror = () => { stopEnvelope(); complete() }
       synth.cancel()
       synth.speak(utter)
     } catch {
-      onDone()
+      complete()
     }
-  }, [audio, stopTtsPlayback])
+  }, [audio, stopTtsPlayback, timings])
 
   const stopListening = useCallback(() => {
     // Clear the live flag first: the recogniser's onend reads it to decide
@@ -638,10 +821,14 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
    * There is no wake word, so the copy must not imply one.
    */
   const endWithFarewell = useCallback(() => {
+    // A stop phrase is answered without a request, but it is still Mica beginning
+    // a reply — so the stage fires here too, and the turn is complete rather than
+    // missing `replyStarted` because it took the no-request path.
+    timings.mark('replyStarted')
     setResponseMessage('Okay — I’ll stop listening. Tap the orb when you need me.')
     setState('responding')
     speak('Okay, I will stop listening. Tap the orb when you need me.', () => stopListening())
-  }, [speak, stopListening])
+  }, [speak, stopListening, timings])
 
   // ── Turn plumbing ────────────────────────────────────────────────────
 
@@ -675,10 +862,14 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
 
   /** Speaks a reply, then continues the conversation (or ends it, if asked to). */
   const reply = useCallback((message: string, opts: { end?: boolean } = {}) => {
+    // The first reply content that exists. On this pipeline the endpoint is not
+    // streamed, so this is the whole response arriving — see `firstToken` in
+    // `mica.timings.ts` before quoting this as a time-to-first-token.
+    timings.mark('firstToken')
     setResponseMessage(message)
     setState('responding')
     speak(message, () => (opts.end ? stopListeningRef.current() : finishTurn()))
-  }, [finishTurn, speak])
+  }, [finishTurn, speak, timings])
 
   /**
    * A failure: still spoken (a voice-first user must hear it), then either the
@@ -692,6 +883,10 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
    * looping a failure the user cannot talk their way out of.
    */
   const fail = useCallback((message: string, opts: { fatal?: boolean } = {}) => {
+    // A failure is still a reply the carer hears, so the stage fires and the turn
+    // is readable. Without this, every failed turn would look like a turn where
+    // Mica never answered, which is a different (and wrong) diagnosis.
+    timings.mark('firstToken')
     setResponseMessage(message)
     setState('responding')
     speak(message, () => {
@@ -712,7 +907,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       }
       setState('error')
     })
-  }, [speak, stopMicMeter])
+  }, [speak, stopMicMeter, timings])
 
   /**
    * The message and severity of an API failure, in one place.
@@ -733,6 +928,27 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     return { message, fatal: status === 402 || status === 403 }
   }
 
+  /**
+   * Holds the draft Mica just read back, on screen and in the tab.
+   *
+   * A new prepared record replaces the previous one: the carer has moved on, and
+   * two drafts on one card would be a queue with no ordering. Writing it to the
+   * tab is what makes the card survive a reload (`readStoredDraft`) — the same
+   * write the hook always made, now with a reader.
+   */
+  const keepDraft = useCallback((next: MicaDraft) => {
+    setDraft(next)
+    draftRef.current = next
+    try { window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(next)) } catch { /* unavailable */ }
+  }, [])
+
+  /** Drops the draft everywhere it is held: saved, or discarded by the carer. */
+  const forgetDraft = useCallback(() => {
+    setDraft(null)
+    draftRef.current = null
+    try { window.sessionStorage.removeItem(DRAFT_STORAGE_KEY) } catch { /* unavailable */ }
+  }, [])
+
   /** A draft or clarification from the write-action gateway, read back verbatim. */
   const handleActionResult = useCallback((data: Record<string, unknown>, resData: Record<string, unknown>) => {
     const clarification = data as { needClarification?: boolean; prompt?: string; candidates?: Array<{ id: string; name: string }> }
@@ -750,16 +966,109 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     }
     const msg = (data.summary as string) || clarification.prompt || 'I could not prepare that. Check the screen for details.'
     if (data.draft) {
-      try { window.sessionStorage.setItem('mica.pendingDraft', JSON.stringify(resData)) } catch { /* unavailable */ }
+      // The reply ends by asking to save it ("Shall I save it?"), so the draft has
+      // to be somewhere the carer can approve it: on the card, and in the tab.
+      keepDraft({
+        action: resData.action as MicaDraft['action'],
+        summary: msg,
+        output: (data.output as Record<string, unknown>) || {},
+        envelope: resData,
+      })
+      // A prepared record is the newest thing said, so anything the last turn
+      // offered is no longer waiting on an answer.
+      offeredPageRef.current = false
+      setOffer(null)
     }
     reply(msg)
-  }, [reply])
+  }, [keepDraft, reply])
+
+  /**
+   * Saves the draft on the card — the only path from a spoken request to a row.
+   *
+   * The envelope goes back exactly as the server issued it (`/ai/mica/actions`
+   * re-validates its own draft at confirm), the session goes with it so the offer
+   * that follows is answerable in the conversation it was prepared in, and the
+   * reply that comes back is the same shape a list answer returns: what was saved,
+   * and the page it lives on.
+   */
+  const saveDraft = useCallback(async () => {
+    const current = draftRef.current
+    if (!current || savingDraftRef.current) return
+    savingDraftRef.current = true
+    setSavingDraft(true)
+    timings.mark('replyStarted')
+    setState('thinking')
+    try {
+      const res = await api.post('/ai/mica/actions/confirm', {
+        draft: current.envelope,
+        ...(micaSessionIdRef.current ? { sessionId: micaSessionIdRef.current } : {}),
+      })
+      const data = res.data as {
+        sessionId?: string
+        offer?: { path?: string; label?: string; offer?: string }
+      }
+      if (data?.sessionId) rememberSessionId(data.sessionId)
+      forgetDraft()
+      const page = data?.offer
+      if (page?.path) {
+        setOffer({
+          path: page.path,
+          label: page.label || 'the new record',
+          question: page.offer || `Want me to open ${page.label || 'it'}?`,
+        })
+        // The server is holding the same page, so the carer can answer by voice
+        // ("yes") or by tapping the control — both land on the record.
+        offeredPageRef.current = true
+      }
+      // The question the server asks is the last thing said, exactly as it is for
+      // a list answer that ends by offering its page — and the verb follows the
+      // action through the flow the way the card's own control does: the button
+      // says "Book appointment", so the reply says "Booked." rather than "Saved.".
+      const done = current.action === 'CREATE_APPOINTMENT' ? 'Booked.' : 'Saved.'
+      reply(page?.offer ? `${done} ${page.offer}` : done)
+    } catch (e: unknown) {
+      const failure = apiFailure(e, 'Mica could not save that. Try again.')
+      // The draft is deliberately *not* dropped: a failure here is usually
+      // transient, and the card is the retry. The reason is spoken and shown in
+      // the message above the card rather than hidden behind it.
+      fail(failure.message, { fatal: failure.fatal })
+    } finally {
+      savingDraftRef.current = false
+      setSavingDraft(false)
+    }
+  }, [fail, forgetDraft, reply, setState, timings])
+
+  /** Drops the draft: the carer's other answer to "shall I save it?". */
+  const discardDraft = useCallback(() => {
+    if (!draftRef.current) return
+    forgetDraft()
+    reply('Okay — I’ve dropped that draft.')
+  }, [forgetDraft, reply])
+
+  /**
+   * Opens the page a saved record lives on, from a tap rather than a word.
+   *
+   * The same route the server would return if the carer said "yes" — the page is
+   * pushed, the session drops into the bar, and the thing Mica just saved is what
+   * the carer is now looking at.
+   */
+  const openOffer = useCallback(() => {
+    if (!offer) return
+    const nav: MicaNavigateTarget = { path: offer.path, label: offer.label }
+    setOffer(null)
+    // A tap answered the offer, so nothing is waiting on a word any more.
+    offeredPageRef.current = false
+    setLastNavigation(nav)
+    onNavigateRef.current?.(nav)
+    setMinimised(true)
+  }, [offer, setLastNavigation, setMinimised])
 
   const sendAction = useCallback(async (
     action: 'CREATE_TASK' | 'CREATE_APPOINTMENT',
     utterance: string,
     input: Record<string, unknown>,
   ) => {
+    timings.mark('replyStarted')
     setState('thinking')
     try {
       const res = await api.post('/ai/mica/actions', { action, utterance, input: { utterance, source: 'voice', ...input } })
@@ -776,7 +1085,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       const failure = apiFailure(e, 'Mica could not prepare that. Check AI settings.')
       fail(failure.message, { fatal: failure.fatal })
     }
-  }, [fail, handleActionResult])
+  }, [fail, handleActionResult, timings])
 
   /**
    * The care-note path. A statement about someone is drafted as a note, and the
@@ -784,6 +1093,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
    * that person it asks aloud, and the next utterance is the answer.
    */
   const sendCareNote = useCallback(async (utterance: string, personName?: string, personId?: string) => {
+    timings.mark('replyStarted')
     setState('thinking')
     try {
       const res = await api.post('/ai/voice/notes', {
@@ -838,6 +1148,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
    * overlay Mica opened it from. Listening continues either way.
    */
   const askMica = useCallback(async (question: string) => {
+    timings.mark('replyStarted')
     setState('thinking')
     try {
       const res = await api.post('/ai/mica/ask', {
@@ -850,13 +1161,23 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         sessionId?: string
         navigate?: { path?: string; label?: string; person?: { id: string; name: string } }
         /** The page Mica offered in this answer, waiting on the carer's next word. */
-        offer?: unknown
+        offer?: { path?: string; label?: string; offer?: string }
       }
-      if (data?.sessionId) micaSessionIdRef.current = data.sessionId
-      // Whether a page is waiting on the next word. The server keeps the offer
-      // itself and retires it with the turn that follows; this only routes the
-      // answer back to the endpoint that can open it.
-      offeredPageRef.current = Boolean(data?.offer)
+      if (data?.sessionId) rememberSessionId(data.sessionId)
+      // The page this answer offered, if any — the same state a saved record
+      // fills, so one control answers both. The server keeps the authoritative
+      // copy and retires it with the turn that follows; this is the copy the carer
+      // can see and tap, and the `offer` flag below is what routes "yes" back to
+      // the endpoint that can open it.
+      const offered = data?.offer
+      offeredPageRef.current = Boolean(offered?.path)
+      setOffer(offered?.path
+        ? {
+          path: offered.path,
+          label: offered.label || 'that page',
+          question: offered.offer || `Want me to open ${offered.label || 'that page'}?`,
+        }
+        : null)
 
       // Navigation first: the point of the turn was to reach the page, and the
       // spoken line is a confirmation of what Mica did, not a substitute for it.
@@ -872,6 +1193,8 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         // The bar, not the modal: the page is the subject now, Mica is the
         // passenger. This also keeps the overlay from covering what it opened.
         setMinimised(true)
+        // The carer is being taken there, so nothing is waiting on a word.
+        setOffer(null)
       }
 
       const msg = data?.answer || (target?.path ? `Opening ${target.label || 'that page'}.` : 'I could not answer that. Try asking again.')
@@ -917,6 +1240,18 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       return
     }
 
+    // A prepared record waiting for approval. The server's draft ends by asking
+    // "shall I save it?", and the words that answer it are the same ones that
+    // answer an offered page — but the outcome is a write, and the draft on the
+    // card is the only thing that knows what to write. Checked before the offer
+    // because a draft and an offer are never both waiting, and before every
+    // routing rule below, because a bare "yes" reaching the care-note path is a
+    // note drafted about nobody.
+    if (draftRef.current && looksLikeConfirmation(text)) {
+      await saveDraft()
+      return
+    }
+
     // The carer's answer to the page Mica just offered ("yes", "go on"). Checked
     // before every other path because a confirmation is a reply to Mica's own
     // question: it names no destination, asks nothing, and above all is not a
@@ -943,7 +1278,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     }
 
     await sendCareNote(text, extractPersonNameFromUtterance(text))
-  }, [askMica, endWithFarewell, sendAction, sendCareNote])
+  }, [askMica, endWithFarewell, saveDraft, sendAction, sendCareNote])
 
   useEffect(() => { sendToAiRef.current = (t) => { void sendToAi(t) } }, [sendToAi])
 
@@ -1003,6 +1338,12 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       if (!continuousRef.current) return
       if (transcriptRef.current) {
         silentEndsRef.current = 0
+        // The sentence is over: the recogniser has a final transcript and nothing
+        // further is coming from this turn. Marked *before* dispatch, so the gap
+        // to `replyStarted` is the turn dispatcher's own cost and not the
+        // recogniser's — which is the distinction that tells you whether to look
+        // at the routing table or at the speech API.
+        timings.mark('speechDone')
         sendToAiRef.current(transcriptRef.current)
         return
       }
@@ -1034,12 +1375,15 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     }, 200)
     recognitionRef.current = rec
     rec.start()
-  }, [reply])
+  }, [reply, timings])
 
   useEffect(() => { beginRecognitionRef.current = beginRecognition })
 
   /** Where the conversation begins: the orb's tap. */
   const startListening = useCallback(async () => {
+    // The origin of the turn: this callback *is* the tap, so everything the carer
+    // waits for afterwards is measured from here.
+    timings.mark('tap')
     const Ctor = getRecognitionCtor()
     if (!Ctor) {
       setSupported(false)
@@ -1064,8 +1408,10 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     silentEndsRef.current = 0
     pendingRef.current = null
     // A session that just started has heard no offer, whatever the server still
-    // holds: the carer did not hear it in this session either.
+    // holds: the carer did not hear it in this session either. A draft is left
+    // alone — it is prepared work, not something this session heard.
     offeredPageRef.current = false
+    setOffer(null)
 
     // Fail fast (and visibly) when the mic is actually unusable, instead of
     // opening the display that listens to nothing. The Permissions API advisory
@@ -1092,16 +1438,26 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     // while the probe runs. Opening a recogniser after that would listen to a
     // room nobody asked us to hear.
     if (!continuousRef.current) return
-    await startMicMeter()
+    // A real microphone stream is open from here — the first moment the orb is
+    // driven by an actual input instead of resting at zero. `startMicMeter`
+    // reports the failure rather than swallowing it, so a denied mic leaves this
+    // stage absent instead of claiming an instant open.
+    if (await startMicMeter()) timings.mark('micReady')
     if (!continuousRef.current) return
     beginRecognition()
-  }, [beginRecognition, startMicMeter, stopListening])
+  }, [beginRecognition, startMicMeter, stopListening, timings])
 
   return {
     state,
     setState,
     /** The session's amplitude channel; the orb subscribes, React does not. */
     audio,
+    /**
+     * The session's voice-pipeline timings. Returned so the readout panel and the
+     * `window.__micaTimings` handle can read the numbers the pipeline wrote;
+     * neither of them writes any, and nothing here sends them anywhere.
+     */
+    timings,
     transcript,
     responseMessage,
     error,
@@ -1113,6 +1469,25 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     minimise: useCallback(() => setMinimised(true), []),
     expand: useCallback(() => setMinimised(false), []),
     lastNavigation,
+    /**
+     * The record Mica has prepared and not yet saved, if any: what the review card
+     * renders. Restored from the tab, so a reload mid-draft does not throw away
+     * the record the carer asked for.
+     */
+    draft,
+    /** True while that draft is being saved, so the card can say so. */
+    savingDraft,
+    /** Approve it. The only path from a prepared draft to a stored row. */
+    saveDraft,
+    /** Drop it, which is the carer's other answer to "shall I save it?". */
+    discardDraft,
+    /**
+     * The page the last answer or save offered, waiting to be opened — shown as a
+     * control, and answerable by voice as well (a bare "yes" reaches the server
+     * that asked, which is holding the same page).
+     */
+    offer,
+    openOffer,
     startListening,
     stopListening,
   }

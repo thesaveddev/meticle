@@ -2,6 +2,7 @@ import pool, { query, requestDBStorage, resetRlsSessionVars, migrateQuery } from
 import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 import { SchedulingRepository } from './scheduling.repository';
+import { micaRecordPath } from '@meticle/shared';
 
 /**
  * Shift previews are sent only inside this lead-time window. The lower bound
@@ -207,13 +208,21 @@ export class SchedulingNotificationService {
 
           if (shift.manager_email) {
             const managerName = `${shift.manager_name || 'Manager'}`;
+            // The shift is opened on the rota grid, so the link names the shift and
+            // the week to open on: the week is the ISO day the shift itself starts,
+            // which is the day the grid holding it begins on.
             await EmailService.sendUnclaimedShiftReminderEmail(
               shift.manager_email,
               managerName,
               shift.location_name,
               shiftDate,
               shiftTime,
-              shiftType
+              shiftType,
+              EmailService.recordUrl({
+                kind: 'shift',
+                id: shift.id,
+                week: new Date(shift.start_time).toISOString().slice(0, 10),
+              })
             );
             notified++;
           }

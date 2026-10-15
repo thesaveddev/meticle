@@ -93,7 +93,16 @@ describe('nginx security headers', () => {
     const csp = /Content-Security-Policy "([^"]+)"/.exec(SNIPPET)?.[1] || ''
     expect(csp).toContain("default-src 'self'")
     expect(csp).toContain("script-src 'self'")
-    expect(csp).toContain('https://fonts.gstatic.com')      // Google Fonts
+    // No third-party origin for typography: Inter is self-hosted, and the entry
+    // that used to be asserted here (`fonts.gstatic.com`) allowed font *files*
+    // from Google while the only directive that mattered — style-src, which
+    // governs the `@import` that carried the @font-face rules — blocked the
+    // stylesheet that would have asked for them. The font never loaded and the
+    // allowlist still looked deliberate. `typographyAssets.test.ts` now holds the
+    // stylesheet, the font files and this policy together.
+    expect(csp).toContain("font-src 'self'")
+    expect(csp).not.toContain('fonts.gstatic.com')
+    expect(csp).not.toContain('fonts.googleapis.com')
     expect(csp).toContain('a.tile.openstreetmap.org')      // map tiles
     expect(csp).toContain('nominatim.openstreetmap.org')   // geocoding
     expect(csp).toContain("object-src 'none'")

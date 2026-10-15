@@ -1,10 +1,8 @@
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ORG_ADMIN = 'ORG_ADMIN',
-  MANAGER = 'MANAGER',
-  CARE_WORKER = 'CARE_WORKER',
-  COMPLIANCE_OFFICER = 'COMPLIANCE_OFFICER'
-}
+// UserRole lives in ./roles so the generated page-access table can type its roles
+// as the enum; imported here for local use and re-exported so every consumer's
+// import path is unchanged.
+import { UserRole } from './roles';
+export * from './roles';
 
 export enum SubscriptionStatus {
   TRIAL = 'trial',
@@ -42,3 +40,13 @@ export interface Organization {
   onboardingCompleted: boolean;
   createdAt: Date;
 }
+
+// Every page's access, derived from the router by scripts/design/route-access.mjs.
+// It lives here rather than in either app because both need the same answer: the
+// web app routes on it and the API's Mica offers pages from it.
+export * from './pageAccess.generated';
+
+// The link to one saved record, and the query parameter each page reads to open
+// it. Shared for the same reason as the table above: the API composes the link
+// and the page reads it, so the two ends must not be able to disagree.
+export * from './micaDeepLinks';

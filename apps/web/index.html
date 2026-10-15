@@ -25,8 +25,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Meticle Care" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Inter is self-hosted (see scripts/fetch-fonts.mjs), so there is no third
+      party to preconnect to. The two preloads are the latin weights the first
+      paint depends on: 400 sets body copy everywhere, 600 is the weight the app
+      uses most (row titles, buttons, table headers). `crossorigin` is required
+      for fonts even same-origin — without it the browser fetches the file twice
+      and discards the preload. Everything else loads on demand, and the
+      `unicode-range` in styles/fonts.css keeps unused subsets off the wire.
+    -->
+    <link rel="preload" href="/fonts/inter-latin-400-normal.v20.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-latin-600-normal.v20.woff2" as="font" type="font/woff2" crossorigin />
 
     <!--
       Meticle Care — design contract (brief-pinned)

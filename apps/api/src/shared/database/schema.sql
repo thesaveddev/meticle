@@ -266,6 +266,9 @@ CREATE TABLE IF NOT EXISTS notifications (
     message TEXT NOT NULL,
     type VARCHAR(20) NOT NULL DEFAULT 'info',
     read BOOLEAN NOT NULL DEFAULT FALSE,
+    -- The record this notification is about, when it is about one: a relative
+    -- record path (`micaRecordPath` in `@meticle/shared`) the client navigates to.
+    link VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

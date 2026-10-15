@@ -8,6 +8,7 @@ import { requireLeaveInOrg, requireSameOrgForStaff } from '../../shared/database
 import { logWarn } from '../../shared/utils/logger';
 import { logDelegationAction } from '../delegations/delegation.audit';
 import { publishDomainEvent } from '../events/events.outbox';
+import { micaRecordPath, type MicaRecordRef } from '@meticle/shared';
 
 export class LeaveController {
   static async getLeaveTypes(req: Request, res: Response) {
@@ -495,12 +496,16 @@ export class LeaveController {
         [userId]
       );
       const bookerName = [bookerRes.rows[0]?.first_name, bookerRes.rows[0]?.last_name].filter(Boolean).join(' ') || 'Your manager';
+      // The request this is about, so the bell and the email open the same record
+      // the leave page lists rather than dropping the reader on its default tab.
+      const bookedLink: MicaRecordRef = { kind: 'leave-request', id: result.rows[0].id };
       NotificationsController.createNotification(
         targetUserId, 'Leave Booked',
         `${bookerName} has booked ${leaveTypeName} leave for you from ${startDate} to ${endDate}.`,
-        'success'
+        'success',
+        micaRecordPath(bookedLink)
       ).catch(logWarn('leave booked notification'));
-      EmailService.sendLeaveBookedEmail(targetEmail, staffName, bookerName, leaveTypeName, startDate, endDate).catch(logWarn('leave booked email'));
+      EmailService.sendLeaveBookedEmail(targetEmail, staffName, bookerName, leaveTypeName, startDate, endDate, EmailService.recordUrl(bookedLink)).catch(logWarn('leave booked email'));
       AuditRepository.log({
         user_id: userId,
         action: 'APPROVE_LEAVE',
@@ -530,11 +535,15 @@ export class LeaveController {
       const reasonMsg = autoApprove
         ? 'Your leave request has been approved.'
         : 'Your leave request has been approved automatically (no approver configured).';
+      // Approved without anyone reading it, so the link matters more here than
+      // anywhere: the first the carer hears of it is this notification and email.
+      const autoApprovedLink: MicaRecordRef = { kind: 'leave-request', id: result.rows[0].id };
       await NotificationsController.createNotification(
         targetUserId, 'Leave Approved',
-        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} ${reasonMsg}`, 'success'
+        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} ${reasonMsg}`, 'success',
+        micaRecordPath(autoApprovedLink)
       ).catch(logWarn('auto-approved leave notification'));
-      EmailService.sendLeaveApprovedEmail(targetEmail, staffName, leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
+      EmailService.sendLeaveApprovedEmail(targetEmail, staffName, leaveTypeName, startDate, endDate, EmailService.recordUrl(autoApprovedLink)).catch(logWarn('auto-approved leave email'));
       AuditRepository.log({
         user_id: userId,
         action: 'APPROVE_LEAVE',
@@ -549,11 +558,15 @@ export class LeaveController {
     }
 
     if (notifyUserId) {
+      // The approver is being asked to decide on one request, so the link is the
+      // decision waiting for them — not the leave page's calendar.
+      const requestedLink: MicaRecordRef = { kind: 'leave-request', id: result.rows[0].id };
       NotificationsController.createNotification(
         notifyUserId,
         'Leave Request',
         `${staffName} has requested ${leaveTypeName} from ${startDate} to ${endDate}.`,
-        'info'
+        'info',
+        micaRecordPath(requestedLink)
       ).catch(logWarn('leave request notification'));
       const adminUserRes = await pool.query('SELECT u.email, sp.first_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.id = $1', [notifyUserId]);
       if (adminUserRes.rows[0]?.email) {
@@ -561,7 +574,8 @@ export class LeaveController {
           adminUserRes.rows[0].email,
           adminUserRes.rows[0].first_name || 'Manager',
           staffName,
-          leaveTypeName, startDate, endDate
+          leaveTypeName, startDate, endDate,
+          EmailService.recordUrl(requestedLink)
         ).catch(logWarn('leave requested email'));
       }
     }
@@ -654,19 +668,24 @@ export class LeaveController {
         const startDate = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const endDate = new Date(`${LeaveController.ymd(leave.end_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const leaveType = staffInfo.leave_type_name;
+        // The request that was just decided. Both branches carry it: a decline is
+        // exactly the moment a carer wants to re-read what they asked for.
+        const decidedLink: MicaRecordRef = { kind: 'leave-request', id };
 
         if (status === 'approved') {
           await NotificationsController.createNotification(
             staffInfo.user_id, 'Leave Approved',
-            `Your ${leaveType} leave from ${startDate} to ${endDate} has been approved.`, 'success'
+            `Your ${leaveType} leave from ${startDate} to ${endDate} has been approved.`, 'success',
+            micaRecordPath(decidedLink)
           );
-          EmailService.sendLeaveApprovedEmail(staffInfo.email, staffName, leaveType, startDate, endDate).catch(logWarn('leave approved email'));
+          EmailService.sendLeaveApprovedEmail(staffInfo.email, staffName, leaveType, startDate, endDate, EmailService.recordUrl(decidedLink)).catch(logWarn('leave approved email'));
         } else {
           await NotificationsController.createNotification(
             staffInfo.user_id, 'Leave Declined',
-            `Your ${leaveType} leave from ${startDate} to ${endDate} has been declined.`, 'error'
+            `Your ${leaveType} leave from ${startDate} to ${endDate} has been declined.`, 'error',
+            micaRecordPath(decidedLink)
           );
-          EmailService.sendLeaveRejectedEmail(staffInfo.email, staffName, leaveType, startDate, endDate).catch(logWarn('leave rejected email'));
+          EmailService.sendLeaveRejectedEmail(staffInfo.email, staffName, leaveType, startDate, endDate, EmailService.recordUrl(decidedLink)).catch(logWarn('leave rejected email'));
         }
       }
     } catch { /* notification non-critical */ }
@@ -752,10 +771,13 @@ export class LeaveController {
         const staffName = `${staffInfo.rows[0]?.first_name || ''} ${staffInfo.rows[0]?.last_name || ''}`.trim() || 'Staff';
         const startDate = new Date(`${LeaveController.ymd(cancelled.start_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const endDate = new Date(`${LeaveController.ymd(cancelled.end_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        // The reviewer's own decision has been withdrawn under them, so the link
+        // goes to the request they approved rather than to the leave page.
         NotificationsController.createNotification(
           cancelled.reviewed_by, 'Leave Request Cancelled',
           `${staffName} cancelled their ${cancelled.duration_type === 'hours' ? 'hourly' : 'leave'} request from ${startDate} to ${endDate}.`,
-          'info'
+          'info',
+          micaRecordPath({ kind: 'leave-request', id })
         ).catch(logWarn('leave cancelled notification'));
       }
     }

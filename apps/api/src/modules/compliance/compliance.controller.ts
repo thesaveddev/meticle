@@ -13,6 +13,10 @@ import { AuditRepository } from '../audit/audit.repository';
 import { generatePdf, buildEvidencePackHtml } from './compliance.pdf';
 import { VETTING_SCHEMES, listVettingSchemes } from './compliance.vetting';
 import { listRegulators, isRegulatorId } from './regulators';
+// The record-link contract: a notification about one document carries the link that
+// opens that document on its owner's profile, built in one place rather than spelled
+// out here (a path the page does not read is a link that looks like it worked).
+import { micaRecordPath } from '@meticle/shared';
 
 async function streamDocumentToResponse(user: any, docUrl: string, res: Response) {
   const filename = docUrl.replace('/files/private/', '').replace('/files/', '');
@@ -373,7 +377,10 @@ export class ComplianceController {
       doc.user_id,
       `${doc.type} Renewal Required`,
       `Your ${doc.type}${doc.expiry_date ? ` expires on ${new Date(doc.expiry_date).toLocaleDateString()}` : ''}. Please upload a renewed copy.`,
-      'compliance'
+      'compliance',
+      // `doc.user_id` is the staff member's user id, which is what `/staff/:userId`
+      // takes; the joined `sp.id` is a staff profile id and is not a route.
+      micaRecordPath({ kind: 'staff-compliance', id: doc.id, staffId: doc.user_id }),
     );
     AuditRepository.log({ user_id: user.userId, action: 'send_renewal_reminder', entity_type: 'document', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Reminder sent' });
@@ -404,7 +411,8 @@ export class ComplianceController {
       doc.user_id,
       `${doc.type} Renewal Requested`,
       `Your ${doc.type} renewal has been requested. Please upload a renewed copy.`,
-      'compliance'
+      'compliance',
+      micaRecordPath({ kind: 'staff-compliance', id: doc.id, staffId: doc.user_id }),
     );
     AuditRepository.log({ user_id: user.userId, action: 'request_renewal', entity_type: 'document', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Renewal requested' });
@@ -449,7 +457,10 @@ export class ComplianceController {
       oldDoc.user_id,
       `${oldDoc.type} Renewal Submitted`,
       `Your renewed ${oldDoc.type} has been received and is pending review.`,
-      'compliance'
+      'compliance',
+      // The *new* record is the one to open: the notice says the renewed copy has
+      // been received, and the old row is the one it replaced.
+      micaRecordPath({ kind: 'staff-compliance', id: newDoc.rows[0].id, staffId: oldDoc.user_id }),
     );
     AuditRepository.log({ user_id: user.userId, action: 'submit_renewal', entity_type: 'document', entity_id: id, new_data: { new_doc_id: newDoc.rows[0].id }, ip_address: req.ip }).catch(() => {});
     res.status(201).json(newDoc.rows[0]);

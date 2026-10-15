@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, CircularProgress, Alert, Divider } from '@mui/material'
+import { useSearchParams } from 'react-router-dom'
 import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 
 const NAVY = '#0164C8'
@@ -34,6 +36,18 @@ export default function AppointmentsPage() {
   const [completionOpen, setCompletionOpen] = useState(false)
   const [completionNotes, setCompletionNotes] = useState('')
   const [followUp, setFollowUp] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // A link to one appointment: what Mica sends back when a booking ends by
+  // offering the page the new record is on, and what any other client (a
+  // notification, a colleague's message) can arrive on. Read from the URL rather
+  // than passed in state, because the URL is the only thing that survives a
+  // reload.
+  const linkedAppointmentId = searchParams.get(MICA_RECORD_PARAMS.appointment)
+  // Held alongside the URL so the same link opens its record once: a re-render,
+  // a refetch or a changed date filter must not re-open a dialog the carer has
+  // already closed.
+  const linkedRef = useRef<string | null>(null)
 
   const fetchAppointments = async () => {
     setFetchError(''); setLoading(true)
@@ -46,6 +60,38 @@ export default function AppointmentsPage() {
     api.get('/people?status=active').then(r => setPeople(asArray(r.data, ['people']))).catch(() => {})
     api.get('/staff/org-members').then(r => { const d = r.data; const members = Array.isArray(d) ? d : [...(Array.isArray(d?.admins) ? d.admins : []), ...(Array.isArray(d?.staff) ? d.staff : [])]; setStaff(members.filter((s: any) => s.status === 'active')) }).catch(() => {})
   }, [dateFilter])
+
+  // The linked record. The list on screen is one day's, and a newly booked
+  // appointment is usually not on it, so a row that is present opens straight away
+  // and anything else is read by id and its own day shown — which is what puts the
+  // record in the table behind its dialog instead of only in the dialog.
+  useEffect(() => {
+    if (!linkedAppointmentId || linkedRef.current === linkedAppointmentId) return
+    const inList = appointments.find((a: any) => a.id === linkedAppointmentId)
+    if (inList) {
+      linkedRef.current = linkedAppointmentId
+      setViewing(inList); setViewOpen(true)
+      return
+    }
+    if (loading) return
+    // Once-only before the read, so a rejected request cannot be retried by every
+    // later render.
+    linkedRef.current = linkedAppointmentId
+    api.get(`/appointments/${linkedAppointmentId}`).then(res => {
+      const appointment = res.data?.appointment || res.data
+      if (!appointment?.id) { setFetchError('That appointment could not be opened.'); return }
+      const day = appointment.start_time ? new Date(appointment.start_time).toISOString().slice(0, 10) : ''
+      if (day && day !== dateFilter) setDateFilter(day)
+      setViewing(appointment); setViewOpen(true)
+    }).catch((e: any) => setFetchError(e?.response?.data?.message || 'That appointment could not be opened.'))
+  }, [linkedAppointmentId, appointments, loading, dateFilter])
+
+  function closeView() {
+    setViewOpen(false)
+    // The URL is what re-opens this dialog, so closing the record has to clear the
+    // link that opened it.
+    if (linkedAppointmentId) setSearchParams({}, { replace: true })
+  }
 
   const openCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM, start_time: `${dateFilter}T09:00`, end_time: `${dateFilter}T10:00` }); setDialogOpen(true) }
   const openEdit = (a: any) => { setEditing(a); setForm({ title: a.title || '', description: a.description || '', notes: a.notes || '', person_id: a.person_id || '', staff_id: a.staff_id || '', location_id: a.location_id || '', recurrence: a.recurrence || 'once', start_time: inputDateTime(a.start_time), end_time: inputDateTime(a.end_time), status: a.status || 'scheduled' }); setDialogOpen(true) }
@@ -69,7 +115,10 @@ export default function AppointmentsPage() {
   }
   const counts = useMemo(() => ({ scheduled: appointments.filter(a => a.status === 'scheduled').length, completed: appointments.filter(a => a.status === 'completed').length, cancelled: appointments.filter(a => a.status === 'cancelled').length }), [appointments])
 
-  if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: NAVY }} /></Box>
+  // The spinner is for a page with nothing to show yet. A refetch for another day
+  // keeps the rows it already has — and never replaces a record's dialog, which is
+  // where a link's carer is standing while the day behind them loads.
+  if (loading && appointments.length === 0 && !viewOpen) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: NAVY }} /></Box>
 
   return (
     <PageContainer>
@@ -80,9 +129,9 @@ export default function AppointmentsPage() {
       <Paper sx={{ p: 1.5, mb: 2, border: '1px solid', borderColor: '#E3E9F0', borderRadius: 2 }}><TextField type="date" label="Showing date" InputLabelProps={{ shrink: true }} value={dateFilter} onChange={e => { setDateFilter(e.target.value); setPage(0) }} size="small" /></Paper>
       <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: '#E3E9F0', borderRadius: 2 }}><Table size="small"><TableHead><TableRow>{['Appointment', 'Person', 'Staff', 'Time', 'Cadence', 'Status', ''].map(h => <TableCell key={h} sx={{ fontWeight: 600, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow></TableHead><TableBody>{appointments.length === 0 ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No appointments for this date.</TableCell></TableRow> : appointments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(a => <TableRow key={a.id} hover onClick={() => openView(a)} sx={{ cursor: 'pointer' }}><TableCell><Typography fontWeight={600}>{a.title}</Typography>{a.notes && <Typography variant="caption" color="text.secondary" noWrap>{a.notes}</Typography>}</TableCell><TableCell>{a.person_name || 'Team / general'}</TableCell><TableCell>{a.staff_name || 'Unassigned'}</TableCell><TableCell>{new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(a.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell><TableCell><Chip size="small" label={RECURRENCE_LABELS[a.recurrence] || 'Once'} variant="outlined" /></TableCell><TableCell><Chip size="small" label={(a.status || '').replace(/_/g, ' ')} color={STATUS_COLORS[a.status] || 'default'} sx={{ textTransform: 'capitalize' }} /></TableCell><TableCell align="right" onClick={e => e.stopPropagation()}><IconButton size="small" onClick={() => openEdit(a)} title="Edit"><EditIcon fontSize="small" /></IconButton><IconButton size="small" color="error" onClick={() => handleDelete(a.id)} title="Delete"><DeleteIcon fontSize="small" /></IconButton></TableCell></TableRow>)}</TableBody></Table><TablePagination component="div" count={appointments.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} /></TableContainer>
 
-      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="sm" fullWidth><DialogTitle sx={{ fontWeight: 600 }}>{viewing?.title}</DialogTitle><DialogContent>{viewing && <Stack spacing={2} sx={{ mt: 1 }}><Stack direction="row" spacing={1} flexWrap="wrap"><Chip label={(viewing.status || '').replace(/_/g, ' ')} color={STATUS_COLORS[viewing.status] || 'default'} sx={{ textTransform: 'capitalize' }} /><Chip label={RECURRENCE_LABELS[viewing.recurrence] || 'Once'} variant="outlined" /></Stack><Divider /><Typography variant="body2"><strong>For:</strong> {viewing.person_name || 'Team / general'}</Typography><Typography variant="body2"><strong>Assigned:</strong> {viewing.staff_name || 'Unassigned'}</Typography><Typography variant="body2"><strong>When:</strong> {new Date(viewing.start_time).toLocaleString('en-GB')} to {new Date(viewing.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography><Stack spacing={0.5}><Typography variant="caption" color="text.secondary">Description</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.description || 'No description recorded.'}</Typography></Stack><Stack spacing={0.5}><Typography variant="caption" color="text.secondary">Notes</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.notes || 'No notes recorded.'}</Typography></Stack></Stack>}</DialogContent><DialogActions sx={{ p: 2.5 }}><Button onClick={() => setViewOpen(false)}>Close</Button>{viewing?.status === 'scheduled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => { setCompletionNotes(''); setFollowUp(''); setCompletionOpen(true) }} sx={{ bgcolor: '#087A55', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { setViewOpen(false); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button></DialogActions></Dialog>
+      <Dialog open={viewOpen} onClose={closeView} maxWidth="sm" fullWidth><DialogTitle sx={{ fontWeight: 600 }}>{viewing?.title}</DialogTitle><DialogContent>{viewing && <Stack spacing={2} sx={{ mt: 1 }}><Stack direction="row" spacing={1} flexWrap="wrap"><Chip label={(viewing.status || '').replace(/_/g, ' ')} color={STATUS_COLORS[viewing.status] || 'default'} sx={{ textTransform: 'capitalize' }} /><Chip label={RECURRENCE_LABELS[viewing.recurrence] || 'Once'} variant="outlined" /></Stack><Divider /><Typography variant="body2"><strong>For:</strong> {viewing.person_name || 'Team / general'}</Typography><Typography variant="body2"><strong>Assigned:</strong> {viewing.staff_name || 'Unassigned'}</Typography><Typography variant="body2"><strong>When:</strong> {new Date(viewing.start_time).toLocaleString('en-GB')} to {new Date(viewing.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography><Stack spacing={0.5}><Typography variant="caption" color="text.secondary">Description</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.description || 'No description recorded.'}</Typography></Stack><Stack spacing={0.5}><Typography variant="caption" color="text.secondary">Notes</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.notes || 'No notes recorded.'}</Typography></Stack></Stack>}</DialogContent><DialogActions sx={{ p: 2.5 }}><Button onClick={closeView}>Close</Button>{viewing?.status === 'scheduled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => { setCompletionNotes(''); setFollowUp(''); setCompletionOpen(true) }} sx={{ bgcolor: '#087A55', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { closeView(); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button></DialogActions></Dialog>
 
-      <Dialog open={completionOpen} onClose={() => setCompletionOpen(false)} maxWidth="xs" fullWidth><DialogTitle sx={{ fontWeight: 600 }}>Complete appointment</DialogTitle><DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Capture the outcome while it is fresh.</Typography><Stack spacing={2}><TextField label="Completion notes" multiline rows={4} fullWidth required placeholder="What happened and what should the team know?" value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} /><TextField label="Follow-up appointment or action" multiline rows={2} fullWidth placeholder="Optional: next appointment, referral, or action" value={followUp} onChange={e => setFollowUp(e.target.value)} /></Stack></DialogContent><DialogActions><Button onClick={() => setCompletionOpen(false)}>Cancel</Button><Button variant="contained" disabled={!completionNotes.trim()} onClick={() => { updateStatus(viewing, 'completed', { notes: completionNotes, follow_up: followUp }); setCompletionOpen(false); setViewOpen(false) }} sx={{ bgcolor: '#087A55' }}>Save completion</Button></DialogActions></Dialog>
+      <Dialog open={completionOpen} onClose={() => setCompletionOpen(false)} maxWidth="xs" fullWidth><DialogTitle sx={{ fontWeight: 600 }}>Complete appointment</DialogTitle><DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Capture the outcome while it is fresh.</Typography><Stack spacing={2}><TextField label="Completion notes" multiline rows={4} fullWidth required placeholder="What happened and what should the team know?" value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} /><TextField label="Follow-up appointment or action" multiline rows={2} fullWidth placeholder="Optional: next appointment, referral, or action" value={followUp} onChange={e => setFollowUp(e.target.value)} /></Stack></DialogContent><DialogActions><Button onClick={() => setCompletionOpen(false)}>Cancel</Button><Button variant="contained" disabled={!completionNotes.trim()} onClick={() => { updateStatus(viewing, 'completed', { notes: completionNotes, follow_up: followUp }); setCompletionOpen(false); closeView() }} sx={{ bgcolor: '#087A55' }}>Save completion</Button></DialogActions></Dialog>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth><DialogTitle sx={{ fontWeight: 600 }}>{editing ? 'Edit appointment' : 'New appointment'}</DialogTitle><DialogContent><Stack spacing={2} sx={{ mt: 1 }}><TextField label="Title" required fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /><TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /><TextField label="Notes" fullWidth multiline rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><FormControl fullWidth><InputLabel>Person</InputLabel><Select value={form.person_id} label="Person" onChange={e => setForm(f => ({ ...f, person_id: e.target.value }))}><MenuItem value="">Team / general</MenuItem>{people.map(p => <MenuItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</MenuItem>)}</Select></FormControl><FormControl fullWidth><InputLabel>Staff member</InputLabel><Select value={form.staff_id} label="Staff member" onChange={e => setForm(f => ({ ...f, staff_id: e.target.value }))}><MenuItem value="">Unassigned</MenuItem>{staff.map(s => <MenuItem key={s.staff_id || s.id} value={s.staff_id || s.id}>{s.first_name} {s.last_name}</MenuItem>)}</Select></FormControl></Stack><TextField select label="Cadence" fullWidth value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value }))}>{Object.entries(RECURRENCE_LABELS).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField label="Start" type="datetime-local" fullWidth InputLabelProps={{ shrink: true }} value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} /><TextField label="End" type="datetime-local" fullWidth InputLabelProps={{ shrink: true }} value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} /></Stack><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={form.status} label="Status" onChange={e => setForm(f => ({ ...f, status: e.target.value }))}><MenuItem value="scheduled">Scheduled</MenuItem><MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem><MenuItem value="no_show">No show</MenuItem></Select></FormControl></Stack></DialogContent><DialogActions><Button onClick={() => setDialogOpen(false)}>Cancel</Button><Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.start_time || !form.end_time} sx={{ bgcolor: NAVY }}>{saving ? <CircularProgress size={20} /> : 'Save appointment'}</Button></DialogActions></Dialog>
     </PageContainer>

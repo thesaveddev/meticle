@@ -579,9 +579,9 @@ once — the first declaration wins at runtime.
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 7 |
-| audited / updated / tested | 19 / 122 / 23 |
-| Fully signed off (all three) | 9 |
-| Gaps (any of the three missing) | 113 |
+| audited / updated / tested | 19 / 122 / 31 |
+| Fully signed off (all three) | 12 |
+| Gaps (any of the three missing) | 110 |
 
 **Structural wrapper routes** — guards and layouts that render no page of their own:
 `(root)`.
@@ -595,7 +595,7 @@ once — the first declaration wins at runtime.
 | `/about` | `pages/marketing/AboutPage.tsx` | no | yes | no |
 | `/agencies` | `pages/agencies/AgenciesPage.tsx` | no | yes | no |
 | `/app` | `pages/marketing/DownloadPageNew.tsx` | no | yes | no |
-| `/appointments` | `pages/appointments/AppointmentsPage.tsx` | no | yes | no |
+| `/appointments` | `pages/appointments/AppointmentsPage.tsx` | no | yes | yes |
 | `/availability` | `pages/homecare/AvailabilityPage.tsx` | no | yes | yes |
 | `/billing` | `pages/billing/BillingPage.tsx` | no | yes | no |
 | `/blog` | `pages/marketing/PublicBlogPage.tsx` | no | yes | no |
@@ -642,7 +642,7 @@ once — the first declaration wins at runtime.
 | `/intelligence` | `pages/insights/IntelligencePage.tsx` | no | yes | no |
 | `/invoice/:token` | `pages/homecare/PublicClientInvoicePage.tsx` | no | yes | no |
 | `/learn` | `pages/learn/LearningCenterPage.tsx` | no | yes | no |
-| `/leave` | `pages/leave/LeaveManagerPage.tsx` | no | yes | no |
+| `/leave` | `pages/leave/LeaveManagerPage.tsx` | no | yes | yes |
 | `/live-map` | `pages/homecare/LiveMapPage.tsx` | no | yes | yes |
 | `/locations` | `pages/locations/LocationsPage.tsx` | no | yes | no |
 | `/locations/:locationId` | `pages/locations/LocationDetailPage.tsx` | no | yes | no |
@@ -667,7 +667,7 @@ once — the first declaration wins at runtime.
 | `/mobile/voice-notes` | `pages/mobile/MobileNotesPage.tsx` | no | yes | no |
 | `/my-profile` | `pages/homecare/MyProfilePage.tsx` | no | yes | no |
 | `/my-week` | `pages/homecare/MyWeekPage.tsx` | no | yes | yes |
-| `/notifications` | `pages/notifications/NotificationsPage.tsx` | no | yes | no |
+| `/notifications` | `pages/notifications/NotificationsPage.tsx` | no | yes | yes |
 | `/nutrition` | `pages/nutrition/MealPlanPage.tsx` | no | yes | no |
 | `/onboarding` | `pages/onboarding/OnboardingFlow.tsx` | no | yes | yes |
 | `/organizations` | `pages/organization/OrganizationPage.tsx` | no | yes | no |
@@ -694,20 +694,20 @@ once — the first declaration wins at runtime.
 | `/reset-password` | `pages/auth/ResetPasswordPage.tsx` | no | yes | no |
 | `/reset-success` | `pages/auth/ResetSuccessPage.tsx` | no | yes | no |
 | `/room-checks` | `pages/room-checks/RoomChecksPage.tsx` | no | yes | no |
-| `/schedule` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | no |
-| `/scheduling` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | no |
-| `/scheduling/overtime-claims` | `pages/scheduling/OvertimeClaimsPage.tsx` | no | yes | no |
+| `/schedule` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
+| `/scheduling` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
+| `/scheduling/overtime-claims` | `pages/scheduling/OvertimeClaimsPage.tsx` | no | yes | yes |
 | `/security` | `pages/marketing/SecurityPage.tsx` | no | yes | no |
 | `/settings` | `pages/settings/SettingsPage.tsx` | no | yes | no |
 | `/shift-marketplace` | `pages/shift-marketplace/ShiftMarketplacePage.tsx` | no | yes | no |
 | `/signup` | `pages/auth/SignupPage.tsx` | no | yes | no |
 | `/solutions/:slug` | `pages/marketing/SolutionsPage.tsx` | no | yes | no |
 | `/staff` | `pages/staff/StaffDirectoryPage.tsx` | yes | yes | no |
-| `/staff/:userId` | `pages/staff/StaffProfilePage.tsx` | yes | yes | no |
+| `/staff/:userId` | `pages/staff/StaffProfilePage.tsx` | yes | yes | yes |
 | `/survey/engagement/:token` | `pages/SurveyFormPage.tsx` | no | yes | no |
 | `/survey/satisfaction/:token` | `pages/SurveyFormPage.tsx` | no | yes | no |
 | `/swap-transfer` | `pages/homecare/SwapTransferPage.tsx` | no | yes | yes |
-| `/tasks` | `pages/tasks/TasksPage.tsx` | no | yes | no |
+| `/tasks` | `pages/tasks/TasksPage.tsx` | no | yes | yes |
 | `/terms` | `pages/legal/TermsOfUsePage.tsx` | no | yes | no |
 | `/training` | `pages/training/TrainingMatrixPage.tsx` | yes | yes | no |
 | `/unauthorized` | `pages/errors/UnauthorizedPage.tsx` | no | yes | no |

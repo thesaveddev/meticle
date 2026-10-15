@@ -33,7 +33,7 @@ const MOBILE_SCREENS = resolve(ROOT, 'apps/mobile/src/screens')
  * `[^>]*>` stops inside `element={<Guard><Child /></Guard>}`, which silently
  * corrupts the nesting depth and therefore every child path below it.
  */
-function findTagEnd(src, start) {
+export function findTagEnd(src, start) {
   let depth = 0
   let quote = null
   for (let i = start; i < src.length; i++) {

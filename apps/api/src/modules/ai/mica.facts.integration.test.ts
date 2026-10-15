@@ -48,6 +48,9 @@ async function seedOrg() {
 /** An instant at local wall-clock hour today, seeded the way the other Mica suites do. */
 const at = (hour: number, minute = 0) => new Date(new Date().setHours(hour, minute, 0, 0)).toISOString()
 
+/** A day N days out, as the training tables store it (YYYY-MM-DD). */
+const inDays = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+
 async function seedCarer(orgId: string, locationId: string, first: string, last: string) {
   const user = await createUser({
     email: `micafactstaff-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
@@ -269,6 +272,72 @@ describe('POST /ai/mica/ask — the list answer offers its page, and a "yes" ope
     expect(confirmed.body.answer).toBe('Opening the appointments list.')
   })
 
+  it('answers whose training is expiring, offers the matrix, and opens it on "yes"', async () => {
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const module = await createTrainingModule({ organization_id: seeded.org.id, name: 'Fire Safety' })
+    await createTrainingRecord({ module_id: module.id, staff_id: carer.profile.id, expires_at: inDays(10) })
+
+    const answered = await ask(seeded.token, 'Whose training is expiring soon?')
+    expect(answered.status).toBe(200)
+    expect(answered.body.answer).toContain('Fire Safety')
+    expect(answered.body.answer).toMatch(/Want me to open the training matrix\?$/)
+    expect(answered.body.offer).toMatchObject({ destination: 'training', path: '/training' })
+    expect(answered.body.navigate).toBeUndefined()
+
+    const confirmed = await ask(seeded.token, 'yes', answered.body.sessionId)
+    expect(confirmed.status).toBe(200)
+    expect(confirmed.body.navigate).toMatchObject({ destination: 'training', path: '/training' })
+    expect(confirmed.body.answer).toBe('Opening the training matrix.')
+  })
+
+  it('answers a leave balance, offers the leave page, and opens it on "yes"', async () => {
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const leaveType = await createLeaveType({ organization_id: seeded.org.id, name: 'Annual Leave', days_allowed: 28 })
+    await migrateQuery(
+      `INSERT INTO leave_balances (id, staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
+       VALUES (gen_random_uuid(), $1, $2, EXTRACT(YEAR FROM CURRENT_DATE)::int, 28, 16, 0, 0)`,
+      [carer.profile.id, leaveType.id],
+    )
+
+    const answered = await ask(seeded.token, 'How much leave does Priya Sharma have left?')
+    expect(answered.status).toBe(200)
+    expect(answered.body.answer).toContain('Priya Sharma has 12 days of leave left')
+    expect(answered.body.answer).toMatch(/Want me to open the leave page\?$/)
+    expect(answered.body.offer).toMatchObject({ destination: 'leave', path: '/leave' })
+
+    const confirmed = await ask(seeded.token, 'go on', answered.body.sessionId)
+    expect(confirmed.body.navigate).toMatchObject({ destination: 'leave', path: '/leave' })
+    expect(confirmed.body.answer).toBe('Opening the leave page.')
+  })
+
+  it('speaks a training answer to a care worker without offering a page they cannot open', async () => {
+    // `/training` is restricted to ORG_ADMIN, MANAGER and COMPLIANCE_OFFICER while
+    // this endpoint also serves CARE_WORKER. The list is read for them either way;
+    // what must not happen is a question about a page that would turn them away.
+    const seeded = await seedOrg()
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })
+    const carer = await seedCarer(seeded.org.id, location.id, 'Priya', 'Sharma')
+    const module = await createTrainingModule({ organization_id: seeded.org.id, name: 'Fire Safety' })
+    await createTrainingRecord({ module_id: module.id, staff_id: carer.profile.id, expires_at: inDays(10) })
+    const carerToken = generateToken(carer.user)
+
+    const answered = await ask(carerToken, 'Whose training is expiring soon?')
+    expect(answered.status).toBe(200)
+    expect(answered.body.answer).toContain('Fire Safety')
+    expect(answered.body.answer).not.toMatch(/want me to open/i)
+    expect(answered.body.offer).toBeUndefined()
+
+    // And there is nothing to confirm: the "yes" falls through to the gate rather
+    // than opening a page the carer has no route to.
+    const confirmed = await ask(carerToken, 'yes', answered.body.sessionId)
+    expect(confirmed.body.navigate).toBeUndefined()
+    expect(confirmed.status).toBe(400)
+  })
+
   it('offers the page of the latest answer, not the first one it offered', async () => {
     const seeded = await seedRota()
 
@@ -329,8 +398,6 @@ describe('POST /ai/mica/ask — the list answer offers its page, and a "yes" ope
  * every month end — the same trap `sessionDay` exists to close.
  */
 describe('POST /ai/mica/ask — the next four list questions, still with no provider', () => {
-  const inDays = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
-
   it('answers whose training is expiring from the training records', async () => {
     const seeded = await seedOrg()
     const location = await createLocation({ organization_id: seeded.org.id, name: 'Oak House' })

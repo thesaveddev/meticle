@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { UserRole } from '@meticle/shared'
 import {
   parseFactQuestion, formatFactAnswer, formatFactReply, factPageFor, parseFactConfirmation,
   formatSpokenDay, formatSpokenTime,
 } from './mica.facts'
-import type { MicaFactRequest } from './mica.facts'
+import type { MicaFactRequest, MicaModuleAccess } from './mica.facts'
 import { parseNavigationRequest } from './mica.navigation'
 
 /**
@@ -473,6 +474,18 @@ describe('formatFactAnswer — a tool that could not answer', () => {
   })
 })
 
+/**
+ * A caller with exactly the modules a page under test is gated on, and nothing
+ * else. The module half has its own tests (`mica.moduleAccess.test.ts`) and its own
+ * failures; what is being pinned here is the offer's shape and the role half, so
+ * the modules are held in the one state that lets those be the variable.
+ */
+function openModule(module: string): MicaModuleAccess {
+  return { available: [module], levels: { [module]: 'edit' } }
+}
+
+const NO_MODULES: MicaModuleAccess = { available: [], levels: {} }
+
 describe('the page behind a list answer', () => {
   const rotaRows = [{
     staff_name: 'Fatima Iqbal', shift_type: 'day', location_name: 'Oak House',
@@ -480,7 +493,13 @@ describe('the page behind a list answer', () => {
   }]
 
   it('offers the rota after answering who is on shift', () => {
-    const reply = formatFactReply(request({ kind: 'rota', tool: 'get_staff_on_shift' }), rotaRows)
+    const reply = formatFactReply(
+      request({ kind: 'rota', tool: 'get_staff_on_shift' }),
+      rotaRows,
+      // No role named: `/scheduling` names none either, so the caller's modules are
+      // the whole of this gate.
+      { modules: openModule('scheduling') },
+    )
 
     // The list first, the question last: the carer asked what is on the rota, so
     // the offer is the final sentence and a "yes" plainly answers it.
@@ -493,9 +512,13 @@ describe('the page behind a list answer', () => {
   })
 
   it("offers the appointments list after answering the day's appointments", () => {
-    const reply = formatFactReply(request({ kind: 'appointments', tool: 'get_appointments' }), [
-      { title: 'Dental check', person_name: 'Ade Okafor', start_time: '2026-10-12T13:00:00.000Z' },
-    ])
+    // The role is named because the router gates `/appointments` to three of them:
+    // the offer is only made to a caller whose role the page's own route admits.
+    const reply = formatFactReply(
+      request({ kind: 'appointments', tool: 'get_appointments' }),
+      [{ title: 'Dental check', person_name: 'Ade Okafor', start_time: '2026-10-12T13:00:00.000Z' }],
+      { role: UserRole.CARE_WORKER, modules: openModule('appointments') },
+    )
 
     expect(reply.answer).toMatch(/Want me to open the appointments list\?$/)
     expect(reply.page).toMatchObject({
@@ -503,19 +526,95 @@ describe('the page behind a list answer', () => {
     })
   })
 
-  it('offers nothing for the two answers that are only lists', () => {
+  it('offers the training matrix after answering whose training is expiring', () => {
+    const reply = formatFactReply(
+      request({ kind: 'training-expiry', tool: 'get_training_expiring', windowDays: 30, args: { days: 30 } }),
+      [{ staff_name: 'Priya Sharma', module: 'Fire Safety', expires_at: '2026-11-03' }],
+      { role: UserRole.MANAGER, modules: openModule('training') },
+    )
+
+    // The list first, the question last — and the question names the page the
+    // expiry list is actually read on (the matrix's own "Expiring soon" tab).
+    expect(reply.answer).toContain('Fire Safety')
+    expect(reply.answer).toMatch(/Want me to open the training matrix\?$/)
+    expect(reply.page).toMatchObject({
+      destination: 'training', path: '/training', label: 'the training matrix',
+    })
+  })
+
+  it('offers the leave page after answering a balance', () => {
+    const reply = formatFactReply(
+      request({ kind: 'leave-balance', tool: 'get_leave_balance', staffName: 'Priya Sharma' }),
+      [{
+        staff_name: 'Priya Sharma', leave_type: 'Annual Leave', days_allocated: 28,
+        days_taken: 16, days_remaining: 12, hours_allocated: 0, hours_taken: 0, hours_remaining: 6,
+      }],
+      { modules: openModule('leave') },
+    )
+
+    // Offered to every role that can use Mica: `/leave` carries no role gate.
+    expect(reply.answer).toContain('12 days + 6 hours')
+    expect(reply.answer).toMatch(/Want me to open the leave page\?$/)
+    expect(reply.page).toMatchObject({ destination: 'leave', path: '/leave' })
+  })
+
+  it('does not offer the training matrix to a role that cannot open it', () => {
+    // The expiry list is speakable for a care worker even though `/training` is not
+    // open to them, so the offer is dropped — question included — rather than
+    // asking about a page that would turn them away.
+    const reply = formatFactReply(
+      request({ kind: 'training-expiry', tool: 'get_training_expiring', windowDays: 30, args: { days: 30 } }),
+      [{ staff_name: 'Priya Sharma', module: 'Fire Safety', expires_at: '2026-11-03' }],
+      // The modules are open, so the role is the whole of why this is withheld.
+      { role: UserRole.CARE_WORKER, modules: openModule('training') },
+    )
+
+    expect(reply.page).toBeUndefined()
+    expect(reply.answer).not.toMatch(/want me to open/i)
+    // The answer itself is untouched: it is the door that is withheld, not the list.
+    expect(reply.answer).toContain('Fire Safety')
+    expect(reply.answer).toContain('expiring soon')
+  })
+
+  it('offers nothing for the four answers whose page is not where the list is read', () => {
     // The round and the leave list are answered by the sentence itself, and the
     // chart behind a round is reached by naming it ("open Nora's MAR chart"), so
-    // a question here would be one the carer did not ask.
+    // a question here would be one the carer did not ask. The supporting list is a
+    // handful of names for one day, and a count of incidents is not a list at all.
+    // The modules are named as none at all, so a page offered here could only have
+    // come from a table that decided it without asking.
     const round = formatFactReply(request({ kind: 'medication-round', tool: 'get_medication_round' }), [
       { total_scheduled: 2, given: 2, overdue: 0, still_due: 0, not_given_other: 0 },
-    ])
+    ], { modules: NO_MODULES })
     expect(round.page).toBeUndefined()
     expect(round.answer).not.toMatch(/want me to open/i)
 
-    const leave = formatFactReply(request({ kind: 'leave', tool: 'get_staff_on_leave' }), [])
+    const leave = formatFactReply(
+      request({ kind: 'leave', tool: 'get_staff_on_leave' }),
+      [],
+      { modules: NO_MODULES },
+    )
     expect(leave.page).toBeUndefined()
     expect(leave.answer).not.toMatch(/want me to open/i)
+
+    const support = formatFactReply(
+      request({ kind: 'support', tool: 'who_supports_person', personName: 'Grace Roberts' }),
+      [{
+        source: 'rota', staff_name: 'Priya Sharma', shift_type: 'day', location_name: 'Oak House',
+        start_time: '2026-10-12T07:00:00.000Z', end_time: '2026-10-12T19:00:00.000Z',
+      }],
+      { modules: NO_MODULES },
+    )
+    expect(support.page).toBeUndefined()
+    expect(support.answer).not.toMatch(/want me to open/i)
+
+    const counted = formatFactReply(
+      request({ kind: 'incidents', tool: 'get_incidents_in_month', month: '2026-10' }),
+      [{ total: 2, critical: 0, high: 1, medium: 1, low: 0, near_misses: 0, open: 1 }],
+      { modules: NO_MODULES },
+    )
+    expect(counted.page).toBeUndefined()
+    expect(counted.answer).not.toMatch(/want me to open/i)
   })
 
   it('offers no page when the list could not be read at all', () => {
@@ -524,6 +623,7 @@ describe('the page behind a list answer', () => {
     const reply = formatFactReply(
       request({ kind: 'appointments', tool: 'get_appointments', personName: 'Nobody Here' }),
       [{ result: 'No service user matching "Nobody Here" found.' }],
+      { role: UserRole.CARE_WORKER, modules: openModule('appointments') },
     )
 
     expect(reply.page).toBeUndefined()
@@ -533,9 +633,14 @@ describe('the page behind a list answer', () => {
   it('sends the same route the navigation path sends for the same page', () => {
     // Asking for a page and confirming an offer are two ways in, and they cannot
     // be allowed to point at different pages.
-    expect(parseNavigationRequest('open the rota planner', TODAY)?.path).toBe(factPageFor('rota')?.path)
-    expect(parseNavigationRequest('open the appointments', TODAY)?.path)
-      .toBe(factPageFor('appointments')?.path)
+    for (const [phrase, kind] of [
+      ['open the rota planner', 'rota'],
+      ['open the appointments', 'appointments'],
+      ['open the training', 'training-expiry'],
+      ['open the leave', 'leave-balance'],
+    ] as const) {
+      expect(parseNavigationRequest(phrase, TODAY)?.path).toBe(factPageFor(kind)?.path)
+    }
   })
 })
 

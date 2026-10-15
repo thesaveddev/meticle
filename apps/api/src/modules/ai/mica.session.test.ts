@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadOrCreateSession, recordTurn, buildFollowUpMessages, sessionCount, sweepExpiredSessions, sweepCount } from './mica.session'
+import { loadOrCreateSession, recordTurn, setPendingPage, buildFollowUpMessages, sessionCount, sweepExpiredSessions, sweepCount } from './mica.session'
 
 /**
  * Mica's follow-up memory holds the user's own questions and the answers they
@@ -92,6 +92,26 @@ describe('mica.session', () => {
     // offer answerable only by the sentence straight after it.
     await recordTurn(s!, 'what about tomorrow?', 'Nobody is rostered tomorrow yet.')
     expect(s!.pendingPage).toBeUndefined()
+  })
+
+  it('remembers the page a write produced, with no turn to hang it on', async () => {
+    const s = await loadOrCreateSession('org1', 'user-write-offer')
+
+    // A confirmed write is a save, not a question and an answer, so nothing is
+    // added to the transcript — but the offer that follows it has to outlive the
+    // request that made it, or the spoken question is one the server cannot answer.
+    await setPendingPage(s!, { destination: 'tasks', path: '/tasks?task=t1', label: 'the new task' })
+    expect(s!.pendingPage?.path).toBe('/tasks?task=t1')
+
+    const reloaded = await loadOrCreateSession('org1', 'user-write-offer', s!.sessionId)
+    expect(reloaded!.pendingPage?.label).toBe('the new task')
+    expect(buildFollowUpMessages(reloaded!, 'SYS', 'yes').priorTurns).toBe(0)
+
+    // And a write that can offer nothing still retires the offer before it: the
+    // save is the next thing said, so the carer is not taken to a page they
+    // stopped talking about.
+    await setPendingPage(reloaded!)
+    expect(reloaded!.pendingPage).toBeUndefined()
   })
 
   it("keeps one conversation's offer out of another user's session", async () => {

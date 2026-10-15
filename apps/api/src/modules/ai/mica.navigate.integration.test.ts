@@ -45,6 +45,17 @@ async function seedOrg() {
 const ask = (token: string, question: string) =>
   request(app).post('/ai/mica/ask').set('Authorization', `Bearer ${token}`).send({ question })
 
+/** An incident with a title, the way the incidents module stores one. */
+async function seedIncident(orgId: string, title: string, confidential = false) {
+  const res = await migrateQuery(
+    `INSERT INTO incidents (id, organization_id, title, description, incident_date, severity, status, is_confidential)
+     VALUES (gen_random_uuid(), $1, $2, 'test', CURRENT_DATE, 'medium', 'reported', $3)
+     RETURNING id`,
+    [orgId, title, confidential],
+  )
+  return { id: res.rows[0].id as string }
+}
+
 describe('POST /ai/mica/ask — navigation', () => {
   it('opens a named person’s MAR chart for a named month, with no AI configured', async () => {
     const seeded = await seedOrg()
@@ -136,4 +147,123 @@ describe('POST /ai/mica/ask — navigation', () => {
     expect(res.body.error.message).toMatch(/AI not configured/i)
     expect(res.body.navigate).toBeUndefined()
   })
+})
+
+/**
+ * The detail a destination carries: the week, the tab, the incident.
+ *
+ * Every case runs with AI switched off, like the rest of this file, because that is
+ * the property being extended rather than a new one — a deep link is still a
+ * deterministic route, so an organisation that has configured no provider gets it.
+ */
+describe('POST /ai/mica/ask — the detail a destination carries', () => {
+  /** The Monday of the week an ISO day is in. Computed here, not imported. */
+  const mondayOf = (iso: string) => {
+    const [year, month, day] = iso.split('-').map(Number)
+    const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    const monday = new Date(Date.UTC(year, month - 1, day + (weekday === 0 ? -6 : 1 - weekday)));
+    return monday.toISOString().slice(0, 10);
+  };
+  const plusDays = (iso: string, days: number) =>
+    new Date(new Date(`${iso}T00:00:00Z`).getTime() + days * 86400000).toISOString().slice(0, 10);
+
+  it('opens the rota on the week the carer asked for', async () => {
+    const seeded = await seedOrg();
+    const nextWeek = plusDays(mondayOf(await dbToday()), 7);
+
+    const res = await ask(seeded.token, 'open the rota for next week');
+
+    expect(res.status).toBe(200);
+    expect(res.body.navigate.destination).toBe('rota');
+    expect(res.body.navigate.path).toBe(`/scheduling?week=${nextWeek}`);
+    // The label names the week, so the carer hears which one opened rather than
+    // having to infer it from the grid.
+    expect(res.body.navigate.label).toContain('week of');
+  });
+
+  it('leaves the week off a rota request that named none', async () => {
+    const seeded = await seedOrg();
+    const res = await ask(seeded.token, 'open the rota planner');
+
+    // The planner's own default week: sending one here would change what a carer
+    // gets today for a request that is not about a week at all.
+    expect(res.body.navigate.path).toBe('/scheduling');
+  });
+
+  it("opens a person's profile on the tab that was asked for", async () => {
+    const seeded = await seedOrg();
+    const person = await createPerson({
+      organization_id: seeded.org.id, first_name: 'Grace', last_name: 'Roberts', status: 'active',
+    });
+
+    const res = await ask(seeded.token, "open Grace Roberts's health tab");
+
+    expect(res.status).toBe(200);
+    expect(res.body.navigate.path).toBe(`/people/${person.id}?tab=health`);
+    expect(res.body.navigate.label).toBe("Grace Roberts's health tab");
+    // Still a person, so the next question ("and her care plan?") has its subject.
+    expect(res.body.navigate.person).toEqual({ id: person.id, name: 'Grace Roberts' });
+  });
+
+  it('opens the one incident the carer named, from its title', async () => {
+    const seeded = await seedOrg();
+    const incident = await seedIncident(seeded.org.id, 'Fire door held open');
+
+    const res = await ask(seeded.token, 'open the fire door incident');
+
+    expect(res.status).toBe(200);
+    expect(res.body.navigate.destination).toBe('incidents');
+    expect(res.body.navigate.path).toBe(`/incidents/${incident.id}`);
+    expect(res.body.navigate.label).toBe('Fire door held open');
+  });
+
+  it('asks which incident when the subject matches more than one', async () => {
+    const seeded = await seedOrg();
+    await seedIncident(seeded.org.id, 'Medication error at Oak House');
+    await seedIncident(seeded.org.id, 'Missed medication round');
+
+    const res = await ask(seeded.token, 'open the medication incident');
+
+    // Two records and one spoken subject: the carer is asked, exactly as they are
+    // when two residents share a first name.
+    expect(res.status).toBe(200);
+    expect(res.body.navigate).toBeUndefined();
+    expect(res.body.answer).toMatch(/more than one incident matching/i);
+    expect(res.body.answer).toContain('Medication error at Oak House');
+  });
+
+  it('says so when no incident matches, rather than opening the directory', async () => {
+    const seeded = await seedOrg();
+    await seedIncident(seeded.org.id, 'Fire door held open');
+
+    const res = await ask(seeded.token, 'open the unicorn incident');
+
+    expect(res.body.navigate).toBeUndefined();
+    expect(res.body.answer).toMatch(/couldn't find an incident matching "unicorn"/i);
+  });
+
+  it('will not open a confidential incident for a care worker, and will for an admin', async () => {
+    const seeded = await seedOrg();
+    const location = await createLocation({ organization_id: seeded.org.id, name: 'Ash Grove' });
+    const worker = await createUser({
+      email: `micanavcw-${Date.now()}@test.com`,
+      password: 'TestPass123!',
+      role: 'CARE_WORKER',
+      organization_id: seeded.org.id,
+    });
+    await createStaffProfile({ user_id: worker.id, first_name: 'Dana', last_name: 'Reyes', location_id: location.id });
+    const confidential = await seedIncident(seeded.org.id, 'Medication error at Oak House', true);
+
+    // The carer hears the sentence a miss gets: a confidential record's title must
+    // not be read back to them, and no route to it may be pushed either. This is the
+    // same rule `IncidentsController.isAdmin` applies to the directory.
+    const carer = await ask(generateToken(worker), 'open the medication error incident');
+    expect(carer.body.navigate).toBeUndefined();
+    expect(carer.body.answer).not.toContain('Medication error at Oak House');
+    expect(carer.body.answer).toMatch(/couldn't find an incident matching/i);
+
+    // The admin, who can see confidential incidents, gets the record they named.
+    const admin = await ask(seeded.token, 'open the medication error incident');
+    expect(admin.body.navigate.path).toBe(`/incidents/${confidential.id}`);
+  });
 })

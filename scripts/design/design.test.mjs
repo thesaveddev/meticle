@@ -19,6 +19,7 @@ import { PALETTE, tonalRamp, buildColorMeta, RAMP_L } from './palette.mjs'
 import { buildDesignMd, buildDesignJson } from './sync.mjs'
 import { buildInventory, pageComponents, resolveRoutes, routeEntries } from './audit-inventory.mjs'
 import { buildTracker, docWithoutTracker, routeStatuses, testIndex } from './route-tracker.mjs'
+import { moduleFromElement, pageAccess, render, rolesFromElement } from './route-access.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -261,6 +262,116 @@ test('the generated blocks in both documents match their generators', () => {
   assert.ok(
     readFileSync(DOC_DESIGN, 'utf8').includes(buildInventory()),
     'the DESIGN.md inventory is stale; run npm run design:sync'
+  )
+})
+
+/* ── route access ───────────────────────────────────────────────────
+ * The generated page-access table is what tells the server which pages a role
+ * may be offered. It used to be a hand-written list in Mica's own table, which no
+ * change to a route would have updated — so these tests hold the derivation: the
+ * table, the router and the role enum have to agree, and a gate the generator
+ * cannot read has to stop it rather than widen it. */
+
+const APP_TSX = resolve(ROOT, 'apps/web/src/App.tsx')
+const OUT_ACCESS = resolve(ROOT, 'packages/shared/src/pageAccess.generated.ts')
+const APP_SOURCE = readFileSync(APP_TSX, 'utf8')
+
+/** The roles the shared enum defines, read from its source. */
+function definedRoles() {
+  const source = readFileSync(resolve(ROOT, 'packages/shared/src/roles.ts'), 'utf8')
+  return new Set([...source.matchAll(/^\s+([A-Z_]+) = '/gm)].map((m) => m[1]))
+}
+
+test('the generated page-access table matches the router', () => {
+  assert.equal(
+    readFileSync(OUT_ACCESS, 'utf8'),
+    render(pageAccess(APP_SOURCE)),
+    'packages/shared/src/pageAccess.generated.ts is stale; run npm run design:sync'
+  )
+})
+
+test('the access table and the router agree about which paths exist', () => {
+  // One direction is "no page is offered from a table entry the router does not
+  // have"; the other is "no routed page is missing from the table", which is what
+  // makes a *new* route's access answerable rather than absent.
+  const table = pageAccess(APP_SOURCE).map((entry) => entry.path)
+  const routed = resolveRoutes().filter((path) => path !== '')
+  assert.deepEqual(table, [...routed].sort(), 'the table and the router disagree about the route set')
+})
+
+test('a nested route inherits the gate it sits inside', () => {
+  // Mission Control's views are declared as children of a role-narrowed parent,
+  // so a traversal that ignored nesting would report them as public — the exact
+  // shape of mistake that hands out an offer the router refuses.
+  const table = pageAccess(APP_SOURCE)
+  const find = (path) => table.find((entry) => entry.path === path)
+  const parent = find('/mission-control')
+  const child = find('/mission-control/today')
+  assert.equal(parent.authenticated, true, 'the parent should be inside the authenticated area')
+  assert.ok(parent.roles && parent.roles.length, 'the parent should narrow its own roles')
+  assert.deepEqual(child.roles, parent.roles, 'the child lost the roles it sits inside')
+  assert.equal(child.authenticated, true, 'the child lost the authentication it sits inside')
+})
+
+test('a path the router declares twice takes the restrictive reading', () => {
+  // `/compliance` is both a marketing page (no guard) and an application page
+  // (four roles). For an offer, the safe reading is the restrictive one.
+  const entry = pageAccess(APP_SOURCE).find((e) => e.path === '/compliance')
+  assert.equal(entry.authenticated, true, 'the application declaration requires authentication')
+  assert.ok(entry.roles, 'the application declaration narrows the roles')
+  assert.ok(!entry.roles.includes('SUPER_ADMIN'), 'the roles are the narrower declaration, not every role')
+})
+
+test('every role in the access table is one the app defines', () => {
+  const defined = definedRoles()
+  assert.ok(defined.size >= 5, `expected the role enum, got ${[...defined].join(', ')}`)
+  for (const entry of pageAccess(APP_SOURCE)) {
+    for (const role of entry.roles ?? []) {
+      assert.ok(defined.has(role), `${entry.path} names role ${role}, which roles.ts does not define`)
+    }
+  }
+})
+
+test('the public routes are not authenticated', () => {
+  // A gate that reported everything as reachable would make the table useless, so
+  // the derivation is checked against paths that are deliberately open.
+  const table = pageAccess(APP_SOURCE)
+  const publicPaths = ['/', '/pricing', '/login', '/features', '/privacy']
+  for (const path of publicPaths) {
+    assert.equal(table.find((e) => e.path === path)?.authenticated, false, `${path} should be public`)
+  }
+  assert.ok(
+    table.some((e) => e.authenticated && e.roles),
+    'no route narrows its roles, so the gate would never withhold anything'
+  )
+})
+
+test('a gate the generator cannot read stops it rather than widening access', () => {
+  assert.throws(
+    () => rolesFromElement('<AuthGuard allowedRoles={ROLES}>'),
+    /Unreadable allowedRoles/,
+    'a gate held in a constant must not read as "no restriction"'
+  )
+  assert.throws(
+    () => rolesFromElement('<AuthGuard allowedRoles={[...shared]}>'),
+    /lists no role names/,
+    'a spread must not read as "no restriction"'
+  )
+  assert.equal(rolesFromElement('<AuthGuard>'), undefined, 'no gate is no gate')
+  assert.deepEqual(rolesFromElement('<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}>'), ['ORG_ADMIN'])
+})
+
+test('a module chosen at runtime is recorded as unnameable, not guessed', () => {
+  assert.equal(moduleFromElement('<ModuleGuard module="leave">'), 'leave')
+  assert.equal(moduleFromElement('<ModuleGuard module={payrollModuleForRole()}>'), null)
+  assert.equal(moduleFromElement('<div />'), null)
+})
+
+test('a router with no authenticated route is an error, not an empty table', () => {
+  assert.throws(
+    () => pageAccess('<Routes><Route path="/x" element={<div />} /></Routes>'),
+    /No authenticated route/,
+    'the parse should fail loudly rather than report every page as unreachable'
   )
 })
 

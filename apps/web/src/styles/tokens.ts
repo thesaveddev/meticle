@@ -45,6 +45,18 @@ export const P = {
   green:      '#10B981',
   greenLight: '#EAFBF5',
 
+  /* The product's action green — the value `CATEGORY_COLORS.mint` names — with the
+     two shades a dark surface needs. `action` is what a confirm button is filled
+     with (white on the brand emerald is about 2.3:1, so the darker green is the one
+     a carer reads before approving a record), `actionHover` is that button pressed,
+     and `greenOnDark` is the muted line above it. Named here rather than left as
+     literals in the component because the theme's own `--mc-success-soft` cannot
+     serve the last one: it is #123B34 under the dark theme, which is dark green
+     text on a dark card. */
+  action:      '#087A55',
+  actionHover: '#076747',
+  greenOnDark: '#6EE7B7',
+
   /* Brand primaries, straight from scripts/design/palette.mjs. Spelled out so
      a page that needs the brand blue as a literal — a print sheet, an inline
      style, a third-party button clone — has a name for it instead of retyping

@@ -372,6 +372,24 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
     api.patch(`/notifications/${id}/read`).catch(() => {})
   }
 
+  /**
+   * A notification is a way into a record where it is about one.
+   *
+   * The row carries `link` — the same relative record path Mica speaks back and the
+   * email's button points at — so tapping it opens that record instead of only
+   * dimming the row. It navigates with the router rather than through an anchor, so
+   * the carer stays inside the app they are already signed into, and the drawer
+   * closes because the page behind it is about to change. Marking it read happens
+   * either way: they have plainly seen it.
+   */
+  const handleOpenNotification = (notification: { id: string; link?: string | null }) => {
+    handleMarkAsRead(notification.id)
+    const link = typeof notification.link === 'string' ? notification.link : ''
+    if (!link) return
+    setNotifOpen(false)
+    navigate(link)
+  }
+
   const refreshUser = useCallback(async () => {
     try {
       const res = await api.get('/auth/me')
@@ -857,7 +875,7 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
             ) : (
               <Stack spacing={1.25}>
                 {notifications.map((n: any) => (
-                  <Paper key={n.id} component="button" type="button" onClick={() => handleMarkAsRead(n.id)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
+                  <Paper key={n.id} component="button" type="button" onClick={() => handleOpenNotification(n)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: n.read ? 500 : 600, mb: 0.5, overflowWrap: 'anywhere' }}>{n.title || 'Notification'}</Typography>

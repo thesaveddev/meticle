@@ -6,6 +6,9 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { EmailService } from '../../shared/utils/email.service';
 import { requireLocationInOrg, requirePersonInOrg, requireShiftInOrg, requireSameOrgForStaff } from '../../shared/database/tenant';
 import { logDelegationAction } from '../delegations/delegation.audit';
+// The record a scheduling message is about travels as one ref, so the bell row, the
+// push and the email all open the same record (`@meticle/shared`).
+import { micaRecordPath, type MicaRecordRef } from '@meticle/shared';
 
 /** Check that a shift is not in the past. Throws if its end_time has passed. */
 async function requireShiftNotPast(shiftId: string, organizationId?: string) {
@@ -173,11 +176,15 @@ export class SchedulingController {
       for (const d of delRes.rows) delegateIds.add(d.delegate_manager_id);
     }
     const claimNote = assignment.requires_approval ? ' and needs your approval' : '';
+    // One ref for every channel that carries this claim: the bell row and the email
+    // both have to open the same record, and the id is the assignment row's own —
+    // the key `OvertimeClaimsPage` matches on.
+    const claimRef: MicaRecordRef = { kind: 'overtime-claim', id: assignment.id };
     for (const id of [...managerIds, ...delegateIds]) {
-      await NotificationsController.createNotification(id, 'Overtime Claim', `${staffName} has claimed a shift at ${locationName} on ${date} (${time})${claimNote}.`, 'warning');
+      await NotificationsController.createNotification(id, 'Overtime Claim', `${staffName} has claimed a shift at ${locationName} on ${date} (${time})${claimNote}.`, 'warning', micaRecordPath(claimRef));
       const mgrEmailRes = await pool.query('SELECT email FROM users WHERE id = $1', [id]);
       if (mgrEmailRes.rows[0]?.email) {
-        await EmailService.sendOvertimeClaimedEmail(mgrEmailRes.rows[0].email, staffName, locationName, date, time);
+        await EmailService.sendOvertimeClaimedEmail(mgrEmailRes.rows[0].email, staffName, locationName, date, time, EmailService.recordUrl(claimRef));
       }
     }
 
@@ -217,11 +224,15 @@ export class SchedulingController {
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
       const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      // The claim the sentence is about, so the worker whose overtime was taken back
+      // reads the reason beside the record rather than being told to go and find it.
+      const revokedRef: MicaRecordRef = { kind: 'overtime-claim', id: result.id };
       await NotificationsController.createNotification(
         staffUserRes.rows[0].user_id,
         'Overtime Revoked',
         `Your approved overtime at ${locationName} on ${date} has been revoked by management.`,
-        'error'
+        'error',
+        micaRecordPath(revokedRef)
       );
     }
     logDelegationAction(user.userId, 'REVOKE_OVERTIME', 'shift', shiftId, `Revoked approved overtime for staff ${staffId}`);
@@ -258,11 +269,20 @@ export class SchedulingController {
         const staffName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || 'A staff member';
         const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
         const locationName = managerRes.rows[0]?.name || 'this location';
+        // A withdrawn claim is no longer a claim to review — what the manager has to
+        // act on is the shift, which is open again. So the link is the shift on the week
+        // grid that holds it (`week` is the ISO day it starts on, which is the day that
+        // grid opens on), exactly as the unclaimed-shift reminder does.
         await NotificationsController.createNotification(
           managerId,
           'Overtime Claim Withdrawn',
           `${staffName} withdrew their claim for ${date} at ${locationName}. The shift is open again.`,
-          'shift'
+          'shift',
+          micaRecordPath({
+            kind: 'shift',
+            id: shiftId,
+            week: new Date(shiftInfo.start_time).toISOString().slice(0, 10),
+          })
         ).catch(() => {});
       }
     }
@@ -289,11 +309,15 @@ export class SchedulingController {
     if (staffUserRes.rows[0]) {
       const userId = staffUserRes.rows[0].user_id;
       const body = `Your overtime claim at ${locationName} on ${date} has been cancelled by management.`;
-      await NotificationsController.createNotification(userId, 'Overtime Cancelled', body, 'error');
+      // One ref for both channels: the claim is what was cancelled, so the bell and the
+      // push open the same row. The push used to point at `/scheduling/overtime`, which
+      // is not a route the app has.
+      const cancelledRef: MicaRecordRef = { kind: 'overtime-claim', id: result.id };
+      await NotificationsController.createNotification(userId, 'Overtime Cancelled', body, 'error', micaRecordPath(cancelledRef));
       const { sendPushNotification } = await import('../notifications/push.service');
       await sendPushNotification(
         userId,
-        { title: 'Overtime Cancelled', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        { title: 'Overtime Cancelled', body, data: { type: 'overtime', shiftId }, url: micaRecordPath(cancelledRef) },
         'overtime'
       ).catch(() => {});
     }
@@ -317,11 +341,19 @@ export class SchedulingController {
 
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
+      // Converted *away* from a claim: what the worker now has is a rostered shift, so
+      // the link is that shift on its week grid rather than a claim row that no longer
+      // exists.
       await NotificationsController.createNotification(
         staffUserRes.rows[0].user_id,
         'Overtime Converted',
         `Your overtime claim at ${locationName} on ${date} has been converted to a regular rostered shift.`,
-        'info'
+        'info',
+        micaRecordPath({
+          kind: 'shift',
+          id: shiftId,
+          week: new Date(shiftInfo.start_time).toISOString().slice(0, 10),
+        })
       );
     }
     logDelegationAction(user.userId, 'CONVERT_OVERTIME', 'shift', shiftId, `Converted overtime claim to regular shift for staff ${staffId}`);
@@ -346,15 +378,23 @@ export class SchedulingController {
     const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
     // Notify old staff
+    // Both sides of a swap are sent to the same shift — the one that changed hands —
+    // so one link serves them: the shift on the week grid holding it.
+    const swappedShiftLink = micaRecordPath({
+      kind: 'shift',
+      id: shiftId,
+      week: new Date(shiftInfo.start_time).toISOString().slice(0, 10),
+    });
+
     const oldStaffUser = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (oldStaffUser.rows[0]) {
-      await NotificationsController.createNotification(oldStaffUser.rows[0].user_id, 'Overtime Swapped', `Your approved overtime at ${locationName} on ${date} has been reassigned to another staff member.`, 'info');
+      await NotificationsController.createNotification(oldStaffUser.rows[0].user_id, 'Overtime Swapped', `Your approved overtime at ${locationName} on ${date} has been reassigned to another staff member.`, 'info', swappedShiftLink);
     }
 
     // Notify new staff
     const newStaffUser = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [newStaffId]);
     if (newStaffUser.rows[0]) {
-      await NotificationsController.createNotification(newStaffUser.rows[0].user_id, 'Overtime Assigned', `You have been assigned an overtime shift at ${locationName} on ${date}.`, 'success');
+      await NotificationsController.createNotification(newStaffUser.rows[0].user_id, 'Overtime Assigned', `You have been assigned an overtime shift at ${locationName} on ${date}.`, 'success', swappedShiftLink);
     }
 
     res.json(result);
@@ -382,12 +422,13 @@ export class SchedulingController {
     );
     const staffName = `${staffRes.rows[0]?.first_name || ''} ${staffRes.rows[0]?.last_name || ''}`.trim() || 'Staff member';
     const staffEmail = staffRes.rows[0]?.email;
+    const claimRef: MicaRecordRef = { kind: 'overtime-claim', id: result.id };
 
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
       const userId = staffUserRes.rows[0].user_id;
       const body = `Your overtime claim for ${locationName} on ${date} (${time}) has been approved.`;
-      await NotificationsController.createNotification(userId, 'Overtime Approved', body, 'success');
+      await NotificationsController.createNotification(userId, 'Overtime Approved', body, 'success', micaRecordPath(claimRef));
       // The in-app row above only helps someone who opens the app. A carer who
       // picked up a shift on the strength of the claim needs to hear the answer
       // either way, and an approval that arrives after the shift has started is
@@ -395,12 +436,12 @@ export class SchedulingController {
       const { sendPushNotification } = await import('../notifications/push.service');
       await sendPushNotification(
         userId,
-        { title: 'Overtime Approved', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        { title: 'Overtime Approved', body, data: { type: 'overtime', shiftId }, url: micaRecordPath(claimRef) },
         'overtime'
       ).catch(() => {});
     }
     if (staffEmail) {
-      await EmailService.sendOvertimeApprovedEmail(staffEmail, staffName, locationName, date, time);
+      await EmailService.sendOvertimeApprovedEmail(staffEmail, staffName, locationName, date, time, EmailService.recordUrl(claimRef));
     }
 
     logDelegationAction(user.userId, 'APPROVE_OVERTIME', 'shift', shiftId, `Approved overtime claim for staff ${staffId}`);
@@ -423,17 +464,18 @@ export class SchedulingController {
     const date = new Date(shiftInfo2.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const time = `${new Date(shiftInfo2.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${new Date(shiftInfo2.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 
+    const declinedRef: MicaRecordRef = { kind: 'overtime-claim', id: result.id };
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
       const userId = staffUserRes.rows[0].user_id;
       const body = `Your overtime claim for ${locationName} on ${date} (${time}) has been declined.`;
-      await NotificationsController.createNotification(userId, 'Overtime Declined', body, 'error');
+      await NotificationsController.createNotification(userId, 'Overtime Declined', body, 'error', micaRecordPath(declinedRef));
       // A decline is the case that most needs a push: the worker is waiting on
       // someone else's decision and cannot do anything about it.
       const { sendPushNotification } = await import('../notifications/push.service');
       await sendPushNotification(
         userId,
-        { title: 'Overtime Declined', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        { title: 'Overtime Declined', body, data: { type: 'overtime', shiftId }, url: micaRecordPath(declinedRef) },
         'overtime'
       ).catch(() => {});
     }
@@ -444,7 +486,7 @@ export class SchedulingController {
     const staffName = `${staffRes.rows[0]?.first_name || ''} ${staffRes.rows[0]?.last_name || ''}`.trim() || 'Staff member';
     const staffEmail = staffRes.rows[0]?.email;
     if (staffEmail) {
-      await EmailService.sendOvertimeRejectedEmail(staffEmail, staffName, locationName, date, time);
+      await EmailService.sendOvertimeRejectedEmail(staffEmail, staffName, locationName, date, time, EmailService.recordUrl(declinedRef));
     }
 
     logDelegationAction(user.userId, 'REJECT_OVERTIME', 'shift', shiftId, `Rejected overtime claim for staff ${staffId}`);
@@ -616,6 +658,9 @@ export class SchedulingController {
     }
 
     const swap = await SchedulingRepository.createSwapRequest(profile.id, toStaffId, shiftId, toShiftId, reason);
+    // The request is the record every message below is about, so it is built once and
+    // handed to the notification, the email and the manager's copy alike.
+    const swapRef: MicaRecordRef = { kind: 'swap-request', id: swap.id };
 
     const shiftDate = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const shiftTime = `${new Date(shiftInfo.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${new Date(shiftInfo.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
@@ -628,7 +673,8 @@ export class SchedulingController {
           toProfile.rows[0].user_id,
           'Shift Swap Request',
           `${requesterName} has requested to swap their shift with you on ${shiftDate} (${shiftTime}).`,
-          'info'
+          'info',
+          micaRecordPath(swapRef)
         );
       } catch { /* notification is non-critical */ }
     }
@@ -642,7 +688,8 @@ export class SchedulingController {
           `${toProfile.rows[0]?.first_name || ''} ${toProfile.rows[0]?.last_name || ''}`.trim(),
           requesterName,
           shiftDate,
-          shiftTime
+          shiftTime,
+          EmailService.recordUrl(swapRef)
         );
       } catch { /* email non-critical */ }
     }
@@ -656,7 +703,8 @@ export class SchedulingController {
             locRes.rows[0].manager_id,
             'Shift Swap Requested',
             `${requesterName} has requested a shift swap at ${locRes.rows[0].name} on ${shiftDate} (${shiftTime}).`,
-            'info'
+            'info',
+            micaRecordPath(swapRef)
           );
         } catch { /* notification is non-critical */ }
       }
@@ -726,6 +774,9 @@ export class SchedulingController {
     const swapDetail = toShiftDate
       ? `${requesterName}'s shift: ${shiftDate} (${shiftTime}) at ${locationName}. ${accepterName}'s shift: ${toShiftDate} (${toShiftTime}) at ${toShiftLocation}.`
       : `${shiftDate} (${shiftTime}) at ${locationName}.`;
+    // The answering user is the one actor here who did not create the request, so the
+    // link is built from the route's own swap id rather than from a row they hold.
+    const answeredRef: MicaRecordRef = { kind: 'swap-request', id: swapId };
 
     // In-app notification to requester
     if (swapCheck.rows[0].from_user_id) {
@@ -736,7 +787,8 @@ export class SchedulingController {
           accepted
             ? `${accepterName} has accepted your shift swap. ${swapDetail}`
             : `${accepterName} has declined your shift swap for ${shiftDate} (${shiftTime}).`,
-          accepted ? 'success' : 'error'
+          accepted ? 'success' : 'error',
+          micaRecordPath(answeredRef)
         );
       } catch { /* notification is non-critical */ }
     }
@@ -754,7 +806,8 @@ export class SchedulingController {
             locationName,
             toShiftDate,
             toShiftTime,
-            toShiftLocation
+            toShiftLocation,
+            EmailService.recordUrl(answeredRef)
           );
         } else {
           await EmailService.sendSwapDeclinedEmail(
@@ -762,7 +815,8 @@ export class SchedulingController {
             requesterName,
             accepterName,
             shiftDate,
-            shiftTime
+            shiftTime,
+            EmailService.recordUrl(answeredRef)
           );
         }
       } catch { /* email non-critical */ }
@@ -785,7 +839,8 @@ export class SchedulingController {
           accepted
             ? `${accepterName} has accepted a shift swap from ${requesterName}. ${swapDetail}`
             : `${accepterName} has declined a shift swap from ${requesterName} at ${locationName} on ${shiftDate} (${shiftTime}).`,
-          accepted ? 'info' : 'warning'
+          accepted ? 'info' : 'warning',
+          micaRecordPath(answeredRef)
         );
       } catch { /* notification is non-critical */ }
       if (accepted) {
@@ -804,7 +859,8 @@ export class SchedulingController {
               shiftTime,
               toShiftDate,
               toShiftTime,
-              toShiftLocation
+              toShiftLocation,
+              EmailService.recordUrl(answeredRef)
             );
           }
         } catch { /* email non-critical */ }

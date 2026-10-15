@@ -41,7 +41,29 @@ export class NotificationsController {
     res.json({ message: 'All marked as read' });
   }
 
-  static async createNotification(userId: string, title: string, message: string, type: string = 'info') {
+  /**
+   * Raises a notification for a user, their active delegates, and nobody else.
+   *
+   * `link` is the record path this notification is about, where it is about one
+   * (`micaRecordPath` in `@meticle/shared`). It is stored on the row and travels to
+   * the client with it, so the bell is not a dead end: the carer who reads "New
+   * Task Assigned" taps it and lands on that task, exactly as they would from
+   * Mica's own offer or from the email about the same record. Callers that have no
+   * record to point at simply omit it — a notification with no link opens nothing,
+   * which is honest, where a guessed link is not.
+   *
+   * The path is relative and the client pushes it, so the row keeps working on
+   * whatever origin the app is served from and nothing parses a host out of a stored
+   * string. Email is the one channel that needs an absolute address; it composes it
+   * from the same path at send time (`micaRecordUrl`).
+   */
+  static async createNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type: string = 'info',
+    link?: string,
+  ) {
     const notifyUserIds = new Set<string>([userId]);
     try {
       const delegateRes = await pool.query(
@@ -64,8 +86,8 @@ export class NotificationsController {
         }
 
         const result = await pool.query(
-          'INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4) RETURNING *',
-          [uid, title, message, type]
+          'INSERT INTO notifications (user_id, title, message, type, link) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+          [uid, title, message, type, link ?? null]
         );
         const io = safeIo();
         io.to(`user:${uid}`).emit('notification', result.rows[0]);

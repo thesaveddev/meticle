@@ -7,6 +7,7 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { publishAdministrationMissedEvent } from './medication.events';
 import { assertCanAdminister, assertCanAddMedicine, resolveOrganisationFramework } from './medicationRules';
 import { logWarn } from '../../shared/utils/logger';
+import { micaRecordPath } from '@meticle/shared';
 
 export class EMedicationController {
   static getOrgId(req: Request): string {
@@ -652,12 +653,28 @@ export class EMedicationController {
           `SELECT id FROM users WHERE organization_id = $1 AND role IN ('ORG_ADMIN', 'MANAGER') AND status = 'active'`,
           [orgId]
         );
+        // A flagged count is read on that person's MAR chart for that month, so the
+        // notification opens it there — and only when the month is a month. A
+        // `count_date` in any other shape would compose a link to a chart the page
+        // cannot find, so it composes nothing instead of something plausible.
+        const countMonth = /^\d{4}-\d{2}/.test(String(req.body.count_date ?? ''))
+          ? String(req.body.count_date).slice(0, 7)
+          : undefined;
+        const chartLink = countMonth
+          ? micaRecordPath({
+              kind: 'medication-chart',
+              id: count.id,
+              personId: req.body.person_id,
+              month: countMonth,
+            })
+          : undefined;
         for (const m of managers.rows) {
           NotificationsController.createNotification(
             m.id,
             'Medication Count Escalated',
             `Daily count for ${personName} on ${req.body.count_date} flagged ${escalated.length} medication(s) for review: ${medList}.`,
-            'general'
+            'general',
+            chartLink
           ).catch(() => {});
         }
       } catch { /* escalation notification non-critical */ }

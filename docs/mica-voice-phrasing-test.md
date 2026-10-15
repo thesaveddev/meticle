@@ -144,7 +144,9 @@ returns `{ answer, navigate: { destination, path, label, person? } }`, which
 Turner's mar chart for march" now opens
 `/emedication?personId=…&month=2026-03`, and `/emedication` was taught to honour
 exactly those two parameters (`?personId`, `?month`; an impossible month such as
-`2026-13` falls back to the current one rather than breaking the page).
+`2026-13` falls back to the current one rather than breaking the page). Three more
+destinations carry detail since §9 — the rota's week, a profile's tab, one incident
+by title.
 
 Three properties are deliberate:
 
@@ -233,15 +235,15 @@ assistant capability disclosure in Settings now states the same thing to admins:
 these list questions are read from their own records and nothing is sent to the
 provider.
 
-Pinned by `mica.facts.test.ts` (32 unit tests: the phrases, the refusals, and the
-exact sentences) and `mica.facts.integration.test.ts` (13 tests: the real tools and
+Pinned by `mica.facts.test.ts` (54 unit tests: the phrases, the refusals, and the
+exact sentences) and `mica.facts.integration.test.ts` (22 tests: the real tools and
 real SQL, end to end, with `ai_config.enabled = false` — plus the control that a
 question needing judgement still gets the gate).
 
 ### 6. The list answer hands you the page it came from (13 Oct)
 
 The list answers above are the one shape a page beats: "who is on shift today" is
-answered by a count and five names, and the rota itself is a 7x24 grid. So the two
+answered by a count and five names, and the rota itself is a 7x24 grid. So the
 answers that have a page behind them now end by asking whether to open it —
 *"2 staff are on shift today: Fatima Iqbal (day shift, Oak House, 8am to 8pm); …
 Want me to open the rota planner?"* — and the carer's next word opens it:
@@ -250,7 +252,7 @@ Want me to open the rota planner?"* — and the carer's next word opens it:
 > "yes" → "Opening the rota planner." and the rota is pushed
 
 Both halves are deterministic. The destination was already known when the list was
-read (`factPageFor`), the offer is remembered in the same conversation memory the
+read (`factPageForRole`), the offer is remembered in the same conversation memory the
 follow-ups use (a `pendingPage` on the session: a route, a label and a destination —
 never a name or an id), and the confirmation is matched whole-utterance against a
 spoken-yes set (`parseFactConfirmation`: "yes", "okay", "go on", "please do", …).
@@ -260,10 +262,13 @@ is audited as `mica_navigation` with `confirmed: true` and the path.
 
 Three rules keep it from being a trap:
 
-- **Two pages, not eight.** Only the rota and the appointments list are offered. A
-  medication round, who is on leave, whose training is expiring, who is supporting one
-  person and the month's incident count are answered by the sentence itself, and the
-  chart behind a round is reached by naming it ("open Nora's MAR chart").
+- **Four pages, not eight.** The rota, the appointments list, expiring training and
+  a leave balance are offered — each because its page is where that list is actually
+  read. The medication round, who is on leave, who is supporting one person and the
+  month's incident count are answered by the sentence itself: the chart behind a
+  round is reached by naming it ("open Nora's MAR chart"), the leave page cannot
+  show the day's leave list, and a count is not a list. The training offer is
+  additionally withheld from a role that cannot open the matrix — see section 8.
 - **Whole-utterance, like the stop phrases.** "yes, but what about tomorrow" is a
   new question and opens nothing; "no" is not a confirmation, and the offer simply
   lapses.
@@ -279,13 +284,14 @@ word; `looksLikeConfirmation` is checked before the care-note fallback in
 `useMica.ts`, and the server still owns the route — the client only decides which
 endpoint the word goes to, exactly as it does for navigation.
 
-Pinned by `mica.facts.test.ts` (unit: the offer text, the two pages that offer,
-the two that must not, and the confirmations that are refused) and
-`mica.facts.integration.test.ts` (13 tests, still with `ai_config.enabled = false`:
-the offer on the answer, "yes" opening the rota and the appointments list, the
-latest offer winning, a second "yes" opening nothing, and a "yes" that answered no
-question opening nothing), plus `MicaProvider.navigation.test.tsx` for the client
-routing.
+Pinned by `mica.facts.test.ts` (54 unit tests: the offer text, the four pages that
+offer, the four that must not, the role gate, and the confirmations that are
+refused) and `mica.facts.integration.test.ts` (22 tests, still with
+`ai_config.enabled = false`: the offer on the answer, "yes" opening the rota, the
+appointments list, the training matrix and the leave page, the latest offer
+winning, a second "yes" opening nothing, a care worker hearing the training answer
+with no offer at all, and a "yes" that answered no question opening nothing), plus
+`MicaProvider.navigation.test.tsx` for the client routing.
 
 ### 7. The next four list questions, and a corpus that keeps them honest (13 Oct)
 
@@ -327,8 +333,9 @@ break:
   than being answered with the tool's own default window — the same rule that refuses
   "next Tuesday" for the rota. The model can pass the window the carer actually said;
   this module cannot, so it does not guess.
-- **Two pages, still.** None of the four offers a page: three are answered by the
-  sentence, and a count offers nothing at all.
+- **Two of the four offer a page, as of section 8.** Expiring training offers the
+  training matrix and a leave balance offers the leave page. Who is supporting one
+  person is answered by the sentence, and a count offers nothing at all.
 - **The question has to reach the answer.** The client has a vocabulary of its own,
   and its training-expiry rule treated *any* sentence with a training word and an
   expiry word as a renewal-task draft — so "whose training is expiring" was filed as
@@ -362,13 +369,324 @@ a summary and a nameless balance still get the gate). The voice path is pinned f
 the transcript in `MicaProvider.navigation.test.tsx`, and the client-side vocabulary
 in `useMica.intents.test.ts`.
 
+### 8. Training and leave balances offer their pages, and one door is role-checked (13 Oct)
+
+Section 7 recorded the four newer answers as page-less, on the argument that the
+training matrix and the leave page are not where those lists are read. Two of them
+are: the matrix's own "Expiring soon" tab *is* the expiry list, and the leave page is
+the only place in the product that draws a balance. So both answers now end the way
+the rota and the appointments always have:
+
+> "whose training is expiring" → the list, then "Want me to open the training matrix?"
+> "yes" → "Opening the training matrix." and `/training` is pushed
+
+> "how much leave does Priya Sharma have left" → "…has 12 days + 6 hours of leave
+> left in 2026. Want me to open the leave page?"
+> "yes" → "Opening the leave page." and `/leave` is pushed
+
+Nothing else about the flow changed. The destination was already known when the list
+was read, the offer still lives one turn in the session memory, and confirming it
+still runs before every AI gate — so an organisation with no provider gets the whole
+exchange.
+
+**The one new idea is the role check.** `/training` is restricted to ORG_ADMIN,
+MANAGER and COMPLIANCE_OFFICER, while `/ai/mica/ask` also serves CARE_WORKER: the
+expiry list is speakable for a carer who could not open the matrix it came from.
+Offering it anyway would ask "want me to open the training matrix?" and then land
+them on `/unauthorized`, which is worse than never asking. So `factPageForRole`
+withholds the page — and the question with it, because a sentence that asks about a
+page it did not offer is its own bug — from a role that cannot open it. It fails
+closed: a caller whose role is unknown gets no gated page rather than the ungated
+benefit of the doubt. The answer itself is untouched, so a care worker still hears
+whose training is expiring; what is withheld is the door.
+
+As written here, that check read a role list carried on the page's own row in
+`mica.facts.ts`, and only `/training` had one: `/scheduling` and `/leave` name no roles
+in the router, so the check was a no-op for the offers that already worked. §10
+replaced that list with the router's own answer — which is where the three roles above
+come from now, and which turned out to gate `/appointments` as well.
+
+Worth stating plainly, because it is the same bargain the rota already makes: the
+leave page shows the *viewer's* own balance cards, so a manager who hears a
+colleague's figure and says yes lands on their own — the colleague's numbers live in
+the sentence. "Who is on shift today" offers the week grid rather than the day for
+the same reason. The offer means "go to the page this came from", not "open a view
+filtered to my answer".
+
+Pinned by the corpus invariants (the four offering kinds enumerated, the gated one
+failing closed with no role, and each offer's path held against the route "open the
+training" and "open the leave" send) and end to end by the integration suite: the
+training answer offering and opening `/training`, the balance offering and opening
+`/leave`, and a care worker hearing the training answer with no offer and a "yes"
+that opens nothing. §10 adds the invariant that ties all of it to the router.
+
+### 9. The detail travels with the destination (13 Oct)
+
+§8's open list said only `/emedication` honoured query parameters, so every other
+destination got a bare path and the carer's own detail — which week, which tab,
+which incident — was dropped on the way. Three of them carry it now, and the pages
+were taught to read what they are handed.
+
+**The week.** "open the rota for next week" opens `/scheduling?week=2026-11-02`, the
+Monday of the week meant. The shapes are "this week", "next week", "last week", a
+weekday and a stated date; a weekday is the *coming* one, so "the rota for Monday"
+said on a Wednesday is the Monday five days away rather than the one already gone.
+Anything else — "the week after next" — leaves the parameter off and the planner
+opens its own default, because the alternative is a confident wrong week. The page
+snaps whatever it is given to that week's Monday, parses the day by hand (`new
+Date('2026-11-04')` is UTC midnight, which is the 3rd west of Greenwich, and that is
+the wrong week), and ignores a malformed or impossible value rather than refusing to
+render. It also re-reads the parameter when it changes while the page is mounted,
+because asking for next week and then the week after pushes the same route twice.
+
+**The tab.** "open Grace Roberts's health tab" opens `/people/:id?tab=health`. The
+slugs are `PersonProfilePage`'s own `TAB_SLUGS` — the 21 tabs a person can name out
+loud — and `mica.navigation.test.ts` reads that page's source to assert every slug
+the parser can emit is one the page declares, because a slug it does not know opens
+the profile on its first tab, silently and plausibly. The tab is read only when a
+person is named, and after the name is: "open the goals" is the organisation's goals
+page, while "Grace's goals" is hers. That is the same upgrade §2 describes for the
+charts — a name turns a module noun into that person's own view.
+
+**The incident.** An incident's only handle is its free-text title, so "the fire door
+incident" is opened by resolving the *subject* it was named by (`fire door`) against
+the organisation's titles: one match opens `/incidents/:id`, two ask which, none says
+so and pushes no route. Two details there are deliberate. Confidential incidents are
+excluded for everyone but an ORG_ADMIN, the same rule the directory applies, so a
+carer hears the sentence a miss gets rather than a confidential record's title. And
+the incident reading happens *before* the destination table, because the carer's noun
+is the incident and whatever else is in the sentence qualifies it: "the medication
+incident" is an incident **about** medication, and the table matched "medication"
+first and opened the charts. That misroute is what the first run of the integration
+tests caught, which is the argument for testing the sentence and not the path.
+
+Everything else still takes a bare path, and on purpose.
+
+### 10. The offer gate is the router's answer, not a copy of it (14 Oct)
+
+§8 gave one page a role list, and that list was a copy of a decision taken
+somewhere else. `apps/web/src/App.tsx` already says who may open `/training` —
+`allowedRoles={[…]}` on the route — so Mica carried a second, hand-maintained answer
+to a question the router had already answered. A copy is right on the day it is
+written and wrong the first time somebody changes the route, and wrong in the one
+direction that matters: the carer is asked "want me to open the training matrix?",
+says yes, and lands on `/unauthorized`, with nothing on either side having changed
+enough to notice. Nobody editing a route has any reason to think a voice assistant's
+table needs the same edit.
+
+So the copy is gone, and the router stays the only place a gate is written.
+`scripts/design/route-access.mjs` reads `App.tsx` — its routes, their nesting, their
+`allowedRoles`, and the `ModuleGuard` module each one names — and writes
+`packages/shared/src/pageAccess.generated.ts`, which the API reads through
+`@meticle/shared`. It is a generated artifact in the same sense as the DESIGN.md
+blocks: `design:check` runs in CI on every push, so a route that changes without a
+`npm run design:sync` is a red build, and the offer gate moves with the router rather
+than two edits later. The web suite runs the same check, so the local loop that made
+the change sees it too. `App.tsx` is untouched by any of this.
+
+Four readings the derivation had to get right, each with a test of its own:
+
+- **Nesting is inherited.** Mission Control's views are children of a role-narrowed
+  parent; a traversal that ignored nesting would report them as public.
+- **A duplicated path takes the restrictive reading.** `/compliance` is declared both
+  as a marketing page and as an application page, so the union of the two sets of
+  restrictions is what an offer is checked against.
+- **A gate the generator cannot read stops it.** `allowedRoles={SOME_CONSTANT}`, a
+  spread, or a list whose names cannot be read is an error — not an empty gate, which
+  would silently widen access, which is the one wrong answer. A router that yields no
+  authenticated route at all is an error too, rather than a table claiming every page
+  is unreachable.
+- **Unknown is never allowed.** A path with no route entry, a public path, and a
+  gated path with an unknown role all withhold the offer (`pageAccessFor`), because
+  the direction that matters is never "unknown, so allow".
+
+Two consequences worth stating plainly. The first is a behaviour change: `/appointments`
+declares three roles in the router, which the hand-written list never knew, so a caller
+whose role is unknown no longer gets that offer. That path is defensive rather than
+reached — the ask endpoint authenticates and names a role — and it now fails in the
+safe direction. The second is the point of the work: restricting `/leave` to ORG_ADMIN
+and MANAGER in the router, regenerating, and rebuilding is *all* it takes for Mica to
+stop offering it to anyone else. No Mica file is edited, and the drift cannot be
+shipped — the check runs before the change can.
+
+Second half named here rather than implied, and left open at the time: the
+`ModuleGuard` module is recorded in the table but was not consulted, so a page the
+caller's *module permission* excludes — or one whose module the organisation's service
+model does not provide — could still be offered. A route's gate has two halves and they
+now live in one place; on this pass only the first was wired. §12 closes the second, and
+closes it the same way: from the router's recorded module, against the caller's own
+modules.
+
+### 11. A write ends where a read answer ends (14 Oct)
+
+Everything above ends on a page. Mica speaks a list, asks whether to open the page
+it came from, and the carer's next word — resolved in the conversation, not parsed
+again — takes them there. The write flows did not. "Add a task to order new grip
+rails" produced a saved row and a sentence, and the carer who wanted to look at what
+had just been written had to leave the conversation, find the tasks page, and find
+the row: the record was created and then handed over to be hunted for.
+
+So a write now ends the same way, with the same two halves. The reply carries
+`offer` — the page the new record is on, with the question in it — under the same key
+a list answer uses, because it is the same kind of thing arriving by a different
+door. And the page is remembered on the session (`setPendingPage`), because a write
+is a *save* rather than a question and an answer: there is no turn to hang the offer
+on, and inventing one would put a sentence nobody said in front of the model on the
+next follow-up. `POST /ai/mica/actions/confirm` takes the optional `sessionId` the
+voice flow already holds, the new task's or appointment's page is recorded there, and
+a bare "yes" resolves through the confirmation branch of `/ai/mica/ask` — one read of
+the conversation and no second parse, exactly as the rota offer resolves.
+
+Three properties are worth naming, because each one is a decision rather than a
+consequence:
+
+- **The write retires the offer before it.** A carer who heard "want me to open the
+  rota planner?" and instead asked for a task to be created has stopped talking
+  about the rota, so the create replaces that offer with its own — including with
+  nothing when the record's page cannot be offered. An offer is answerable only by
+  the sentence straight after it, and that stays true whether the sentence in
+  between was a question or a save.
+- **The gate is the router's, again.** `recordPageFor` asks `pageAccessFor` — the
+  same generated table §10 built — so a record whose page the caller's role cannot
+  open is offered to nobody, and a caller is never told to open a door that is
+  locked for them. `/appointments` is the interesting one: it names three roles, so
+  the identical booking ends with a question for a manager and a plain sentence for a
+  compliance officer.
+- **The link is one string with two ends, so it lives in one place.** The API composes
+  it and a page reads it; nothing at either end fails loudly if they disagree — the
+  server would return `?task=` and the page would go on looking for something else,
+  landing the carer on an unfiltered list with no explanation. So `micaRecordPath` and
+  the parameter names live in `packages/shared/src/micaDeepLinks.ts`, next to the
+  page-access table that exists for the same reason: `?task=<id>`,
+  `?appointment=<id>`, and `?tab=daily-notes&source=<noteId>` for a care note, which
+  names the profile *and* the note.
+
+The pages were taught to read what they are handed, and a link is followed rather
+than filtered to: `TasksPage` opens the task the id names, reading `/tasks/:id` when
+the list on screen does not hold it (the list is status-filtered); `AppointmentsPage`
+reads `/appointments/:id` and moves its own day filter to the appointment's day, so
+the record is in the table behind its dialog and not only in the dialog — a newly
+booked appointment is almost never on the day the page opens on. Both clear the
+parameter when the record is closed, because the URL is what re-opens the dialog.
+`PersonProfilePage` reads `?source=` and opens that one note, which is the door a
+notification, another device or a colleague arrives through; and the care-note
+approval itself now lands on the note it just saved rather than on the top of the
+list, because the reply carries the row.
+
+Pinned by `mica.recordPages.test.ts` (the link shapes, and the gate failing closed
+for a role the router keeps out), by `mica.session.test.ts` (a write's offer is held
+and retired), and end to end in `mica.write.integration.test.ts`: confirm returns
+`/tasks?task=<id>`, the following "yes" to `/ai/mica/ask` answers `Opening the new
+task.` and navigates to that link, a create following a rota offer retires it, the
+booking offers `/appointments?appointment=<id>`, and `/ai/daily-notes/approve`
+offers `/people/<id>?tab=daily-notes&source=<noteId>`. The three page readers are
+pinned in the web suite (`TasksPage.deepLink.test.tsx`,
+`AppointmentsPage.deepLink.test.tsx`, `PersonProfilePage.test.tsx`).
+
+One thing this work found and fixed, which is worth recording because it is the kind
+of bug that hides behind an untested endpoint: `/ai/daily-notes/approve` was writing
+through `pool.connect()`, a different pooled connection from the request's — the one
+carrying the RLS session variables `rlsMiddleware` and `authenticate` set. The
+`daily_notes` tenant policy therefore rejected every insert and the endpoint answered
+500, so the care note was never saved at all. It now uses `transaction()`, the helper
+that reaches for the request-scoped client, which is what the care-note offer in this
+section rides on. No test had ever called that endpoint; there is one now.
+
+The client half came with it, because without it the offer was a question nobody
+could answer. The gateway has always drafted before persisting, and `useMica` wrote
+the draft to `sessionStorage` under `mica.pendingDraft` — but nothing in the product
+read that key, so there was no way to confirm a task or an appointment at all: a
+carer could ask for one, hear it read back, and never save it. The draft is now a
+review card in the overlay (`MicaOverlay.tsx`), listing the fields the server
+resolved — title, who it is for, owner or attending staff, due date or start,
+priority — with Save and Discard, and with the voice answer named on it: the reply
+ended by asking "shall I save it?", so the card says *or say “yes” to save it* and
+the dispatcher makes that word write rather than fall through to the care-note path,
+where a bare "yes" used to be drafted into a note about nobody.
+
+The offer that follows a save is shown as well as spoken — "Saved. Want me to open
+the new task?" with a control that opens it — and that control turned out to be the
+same one a *list* answer should have had: the offer state is filled by both flows
+(`useMica`'s `offer`), so the rota question is now tappable too. Two details of the
+card are decisions rather than cosmetics. It is read-only: a wrong field means saying
+the request again, because letting the card rewrite the envelope would put unaudited
+client edits in front of `confirm`, which re-validates the draft as the server issued
+it. And it persists: the draft is written to the tab and read back on mount, and the
+conversation handle went with it (`mica.sessionId`) — the id is opaque and scoped
+server-side to org+user, and without it a reloaded draft would save and then leave the
+carer's "yes" addressing a conversation the server no longer had. That also made the
+module's own comment true, which had claimed per-tab persistence the code did not do.
+
+Pinned by `mica.draft.test.tsx`: the spoken request drafts and writes nothing, a tap
+saves with the envelope the server issued, "yes" saves it too and reaches no care-note
+endpoint, the confirm carries the session the draft was prepared in, a draft already
+in the tab is on the card after a reload, and Discard writes nothing and keeps nothing.
+
+### 12. The gate's second half, resolved the way the guard resolves it (15 Oct)
+
+§10 left one thing named as open: the router's `module`, recorded next to the roles and
+never read. It is read now.
+
+A route's gate is written twice in `App.tsx` — `allowedRoles={[…]}` and
+`<ModuleGuard module="…">` — and the offer gate consulted only the first, so the second
+road to a locked door stayed open. An organisation with scheduling switched off still
+heard "want me to open the rota planner?"; a care worker whose `tasks` permission is
+`'none'` by default was still asked whether to open the tasks page they had just written
+into. Both are pages `ModuleGuard` answers with `/unauthorized`.
+
+Closing it needed one input and no new source of truth. `pageAccessFor` takes the
+caller's modules as a third argument — `MicaModuleAccess`, resolved once per turn by
+`mica.moduleAccess.ts` — and `loadModuleAccess` asks the two questions
+`GET /permissions/:userId` already answers: the organisation's service model, through
+`getAvailableModules`, and the caller's own `user_permissions` row falling back to
+`ROLE_DEFAULTS`. Both are imported from `permissions.controller.ts` instead of restated,
+so a module added to the availability list or a default changed for a role moves the
+offer gate with it. That is deliberately the same resolution `ModuleGuard` performs from
+the client side of the same endpoint: the gate's job is to predict the guard, so it is
+built out of the guard's own inputs. `undefined` — modules nobody resolved — withholds,
+exactly as an unknown role does.
+
+Three properties are decisions rather than consequences. It is **lazy**: the modules are
+resolved for an answer that has a page at all (`factPageFor`) and for a write that
+produced a record, so a question that could never end in an offer does not pay for two
+lookups and the fact path costs what it did before for the five kinds that offer
+nothing. It is **fail-closed at the interface**: a module-gated page and no module map is
+`false`, so a future caller cannot forget the half by omitting it — and `options` on
+`formatFactReply` is required for the same reason. And **delegations are not consulted**:
+`requirePermission` lets a delegate inherit the primary manager's permissions and
+`ModuleGuard` does not, so neither does this — the question is whether the door opens,
+not whether the API may be called, and the offer has to match the door.
+
+The behaviour that changes is the intended direction, and it is worth naming because it
+is visible. A care worker can create a task — `CREATE_TASK` names CARE_WORKER — and is no
+longer asked whether to open it: `/tasks` is gated on the `tasks` module and their level
+for it is `'none'` by default, so the row is saved and the sentence is plain. The
+daily-note flow runs the same way through `/people/:id`, gated on `people` and also
+`'none'` for a care worker by default: the offer of the note appears for a caller who has
+that module — granted by an admin, or higher up the roles — and not otherwise, which is
+what the guard would have done with the link it was about to hand over.
+
+Pinned by `mica.moduleAccess.test.ts` (availability is the endpoint's own function, a
+primary service model is authoritative over a legacy secondary one, a row beats a role
+default, a grant cannot conjure a module the organisation does not have), by the module
+half of `mica.facts.corpus.test.ts` and `mica.recordPages.test.ts` (a gated page with the
+module shut is withheld question-and-all, for every role, and cannot be granted a module
+`MODULES` does not carry), and end to end in `mica.write.integration.test.ts`: an admin's
+task save still returns `/tasks?task=<id>`, and a care worker's identical save returns the
+record with no `offer` at all.
+
 ### Still open, and honestly so
 
 - **No live pass.** Everything above is pinned by scripted tests
-  (`mica.navigation.test.ts` 56, `mica.navigate.integration.test.ts` 6,
-  `mica.facts.test.ts` 51, `mica.facts.corpus.test.ts` 13,
-  `mica.facts.integration.test.ts` 19, `mica.session.test.ts` 6, and 51 web tests
-  across `src/components/mica`). Nothing here has been re-run against a real provider
+  (`mica.navigation.test.ts` 88, `mica.navigate.integration.test.ts` 13,
+  `mica.facts.test.ts` 54, `mica.facts.corpus.test.ts` 22,
+  `mica.facts.integration.test.ts` 22, `mica.moduleAccess.test.ts` 6,
+  `mica.recordPages.test.ts` 10,
+  `mica.write.integration.test.ts` 17, `mica.session.test.ts` 7, and 112 web tests
+  across `src/components/mica` (six of them §11's draft card) plus the page-access
+  check and §11's nine record-link reader tests). §10's derivation is pinned
+  once more outside both suites, in `scripts/design/design.test.mjs`, which is the
+  half CI runs on every push. Nothing here has been re-run against a real provider
   or a real microphone since the change.
 - **The deterministic set is still deliberately narrow.** It answers lists and counts
   of the organisation's own rows, and nothing else: a percentage, a trend, a summary
@@ -381,14 +699,35 @@ in `useMica.intents.test.ts`.
   listening, the VAD hand-off and the bar's audio pulse need a browser and a
   device; what is asserted is the vocabulary, the routing, the surfaces and the
   deep link, not the acoustics.
-- **Only `/emedication` honours query parameters.** The parser therefore gives
-  every other destination a bare path rather than inventing parameters those
-  pages ignore. If Mica should open the rota on a given week, that page has to
-  accept a date first.
-- **The offer is not permission-aware.** It is made from the answer, so a carer
-  whose role or modules exclude the rota can be offered it and land on the same
-  guard screen the nav bar would give them. That is no worse than the spoken
-  destination ("open the rota") it sits beside, and making the offer
-  permission-aware would mean asking about the person's modules on the answer
-  path, which the list facts deliberately do not do.
+- **A destination can carry only what its page reads.** §9 closed the three that
+  mattered most — the rota's week, a profile's tab, one incident by title — and §11
+  added the three record links (`?task=`, `?appointment=`, `?source=`), alongside
+  `/emedication`'s `?personId`/`?month`. The rest still take a bare path deliberately,
+  because a parameter a page ignores is a link that looks like it worked: the rota
+  cannot be given a location or a carer, and no page has the support for it yet.
+- **The review card cannot be edited.** §11 closed the gap that made a spoken write
+  unsaveable, so a task or appointment is now saved from the card; but a field the
+  server read back wrongly — the wrong Tom Bradley, a due date a week out — can only
+  be fixed by saying the request again, because the card renders the draft and does
+  not rewrite it. The action gateway already takes a client-supplied `input` and
+  `createAppointment` names a "review card edit" as the first source of a time, so the
+  door is open; what is missing is a form in the overlay and a decision about which
+  edits are trusted.
+- **The draft is per tab, and the microphone is still untested.** A reload keeps the
+  draft (that is the point of the write), a second tab does not show it, and nothing
+  here has been re-run against a real provider or a microphone since the card was
+  added: the flow is pinned by `mica.draft.test.tsx`, which stubs the recogniser and
+  the synthesiser exactly as the rest of the Mica suite does.
+- **The offer is module-aware as well as role-aware.** §8 opened this, §10 closed the
+  role half, and §12 closed the half §10 had left: a page is offered only where both
+  halves of the router's gate open, and the module half is read from the two functions
+  `/permissions/:userId` answers rather than from a list of its own. Spoken
+  *navigation* is still untouched by all of this: "open the training" from a care worker
+  still resolves to `/training` and meets the guard, exactly as the nav bar would — the
+  checks are on the offer, which is the path where Mica asks the question. What remains
+  is outside Mica, and named so it is not mistaken for done: the module availability
+  list is still written twice (`permissions.controller.ts` and the client's
+  `ModuleGuard.tsx` keep a copy each, and they agree today), and `/nutrition` is gated on
+  a module neither carries, so it is unreachable for every caller — for which Mica
+  withholding the offer is the honest half.
 - **Item 6 stands.** "Joyce's podiatry is due" is still a question, not a guess.

@@ -1,5 +1,6 @@
 import { query } from '../../../shared/database';
 import logger from '../../../shared/utils/logger';
+import { micaRecordPath } from '@meticle/shared';
 import { TaskRepository } from '../../tasks/tasks.repository';
 import { NotificationsController } from '../../notifications/notifications.controller';
 import { DomainEvent, EventConsumer } from '../events.consumers';
@@ -62,7 +63,7 @@ export const MedicationMissedReviewsConsumer: EventConsumer = {
     // Draft the review task. Unassigned so any on-duty manager can pick it up
     // — assignee resolution against the actual rota is a future iteration.
     const description = buildTaskDescription(payload);
-    await TaskRepository.create(orgId, {
+    const reviewTask = await TaskRepository.create(orgId, {
       title: buildTaskTitle(payload),
       description,
       assigned_to: null,
@@ -99,7 +100,11 @@ export const MedicationMissedReviewsConsumer: EventConsumer = {
         adminRow.rows[0].id,
         'Missed medication needs review',
         `${payload.person_name} missed ${payload.medication_name} scheduled for ${payload.scheduled_time}. A task has been queued for on-duty manager review.`,
-        'general'
+        'general',
+        // The sentence promises a task was queued, so the link goes to that task — the
+        // row this consumer just drafted. A manager who reads the alert can open the
+        // review it is asking for instead of filtering the task list to find it.
+        reviewTask?.id ? micaRecordPath({ kind: 'task', id: String(reviewTask.id) }) : undefined,
       );
     } catch (err) {
       // Task is durably created; notification best-effort.

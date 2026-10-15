@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { PAGE_ACCESS, UserRole } from '@meticle/shared'
 import {
-  parseFactQuestion, formatFactAnswer, formatFactReply, factPageFor,
+  parseFactQuestion, formatFactAnswer, formatFactReply, factPageFor, factPageForRole, pageAccessFor,
   TRAINING_WINDOW_DAYS,
 } from './mica.facts'
-import type { MicaFactKind, MicaFactRequest } from './mica.facts'
+import type { MicaFactKind, MicaFactRequest, MicaModuleAccess } from './mica.facts'
+import { MODULES } from '../permissions/permissions.controller'
 import { parseNavigationRequest } from './mica.navigation'
 import { AI_CAPABILITIES } from './ai.capabilities'
 import { findMicaTool } from './mica.tools'
@@ -36,7 +38,8 @@ import { findMicaTool } from './mica.tools'
  * Three structural invariants come with it, and they are what catch drift no
  * table can: every fact kind formats without leaking a placeholder, every tool the
  * parser asks is asked for arguments it actually declares, and the pages a list
- * answer may offer are still exactly the two that are workspaces a carer moves in.
+ * answer may offer are still exactly the four whose page is where the list is read
+ * — including the one that a caller's own role may put out of reach.
  *
  * `today` is always passed explicitly — the same 12 October 2026 the rest of the
  * Mica suites use — so nothing here depends on a clock.
@@ -164,6 +167,18 @@ const REFUSAL_FLOOR: Record<string, number> = {
  * can produce. Typed as a total record: adding a kind to `MicaFactKind` fails to
  * compile until it has a sample, which is the point.
  */
+/**
+ * A caller whose modules are exactly the one a page under test is gated on, so a
+ * test can vary the router's half of the gate alone — and `NO_MODULES`, a caller
+ * with none at all, for the other direction. What a real module map looks like
+ * (levels, roles, service models) is `mica.moduleAccess.test.ts`.
+ */
+function openModule(module: string | null): MicaModuleAccess {
+  return module ? { available: [module], levels: { [module]: 'edit' } } : NO_MODULES
+}
+
+const NO_MODULES: MicaModuleAccess = { available: [], levels: {} }
+
 const SAMPLES: Record<MicaFactKind, { request: MicaFactRequest; rows: unknown[] }> = {
   rota: {
     request: { kind: 'rota', tool: 'get_staff_on_shift', date: TODAY, today: TODAY, dayLabel: 'today', dayNamed: true, args: { date: TODAY } },
@@ -226,6 +241,14 @@ const SAMPLES: Record<MicaFactKind, { request: MicaFactRequest; rows: unknown[] 
     rows: [{ month: '2026-10', total: 7, critical: 1, high: 2, medium: 3, low: 1, near_misses: 1, open: 4 }],
   },
 }
+
+/**
+ * The kinds whose answer ends by offering its page — the four of eight that do.
+ * Derived rather than listed, so a row added to `FACT_PAGES` is covered by the
+ * offer-gate invariants below without anyone remembering to add it here.
+ */
+const offeredKinds = (): MicaFactKind[] =>
+  (Object.keys(SAMPLES) as MicaFactKind[]).filter((kind) => factPageFor(kind))
 
 describe('the phrasing corpus — every answered phrase', () => {
   it('resolves to the kind and the read-only tool it claims', () => {
@@ -338,26 +361,165 @@ describe('the phrasing corpus — the invariants no table can hold', () => {
     }
   })
 
-  it('offers a page for exactly the two answers whose page is a workspace', () => {
-    // Six of the eight answers are said and done. If a page offer is ever added to
-    // one of them, this is the test that has to be changed on purpose.
+  it('offers a page for exactly the four answers whose page is where the list is read', () => {
+    // The other four are said and done. If a page offer is ever added to one of
+    // them, this is the test that has to be changed on purpose.
     const withPages = (Object.keys(SAMPLES) as MicaFactKind[]).filter((kind) => factPageFor(kind))
-    expect(withPages.sort()).toEqual(['appointments', 'rota'])
+    expect(withPages.sort()).toEqual(['appointments', 'leave-balance', 'rota', 'training-expiry'])
   })
 
   it('sends the same route for an offer and for asking to go there', () => {
     // Two ways into a page — confirming Mica's offer, and saying "open the rota" —
     // and they cannot be allowed to point at different pages.
-    for (const [phrase, kind] of [['open the rota planner', 'rota'], ['open the appointments', 'appointments']] as const) {
+    for (const [phrase, kind] of [
+      ['open the rota planner', 'rota'],
+      ['open the appointments', 'appointments'],
+      ['open the training', 'training-expiry'],
+      ['open the leave', 'leave-balance'],
+    ] as const) {
       expect(parseNavigationRequest(phrase, TODAY)?.path).toBe(factPageFor(kind)?.path)
     }
   })
 
+  it('withholds a gated page from the role that could not open it, question and all', () => {
+    // `/training` is restricted while the ask endpoint also serves CARE_WORKER: the
+    // expiry list is speakable for a carer who could not open the matrix it came
+    // from, so what is withheld is the door, not the answer.
+    const { request: req, rows } = SAMPLES['training-expiry']
+    const modules = openModule(PAGE_ACCESS['/training'].module)
+    const asManager = formatFactReply(req, rows, { role: UserRole.MANAGER, modules })
+    expect(asManager.page?.path).toBe('/training')
+    expect(asManager.answer).toMatch(/Want me to open the training matrix\?$/)
+
+    const asCarer = formatFactReply(req, rows, { role: UserRole.CARE_WORKER, modules })
+    expect(asCarer.page).toBeUndefined()
+    // The sentence and the offer go together: no page, no question about one.
+    expect(asCarer.answer).not.toMatch(/want me to open/i)
+    expect(asCarer.answer).toBe(formatFactAnswer(req, rows))
+  })
+
+  it('withholds a page whose module the caller does not have, question and all', () => {
+    // The other half of the gate — the half the generated table recorded and
+    // nothing read. The router gates the rota by module and names no roles, so
+    // before this the offer went to every caller Mica serves: including one whose
+    // `scheduling` permission is 'none', and one in an organisation whose service
+    // model does not provide scheduling at all. Both are callers `ModuleGuard`
+    // sends to /unauthorized, and a page nobody can open is not a question to ask.
+    const { request: req, rows } = SAMPLES.rota
+    const levelNone: MicaModuleAccess = { available: ['scheduling'], levels: { scheduling: 'none' } }
+
+    for (const modules of [levelNone, NO_MODULES]) {
+      const reply = formatFactReply(req, rows, { role: UserRole.ORG_ADMIN, modules })
+      expect(reply.page).toBeUndefined()
+      expect(reply.answer).not.toMatch(/want me to open/i)
+      expect(reply.answer).toBe(formatFactAnswer(req, rows))
+    }
+
+    // The same question, for a caller who does have the module, still asks.
+    const held = formatFactReply(req, rows, { role: UserRole.CARE_WORKER, modules: openModule('scheduling') })
+    expect(held.page?.path).toBe('/scheduling')
+  })
+
+  it('only offers pages whose module the permissions surface can grant', () => {
+    // A page gated on a module `MODULES` does not carry is openable by nobody:
+    // the endpoint `ModuleGuard` asks never returns such a module, so the guard
+    // refuses every caller. Mica has to agree, and this is the check that holds
+    // the two together for every page it can offer — `/nutrition` is the live
+    // example of a route gated on a module the permissions surface does not have.
+    for (const kind of offeredKinds()) {
+      const module = PAGE_ACCESS[factPageFor(kind)!.path].module
+      if (module) expect(MODULES, `${kind} offers a page gated on ${module}`).toContain(module)
+    }
+  })
+
+  it('fails closed on a gated page when no role is known at all', () => {
+    // "No role" must not read as "no restriction": the offer is only made to a
+    // caller whose role has been checked against the page's own gate.
+    //
+    // Which pages are gated is the router's answer now, and it gates one more than
+    // the hand-written list did: `App.tsx` gives `/appointments` three roles, so an
+    // unknown role no longer gets that offer either. The ask endpoint authenticates
+    // and names roles, so this is a defensive path rather than a reached one — but
+    // it fails in the safe direction.
+    for (const kind of ['training-expiry', 'appointments'] as const) {
+      const modules = openModule(PAGE_ACCESS[factPageFor(kind)!.path].module)
+      expect(factPageForRole(kind, undefined, modules)).toBeUndefined()
+    }
+    // The pages the router leaves ungated are unaffected — it names no roles for
+    // these, so a caller whose own modules include theirs can open them.
+    for (const kind of ['rota', 'leave-balance'] as const) {
+      const modules = openModule(PAGE_ACCESS[factPageFor(kind)!.path].module)
+      expect(factPageForRole(kind, undefined, modules)?.path).toBe(factPageFor(kind)?.path)
+    }
+  })
+
+  it('takes every offer gate from the router rather than a list of its own', () => {
+    // The requirement, as an invariant: for every page Mica can offer and every
+    // role the app has, the offer is made exactly when the router's own table says
+    // the page is open. Nothing here decides it a second time, so restricting a
+    // route in `App.tsx` withholds the offer from the excluded roles — the router
+    // change is the only edit anyone has to make.
+    for (const kind of offeredKinds()) {
+      const page = factPageFor(kind)!
+      const access = PAGE_ACCESS[page.path]
+      expect(access, `${kind} offers ${page.path}, which no route declares`).toBeDefined()
+      // The module half is held open for the page under test, so what this loop
+      // varies is the router's half alone; the module half is varied below and in
+      // its own test.
+      const modules = openModule(access.module)
+      for (const role of Object.values(UserRole)) {
+        const open = access.authenticated && (!access.roles || access.roles.includes(role))
+        expect(pageAccessFor(page.path, role, modules), `${kind} as ${role}`).toBe(open)
+        expect(factPageForRole(kind, role, modules)?.path, `${kind} as ${role}`).toBe(open ? page.path : undefined)
+        // …and with the module half shut, no role opens a gated page at all.
+        if (access.module) {
+          expect(pageAccessFor(page.path, role, NO_MODULES), `${kind} as ${role}, without ${access.module}`).toBe(false)
+        }
+      }
+    }
+  })
+
+  it('restates no page gate of its own', () => {
+    // The shape that made the old table go stale: a role list sitting next to the
+    // path, which no change to a route would have updated. If one comes back, this
+    // is the test that fails.
+    for (const kind of offeredKinds()) {
+      expect(Object.keys(factPageFor(kind) ?? {}).sort(), kind).toEqual([
+        'destination', 'label', 'offer', 'path',
+      ])
+    }
+  })
+
+  it('offers only pages the router serves to an authenticated user', () => {
+    for (const kind of offeredKinds()) {
+      const path = factPageFor(kind)!.path
+      // A missing entry is fail-closed (see `pageAccessFor`), and this is where a
+      // newly added offer whose route does not exist is caught rather than
+      // silently never offered — or worse, offered by a table that guessed.
+      expect(PAGE_ACCESS[path], `${kind} offers ${path}, which the router does not declare`).toBeDefined()
+      expect(PAGE_ACCESS[path].authenticated, `${kind} offers the public page ${path}`).toBe(true)
+    }
+  })
+
+  it('withholds anything the router does not serve, for every role', () => {
+    // The direction that matters is never "unknown, so allow".
+    for (const role of Object.values(UserRole)) {
+      expect(pageAccessFor('/not-a-route', role, NO_MODULES), `/not-a-route as ${role}`).toBe(false)
+      expect(pageAccessFor('/pricing', role, NO_MODULES), `/pricing is public, not a destination`).toBe(false)
+    }
+  })
+
   it('adds the offer to the sentence a list answer already has', () => {
-    const reply = formatFactReply(SAMPLES.rota.request, SAMPLES.rota.rows)
+    const reply = formatFactReply(SAMPLES.rota.request, SAMPLES.rota.rows, {
+      role: UserRole.CARE_WORKER,
+      modules: openModule('scheduling'),
+    })
     expect(reply.answer).toBe(`${formatFactAnswer(SAMPLES.rota.request, SAMPLES.rota.rows)} ${reply.page?.offer}`)
     // The answers with no page are returned untouched.
-    const counted = formatFactReply(SAMPLES.incidents.request, SAMPLES.incidents.rows)
+    const counted = formatFactReply(SAMPLES.incidents.request, SAMPLES.incidents.rows, {
+      role: UserRole.CARE_WORKER,
+      modules: NO_MODULES,
+    })
     expect(counted.page).toBeUndefined()
     expect(counted.answer).toBe(formatFactAnswer(SAMPLES.incidents.request, SAMPLES.incidents.rows))
   })

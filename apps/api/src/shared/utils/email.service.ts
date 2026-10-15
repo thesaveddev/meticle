@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml, buildTransactionalEmailHtml, EMAIL_BRAND, EMAIL_TEXT } from './email.template';
+import { micaRecordPath, micaRecordUrl } from '@meticle/shared';
+import type { MicaRecordRef } from '@meticle/shared';
 import { EmailSecurityNoticeHtml } from './email.securityNotice';
 import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
 import type { EmailQueueOptions } from './email.queue';
@@ -105,6 +107,27 @@ const baseUrl = () =>
   (process.env.NODE_ENV === 'production' ? 'https://meticlecare.com' : 'http://localhost:3000');
 
 /**
+ * The button for a record, when the sender gave one, and the generic page button
+ * otherwise.
+ *
+ * Email is the one channel that has to carry an absolute address: a relative record
+ * path is a dead string in a mail client, so the sender composes it with
+ * `EmailService.recordUrl` and this renders it. When there is no record link — an
+ * email a caller has not been taught to link yet, or one raised from a context that
+ * genuinely has no record — the page-level button the email always had is used
+ * unchanged, which is what keeps every existing caller working as it did.
+ *
+ * The label names the record rather than the page when a record is what opens, so
+ * the recipient knows the difference between "the leave page" and "this leave
+ * request".
+ */
+const recordCta = (
+  link: string | undefined,
+  recordLabel: string,
+  fallback: { label: string; url: string },
+) => (link ? { label: recordLabel, url: link } : fallback);
+
+/**
  * Formats a time for a human reading an email.
  *
  * The timezone argument is not optional in spirit. The homecare digests select
@@ -126,6 +149,17 @@ const fmtDate = (date?: string | null) =>
   date
     ? new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
     : 'your shift';
+
+/**
+ * Escapes a value for HTML.
+ *
+ * Names, task titles, call labels and free-text reasons are all user-supplied and land
+ * in an HTML email, so they are treated as untrusted. Module-level because more than one
+ * template needs it: the digest spells it `e` for its own brevity and now delegates here,
+ * so there is one implementation and not one per function that remembered.
+ */
+const escapeHtml = (value: unknown) =>
+  String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 
 /**
@@ -162,11 +196,10 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
   const attention: any[] = summary.attention || [];
   const isManager = summary.managerView === true;
 
-  const esc = (value: unknown) =>
-    String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // Client names, carer names, call labels and late reasons are user-supplied
-  // and land in an HTML email. Everything interpolated below goes through this.
-  const e = esc;
+  // and land in an HTML email. Everything interpolated below goes through this —
+  // the shared escaper, kept short here because every line below uses it.
+  const e = escapeHtml;
 
   const cell = (label: string, value: number | string, highlight?: string) =>
     `<td style="padding:6px 10px;border-bottom:1px solid ${EMAIL_TEXT.line};font-size:13px;color:${highlight || EMAIL_TEXT.body};">${e(value)}<span style="color:${EMAIL_TEXT.muted};"> ${e(label)}</span></td>`;
@@ -315,6 +348,20 @@ export function buildDigestEmailContent(name: string, digestType: DigestWindow, 
   return content;
 }
 export class EmailService {
+  /**
+   * The absolute URL to one record, for an email button.
+   *
+   * The one place a record link becomes absolute. The path itself is the contract's
+   * (`micaRecordPath` in `@meticle/shared`), shared with the client, the bell and chat;
+   * only the origin differs, and only email needs one — a relative path inside a mail
+   * client is a dead string. It is composed here because this module is what knows the
+   * public origin (`baseUrl()`, FRONTEND_URL), and the caller passes the ref rather
+   * than a string so no caller is in a position to invent a path.
+   */
+  static recordUrl(ref: MicaRecordRef): string {
+    return micaRecordUrl(ref, baseUrl());
+  }
+
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
     await sendMail(email, 'Verify your Meticle Care email address',
@@ -407,92 +454,101 @@ export class EmailService {
   }
 
   // ── Leave ──
-  static async sendLeaveRequestedEmail(email: string, reviewerName: string, staffName: string, leaveType: string, startDate: string, endDate: string) {
+  static async sendLeaveRequestedEmail(email: string, reviewerName: string, staffName: string, leaveType: string, startDate: string, endDate: string, link?: string) {
     await sendMail(email, `Leave Request — ${staffName}`,
       buildStatusEmailHtml('Leave Request', `Hi ${reviewerName},`, 'pending', 'Pending Approval',
         [`${staffName} has requested ${leaveType} leave from ${startDate} to ${endDate}.`],
-        { label: 'Review Request', url: `${baseUrl()}/leave` }));
+        recordCta(link, 'Open the leave request', { label: 'Review Request', url: `${baseUrl()}/leave` })));
   }
 
-  static async sendLeaveApprovedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string) {
+  static async sendLeaveApprovedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string, link?: string) {
     await sendMail(email, `Leave Approved — ${leaveType}`,
       buildStatusEmailHtml('Leave Approved', `Hi ${name},`, 'approved', 'Approved',
         [`Your ${leaveType} leave from ${startDate} to ${endDate} has been approved.`],
-        { label: 'View My Leave', url: `${baseUrl()}/leave` }));
+        recordCta(link, 'Open the leave request', { label: 'View My Leave', url: `${baseUrl()}/leave` })));
   }
 
-  static async sendLeaveBookedEmail(email: string, staffName: string, bookedByName: string, leaveType: string, startDate: string, endDate: string) {
+  static async sendLeaveBookedEmail(email: string, staffName: string, bookedByName: string, leaveType: string, startDate: string, endDate: string, link?: string) {
     await sendMail(email, `Leave Booked — ${leaveType}`,
       buildStatusEmailHtml('Leave Booked', `Hi ${staffName},`, 'approved', 'Approved',
         [`${bookedByName} has booked ${leaveType} leave for you from ${startDate} to ${endDate}. It has been approved.`],
-        { label: 'View My Leave', url: `${baseUrl()}/leave` }));
+        recordCta(link, 'Open the leave request', { label: 'View My Leave', url: `${baseUrl()}/leave` })));
   }
 
-  static async sendLeaveRejectedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string) {
+  static async sendLeaveRejectedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string, link?: string) {
     await sendMail(email, `Leave Rejected — ${leaveType}`,
       buildStatusEmailHtml('Leave Rejected', `Hi ${name},`, 'rejected', 'Rejected',
         [`Your ${leaveType} leave from ${startDate} to ${endDate} was not approved.`],
-        { label: 'View Details', url: `${baseUrl()}/leave` }));
+        recordCta(link, 'Open the leave request', { label: 'View Details', url: `${baseUrl()}/leave` })));
   }
 
   // ── Documents ──
-  static async sendDocumentExpiringEmail(email: string, staffName: string, docType: string, expiryDate: string) {
+  static async sendDocumentExpiringEmail(email: string, staffName: string, docType: string, expiryDate: string, link?: string) {
     await sendMail(email, `${docType} Expiring Soon`,
       buildStatusEmailHtml('Document Expiring', `Hi ${staffName},`, 'pending', 'Action Required',
         [`Your ${docType} expires on ${expiryDate}. Please upload a renewed copy.`],
-        { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` }));
+        recordCta(link, 'Open the document', { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` })));
   }
 
-  static async sendDocumentExpiredEmail(email: string, staffName: string, docType: string) {
+  /**
+   * The expired-document notice.
+   *
+   * The existing signature has no expiry date — the sentence is in the past tense and
+   * the date is in the record — so `link` is the fourth argument. A caller that was
+   * briefed with an expiry date in that position passes the link here; the sender is
+   * the tasks/compliance side of this change, and this comment is the place that says
+   * which order won.
+   */
+  static async sendDocumentExpiredEmail(email: string, staffName: string, docType: string, link?: string) {
     await sendMail(email, `${docType} Has Expired`,
       buildStatusEmailHtml('Document Expired', `Hi ${staffName},`, 'rejected', 'Expired',
         [`Your ${docType} has expired. Please upload a renewed copy immediately.`],
-        { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` }));
+        recordCta(link, 'Open the document', { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` })));
   }
 
   // ── Training ──
-  static async sendTrainingExpiringEmail(email: string, staffName: string, moduleName: string, expiryDate: string) {
+  static async sendTrainingExpiringEmail(email: string, staffName: string, moduleName: string, expiryDate: string, link?: string) {
     await sendMail(email, `Training Expiring — ${moduleName}`,
       buildStatusEmailHtml('Training Expiring', `Hi ${staffName},`, 'pending', 'Action Required',
         [`Your "${moduleName}" training expires on ${expiryDate}.`],
-        { label: 'View Training', url: `${baseUrl()}/compliance/training` }));
+        recordCta(link, 'Open the training record', { label: 'View Training', url: `${baseUrl()}/compliance/training` })));
   }
 
-  static async sendTrainingExpiredEmail(email: string, staffName: string, moduleName: string) {
+  static async sendTrainingExpiredEmail(email: string, staffName: string, moduleName: string, link?: string) {
     await sendMail(email, `Training Expired — ${moduleName}`,
       buildStatusEmailHtml('Training Expired', `Hi ${staffName},`, 'rejected', 'Expired',
         [`Your "${moduleName}" training has expired.`],
-        { label: 'View Training', url: `${baseUrl()}/compliance/training` }));
+        recordCta(link, 'Open the training record', { label: 'View Training', url: `${baseUrl()}/compliance/training` })));
   }
 
   // ── Competency ──
-  static async sendCompetencyDueEmail(email: string, staffName: string, templateName: string, dueDate: string, isOverdue: boolean) {
+  static async sendCompetencyDueEmail(email: string, staffName: string, templateName: string, dueDate: string, isOverdue: boolean, link?: string) {
     await sendMail(email, isOverdue ? `Competency Overdue — ${templateName}` : `Competency Due — ${templateName}`,
       buildStatusEmailHtml('Competency', `Hi ${staffName},`, isOverdue ? 'rejected' : 'pending', isOverdue ? 'Overdue' : 'Due Soon',
         [isOverdue ? `Your "${templateName}" assessment is overdue.` : `Your "${templateName}" assessment is due on ${dueDate}.`],
-        { label: 'View', url: `${baseUrl()}/compliance/competency` }));
+        recordCta(link, 'Open the assessment', { label: 'View', url: `${baseUrl()}/compliance/competency` })));
   }
 
   // ── Overtime ──
-  static async sendOvertimeClaimedEmail(email: string, staffName: string, locationName: string, date: string, time: string) {
+  static async sendOvertimeClaimedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
     await sendMail(email, `Overtime Claim — ${staffName}`,
       buildStatusEmailHtml('Overtime', `Overtime claim submitted`, 'pending', 'Pending',
         [`${staffName} claimed overtime at ${locationName} on ${date} (${time}).`],
-        { label: 'Review', url: `${baseUrl()}/scheduling/overtime-claims` }));
+        recordCta(link, 'Open the overtime claim', { label: 'Review', url: `${baseUrl()}/scheduling/overtime-claims` })));
   }
 
-  static async sendOvertimeApprovedEmail(email: string, staffName: string, locationName: string, date: string, time: string) {
+  static async sendOvertimeApprovedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
     await sendMail(email, 'Overtime Approved',
       buildStatusEmailHtml('Overtime', `Hi ${staffName},`, 'approved', 'Approved',
         [`Your overtime at ${locationName} on ${date} (${time}) has been approved.`],
-        { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
+        recordCta(link, 'Open the overtime claim', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
-  static async sendOvertimeRejectedEmail(email: string, staffName: string, locationName: string, date: string, time: string) {
+  static async sendOvertimeRejectedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
     await sendMail(email, 'Overtime Rejected',
       buildStatusEmailHtml('Overtime', `Hi ${staffName},`, 'rejected', 'Rejected',
         [`Your overtime at ${locationName} on ${date} (${time}) was not approved.`],
-        { label: 'Browse Shifts', url: `${baseUrl()}/shift-marketplace` }));
+        recordCta(link, 'Open the overtime claim', { label: 'Browse Shifts', url: `${baseUrl()}/shift-marketplace` })));
   }
 
   // ── Delegation ──
@@ -596,24 +652,46 @@ export class EmailService {
         { label: 'View disruptions', url: `${baseUrl()}/homecare` }), 'notifications');
   }
 
-  static async sendIncidentReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, description: string) {
+  static async sendIncidentReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, description: string, link?: string) {
     await sendMail(managerEmail, `Incident reported — ${personName}`,
       buildEmailHtml('Incident Reported', `Hi ${managerName || 'Manager'},`,
         `<p><strong>${carerName}</strong> has reported an incident during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
         `<p><strong>Description:</strong> ${description}</p>` +
         `<p style="color:${EMAIL_TEXT.toneBad};font-weight:600">This requires immediate attention.</p>`,
-        { label: 'View incident', url: `${baseUrl()}/incidents` }), 'notifications');
+        recordCta(link, 'Open the incident', { label: 'View incident', url: `${baseUrl()}/incidents` })),
+      'notifications');
   }
 
   // ── Shifts ──
   static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], people?: any[], incidents?: any[], appointments?: any[]) {
+    /**
+     * The shift's own record link, where the row carries an id.
+     *
+     * A shift is opened on the rota grid, so the link names both the shift and the
+     * week to open it on, and the day is the shift's own start date — never the email's
+     * own date, or a night shift that began yesterday would link to a grid that does
+     * not hold it. Restated as the email's own day only when the row carries no start
+     * time to read one from.
+     */
+    const shiftLink = (s: any): string | null => {
+      if (!s?.id) return null;
+      const day = typeof s.start_time === 'string' && /^\d{4}-\d{2}-\d{2}/.test(s.start_time)
+        ? s.start_time.slice(0, 10)
+        : date;
+      return `${baseUrl()}${micaRecordPath({ kind: 'shift', id: String(s.id), week: day })}`;
+    };
+
     const shiftRows = shifts.map((s: any) => {
       const type = s.shift_type ? s.shift_type.charAt(0).toUpperCase() + s.shift_type.slice(1).replace('_', ' ') : 'Day';
       const person = s.person_first_name
         ? `${s.person_first_name} ${s.person_last_name}${s.person_room ? ` <span style="font-weight:400;color:${EMAIL_TEXT.muted}">(Room ${s.person_room})</span>` : ''}`
         : `<span style="color:${EMAIL_TEXT.muted}">—</span>`;
+      const href = shiftLink(s);
+      const when = href
+        ? `<a href="${href}" style="color:${EMAIL_BRAND.primary};text-decoration:underline">${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}</a>`
+        : `${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}`;
       return `<tr>
-        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};white-space:nowrap">${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line};white-space:nowrap">${when}</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${s.location_name || '—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${type}</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL_TEXT.line}">${person}</td>
@@ -632,8 +710,16 @@ export class EmailService {
       </tr>`;
     }).join('');
 
+    // Each appointment links to its own record where the row carries an id. This email
+    // is the one place a carer meets an appointment before the day, so it is the one
+    // place the link matters most: the row becomes the way in, not a summary of it.
     const appList = appointments?.length
-      ? `<p style="margin-top:20px;font-weight:600">Today's appointments</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${appointments.map((a: any) => `<li><strong>${fmtTime(a.start_time)}</strong> — ${a.title}${a.first_name ? ` (${a.first_name} ${a.last_name})` : ''}</li>`).join('')}</ul>`
+      ? `<p style="margin-top:20px;font-weight:600">Today's appointments</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${appointments.map((a: any) => {
+          const title = a.id
+            ? `<a href="${baseUrl()}${micaRecordPath({ kind: 'appointment', id: String(a.id) })}" style="color:${EMAIL_BRAND.primary};text-decoration:underline">${a.title}</a>`
+            : a.title;
+          return `<li><strong>${fmtTime(a.start_time)}</strong> — ${title}${a.first_name ? ` (${a.first_name} ${a.last_name})` : ''}</li>`;
+        }).join('')}</ul>`
       : '';
     const incList = incidents?.length
       ? `<p style="margin-top:20px;font-weight:600">Recent incidents</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${incidents.map((i: any) => `<li><strong>${i.title}</strong> — ${i.severity}</li>`).join('')}</ul>`
@@ -654,6 +740,35 @@ export class EmailService {
          ${appList}${incList}
          <p style="margin-top:24px">Open the rota for the latest information.</p>`,
         { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
+  }
+
+  /**
+   * A task that was assigned to somebody.
+   *
+   * Mica creates tasks mid-sentence and the tasks page creates them by hand, and either
+   * way the assignee's bell is not the only place the work should appear: a task with a
+   * due date is work with a deadline, and a deadline that only exists inside an app
+   * somebody has to remember to open is a deadline that gets missed.
+   *
+   * The link is required, not optional, and that is deliberate: this email exists to
+   * carry the recipient to the record, so a caller with no record to point at has
+   * nothing to send. It is built with `EmailService.recordUrl({ kind: 'task', id })`, so
+   * the button lands on the task's own dialog rather than the top of the list — the same
+   * destination the bell and Mica's own offer use.
+   */
+  static async sendTaskAssignedEmail(
+    email: string,
+    assigneeName: string,
+    task: { title: string; priority: string; dueDate?: string | null },
+    link: string,
+  ) {
+    const due = task.dueDate ? ` It is due on ${fmtDate(task.dueDate)}.` : '';
+    await sendMail(email, `New Task — ${task.title}`,
+      buildEmailHtml('New Task', `Hi ${escapeHtml(assigneeName) || 'there'},`,
+        `<p><strong>${escapeHtml(task.title)}</strong> has been assigned to you.</p>` +
+        `<p><strong>Priority:</strong> ${escapeHtml(task.priority)}.${due}</p>` +
+        `<p>Open the task to see who it is for and to record what you did.</p>`,
+        { label: 'Open the task', url: link }), 'notifications');
   }
 
   // ── MFA ──
@@ -679,39 +794,39 @@ export class EmailService {
   }
 
   // ── Shift Swaps ──
-  static async sendSwapRequestedEmail(email: string, staffName: string, requesterName: string, shiftDate: string, shiftTime: string) {
+  static async sendSwapRequestedEmail(email: string, staffName: string, requesterName: string, shiftDate: string, shiftTime: string, link?: string) {
     await sendMail(email, `Shift Swap Request — ${requesterName}`,
       buildStatusEmailHtml('Swap Request', `Hi ${staffName},`, 'pending', 'Swap Requested',
         [`${requesterName} wants to swap their shift on ${shiftDate} at ${shiftTime}.`],
-        { label: 'View Swap Request', url: `${baseUrl()}/scheduling` }));
+        recordCta(link, 'Open the swap request', { label: 'View Swap Request', url: `${baseUrl()}/scheduling` })));
   }
 
-  static async sendSwapAcceptedEmail(email: string, staffName: string, accepterName: string, shiftDate: string, shiftTime: string, locationName: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string) {
+  static async sendSwapAcceptedEmail(email: string, staffName: string, accepterName: string, shiftDate: string, shiftTime: string, locationName: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string, link?: string) {
     await sendMail(email, `Swap Accepted — ${accepterName}`,
       buildStatusEmailHtml('Swap Accepted', `Hi ${staffName},`, 'approved', 'Accepted',
         [`${accepterName} accepted your swap for ${shiftDate} at ${shiftTime} (${locationName}).${toShiftDate ? ` You are now covering ${toShiftDate} at ${toShiftTime}` : ''}`],
-        { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
+        recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
-  static async sendSwapDeclinedEmail(email: string, staffName: string, declinerName: string, shiftDate: string, shiftTime: string) {
+  static async sendSwapDeclinedEmail(email: string, staffName: string, declinerName: string, shiftDate: string, shiftTime: string, link?: string) {
     await sendMail(email, `Swap Declined — ${declinerName}`,
       buildStatusEmailHtml('Swap Declined', `Hi ${staffName},`, 'rejected', 'Declined',
         [`${declinerName} declined your swap for ${shiftDate} at ${shiftTime}.`],
-        { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
+        recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
-  static async sendSwapAcceptedToManagerEmail(email: string, managerName: string, accepterName: string, requesterName: string, locationName: string, shiftDate: string, shiftTime: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string) {
+  static async sendSwapAcceptedToManagerEmail(email: string, managerName: string, accepterName: string, requesterName: string, locationName: string, shiftDate: string, shiftTime: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string, link?: string) {
     await sendMail(email, `Swap Approved — ${accepterName} ↔ ${requesterName}`,
       buildStatusEmailHtml('Swap', `Hi ${managerName},`, 'approved', 'Swap Completed',
         [`${accepterName} and ${requesterName} swapped shifts at ${locationName} on ${shiftDate}.`],
-        { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
+        recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
-  static async sendUnclaimedShiftReminderEmail(email: string, managerName: string, locationName: string, shiftDate: string, shiftTime: string, shiftType: string) {
+  static async sendUnclaimedShiftReminderEmail(email: string, managerName: string, locationName: string, shiftDate: string, shiftTime: string, shiftType: string, link?: string) {
     await sendMail(email, `Unclaimed Shift — ${locationName}`,
       buildEmailHtml('Unclaimed Shift', `Hi ${managerName},`,
         `<p>A ${shiftType} shift at ${locationName} on ${shiftDate} at ${shiftTime} is still unclaimed.</p>`,
-        { label: 'View Unclaimed Shifts', url: `${baseUrl()}/scheduling/overtime-claims` }));
+        recordCta(link, 'Open the shift', { label: 'View Unclaimed Shifts', url: `${baseUrl()}/scheduling/overtime-claims` })));
   }
 
   /** Generic send used by chat notifications and other modules */

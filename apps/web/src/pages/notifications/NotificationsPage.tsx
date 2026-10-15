@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box, Typography, Stack, Paper, Badge, Button
 } from '@mui/material'
@@ -12,10 +13,16 @@ interface Notification {
   id: string
   type: string
   title: string
-  body: string
+  /** The row's own copy — `message` on the API, not `body`. */
+  message: string
   read: boolean
   created_at: string
-  url?: string
+  /**
+   * The record this notification is about, where it is about one: a relative record
+   * path (`micaRecordPath` in `@meticle/shared`). Pushed through the router rather
+   * than opened as a URL, so the reader stays in the app they are signed into.
+   */
+  link?: string | null
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -43,6 +50,7 @@ function timeAgo(dateStr: string) {
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [_loading, setLoading] = useState(true)
 
@@ -109,7 +117,7 @@ export default function NotificationsPage() {
                   borderLeft: `3px solid ${color}`,
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
-                onClick={() => { if (!n.read) markRead(n.id); if (n.url) window.open(n.url, '_blank') }}
+                onClick={() => { if (!n.read) markRead(n.id); if (n.link) navigate(n.link) }}
               >
                 <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <NotificationsIcon sx={{ fontSize: 18, color }} />
@@ -119,7 +127,7 @@ export default function NotificationsPage() {
                     <Typography variant="body2" fontWeight={n.read ? 400 : 700}>{n.title}</Typography>
                     {!n.read && <Badge variant="dot" color="primary" />}
                   </Box>
-                  <Typography variant="caption" color="text.secondary">{n.body}</Typography>
+                  <Typography variant="caption" color="text.secondary">{n.message}</Typography>
                   <Typography variant="caption" display="block" color="text.disabled" mt={0.5}>{timeAgo(n.created_at)}</Typography>
                 </Box>
               </Paper>

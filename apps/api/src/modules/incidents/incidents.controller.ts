@@ -9,7 +9,7 @@ import { sendPushToUser } from '../notifications/push.service';
 import { logWarn } from '../../shared/utils/logger';
 import logger from '../../shared/utils/logger';
 import { query } from '../../shared/database';
-import { UserRole } from '@meticle/shared';
+import { UserRole, micaRecordPath, type MicaRecordRef } from '@meticle/shared';
 
 export class IncidentsController {
   static getOrgId(req: Request): string {
@@ -76,11 +76,18 @@ export class IncidentsController {
       const title = urgent ? `${verb} reported (${incident.severity})` : `${verb} reported`;
       const message = `${incident.title}${incident.location ? ` at ${incident.location}` : ''} — ${incident.severity} severity${incident.is_cqc_reportable ? ', CQC reportable' : ''}.`;
 
+      // The incident the reader is being told about. One link for all three
+      // channels below: the incident's detail page is named by its route, so every
+      // one of these lands on the record rather than on the directory the reader
+      // would then have to search — which is the whole point of telling them.
+      const incidentLink: MicaRecordRef = { kind: 'incident', id: incident.id };
+      const incidentPath = micaRecordPath(incidentLink);
+
       // Send in-app notifications
       const targetIds = Array.from(targets);
       await Promise.all(
         targetIds.map((id: string) =>
-          NotificationsController.createNotification(id, title, message, urgent ? 'warning' : 'info')
+          NotificationsController.createNotification(id, title, message, urgent ? 'warning' : 'info', incidentPath)
             .catch(logWarn('incident notification'))
         )
       );
@@ -100,11 +107,12 @@ export class IncidentsController {
               type: 'incident_reported',
               title,
               body: message,
-              url: '/incidents',
+              url: incidentPath,
             }, 'incidents');
             await EmailService.sendIncidentReportedEmail(
               m.email, m.name, reporterName, incident.title,
-              incident.location || 'N/A', incident.description || ''
+              incident.location || 'N/A', incident.description || '',
+              EmailService.recordUrl(incidentLink)
             );
           } catch { /* notification failure should not block */ }
         })

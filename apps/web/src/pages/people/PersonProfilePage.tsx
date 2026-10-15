@@ -25,6 +25,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -361,7 +362,7 @@ export default function PersonProfilePage() {
 
   const aiVoiceApproveMutation = useMutation({
     mutationFn: (data: any) => api.post('/ai/daily-notes/approve', data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['person', id] })
       setAddNoteOpen(false)
       setAiMode(false)
@@ -372,6 +373,16 @@ export default function PersonProfilePage() {
       setAiVoiceDraftContext(null)
       setAiVoiceClarification(null)
       showSnackbar('Care note saved successfully')
+      // Mica's write ends where its read flows do. The reply carries the note it
+      // just saved and the page that note lives on (`offer`, the same link the
+      // profile reads from `?source=`), so the carer is shown the note rather than
+      // the top of the notes list — and the notes tab, because that is the tab the
+      // note is on.
+      const savedNote = (res as any)?.data?.dailyNote
+      if (savedNote) {
+        setTab(3)
+        setViewNote(savedNote)
+      }
     },
     onError: (e: any) => setAiError(e.response?.data?.error?.message || 'Failed to save care note'),
   })
@@ -453,6 +464,30 @@ export default function PersonProfilePage() {
     }
     return () => { if (photoUrl) URL.revokeObjectURL(photoUrl) }
   }, [user?.photo_url])
+
+  // The note a link names. A saved care note ends on itself: the API answers
+  // /ai/daily-notes/approve with the link to the note it just wrote, and the same
+  // link is what another device, a notification or a colleague arrives on — so the
+  // id in the URL opens the note rather than leaving it to be found in the list.
+  // Guarded by a ref because the person query refreshes under this page: one id
+  // opens one dialog, once.
+  const openedLinkedNoteRef = useRef<string | null>(null)
+  const linkedNoteId = searchParams.get(MICA_RECORD_PARAMS['care-note'])
+  useEffect(() => {
+    if (!linkedNoteId || openedLinkedNoteRef.current === linkedNoteId) return
+    const notes = Array.isArray(user?.recent_notes) ? user.recent_notes : []
+    const note = notes.find((n: any) => n.id === linkedNoteId)
+    if (!note) return
+    openedLinkedNoteRef.current = linkedNoteId
+    // The tab is part of the link, and the URL stays the single source of truth for
+    // it (the tab effect above re-derives `tab` from `?tab=`) — so a link that named
+    // only the note has the slug added rather than fighting that effect.
+    if (searchParams.get('tab') !== TAB_SLUGS[3]) {
+      setSearchParams({ tab: TAB_SLUGS[3], [MICA_RECORD_PARAMS['care-note']]: linkedNoteId }, { replace: true })
+    }
+    setTab(3)
+    setViewNote(note)
+  }, [linkedNoteId, user, searchParams, setSearchParams])
 
   // AI Daily Notes helper functions
   const startRecordingFor = (onTranscript: (t: string) => void) => {

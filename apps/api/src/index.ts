@@ -9,7 +9,8 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './shared/utils/logger';
-import { assertFieldEncryptionConfigured } from './shared/utils/encryption';
+import { assertFieldEncryptionConfigured } from './shared/utils/encryption'
+import { corsOrigin, resolveAllowedOrigins } from './shared/middleware/corsOrigin';
 import dotenv from 'dotenv';
 import { refreshDisposableEmailBlocklist } from './shared/utils/disposableEmail';
 import { rateLimit } from './shared/middleware/rateLimit.middleware';
@@ -171,25 +172,13 @@ app.use(helmet({
 app.use(compression());
 app.use(cookieParser());
 app.use(correlationId);
-const configuredOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
-  : [];
-const allowedOrigins = configuredOrigins.length > 0
-  ? configuredOrigins
-  : process.env.NODE_ENV === 'production'
-    ? ['https://meticlecare.com', 'https://www.meticlecare.com']
-    : undefined;
-
 app.use(cors({
-  origin: allowedOrigins
-    ? (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    : true, // allow all in development
+  // Policy lives in `shared/middleware/corsOrigin.ts` so it can be tested
+  // without booting a database. A rejected origin must not be a thrown Error:
+  // `cors` forwards that to the error handler, which answers 500 for what is a
+  // normal, expected lack of permission — see the module for the production
+  // evidence. `callback(null, false)` is the correct rejection.
+  origin: corsOrigin(resolveAllowedOrigins()),
   credentials: true,
 }));
 app.use(pinoHttp({

@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Box, Button, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, Tooltip, Typography } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import MinimizeIcon from '@mui/icons-material/Minimize'
+import CheckIcon from '@mui/icons-material/Check'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import MicaOrb, { type MicaState } from './MicaOrb'
 import { MICA_ANNOUNCEMENT, MICA_LABEL, MICA_STATE_COPY, MICA_Z } from './mica.identity'
+import { P } from '../../styles/tokens'
 import type { MicaAudioChannel } from './mica.audio'
-import type { MicaNavigateTarget } from './useMica'
+import type { MicaDraft, MicaNavigateTarget, MicaOffer } from './useMica'
 
 export type { MicaState }
 
@@ -25,10 +28,73 @@ interface MicaOverlayProps {
   responseMessage: string | null
   /** The page Mica last opened, shown as a confirmation rather than a claim. */
   lastNavigation: MicaNavigateTarget | null
+  /**
+   * The record Mica prepared and has not saved, if any. Its presence is what makes
+   * the card below appear; the draft itself is the server's, held by the hook.
+   */
+  draft?: MicaDraft | null
+  /** True while that draft is being saved. */
+  savingDraft?: boolean
+  /** Save it — the only path from a prepared draft to a stored row. */
+  onSaveDraft?: () => void
+  /** Drop it. */
+  onDiscardDraft?: () => void
+  /** The page an answer or a save offered, waiting to be opened. */
+  offer?: MicaOffer | null
+  /** Open it now, without waiting for the carer to say "yes". */
+  onOpenOffer?: () => void
   /** Drop to the bottom bar and keep the session (and the microphone) live. */
   onMinimise: () => void
   /** End the conversation. */
   onCancel: () => void
+}
+
+/**
+ * The rows the review card lists, from the draft's own output.
+ *
+ * Only what the server actually put in the draft: a missing owner or due date is
+ * a blank the card does not show, not a rendered "undefined". The names are the
+ * ones the server resolved from what was said, so the card and the spoken summary
+ * cannot disagree about who the record is for.
+ */
+function draftRows(draft: MicaDraft): Array<{ label: string; value: string }> {
+  const output = draft.output || {}
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined)
+  const rows: Array<{ label: string; value: string }> = []
+
+  const title = text(output.title)
+  if (title) rows.push({ label: 'Title', value: title })
+  const person = text(output.personName)
+  if (person) rows.push({ label: 'For', value: person })
+
+  if (draft.action === 'CREATE_APPOINTMENT') {
+    const staff = text(output.staffName)
+    if (staff) rows.push({ label: 'With', value: staff })
+    const start = text(output.startTime)
+    const when = start ? new Date(start) : null
+    if (when && !Number.isNaN(when.getTime())) {
+      rows.push({
+        label: 'Starts',
+        value: when.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
+      })
+    }
+  } else {
+    const owner = text(output.assigneeName)
+    if (owner) rows.push({ label: 'Owner', value: owner })
+    const due = text(output.dueDate)
+    if (due) {
+      // Formatted in UTC on purpose: `new Date('2026-10-20')` is UTC midnight,
+      // which is the 19th west of Greenwich — the due date read back one day early.
+      rows.push({
+        label: 'Due',
+        value: new Date(`${due}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }),
+      })
+    }
+    const priority = text(output.priority)
+    if (priority) rows.push({ label: 'Priority', value: priority[0].toUpperCase() + priority.slice(1) })
+  }
+
+  return rows
 }
 
 /**
@@ -48,6 +114,14 @@ interface MicaOverlayProps {
  * What replaces them: the destination chip, which says where Mica just took the
  * user, and a minimise control, because a reply that opens a page should get out
  * of that page's way instead of covering it.
+ *
+ * One thing is deliberately *added* here, because its absence made a whole flow
+ * unreachable: the review card for a record Mica has prepared. The action gateway
+ * has always drafted before persisting (`apps/api/src/modules/ai/actions/`), but
+ * the draft had no surface anywhere in the client, so no task or appointment could
+ * ever be saved. The card lists what the draft would create, saves on a tap or on
+ * the word "yes", and — like a list answer — ends by offering the page the new
+ * record lives on.
  */
 export default function MicaOverlay({
   state,
@@ -55,6 +129,12 @@ export default function MicaOverlay({
   transcript,
   responseMessage,
   lastNavigation,
+  draft,
+  savingDraft = false,
+  onSaveDraft,
+  onDiscardDraft,
+  offer,
+  onOpenOffer,
   onMinimise,
   onCancel,
 }: MicaOverlayProps) {
@@ -242,6 +322,142 @@ export default function MicaOverlay({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/*
+            The record Mica prepared, waiting to be saved.
+
+            This is the client half of the gateway's confirm-before-persist
+            contract: the spoken request produced a draft and nothing else, so the
+            draft has to be somewhere the carer can approve it — and somewhere a
+            voice-first user can also answer by simply saying "yes".
+          */}
+          {draft && (
+            <motion.div
+              initial={{ y: 12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{ width: '100%', marginTop: 16 }}
+            >
+              <Box
+                role="group"
+                aria-label={MICA_LABEL.draft}
+                data-mica-draft={draft.action}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  borderRadius: 3,
+                  px: 2.5,
+                  py: 2,
+                  backdropFilter: 'blur(14px)',
+                }}
+              >
+                <Typography
+                  variant="overline"
+                  component="p"
+                  sx={{ color: P.greenOnDark, letterSpacing: 1.2 }}
+                >
+                  {draft.action === 'CREATE_APPOINTMENT' ? 'Ready to book' : 'Ready to save'}
+                </Typography>
+
+                <Box
+                  component="dl"
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto minmax(0, 1fr)',
+                    columnGap: 2,
+                    rowGap: 0.5,
+                    m: 0,
+                    mt: 1,
+                  }}
+                >
+                  {draftRows(draft).map(row => (
+                    <Fragment key={row.label}>
+                      <Typography component="dt" variant="caption" sx={{ color: 'rgba(255,255,255,0.62)' }}>
+                        {row.label}
+                      </Typography>
+                      <Typography
+                        component="dd"
+                        variant="caption"
+                        sx={{ color: '#FFFFFF', fontWeight: 600, m: 0, minWidth: 0, overflowWrap: 'anywhere' }}
+                      >
+                        {row.value}
+                      </Typography>
+                    </Fragment>
+                  ))}
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+                  <Button
+                    onClick={onSaveDraft}
+                    disabled={savingDraft}
+                    variant="contained"
+                    startIcon={
+                      savingDraft
+                        ? <CircularProgress size={14} sx={{ color: '#FFFFFF' }} />
+                        : <CheckIcon sx={{ fontSize: 18 }} />
+                    }
+                    sx={{
+                      // The product's action green, not the brand emerald: white on
+                      // #10B981 is about 2.3:1, and this is the button a carer reads
+                      // before approving a record. `P.action` is the same green the
+                      // tasks and appointments pages already use for their own
+                      // completion actions, and `P.actionHover` is it pressed.
+                      bgcolor: P.action,
+                      color: '#FFFFFF',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      '&:hover': { bgcolor: P.actionHover },
+                    }}
+                  >
+                    {savingDraft
+                      ? (draft.action === 'CREATE_APPOINTMENT' ? 'Booking…' : 'Saving…')
+                      : (draft.action === 'CREATE_APPOINTMENT' ? 'Book appointment' : 'Save task')}
+                  </Button>
+                  <Button
+                    onClick={onDiscardDraft}
+                    sx={{ color: 'rgba(255,255,255,0.86)', textTransform: 'none' }}
+                  >
+                    Discard
+                  </Button>
+                </Box>
+
+                {/* The card is not the only way to answer: the reply ended by
+                    asking, and the word that answers it saves the draft. The verb
+                    matches the button beside it — booking, not saving. */}
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.62)', display: 'block', mt: 1.25 }}>
+                  {draft.action === 'CREATE_APPOINTMENT' ? 'Or say “yes” to book it.' : 'Or say “yes” to save it.'}
+                </Typography>
+              </Box>
+            </motion.div>
+          )}
+
+          {/*
+            The page a reply — or a record Mica just saved — is offering, waiting
+            on the carer's word. Shown as a control as well as spoken, so the offer
+            is openable by tap and by "yes" through the same route.
+          */}
+          {offer && (
+            <Box sx={{ mt: 1.5, width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <Tooltip title={offer.question}>
+                <Button
+                  onClick={onOpenOffer}
+                  data-mica-offer={offer.path}
+                  startIcon={<OpenInNewIcon sx={{ fontSize: 17 }} />}
+                  sx={{
+                    color: '#FFFFFF',
+                    bgcolor: 'rgba(16, 185, 129, 0.22)',
+                    border: '1px solid rgba(16, 185, 129, 0.5)',
+                    borderRadius: 'var(--radius-pill, 999px)',
+                    px: 2.25,
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.34)', borderColor: 'rgba(16, 185, 129, 0.7)' },
+                  }}
+                >
+                  Open {offer.label}
+                </Button>
+              </Tooltip>
+            </Box>
+          )}
 
           <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             {state !== 'error' && (

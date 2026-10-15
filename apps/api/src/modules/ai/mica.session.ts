@@ -29,6 +29,12 @@
  *     It is replaced by every recorded turn, so an offer never outlives the next
  *     thing said.
  *
+ *     The exception covers writes as well as list answers. A confirmed write ends
+ *     by offering the record's own page (`mica.recordPages.ts`), and that page is
+ *     held here by `setPendingPage` because a write has no turn to hang it on: it
+ *     is a save, not a question and an answer. The two doors set the same field,
+ *     and the "yes" that answers either is the same code path.
+ *
  *   - Bounded: 6 turns max, 30-minute inactivity TTL. Long enough for a shift
  *     handover's worth of follow-ups, short enough that "today" in a stored
  *     question almost always still means the same day.
@@ -231,6 +237,39 @@ export async function recordTurn(
     session.turns.splice(0, session.turns.length - MAX_TURNS);
   }
   session.pendingPage = pendingPage;
+  await persist(session);
+}
+
+/**
+ * Remembers the page a *write* just produced, with no turn to record it with.
+ *
+ * A confirmed write is not a question and an answer — it is a save — so there is
+ * nothing to append to the transcript, and inventing a turn for it would put a
+ * sentence nobody said in front of the model on the next follow-up. What it does
+ * share with an answered question is the offer that follows it in the reply, and
+ * that offer has to be held somewhere for the carer's "yes" to resolve.
+ *
+ * Called with `undefined` when the record's page cannot be offered (a caller whose
+ * role the router keeps out, or a write that produced no record). That is not a
+ * no-op: the write is the next thing said in this conversation, so it retires
+ * whatever was offered before it. A carer who heard "want me to open the rota
+ * planner?", asked instead for a task to be added, and then said "yes" is not one
+ * word away from being taken to a page they stopped talking about.
+ */
+export async function setPendingPage(
+  session: MicaSession,
+  pendingPage?: MicaPendingPage,
+): Promise<void> {
+  session.pendingPage = pendingPage;
+  session.updatedAt = Date.now();
+  await persist(session);
+}
+
+/**
+ * Writes the snapshot: the in-process copy first (so *this* worker's next turn
+ * resolves from memory even if Redis is gone), then Redis when available.
+ */
+async function persist(session: MicaSession): Promise<void> {
   sessions.set(session.sessionId, session);
   await withTimeout((c) =>
     c.set(KEY_PREFIX + session.sessionId, JSON.stringify(session), {

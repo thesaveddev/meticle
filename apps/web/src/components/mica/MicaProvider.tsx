@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, Suspense, type ReactNode } from 'react'
+import { createContext, lazy, useCallback, useContext, useEffect, useRef, useState, Suspense, type ReactNode } from 'react'
 import { Alert, Box, Snackbar } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useMica, type MicaNavigateTarget } from './useMica'
@@ -6,6 +6,17 @@ import MicaOrb from './MicaOrb'
 import { MicaMiniBarSurface, MicaOverlaySurface, preloadMicaSurfaces } from './mica.surfaces'
 import { MICA_ANNOUNCEMENT, MICA_Z, type MicaActiveState, type MicaState } from './mica.identity'
 import type { MicaAudioChannel } from './mica.audio'
+import { applyMicaTimingsQuery, installMicaTimingsHandle, readMicaTimingsEnabled } from './mica.timings'
+
+/**
+ * The voice-pipeline timing readout, loaded only when it is switched on.
+ *
+ * Lazy for the same reason the overlay and the bar are (`mica.surfaces.tsx`): the
+ * shell must not carry the assistant's UI on every page. A diagnostic panel has
+ * even less claim to the entry chunk than the product's own surfaces do, and a
+ * session that never sets the flag never fetches it.
+ */
+const MicaTimingsPanel = lazy(() => import('./MicaTimingsPanel'))
 
 type MicaSession = ReturnType<typeof useMica>
 
@@ -80,6 +91,33 @@ export function MicaProvider({ children }: { children: ReactNode }) {
   }, [active])
 
   /**
+   * The diagnostic readout's switch.
+   *
+   * Storage first, so a reload keeps whatever was chosen; then the query string is
+   * applied on this first mount, because `?micaTimings=1` is the only one of the
+   * two you can type on a phone. `applyMicaTimingsQuery` stores the flag, which is
+   * what makes the panel survive Mica's own navigation — a query string does not.
+   */
+  const [timingsPanel, setTimingsPanel] = useState(readMicaTimingsEnabled)
+  useEffect(() => {
+    const fromQuery = applyMicaTimingsQuery(window.location.search)
+    if (fromQuery !== null) setTimingsPanel(fromQuery)
+  }, [])
+
+  /**
+   * The console handle, installed unconditionally.
+   *
+   * Not gated on the panel: the turn worth measuring is the one that felt slow, and
+   * that is discovered rather than predicted. A switch you have to set before you
+   * notice the problem is a switch you forgot to set. `timingsPanel` is passed
+   * through only so the handle can report whether the readout is up.
+   */
+  useEffect(
+    () => installMicaTimingsHandle(mica.timings, { panel: timingsPanel }),
+    [mica.timings, timingsPanel],
+  )
+
+  /**
    * Has the bar ever been needed in this session?
    *
    * Latched, so the chunk is fetched when a minimised session first exists and
@@ -108,6 +146,12 @@ export function MicaProvider({ children }: { children: ReactNode }) {
             transcript={mica.transcript}
             responseMessage={mica.responseMessage}
             lastNavigation={mica.lastNavigation}
+            draft={mica.draft}
+            savingDraft={mica.savingDraft}
+            onSaveDraft={mica.saveDraft}
+            onDiscardDraft={mica.discardDraft}
+            offer={mica.offer}
+            onOpenOffer={mica.openOffer}
             onMinimise={mica.minimise}
             onCancel={mica.stopListening}
           />
@@ -140,6 +184,14 @@ export function MicaProvider({ children }: { children: ReactNode }) {
           {mica.error}
         </Alert>
       </Snackbar>
+      {/* Last, and above every other rung, so a readout that is running is never
+          hidden by the surface it is measuring. Its own z-index is derived from
+          the top of Mica's ladder — see MicaTimingsPanel. */}
+      {timingsPanel && (
+        <Suspense fallback={null}>
+          <MicaTimingsPanel recorder={mica.timings} />
+        </Suspense>
+      )}
     </MicaContext.Provider>
   )
 }

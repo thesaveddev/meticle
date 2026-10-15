@@ -5,6 +5,9 @@ import { requireSameOrgForStaff } from '../../shared/database/tenant';
 import { AuditRepository } from '../audit/audit.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
 import pool from '../../shared/database';
+// The record-link contract, so the manager this notification reaches can open the
+// training record it names rather than hunting for it.
+import { micaRecordPath } from '@meticle/shared';
 
 export class TrainingController {
   static async getModules(req: Request, res: Response) {
@@ -74,12 +77,25 @@ export class TrainingController {
             [staff_id]
           );
           if (locResult.rows[0]?.manager_id) {
-            const staff = await pool.query('SELECT first_name, last_name FROM staff_profiles WHERE id = $1', [staff_id]);
+            // `user_id` as well as the name: the record opens on the staff member's
+            // profile, and `/staff/:userId` takes a *user* id (`staff.routes.ts` reads
+            // `:userId`), while the `staff_id` this endpoint was given is a staff
+            // profile id that route would answer with a 404.
+            const staff = await pool.query(
+              'SELECT first_name, last_name, user_id FROM staff_profiles WHERE id = $1',
+              [staff_id],
+            );
             const staffName = `${staff.rows[0]?.first_name || ''} ${staff.rows[0]?.last_name || ''}`.trim();
+            const completedBy = staff.rows[0]?.user_id as string | undefined;
             NotificationsController.createNotification(
               locResult.rows[0].manager_id, 'Training Completed',
               `${staffName} completed "${mod.rows[0].name}" training.`,
-              'training'
+              'training',
+              // Only when the owner is known: a link built from an id nobody has would
+              // open the wrong profile, which is worse than a notification with no link.
+              completedBy
+                ? micaRecordPath({ kind: 'staff-compliance', id: record.id, staffId: completedBy })
+                : undefined,
             ).catch(() => {});
           }
         }

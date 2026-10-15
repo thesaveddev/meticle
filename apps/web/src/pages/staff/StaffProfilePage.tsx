@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Box, Typography, Paper, Stack, Chip, CircularProgress,
   Button, LinearProgress, Table, TableBody,
@@ -14,6 +14,7 @@ import {
   UploadFile as UploadFileIcon, Link as LinkIcon, Close as CloseIcon,
   Add as AddIcon, Person as PersonIcon, Verified as VerifiedIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon, Security as SecurityIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -21,6 +22,10 @@ import { fetchUserPermissions, updateUserPermissions, formatPermissionLabel, LEV
 import { formatDateOnly } from '../../utils/dateFormat'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
+// The record-link contract: the parameter this page reads and the tab slug a
+// compliance email links to. Both come from `@meticle/shared` so the sender and this
+// reader cannot disagree about either.
+import { MICA_RECORD_PARAMS, MICA_STAFF_COMPLIANCE_TAB } from '@meticle/shared'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -70,9 +75,16 @@ const REQ_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
 const REQ_GROUP_ORDER = ['complete', 'pending_review', 'incomplete', 'expired']
 
 const TAB_OVERVIEW = 'overview'
-const TAB_COMPLIANCE = 'compliance'
+// The compliance tab's slug *is* the contract's own (`MICA_STAFF_COMPLIANCE_TAB`):
+// a document-expiry or training-expiry email links to
+// `/staff/<id>?tab=compliance&record=<recordId>`, so the slug the sender writes and
+// the slug this page answers to have to be one string.
+const TAB_COMPLIANCE = MICA_STAFF_COMPLIANCE_TAB
 const TAB_COMPETENCY = 'competency'
 const TAB_ACCESS = 'access'
+
+/** Every tab this page will answer a `?tab=` link with. */
+const TAB_IDS: string[] = [TAB_OVERVIEW, TAB_COMPLIANCE, TAB_COMPETENCY, TAB_ACCESS]
 
 export default function StaffProfilePage() {
   const { userId } = useParams<{ userId: string }>()
@@ -81,6 +93,12 @@ export default function StaffProfilePage() {
   const [tab, setTab] = useState(TAB_OVERVIEW)
   const [editOpen, setEditOpen] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // The compliance record a row — or a link — has opened, and the row it came from
+  // (kept highlighted after the dialog closes, so the reader can see which record the
+  // email was about).
+  const [detailRequirement, setDetailRequirement] = useState<any>(null)
+  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null)
 
   const userStr = localStorage.getItem('user')
   let currentUser: any = {}
@@ -126,6 +144,25 @@ export default function StaffProfilePage() {
     },
     enabled: !!userId && !!memberData,
   })
+
+  // The tab and the record a link names.
+  //
+  // `/staff/<id>?tab=compliance&record=<recordId>` is what a compliance email hands
+  // the manager it is about — the document that is expiring, the training that has
+  // lapsed — and it is the same link a notification or a colleague passes on. Both
+  // halves are read here and nowhere else.
+  //
+  // Read into state rather than derived from the URL, because this page's tabs *are*
+  // state: a click does not rewrite the URL, so both effects are keyed on the
+  // parameter and a later click is never fought by it.
+  const requestedTab = searchParams.get('tab')
+  useEffect(() => {
+    if (!requestedTab || !TAB_IDS.includes(requestedTab)) return
+    // A tab the reader may not see is a tab this page does not have.
+    if (requestedTab === TAB_ACCESS && !canEdit) return
+    setTab(requestedTab)
+  }, [requestedTab, canEdit])
+
 
   const { data: competencyTemplates } = useQuery({
     queryKey: ['competency-templates'],
@@ -178,6 +215,41 @@ export default function StaffProfilePage() {
 
   const [compPage, setCompPage] = useState(0)
   const [compRowsPerPage] = useState(10)
+
+  // The record a link names — below the competency page state on purpose, because the
+  // effect's own dependency list reads `compRowsPerPage`, and a dependency list is
+  // evaluated during render rather than after it.
+  //
+  // One id opens one record, once: the queries behind this page refresh as the role
+  // and compliance profile change, and a re-render must not re-open a dialog the
+  // reader has closed.
+  const linkedRecordId = searchParams.get(MICA_RECORD_PARAMS['staff-compliance'])
+  const openedLinkedRecordRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!linkedRecordId || openedLinkedRecordRef.current === linkedRecordId) return
+
+    const requirements = Array.isArray(complianceData?.requirements) ? complianceData.requirements : []
+    const requirement = requirements.find((r: any) => r.id === linkedRecordId)
+    if (requirement) {
+      openedLinkedRecordRef.current = linkedRecordId
+      setTab(TAB_COMPLIANCE)
+      setDetailRequirement(requirement)
+      setHighlightedRecordId(linkedRecordId)
+      return
+    }
+
+    // A competency assessment is the other record this page shows, and the
+    // competency-due email names one. It opens on its own tab, because a record opened
+    // on a tab that does not list it would be a link to nothing — and on the page of
+    // the table that holds it, since that table is paginated.
+    const assessments = Array.isArray(competencyRecords) ? competencyRecords : []
+    const index = assessments.findIndex((a: any) => a.id === linkedRecordId)
+    if (index === -1) return
+    openedLinkedRecordRef.current = linkedRecordId
+    setTab(TAB_COMPETENCY)
+    setHighlightedRecordId(linkedRecordId)
+    setCompPage(Math.floor(index / compRowsPerPage))
+  }, [linkedRecordId, complianceData, competencyRecords, compRowsPerPage])
   const [assessOpen, setAssessOpen] = useState(false)
   const [assessForm, setAssessForm] = useState({ template_id: '', passed: true, assessed_at: new Date().toISOString().split('T')[0], reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
   const [assessError, setAssessError] = useState('')
@@ -258,6 +330,33 @@ export default function StaffProfilePage() {
     setEditReqOpen(true)
   }
 
+  /**
+   * The record behind a row: read-only.
+   *
+   * The update form is the only thing on this page that may change a compliance
+   * record, and it stays behind its own button — so opening a record, by click or by
+   * link, can never change one.
+   */
+  const openRequirementDetail = (req: any) => {
+    setHighlightedRecordId(req.id)
+    setDetailRequirement(req)
+  }
+
+  /**
+   * Closing drops the `record` parameter and keeps `tab`.
+   *
+   * The link has been followed by then: leaving the id in the URL would re-open the
+   * dialog on a reload, and would make Back from the next page arrive somewhere the
+   * reader had already left. The tab is where the reader is, so it stays.
+   */
+  const closeRequirementDetail = () => {
+    setDetailRequirement(null)
+    if (!searchParams.get(MICA_RECORD_PARAMS['staff-compliance'])) return
+    const next = new URLSearchParams(searchParams)
+    next.delete(MICA_RECORD_PARAMS['staff-compliance'])
+    setSearchParams(next, { replace: true })
+  }
+
   const [permData, setPermData] = useState<Array<{ module: string; permission_level: PermissionLevel }>>([])
   const [rolePermissionDefaults, setRolePermissionDefaults] = useState<RolePermissionDefaults>({})
   const permDataRef = useRef(permData)
@@ -332,6 +431,8 @@ export default function StaffProfilePage() {
   const statusTone: BadgeTone = STATUS_TONE[m.status] || 'neutral'
   const effectiveRole = permissionsData?.role || m.role || ''
   const roleTone: BadgeTone = ROLE_TONE[effectiveRole] || 'neutral'
+  // The record the detail dialog has open, and the label its status carries.
+  const detailStatus = detailRequirement ? REQ_STATUS[detailRequirement.status] : undefined
 
   const tabs = [
     { id: TAB_OVERVIEW, label: 'Overview', icon: <PersonIcon /> },
@@ -503,7 +604,17 @@ export default function StaffProfilePage() {
                       <Typography variant="caption" color="text.secondary">({items.length})</Typography>
                     </Stack>
                     {items.map((req: any) => (
-                      <Box key={req.id} sx={{ py: 1.75, borderTop: '1px solid #F4F9FC' }}>
+                      <Box
+                        key={req.id}
+                        onClick={() => openRequirementDetail(req)}
+                        sx={{
+                          py: 1.75,
+                          borderTop: '1px solid #F4F9FC',
+                          cursor: 'pointer',
+                          bgcolor: highlightedRecordId === req.id ? 'notice.subtle.bg' : 'transparent',
+                          '&:hover': { bgcolor: 'notice.subtle.bg' },
+                        }}
+                      >
                         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5}>
                           <Box sx={{ minWidth: 0, flex: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.name}</Typography>
@@ -524,7 +635,11 @@ export default function StaffProfilePage() {
                             </Box>
                             <StatusBadge label={meta.label} tone={meta.tone} />
                             {canEdit && (
-                              <Button size="small" variant="outlined" onClick={() => handleEditRequirement(req)}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={(e) => { e.stopPropagation(); handleEditRequirement(req) }}
+                              >
                                 Update
                               </Button>
                             )}
@@ -580,7 +695,13 @@ export default function StaffProfilePage() {
                   </TableHead>
                   <TableBody>
                     {competencyRecords.slice(compPage * compRowsPerPage, compPage * compRowsPerPage + compRowsPerPage).map((a: any) => (
-                      <TableRow key={a.id} sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
+                      <TableRow
+                        key={a.id}
+                        sx={{
+                          bgcolor: highlightedRecordId === a.id ? 'notice.subtle.bg' : undefined,
+                          '&:hover': { bgcolor: 'notice.subtle.bg' },
+                        }}
+                      >
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{a.template_name}</Typography>
                           {a.template_category && <Typography variant="caption" color="text.secondary">{a.template_category}</Typography>}
@@ -839,6 +960,86 @@ export default function StaffProfilePage() {
           <Button onClick={() => { setAssessOpen(false); setAssessError('') }}>Cancel</Button>
           <Button variant="contained" onClick={() => assessMutation.mutate()} disabled={assessMutation.isPending || !assessForm.template_id || !assessForm.assessed_at} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}>
             {assessMutation.isPending ? <CircularProgress size={20} color="inherit" /> : 'Save assessment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* The record behind a row, and behind a link: `?record=<id>` opens this same
+          dialog, which is what makes the link in a document-expiry or training-expiry
+          email a link to the record rather than to the staff member's page. */}
+      <Dialog open={Boolean(detailRequirement)} onClose={closeRequirementDetail} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          {detailRequirement?.name || 'Compliance record'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            {detailRequirement?.description && (
+              <Typography variant="body2" color="text.secondary">{detailRequirement.description}</Typography>
+            )}
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
+              {detailStatus && <StatusBadge label={detailStatus.label} tone={detailStatus.tone} />}
+              <Typography variant="caption" color="text.secondary">
+                {detailRequirement?.last_checked_at
+                  ? `Checked ${new Date(detailRequirement.last_checked_at).toLocaleDateString()}`
+                  : 'Never checked'}
+              </Typography>
+            </Stack>
+            {detailRequirement?.expires_at && (
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: detailRequirement.status === 'expired' ? '#EF4444' : 'text.primary',
+                }}
+              >
+                {detailRequirement.status === 'expired'
+                  ? `Expired ${formatDate(detailRequirement.expires_at)}`
+                  : `Expires ${formatDate(detailRequirement.expires_at)}`}
+              </Typography>
+            )}
+            {detailRequirement?.notes && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Notes</Typography>
+                <Typography variant="body2">{detailRequirement.notes}</Typography>
+              </Box>
+            )}
+            {detailRequirement?.file_url && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Uploaded document
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<OpenInNewIcon />}
+                  href={detailRequirement.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open document
+                </Button>
+              </Box>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          {canEdit && (
+            <Button
+              onClick={() => {
+                const requirement = detailRequirement
+                closeRequirementDetail()
+                if (requirement) handleEditRequirement(requirement)
+              }}
+            >
+              Update
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            onClick={closeRequirementDetail}
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

@@ -61,6 +61,12 @@ export const MICA_LABEL = {
   expand: 'Expand Mica',
   end: 'End the conversation with Mica',
   opened: 'Opened',
+  /**
+   * The review card: the one place a record Mica prepared is approved or dropped.
+   * Its buttons carry their own names in their text ("Save task", "Discard"), so
+   * this names the group around them rather than restating either.
+   */
+  draft: 'Draft prepared by Mica, waiting to be saved',
 } as const
 
 /**

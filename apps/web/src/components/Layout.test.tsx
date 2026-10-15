@@ -30,6 +30,7 @@ function renderLayout(initialPath = '/dashboard') {
             <Route path="/dashboard" element={<div data-testid="page-dashboard">Dashboard Page</div>} />
             <Route path="/mission-control" element={<div data-testid="page-mission-control">Mission Control Page</div>} />
             <Route path="/people" element={<div data-testid="page-people">People Page</div>} />
+            <Route path="/tasks" element={<div data-testid="page-tasks">Tasks Page</div>} />
           </Routes>
         </Layout>
       </MemoryRouter>
@@ -194,6 +195,49 @@ describe('Layout sidebar navigation', () => {
     expect(sidebar.queryByText('My Profile')).not.toBeInTheDocument()
     expect(sidebar.queryByText('Notifications')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Notifications/ })).toBeInTheDocument()
+  })
+
+  it('opens the record a notification names, inside the app', async () => {
+    // The bell used to be a dead end: it told the carer they had work and left them
+    // to find it. A notification now carries the record's own link — the same path
+    // Mica speaks back and an email's button points at — and tapping the row opens
+    // it through the router, so the reader stays in the client they are signed into
+    // instead of a new tab that reloads the whole app.
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 1 } })
+      if (url.includes('/chat/unread')) return Promise.resolve({ data: {} })
+      if (url.includes('/notifications')) {
+        return Promise.resolve({
+          data: [{
+            id: 'n1',
+            title: 'New Task Assigned',
+            message: 'You have been assigned: "Order new grip rails" (high)',
+            type: 'general',
+            read: false,
+            created_at: new Date().toISOString(),
+            link: '/tasks?task=t1',
+          }],
+        })
+      }
+      if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: GRANT_ALL_MODULES } })
+      if (url.includes('/auth/me')) return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Test Org' } } })
+      if (url.includes('/settings/org')) {
+        return Promise.resolve({ data: { service_types: ['supported_living'], primary_service_type: 'supported_living' } })
+      }
+      return Promise.resolve({ data: {} })
+    })
+    vi.mocked(api.patch).mockResolvedValue({ data: {} })
+
+    renderLayout('/dashboard')
+    await screen.findByTestId('page-dashboard')
+
+    fireEvent.click(await screen.findByRole('button', { name: /Notifications/ }))
+    fireEvent.click(await screen.findByText('New Task Assigned'))
+
+    // The task's own page, reached by the router — and the row is read on the way,
+    // because a carer who tapped it has plainly seen it.
+    await waitFor(() => expect(screen.getByTestId('page-tasks')).toBeInTheDocument())
+    await waitFor(() => expect(vi.mocked(api.patch)).toHaveBeenCalledWith('/notifications/n1/read'))
   })
 
   it('expands a previously collapsed group when toggled again', async () => {

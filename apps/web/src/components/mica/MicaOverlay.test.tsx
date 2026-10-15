@@ -20,6 +20,25 @@ const baseProps = {
   onCancel: vi.fn(),
 }
 
+/**
+ * A draft exactly as `/ai/mica/actions` returns one for a task.
+ *
+ * The names are the server's resolved ones: the card lists what the server read
+ * back from the utterance, so the two cannot disagree about who the record is for.
+ */
+const TASK_DRAFT = {
+  action: 'CREATE_TASK' as const,
+  summary: "I've prepared a task about Grace Roberts, assigned to Tom Bradley, due 2026-10-20, priority high. Shall I save it?",
+  output: {
+    title: 'Order new grip rails',
+    personName: 'Grace Roberts',
+    assigneeName: 'Tom Bradley',
+    dueDate: '2026-10-20',
+    priority: 'high',
+  },
+  envelope: { draft: true, action: 'CREATE_TASK', summary: 'x', output: {} },
+}
+
 describe('MicaOverlay', () => {
   it('renders nothing while idle', () => {
     const { container } = render(<MicaOverlay {...baseProps} state="idle" />)
@@ -80,6 +99,85 @@ describe('MicaOverlay', () => {
     expect(screen.getAllByText(/Here's Evan Turner's March 2026 MAR chart\./).length).toBeGreaterThan(0)
     expect(screen.getByText(/Opened Evan Turner's March 2026 MAR chart/)).toBeInTheDocument()
     expect(document.querySelector('[data-mica-destination="/emedication?personId=p9&month=2026-03"]')).not.toBeNull()
+  })
+
+  it('shows the record Mica prepared, with its fields and both answers', () => {
+    const onSaveDraft = vi.fn()
+    const onDiscardDraft = vi.fn()
+    render(
+      <MicaOverlay
+        {...baseProps}
+        state="responding"
+        responseMessage={TASK_DRAFT.summary}
+        draft={TASK_DRAFT}
+        onSaveDraft={onSaveDraft}
+        onDiscardDraft={onDiscardDraft}
+      />,
+    )
+
+    // The spoken read-back and the card are the same draft, and the card carries
+    // the fields rather than repeating the sentence.
+    expect(screen.getByRole('group', { name: 'Draft prepared by Mica, waiting to be saved' })).toBeInTheDocument()
+    const card = document.querySelector('[data-mica-draft="CREATE_TASK"]')
+    expect(card).not.toBeNull()
+    expect(card).toHaveTextContent('Order new grip rails')
+    expect(card).toHaveTextContent('Grace Roberts')
+    expect(card).toHaveTextContent('Tom Bradley')
+    expect(card).toHaveTextContent('High')
+    // The due date as the day it names — not the day before it, which is what
+    // formatting a bare YYYY-MM-DD date in local time produces west of Greenwich.
+    expect(card).toHaveTextContent(/20 Oct/)
+    expect(card).not.toHaveTextContent(/19 Oct/)
+
+    // Both answers are present, and saying "yes" is named as one of them.
+    fireEvent.click(screen.getByRole('button', { name: /save task/i }))
+    expect(onSaveDraft).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /discard/i }))
+    expect(onDiscardDraft).toHaveBeenCalledTimes(1)
+    expect(card).toHaveTextContent(/say “yes” to save it/i)
+  })
+
+  it('has no card when there is nothing prepared', () => {
+    render(<MicaOverlay {...baseProps} state="responding" responseMessage="Here's the rota." />)
+
+    expect(document.querySelector('[data-mica-draft]')).toBeNull()
+    expect(screen.queryByRole('button', { name: /save task/i })).toBeNull()
+  })
+
+  it('says it is saving, and takes no second save, while the draft is in flight', () => {
+    const onSaveDraft = vi.fn()
+    render(
+      <MicaOverlay {...baseProps} state="thinking" draft={TASK_DRAFT} savingDraft onSaveDraft={onSaveDraft} />,
+    )
+
+    const save = screen.getByRole('button', { name: /saving/i })
+    expect(save).toBeDisabled()
+    fireEvent.click(save)
+    expect(onSaveDraft).not.toHaveBeenCalled()
+  })
+
+  it('offers the page a reply ended on, tappable instead of saying yes', () => {
+    const onOpenOffer = vi.fn()
+    render(
+      <MicaOverlay
+        {...baseProps}
+        state="responding"
+        responseMessage="Saved. Want me to open the new task?"
+        offer={{ path: '/tasks?task=t1', label: 'the new task', question: 'Want me to open the new task?' }}
+        onOpenOffer={onOpenOffer}
+      />,
+    )
+
+    const control = document.querySelector('[data-mica-offer="/tasks?task=t1"]')
+    expect(control).not.toBeNull()
+    expect(control).toHaveTextContent('Open the new task')
+
+    // A page still waiting on the carer has not been opened: the destination chip
+    // states "Opened …" as a fact and must not be used for an offer.
+    expect(screen.queryByText(/^Opened /)).toBeNull()
+
+    fireEvent.click(control as Element)
+    expect(onOpenOffer).toHaveBeenCalledTimes(1)
   })
 
   it('renders a failure as the error state, not as a calm response', () => {

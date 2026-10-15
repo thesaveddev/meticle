@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Box, Typography, Paper, Chip, Stack, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert,
@@ -14,6 +14,8 @@ import {
   AccessTime as TimeIcon,
   FilterList as FilterIcon,
 } from '@mui/icons-material'
+import { useSearchParams } from 'react-router-dom'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import PageContainer from '../../components/design/PageContainer'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import api from '../../services/api'
@@ -32,6 +34,7 @@ interface SwapRequest {
   message?: string
   is_requested_by_me?: boolean
   is_target_for_me?: boolean
+  created_at?: string
 }
 
 function time(v: string) {
@@ -52,6 +55,13 @@ export default function SwapTransferPage() {
   const [submitting, setSubmitting] = useState(false)
   const [myVisits, setMyVisits] = useState<any[]>([])
   const [team, setTeam] = useState<any[]>([])
+  // The one request a swap email or a notification can name: `?swap=<id>`, the
+  // request it is about. Held in the same read-only dialog a row click opens, so
+  // there is one way to look at a request rather than two.
+  const [viewing, setViewing] = useState<SwapRequest | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedSwapId = searchParams.get(MICA_RECORD_PARAMS['swap-request'])
+  const openedLinkedSwapRef = useRef<string | null>(null)
 
   const load = async () => {
     try {
@@ -70,6 +80,44 @@ export default function SwapTransferPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Opens the request a link names. Followed by id rather than by looking for the
+  // row, because the sent/received filter is applied on the client and the request
+  // a colleague is being told about can be in the other half of it — the row is
+  // not on screen to be clicked. Guarded by the id, so a refetch cannot re-open a
+  // dialog the carer has closed.
+  //
+  // The search is against the requests this caller can see, which is the whole set
+  // the page loads (`listSwapRequests` returns every request visible to them, and
+  // nothing here paginates). There is deliberately no fetch-one fallback: the API
+  // has no single-request read to ask, so a link to a request outside this set is a
+  // link to a request this caller was never given, and a call to a route that does
+  // not exist would only hide that.
+  useEffect(() => {
+    if (!linkedSwapId || openedLinkedSwapRef.current === linkedSwapId) return
+    if (loading) return
+    openedLinkedSwapRef.current = linkedSwapId
+    const loaded = requests.find(r => r.id === linkedSwapId)
+    if (loaded) setViewing(loaded)
+  }, [linkedSwapId, requests, loading])
+
+  // Closing the record also drops its link, so a reload or a later render cannot
+  // put the carer back into a dialog they just closed. Only `swap` is dropped: any
+  // other parameter belongs to whatever sent them here.
+  const closeView = () => {
+    setViewing(null)
+    if (!linkedSwapId) return
+    const next = new URLSearchParams(searchParams)
+    next.delete(MICA_RECORD_PARAMS['swap-request'])
+    setSearchParams(next, { replace: true })
+  }
+
+  // The decisions a pending request waits on, from the detail dialog: the record
+  // closes once the answer has been sent and the list has been reloaded.
+  const respondAndClose = async (swapId: string, status: 'accepted' | 'rejected') => {
+    await handleRespond(swapId, status)
+    closeView()
+  }
 
   const handleSubmit = async () => {
     if (!selectedVisit) return
@@ -144,7 +192,7 @@ export default function SwapTransferPage() {
       ) : (
         <Stack spacing={1.5}>
           {filtered.map((req: any) => (
-            <Paper key={req.id} variant="outlined" sx={{ p: 2.5, borderRadius: 2, '&:hover': { bgcolor: 'action.hover' } }}>
+            <Paper key={req.id} variant="outlined" onClick={() => setViewing(req)} sx={{ p: 2.5, borderRadius: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' } }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   {req.request_type === 'swap' ? (
@@ -190,14 +238,79 @@ export default function SwapTransferPage() {
 
               {req.status === 'pending' && req.is_target_for_me === true && (
                 <Stack direction="row" spacing={1} mt={1.5}>
-                  <AppButton size="small" startIcon={<AcceptIcon />} onClick={() => handleRespond(req.id, 'accepted')}>Accept</AppButton>
-                  <AppButton variant="danger" size="small" startIcon={<DeclineIcon />} onClick={() => handleRespond(req.id, 'rejected')}>Decline</AppButton>
+                  <AppButton size="small" startIcon={<AcceptIcon />} onClick={e => { e.stopPropagation(); handleRespond(req.id, 'accepted') }}>Accept</AppButton>
+                  <AppButton variant="danger" size="small" startIcon={<DeclineIcon />} onClick={e => { e.stopPropagation(); handleRespond(req.id, 'rejected') }}>Decline</AppButton>
                 </Stack>
               )}
             </Paper>
           ))}
         </Stack>
       )}
+
+      {/* The one request a link or a row names — read-only, with the two answers a
+          request of your own is waiting on. Nothing here edits the request: it is
+          what somebody else asked for, and the only moves are to accept or decline
+          it. */}
+      <Dialog open={Boolean(viewing)} onClose={closeView} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight={600}>
+          {viewing?.request_type === 'transfer' ? 'Transfer request' : 'Swap request'}
+        </DialogTitle>
+        <DialogContent>
+          {viewing && (
+            <Stack spacing={2} mt={1}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Chip
+                  label={viewing.status}
+                  size="small"
+                  color={viewing.status === 'pending' ? 'warning' : viewing.status === 'accepted' ? 'success' : 'error'}
+                  sx={{ fontWeight: 600 }}
+                />
+                {viewing.created_at && (
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(viewing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                  </Typography>
+                )}
+              </Stack>
+
+              <Stack spacing={0.5}>
+                <Typography variant="caption" color="text.secondary">Call</Typography>
+                <Typography fontWeight={600}>{viewing.visit_label}</Typography>
+                <Stack direction="row" alignItems="center" gap={0.5}>
+                  <PersonIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">{viewing.client_name}</Typography>
+                  <TimeIcon sx={{ fontSize: 14, color: 'text.secondary', ml: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(viewing.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} {time(viewing.scheduled_start)}–{time(viewing.scheduled_end)}
+                  </Typography>
+                </Stack>
+              </Stack>
+
+              <Stack spacing={0.5}>
+                <Typography variant="caption" color="text.secondary">Requested by</Typography>
+                <Typography variant="body2">
+                  {viewing.requested_by_name}{viewing.target_name ? ` → ${viewing.target_name}` : ''}
+                </Typography>
+              </Stack>
+
+              {viewing.message && (
+                <Stack spacing={0.5}>
+                  <Typography variant="caption" color="text.secondary">Message</Typography>
+                  <Typography variant="body2" fontStyle="italic">{viewing.message}</Typography>
+                </Stack>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <AppButton variant="quiet" onClick={closeView}>Close</AppButton>
+          {viewing?.status === 'pending' && viewing?.is_target_for_me === true && (
+            <>
+              <AppButton variant="danger" startIcon={<DeclineIcon />} onClick={() => respondAndClose(viewing.id, 'rejected')}>Decline</AppButton>
+              <AppButton startIcon={<AcceptIcon />} onClick={() => respondAndClose(viewing.id, 'accepted')}>Accept</AppButton>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* New request dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

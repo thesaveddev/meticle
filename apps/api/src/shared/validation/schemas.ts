@@ -139,6 +139,12 @@ export const aiMicaActionConfirmSchema = z.object({
     summary: z.string().max(1000).optional(),
     context: z.record(z.any()).optional(),
   }),
+  /** Optional: only the voice flow sends it, and only when it already has the
+   * conversation the draft was prepared in. Nothing is required of it — the
+   * response's `offer` is returned either way — but when it is present the
+   * record's page is remembered on that session, so the carer's next word ("yes")
+   * can open it exactly as a list answer's offer does. */
+  sessionId: z.string().min(8).max(64).optional(),
 });
 
 export const aiIntelligenceSchema = z.object({

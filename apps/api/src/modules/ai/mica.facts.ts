@@ -37,10 +37,12 @@
  *     nobody or matches two people produces a spoken question instead of an
  *     answer about a stranger.
  *
- * Two of those answers also end by asking a question — "want me to open the rota
- * planner?" — because a list is the one shape a page answers better than a
- * sentence does: the carer's next word opens it, and the model is still nowhere
- * in the loop (`factPageFor`, `parseFactConfirmation`).
+ * Four of those answers also end by asking a question — "want me to open the rota
+ * planner?", "…the training matrix?" — because a list is the one shape a page
+ * answers better than a sentence does: the carer's next word opens it, and the
+ * model is still nowhere in the loop (`factPageForRole`, `parseFactConfirmation`).
+ * Which four, and why the other four deliberately say nothing, is the table's own
+ * comment below.
  *
  * Eight answers, in two batches. The first four are a day's rows: the rota, the
  * day's appointments, a medication round, who is on leave. The second four are the
@@ -59,6 +61,7 @@
  * The caller executes the tool and hands the rows back.
  */
 
+import { PAGE_ACCESS, UserRole } from '@meticle/shared'
 import { MICA_TIMEZONE } from './mica.spoken-time'
 import type { MicaNavigationDestination } from './mica.navigation'
 
@@ -853,9 +856,9 @@ export function formatFactAnswer(request: MicaFactRequest, rows: unknown[]): str
  *
  * A list answer is the one shape a page beats: "who is on shift today" is
  * answered by a count and five names, and the rota itself is a 7×24 grid. So the
- * answer to the two questions that have a page behind them ends by asking whether
- * to open it — and the destination was already known when the list was read, so
- * the carer's next word needs no parse of its own.
+ * answers that have a page behind them end by asking whether to open it — and the
+ * destination was already known when the list was read, so the carer's next word
+ * needs no parse of its own.
  */
 export interface MicaFactPage {
   /** The router's own destination union: the same value navigation sends. */
@@ -866,23 +869,59 @@ export interface MicaFactPage {
   label: string
   /** The question the spoken answer ends with. */
   offer: string
+  // There is deliberately no `roles` on this interface.
+  //
+  // It used to have one: a hand-written copy of the router's own gate, carried on
+  // one row of `FACT_PAGES` for `/training` because that route is restricted to
+  // ORG_ADMIN, MANAGER and COMPLIANCE_OFFICER while `/ai/mica/ask` also serves
+  // CARE_WORKER. The copy was right on the day it was written and wrong the first
+  // time somebody changed a route — and wrong silently, in the one direction that
+  // matters: the carer is asked "want me to open the training matrix?", says yes,
+  // and lands on `/unauthorized`, with nothing on either side having changed
+  // enough to notice. Worse, an edit to `App.tsx` gives nobody a reason to think a
+  // voice assistant's table needs the same edit.
+  //
+  // So the gate is not restated here at all. `pageAccessFor` reads the router's
+  // own answer out of the generated `PAGE_ACCESS` table
+  // (`scripts/design/route-access.mjs`), which `design:check` keeps in step with
+  // `App.tsx`: restricting a route fails the build until that table is
+  // regenerated, and the offer gate changes with it.
 }
 
 /**
  * Which list answers offer their page, and which deliberately do not.
  *
- * Two, not eight. The rota and the appointments list are places a carer works in
- * — the sentence is a summary of what is on them. A medication round and who is
- * on leave are answered by the sentence itself, and the chart behind a round is
- * reached by naming it ("open Nora's MAR chart"), so offering those would be
- * asking a question the carer did not need. The same rule answers the four newer
- * kinds: "whose training is expiring" and "who is supporting Grace" are lists of
- * a handful of names and dates (the training matrix and the person's day are not
- * where that answer is read), and a count of incidents offers nothing at all.
+ * Four of the eight. The test each one passes is not "does this subject have a
+ * page" — everything here does — but whether the page is where the answer is
+ * *read*. The rota grid is the rota; the training matrix's own "Expiring soon"
+ * tab is the expiry list, so that sentence is a summary of a page the carer can
+ * go and work in; and a balance is a figure on the leave page, which is the only
+ * place in the product that draws one.
  *
- * The paths are the ones `mica.navigation.ts` sends for "open the rota" and "open
- * the appointments", and `mica.facts.test.ts` holds the two tables together so
- * the two ways into a page cannot drift apart.
+ * The four that say nothing. A medication round is answered by the sentence, and
+ * the chart behind it is reached by naming it ("open Nora's MAR chart"), so an
+ * offer would ask a question the carer did not need. Who is on leave is answered
+ * for the day that was asked about, and the leave page cannot show it — that page
+ * is the viewer's own balance and requests, not the day's leave list, so the
+ * offer would promise a page that does not hold the answer. Who is supporting a
+ * person is a handful of names for one day. And a count of incidents offers
+ * nothing, because a count is not a list.
+ *
+ * `leave-balance` keeps the same bargain the rota already keeps and it is worth
+ * stating plainly: the page opens on the *viewer's* balance cards, so a manager
+ * who hears a colleague's figure and says yes lands on their own — the
+ * colleague's numbers live in the sentence. "Who is on shift today" offers the
+ * week grid rather than the day for the same reason: the offer is "go to the page
+ * this came from", not "open a view filtered to my answer".
+ *
+ * The paths are the ones `mica.navigation.ts` sends for "open the rota", "open
+ * the appointments", "open the training" and "open the leave", and
+ * `mica.facts.corpus.test.ts` holds the two tables together so the two ways into
+ * a page cannot drift apart.
+ *
+ * What is deliberately *not* here: who may open the page. That is the router's
+ * answer, read at offer time by `pageAccessFor` — see the interface above for why
+ * a copy of it here was the wrong design.
  */
 const FACT_PAGES: Partial<Record<MicaFactKind, MicaFactPage>> = {
   rota: {
@@ -897,11 +936,135 @@ const FACT_PAGES: Partial<Record<MicaFactKind, MicaFactPage>> = {
     label: 'the appointments list',
     offer: 'Want me to open the appointments list?',
   },
+  // `/training` is the gated one — restricted to ORG_ADMIN, MANAGER and
+  // COMPLIANCE_OFFICER while the ask endpoint also serves CARE_WORKER, so the
+  // expiry list is speakable for a carer who could not open the matrix it came
+  // from. Which roles those are is not written here: it is read from the router
+  // by `pageAccessFor`, so the answer cannot go stale.
+  'training-expiry': {
+    destination: 'training',
+    path: '/training',
+    label: 'the training matrix',
+    offer: 'Want me to open the training matrix?',
+  },
+  'leave-balance': {
+    destination: 'leave',
+    path: '/leave',
+    label: 'the leave page',
+    offer: 'Want me to open the leave page?',
+  },
 }
 
-/** The page behind a list answer, or undefined when the sentence is the answer. */
+/**
+ * The page behind a list answer, or undefined when the sentence is the answer.
+ *
+ * **Ungated**: this is the table read, and it says nothing about who is asking. A
+ * reply goes through `factPageForRole`; this exists for enumerating the kinds that
+ * have a page at all (the corpus invariant does exactly that) and for the route
+ * check that holds it against `mica.navigation.ts`.
+ */
 export function factPageFor(kind: MicaFactKind): MicaFactPage | undefined {
   return FACT_PAGES[kind]
+}
+
+/**
+ * The second half of a page's gate: the modules the caller actually has.
+ *
+ * A route's gate has two halves, and the router writes both:
+ * `allowedRoles={[…]}` narrows a page to some roles, and
+ * `<ModuleGuard module="tasks">` narrows it to the modules the caller has.
+ * `pageAccessFor` reads the first half out of the generated `PAGE_ACCESS` table —
+ * the router's own declaration rather than a copy — and this is the value the
+ * second half is decided against, resolved by `mica.moduleAccess.ts`.
+ *
+ * Why it is a parameter and not a lookup. The router half is static text, so it
+ * can be read at offer time for nothing; the module half is *this caller's*, from
+ * two tables, so it is resolved once per turn and handed in. That split is the
+ * same one the client's own gate makes: `ModuleGuard` asks `/permissions/:userId`
+ * and reads the answer, and `loadModuleAccess` asks the same two questions of the
+ * same two functions.
+ *
+ * `undefined` means "not resolved", which is not the same as "no modules": a
+ * caller that did not find out cannot claim the door opens, so a module-gated page
+ * is withheld. Same direction as everything else here.
+ */
+export interface MicaModuleAccess {
+  /** The modules the organisation's service model provides. */
+  available: readonly string[]
+  /**
+   * The caller's own level per module: `'view'`, `'edit'` or `'none'`. A module
+   * absent from this map is `'none'` — the map is built over `available`, so an
+   * absence is a module the organisation does not have rather than a permission
+   * nobody granted.
+   */
+  levels: Readonly<Record<string, string>>
+}
+
+/** True when this caller may open a page gated on `module`. */
+function moduleAllowed(modules: MicaModuleAccess | undefined, module: string): boolean {
+  if (!modules) return false
+  if (!modules.available.includes(module)) return false
+  return (modules.levels[module] ?? 'none') !== 'none'
+}
+
+/**
+ * What the router *and* the caller's modules say about a path.
+ *
+ * This is the whole gate, and it has two halves because a route's does. The
+ * router declares a page's access in its own `AuthGuard` (`allowedRoles`) and its
+ * own `ModuleGuard`; the first is read here out of the generated `PAGE_ACCESS`
+ * table, so the answer cannot be a stale copy — see `MicaFactPage` for the failure
+ * that copying produced — and the second out of `modules`.
+ *
+ * Three ways to be false, all deliberate:
+ *
+ *   - **A path the router does not serve, or serves publicly**, is not openable
+ *     by definition. Nothing here falls back to "unknown, so allow": an offer is
+ *     only ever made from the router's own answer, and a path missing from the
+ *     table means this cannot vouch for it (or the generated table is stale, which
+ *     `design:check` and the corpus test both fail on).
+ *   - **A gated path and an unknown role** is refused. "No role" must not read as
+ *     "no restriction": that would hand an unauthenticated caller the one offer
+ *     nobody had checked.
+ *   - **A module-gated path and no module access** is refused, for the same reason
+ *     and by the same rule (`moduleAllowed`). A module permission of `'none'`, and
+ *     a module the organisation's service model does not provide, are both "the
+ *     router would send this carer to /unauthorized", which is never something to
+ *     ask them to walk into.
+ *
+ * `roles: null` is the router saying "this route names no roles", which is every
+ * authenticated user rather than everyone — so the rota and the leave page, which
+ * the router gates by module and not by role, still offer to any caller Mica
+ * serves *and* whose modules include theirs.
+ */
+export function pageAccessFor(
+  path: string,
+  role: UserRole | undefined,
+  modules: MicaModuleAccess | undefined,
+): boolean {
+  const access = PAGE_ACCESS[path]
+  if (!access || !access.authenticated) return false
+  if (access.roles && (role === undefined || !access.roles.includes(role))) return false
+  if (access.module && !moduleAllowed(modules, access.module)) return false
+  return true
+}
+
+/**
+ * The page behind a list answer *for this caller*, or undefined when there is
+ * none they could open.
+ *
+ * The decision belongs to `pageAccessFor`; this is the shape a caller wants — the
+ * page, or nothing to offer. The sentence and the offer are decided together by
+ * `formatFactReply`, so a page withheld here is a question never asked.
+ */
+export function factPageForRole(
+  kind: MicaFactKind,
+  role: UserRole | undefined,
+  modules: MicaModuleAccess | undefined,
+): MicaFactPage | undefined {
+  const page = factPageFor(kind)
+  if (!page) return undefined
+  return pageAccessFor(page.path, role, modules) ? page : undefined
 }
 
 /**
@@ -909,16 +1072,24 @@ export function factPageFor(kind: MicaFactKind): MicaFactPage | undefined {
  *
  * The offer is the last thing said, so the carer's next word plainly answers it,
  * and it rides in the answer rather than in a field the client would have to
- * combine. `page` is absent where there is nothing to show — the two answers that
- * are only lists, and a name that did not resolve (no list was read, so offering
- * the page it would have come from would be a non sequitur).
+ * combine. `page` is absent where there is nothing to show — the four answers that
+ * are only lists, a name that did not resolve (no list was read, so offering the
+ * page it would have come from would be a non sequitur), and a page the caller's
+ * own role cannot open (`factPageForRole`).
+ *
+ * `role` and `modules` are passed rather than assumed because the sentence and
+ * the offer have to agree: a gated page that is dropped here also drops the
+ * question about it, so a carer never hears "want me to open the training matrix?"
+ * and then finds the door locked — whether they lack the role for it or the
+ * modules. `options` is required so neither half can be forgotten by omission.
  */
 export function formatFactReply(
   request: MicaFactRequest,
   rows: unknown[],
+  options: { role?: UserRole; modules?: MicaModuleAccess },
 ): { answer: string; page?: MicaFactPage } {
   const answer = formatFactAnswer(request, rows)
   if (toolMessage((rows || []) as Row[])) return { answer }
-  const page = factPageFor(request.kind)
+  const page = factPageForRole(request.kind, options.role, options.modules)
   return page ? { answer: `${answer} ${page.offer}`, page } : { answer }
 }

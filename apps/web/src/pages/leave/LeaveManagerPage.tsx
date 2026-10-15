@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Box, Paper, Typography, Button, Tabs, Tab, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent,
@@ -12,6 +12,8 @@ import {
   Cancel as RejectIcon, CalendarMonth as CalendarIcon, BeachAccess as LeaveIcon,
   Info as InfoIcon, ChevronLeft, ChevronRight, Delete as DeleteIcon,
 } from '@mui/icons-material'
+import { useSearchParams } from 'react-router-dom'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 import { ConfirmDialog, EmptyRow } from '../../components/ui'
 import { P } from '../../styles/tokens'
@@ -128,6 +130,24 @@ export default function LeaveManagerPage() {
   const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null)
   const [detailRequest, setDetailRequest] = useState<LeaveRequest | null>(null)
 
+  // A link to one request: `?request=<id>`. It is what a notification, a chat
+  // message or an email carries, and what Mica's own reply ends on — read from the
+  // URL rather than passed in state, because the URL is the only thing that
+  // survives a reload, and because a link that only worked in the tab it was
+  // opened from would not be a link.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedRequestId = searchParams.get(MICA_RECORD_PARAMS['leave-request'])
+  // Held alongside the URL so the link opens its record once: a re-render, a
+  // refetch or a changed filter must not re-open a dialog the carer has closed.
+  const linkedRequestRef = useRef<string | null>(null)
+
+  // Closing the record also drops its link, so a reload or a later render cannot
+  // put the reader back into a dialog they just closed.
+  function closeDetailRequest() {
+    setDetailRequest(null)
+    if (linkedRequestId) setSearchParams({}, { replace: true })
+  }
+
   let rawUser: any = {}
   try {
     const userStr = localStorage.getItem('user')
@@ -178,6 +198,45 @@ export default function LeaveManagerPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
   useEffect(() => { if (isAdminOrManager) fetchAllRequests() }, [fetchAllRequests, isAdminOrManager])
+
+  // The linked record. Rows open the same read-only dialog by click, and this is
+  // that click arriving as a URL: the request a link names is usually not on screen
+  // — the lists are filtered and paged, and it may be somebody else's leave — so the
+  // link is followed by id rather than by looking for the row in what is loaded.
+  //
+  // The tab moves to where the request lives, because the dialog is not the whole
+  // of what the link promises: an admin arriving on somebody's request should see it
+  // in the list they manage, not floating over their own.
+  useEffect(() => {
+    if (!linkedRequestId || linkedRequestRef.current === linkedRequestId) return
+    const mine = myRequests.some(r => r.id === linkedRequestId)
+    const loaded = mine
+      ? myRequests.find(r => r.id === linkedRequestId)
+      : allRequests.find(r => r.id === linkedRequestId)
+    if (loaded) {
+      linkedRequestRef.current = linkedRequestId
+      setTab(mine ? 0 : 1)
+      setDetailRequest(loaded)
+      return
+    }
+    if (loading || allLoading) return
+    // Once-only before the read, so a rejected request cannot be retried by every
+    // later render. The all-requests read is the only one that can return a request
+    // which is not the caller's own, and it is a manager's read: a care worker
+    // following a link to somebody else's request has nothing to open, and is told
+    // nothing about a record they cannot see.
+    linkedRequestRef.current = linkedRequestId
+    if (!isAdminOrManager) return
+    api.get('/leave/requests')
+      .then(res => {
+        const list: LeaveRequest[] = Array.isArray(res.data) ? res.data : []
+        const found = list.find(r => r.id === linkedRequestId)
+        if (!found) return
+        setTab(1)
+        setDetailRequest(found)
+      })
+      .catch(() => { /* the link named a request this caller cannot read: nothing to open */ })
+  }, [linkedRequestId, myRequests, allRequests, loading, allLoading, isAdminOrManager])
 
   const fetchActiveDelegations = useCallback(async () => {
     if (!isAdminOrManager || !rawUser.id) return
@@ -269,7 +328,7 @@ export default function LeaveManagerPage() {
     try {
       await api.patch(`/leave/requests/${id}/review`, { status })
       setDayPopover(null)
-      setDetailRequest(null)
+      closeDetailRequest()
       setSuccess(`Leave request ${status} successfully`)
       fetchAllRequests()
       fetchData()
@@ -290,7 +349,7 @@ export default function LeaveManagerPage() {
     try {
       await api.patch(`/leave/requests/${id}/cancel`)
       setCancelTarget(null)
-      setDetailRequest(null)
+      closeDetailRequest()
       setDayPopover(null)
       setSuccess('Leave request cancelled')
       fetchData()
@@ -1039,7 +1098,7 @@ export default function LeaveManagerPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(detailRequest)} onClose={() => setDetailRequest(null)} maxWidth="sm" fullWidth>
+      <Dialog open={Boolean(detailRequest)} onClose={closeDetailRequest} maxWidth="sm" fullWidth>
         {detailRequest && (
           <>
             <DialogTitle sx={{ fontWeight: 600 }}>
@@ -1095,7 +1154,7 @@ export default function LeaveManagerPage() {
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 2 }}>
-              <Button onClick={() => setDetailRequest(null)}>Close</Button>
+              <Button onClick={closeDetailRequest}>Close</Button>
               {detailRequest.status === 'pending' && isAdminOrManager && (
                 <Stack direction="row" spacing={1}>
                   <Button color="success" variant="contained" disabled={reviewingId === detailRequest.id}

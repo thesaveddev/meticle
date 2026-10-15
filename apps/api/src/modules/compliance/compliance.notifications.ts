@@ -5,6 +5,29 @@ import { EMAIL_TEXT, EMAIL_BRAND } from '../../shared/utils/email.template';
 import logger, { logWarn } from '../../shared/utils/logger';
 import { ComplianceRepository } from './compliance.repository';
 import { isIdentityType } from './compliance.vetting';
+import { micaRecordPath, type MicaRecordRef } from '@meticle/shared';
+
+/**
+ * The record link for one staff member's compliance record: a document, a training
+ * record or a competency assessment, opened on that staff member's profile with that
+ * one record in view.
+ *
+ * `staffId` is the *user* id, not the row's own `staff_id`. `/staff/:userId` is what
+ * the route takes (`staff.routes.ts` reads `:userId`, and `GET /staff/:userId`
+ * answers 404 for a `staff_profiles` id), and all three queries below join
+ * `staff_profiles` to `users`, so `user_id` is both the id in hand and the id that
+ * opens the profile. The push URLs elsewhere in this file that interpolate
+ * `staff_id` are a pre-existing slip and are deliberately not copied here.
+ *
+ * One ref serves both channels — the notification carries `micaRecordPath(ref)` and
+ * the email carries `EmailService.recordUrl(ref)` — so the bell and the inbox cannot
+ * disagree about where the same record lives.
+ */
+const staffComplianceRef = (recordId: string, staffUserId: string): MicaRecordRef => ({
+  kind: 'staff-compliance',
+  id: recordId,
+  staffId: staffUserId,
+});
 
 const DEFAULT_EXPIRING_SOON_DAYS = 14;
 
@@ -269,7 +292,9 @@ export class ComplianceNotificationService {
         NotificationsController.createNotification(
           doc.user_id, 'Document Expired',
           `Your ${doc.type} has expired. Please upload a renewed copy immediately.`,
-          'compliance'
+          'compliance',
+          // The record itself: the bell opens the carer's profile on the document.
+          micaRecordPath(staffComplianceRef(doc.id, doc.user_id)),
         ).catch(logWarn('documentExpiringNotification'));
 
         // Auto-set renewal to requested for this person's identity documents.
@@ -282,10 +307,14 @@ export class ComplianceNotificationService {
           const autoRenewalTitle = `${doc.type} Renewal Auto-Requested`;
           const autoRenewalMsg = `Your ${doc.type} has expired. A renewal has been automatically requested. Please upload your renewed ${doc.type} as soon as possible.`;
           NotificationsController.createNotification(
-            doc.user_id, autoRenewalTitle, autoRenewalMsg, 'compliance'
+            doc.user_id, autoRenewalTitle, autoRenewalMsg, 'compliance',
+            micaRecordPath(staffComplianceRef(doc.id, doc.user_id)),
           ).catch(logWarn('autoRenewalNotification'));
           if (doc.email) {
-            EmailService.sendDocumentExpiredEmail(doc.email, staffName, doc.type).catch(logWarn('autoRenewalEmail'));
+            EmailService.sendDocumentExpiredEmail(
+              doc.email, staffName, doc.type,
+              EmailService.recordUrl(staffComplianceRef(doc.id, doc.user_id)),
+            ).catch(logWarn('autoRenewalEmail'));
           }
         }
 
@@ -294,7 +323,8 @@ export class ComplianceNotificationService {
         NotificationsController.createNotification(
           doc.user_id, 'Document Expiring Soon',
           `Your ${doc.type} expires on ${new Date(doc.expiry_date).toLocaleDateString()}. Please upload a renewed copy.`,
-          'compliance'
+          'compliance',
+          micaRecordPath(staffComplianceRef(doc.id, doc.user_id)),
         ).catch(logWarn('documentExpiryNotification'));
 
         result.expiring++;
@@ -303,9 +333,15 @@ export class ComplianceNotificationService {
       // Email to staff
       if (doc.email) {
         if (isExpired) {
-          EmailService.sendDocumentExpiredEmail(doc.email, staffName, doc.type).catch(logWarn('documentExpiredEmail'));
+          EmailService.sendDocumentExpiredEmail(
+            doc.email, staffName, doc.type,
+            EmailService.recordUrl(staffComplianceRef(doc.id, doc.user_id)),
+          ).catch(logWarn('documentExpiredEmail'));
         } else {
-          EmailService.sendDocumentExpiringEmail(doc.email, staffName, doc.type, new Date(doc.expiry_date).toLocaleDateString()).catch(logWarn('documentExpiringEmail'));
+          EmailService.sendDocumentExpiringEmail(
+            doc.email, staffName, doc.type, new Date(doc.expiry_date).toLocaleDateString(),
+            EmailService.recordUrl(staffComplianceRef(doc.id, doc.user_id)),
+          ).catch(logWarn('documentExpiringEmail'));
         }
       }
 
@@ -370,23 +406,31 @@ export class ComplianceNotificationService {
         NotificationsController.createNotification(
           rec.user_id, 'Training Expired',
           `Your "${rec.module_name}" training has expired. Please complete refresher training.`,
-          'compliance'
+          'compliance',
+          micaRecordPath(staffComplianceRef(rec.id, rec.user_id)),
         ).catch(logWarn('trainingExpiringNotification'));
         result.expired++;
       } else {
         NotificationsController.createNotification(
           rec.user_id, 'Training Expiring Soon',
           `Your "${rec.module_name}" training expires on ${expiryStr}. Please schedule refresher training.`,
-          'compliance'
+          'compliance',
+          micaRecordPath(staffComplianceRef(rec.id, rec.user_id)),
         ).catch(logWarn('trainingExpiryNotification'));
         result.expiring++;
       }
 
       if (rec.email) {
         if (isExpired) {
-          EmailService.sendTrainingExpiredEmail(rec.email, staffName, rec.module_name).catch(logWarn('trainingExpiredEmail'));
+          EmailService.sendTrainingExpiredEmail(
+            rec.email, staffName, rec.module_name,
+            EmailService.recordUrl(staffComplianceRef(rec.id, rec.user_id)),
+          ).catch(logWarn('trainingExpiredEmail'));
         } else {
-          EmailService.sendTrainingExpiringEmail(rec.email, staffName, rec.module_name, expiryStr).catch(logWarn('trainingExpiringEmail'));
+          EmailService.sendTrainingExpiringEmail(
+            rec.email, staffName, rec.module_name, expiryStr,
+            EmailService.recordUrl(staffComplianceRef(rec.id, rec.user_id)),
+          ).catch(logWarn('trainingExpiringEmail'));
         }
       }
 
@@ -446,18 +490,23 @@ export class ComplianceNotificationService {
         NotificationsController.createNotification(
           comp.user_id, 'Competency Reassessment Overdue',
           `Your "${comp.template_name}" competency reassessment was due on ${dueStr}. Please schedule reassessment.`,
-          'compliance'
+          'compliance',
+          micaRecordPath(staffComplianceRef(comp.id, comp.user_id)),
         ).catch(logWarn('competencyDueNotification'));
       } else {
         NotificationsController.createNotification(
           comp.user_id, 'Competency Reassessment Due Soon',
           `Your "${comp.template_name}" competency reassessment is due on ${dueStr}. Please schedule it.`,
-          'compliance'
+          'compliance',
+          micaRecordPath(staffComplianceRef(comp.id, comp.user_id)),
         ).catch(logWarn('competencyOverdueNotification'));
       }
 
       if (comp.email) {
-        EmailService.sendCompetencyDueEmail(comp.email, staffName, comp.template_name, dueStr, isOverdue).catch(logWarn('competencyDueEmail'));
+        EmailService.sendCompetencyDueEmail(
+          comp.email, staffName, comp.template_name, dueStr, isOverdue,
+          EmailService.recordUrl(staffComplianceRef(comp.id, comp.user_id)),
+        ).catch(logWarn('competencyDueEmail'));
       }
 
       result.due++;

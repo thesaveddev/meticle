@@ -190,8 +190,11 @@ export const AI_CAPABILITIES: Record<AiCapabilityId, AiCapability> = {
       + 'own rows — who is on shift, today\u2019s appointments, a medication round, who is on leave, whose training is '
       + 'expiring, a staff member\u2019s leave balance, who is supporting one person, and how many incidents the month '
       + 'has had — is read straight from your own records and answered without sending anything to the AI provider, '
-      + 'and the incident count excludes confidential incidents. The rota and appointment answers also offer to open '
-      + 'that page, and open it when the carer says yes — the same way, and without the provider.',
+      + 'and the incident count excludes confidential incidents. The rota, appointment, expiring-training and '
+      + 'leave-balance answers also offer to open that page, and open it when the carer says yes — the same way, and '
+      + 'without the provider. An offer is only made for a page the carer\u2019s own role can open. A task or '
+      + 'appointment Mica saves ends the same way, with the new record\u2019s own page offered; a care note '
+      + 'approved from its draft is opened on the profile it belongs to.',
     promptKey: 'unified_intelligence',
     requiresNarrative: true,
     // What the Mica question-answering tool loop can fetch and pass to the

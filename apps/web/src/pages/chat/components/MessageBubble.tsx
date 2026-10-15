@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Avatar, Paper, IconButton, Tooltip, Stack, Chip } from '@mui/material'
 import {
   Mood as MoodIcon, Delete as DeleteIcon, Edit as EditIcon,
@@ -41,6 +42,7 @@ export default function MessageBubble({
   channelType, otherLastRead, memberReads,
 }: Props) {
   const [hovered, setHovered] = useState(false)
+  const navigate = useNavigate()
   const isEditing = editingId === msg.id
 
   const renderContent = () => {
@@ -48,6 +50,18 @@ export default function MessageBubble({
     return (
       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5, fontSize: 14 }}>
         {renderMessageText(msg.content).map((part, i) => {
+          // A record someone shared: the app opens it in place rather than loading
+          // the whole client in a new tab, which is what an `<a href>` to one of our
+          // own routes would do. The anchor stays an anchor — it can be copied,
+          // middle-clicked and read by a screen reader — and the click is handed to
+          // the router.
+          if (part.type === 'record') return (
+            <Box key={i} component="a" href={part.value}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(part.value) }}
+              sx={{ color: isMine ? WHITE : NAVY, textDecoration: 'underline', fontWeight: 500, wordBreak: 'break-all', '&:hover': { opacity: 0.8 } }}>
+              {part.value}
+            </Box>
+          )
           if (part.type === 'url') return (
             <Box key={i} component="a" href={part.value} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}

@@ -1,5 +1,6 @@
 import { EventConsumer, DomainEvent } from '../events.consumers';
 import { NotificationsController } from '../../notifications/notifications.controller';
+import { micaRecordPath } from '@meticle/shared';
 import logger from '../../../shared/utils/logger';
 
 /**
@@ -29,8 +30,14 @@ export const MicaAssignmentNotificationConsumer: EventConsumer = {
       const when = p.due_date ? ` due ${String(p.due_date).slice(0, 10)}` : '';
       const title = `New task from Mica: ${String(p.title || 'Untitled')}`;
       const message = `Mica created a task (“${String(p.title)}”) on your behalf${when}.`;
+      // The record this names, so the bell entry opens it. The event's own aggregate
+      // is the task (`mica.events.ts` sets it from `payload.task_id`), which is the
+      // id Mica just printed in the carer's reply; `aggregateId` is the fallback for
+      // an event published by hand with only the aggregate set.
+      const taskId = typeof p.task_id === 'string' && p.task_id ? p.task_id : event.aggregateId;
+      const link = taskId ? micaRecordPath({ kind: 'task', id: taskId }) : undefined;
       for (const uid of unique) {
-        await NotificationsController.createNotification(uid, title, message, 'general').catch((err) =>
+        await NotificationsController.createNotification(uid, title, message, 'general', link).catch((err) =>
           logger.warn({ err: err?.message, eventId: event.id }, 'mica task notification failed; continuing'),
         );
       }
@@ -44,8 +51,12 @@ export const MicaAssignmentNotificationConsumer: EventConsumer = {
         : '';
       const title = `New appointment from Mica: ${String(p.title || 'Untitled')}`;
       const message = `Mica booked an appointment (“${String(p.title)}”)${when}.`;
+      const appointmentId = typeof p.appointment_id === 'string' && p.appointment_id
+        ? p.appointment_id
+        : event.aggregateId;
+      const link = appointmentId ? micaRecordPath({ kind: 'appointment', id: appointmentId }) : undefined;
       for (const uid of unique) {
-        await NotificationsController.createNotification(uid, title, message, 'general').catch((err) =>
+        await NotificationsController.createNotification(uid, title, message, 'general', link).catch((err) =>
           logger.warn({ err: err?.message, eventId: event.id }, 'mica appointment notification failed; continuing'),
         );
       }

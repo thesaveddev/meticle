@@ -26,7 +26,10 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // No woff2: `public/fonts` carries six weights across seven subsets
+        // (~1.25 MB), and precaching would download all of them at install on
+        // every device. The font route in src/sw.ts caches on use instead.
+        globPatterns: ['**/*.{js,css,html,svg}'],
         runtimeCaching: [
           {
             urlPattern: ({ url, request }) => request.method === 'GET' && /^\/api\/.*/i.test(url.pathname),
@@ -44,7 +47,9 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // The manifest this strategy actually uses. Keep it in step with the
+        // glob above — and keep woff2 out of it, for the reason given there.
+        globPatterns: ['**/*.{js,css,html,svg}'],
       },
       devOptions: { enabled: true },
     }),

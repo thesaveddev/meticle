@@ -4,20 +4,23 @@ import { MicaGateway } from './ai.gateway';
 import { getProvider, synthesizeSpeech } from './ai.provider';
 import { renderOrgPrompt } from './ai.render';
 import { MICA_TOOLS, findMicaTool } from './mica.tools';
-import { loadOrCreateSession, recordTurn, buildFollowUpMessages } from './mica.session';
+import { loadOrCreateSession, recordTurn, setPendingPage, buildFollowUpMessages } from './mica.session';
 import { getMicaAction, MicaActionRequest, MicaActionDraft } from './ai.actions';
+import { recordPageFor, recordRefFromWrite } from './mica.recordPages';
 import { collectNames, redactText, pseudonymFor } from './ai.redaction';
 import { resolveAiMinimisation } from './ai.minimisation';
 import type { AiCapability } from './ai.capabilities';
 import { AuditRepository } from '../audit/audit.repository';
 import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE, AI_FLAG_DISCLOSURES, getDisclosureForFeature } from './ai.capabilities';
 import { PROMPTS } from './ai.prompts';
-import { migrateQuery, query } from '../../shared/database';
+import { migrateQuery, query, transaction } from '../../shared/database';
 import { parseNavigationRequest, formatNavigationMonth } from './mica.navigation';
-import { parseFactQuestion, formatFactReply, parseFactConfirmation } from './mica.facts';
+import { parseFactQuestion, formatFactReply, factPageFor, parseFactConfirmation, formatSpokenDay } from './mica.facts';
 import type { MicaFactPage } from './mica.facts';
+import { loadModuleAccess } from './mica.moduleAccess';
 import type { MicaPendingPage } from './mica.session';
 import { AIConfig, AIProvider } from './ai.types';
+import { UserRole, micaRecordPath } from '@meticle/shared';
 import logger from '../../shared/utils/logger';
 import { decryptField } from '../../shared/utils/encryption';
 import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
@@ -48,9 +51,10 @@ interface MicaNavigationReply {
  * Resolves a spoken destination into a route the client can push.
  *
  * The deterministic half lives in `mica.navigation.ts` (no model sees this); the
- * only thing that cannot be resolved without a database is which *person* a name
- * refers to, so that lookup — org-scoped and LIMITed, exactly like the read-only
- * Mica tools — is all this does. Two consequences are deliberate:
+ * only things that cannot be resolved without a database are which *person* — or
+ * which *incident* — a destination refers to, so those lookups — org-scoped and
+ * LIMITed, exactly like the read-only Mica tools — are all this does. Two
+ * consequences are deliberate:
  *
  *   1. No model, no tokens, no budget. Navigation runs before the AI config
  *      gates in `micaAsk`, so "open the incidents" works for an organisation
@@ -153,10 +157,20 @@ async function resolveStaffName(
  * When the list came from a page, the reply carries that page too (`page`) and
  * ends by asking whether to open it; `micaAsk` remembers it in the conversation so
  * the carer's next word opens it, still with no provider in the loop.
+ *
+ * The caller comes in with the question — role, id and organisation — because
+ * every one of those pages is behind a gate: `/training` is restricted to
+ * ORG_ADMIN, MANAGER and COMPLIANCE_OFFICER while this endpoint also serves
+ * CARE_WORKER, and the rota and the leave page are gated by module, which is the
+ * caller's own. The offer is made only when both halves of that gate open, and the
+ * sentence asking the question goes with the offer — so nobody is asked whether to
+ * go somewhere they would be turned away from.
  */
 async function resolveMicaFact(
   orgId: string,
+  userId: string,
   utterance: string,
+  role: UserRole | undefined,
 ): Promise<{ answer: string; kind: string; page?: MicaFactPage } | null> {
   const todayRes = await query('SELECT CURRENT_DATE::text AS day');
   const today = String(todayRes.rows[0]?.day || new Date().toISOString().slice(0, 10));
@@ -216,26 +230,100 @@ async function resolveMicaFact(
   const tool = findMicaTool(request.tool);
   if (!tool) return null;
   const rows = await tool.execute(orgId, request.args);
+  // The gate's second half is resolved only for an answer that has a page at all:
+  // four of the eight kinds do not, and a question that can never end in an offer
+  // should not pay for the two lookups.
+  const modules = factPageFor(request.kind)
+    ? await loadModuleAccess(userId, orgId, role)
+    : undefined;
   // `formatFactReply` decides the sentence and the page offer together, so a
   // reply that could not read a list can never end up offering the page it would
-  // have come from.
-  const reply = formatFactReply(request, rows);
+  // have come from — nor asking about a door the caller's role or modules hold
+  // shut.
+  const reply = formatFactReply(request, rows, { role, modules });
   return { answer: reply.answer, kind: request.kind, ...(reply.page ? { page: reply.page } : {}) };
 }
 
-async function resolveMicaNavigation(orgId: string, utterance: string): Promise<MicaNavigationReply | null> {
+/**
+ * A spoken incident subject → the one incident it names, or why it does not.
+ *
+ * The third resolver on this path, and the loosest, because an incident's only
+ * handle is its free-text title: the match is a substring over the organisation's
+ * own titles, ordered so an exact title wins and the most recent incident wins a
+ * tie. Two matches are never guessed between, for the same reason two people with
+ * one first name are not — the carer is asked instead, and the record that opens is
+ * the one they said.
+ *
+ * Confidential incidents are the admin-only class in this product, so they are
+ * excluded for everyone else: the same rule `IncidentsController.isAdmin` applies to
+ * the directory, the facts tool and the stats. A carer asking about "the medication
+ * incident" must not hear a confidential record's title read back, and must not be
+ * sent to it either — the honest answer there is the one a miss gets.
+ */
+async function resolveMicaIncident(
+  orgId: string,
+  subject: string,
+  role: UserRole | undefined,
+): Promise<
+  | { status: 'one'; id: string; title: string }
+  | { status: 'many'; titles: string[] }
+  | { status: 'none' }
+> {
+  const incidents = await query(
+    `SELECT id, title
+       FROM incidents
+      WHERE organization_id = $1
+        AND title ILIKE $2
+        ${role === UserRole.ORG_ADMIN ? '' : 'AND is_confidential = FALSE'}
+      ORDER BY (lower(title) = lower($3)) DESC, incident_date DESC, created_at DESC
+      LIMIT 2`,
+    [orgId, `%${subject}%`, subject],
+  );
+  if (incidents.rows.length > 1) return { status: 'many', titles: incidents.rows.map((row) => row.title as string) };
+  if (incidents.rows.length === 1) {
+    return { status: 'one', id: incidents.rows[0].id as string, title: incidents.rows[0].title as string };
+  }
+  return { status: 'none' };
+}
+
+async function resolveMicaNavigation(orgId: string, utterance: string, role: UserRole | undefined): Promise<MicaNavigationReply | null> {
   const todayRes = await query('SELECT CURRENT_DATE::text AS day');
   const today = String(todayRes.rows[0]?.day || new Date().toISOString().slice(0, 10));
   const parsed = parseNavigationRequest(utterance, today);
   if (!parsed) return null;
+
+  // One incident, named by its subject. Done before the person lookup because the
+  // record it opens is the whole request: there is no name to resolve and no
+  // directory that would be the right answer.
+  if (parsed.needsIncident && parsed.incidentSubject) {
+    const incident = await resolveMicaIncident(orgId, parsed.incidentSubject, role);
+    if (incident.status === 'many') {
+      return { answer: `I found more than one incident matching "${parsed.incidentSubject}": ${incident.titles.join('; ')}. Which one did you mean?` };
+    }
+    if (incident.status === 'none') {
+      return { answer: `I couldn't find an incident matching "${parsed.incidentSubject}". Say a few more words from the title and I'll try again.` };
+    }
+    const label = incident.title;
+    return { answer: `Here's ${label}.`, navigate: { destination: 'incidents', path: `/incidents/${incident.id}`, label } };
+  }
 
   const name = parsed.needsPerson ? parsed.personName : undefined;
 
   // No person to resolve: the destination stands on its own, with its month if
   // it has one.
   if (!name) {
-    const search = parsed.monthParam && parsed.month ? `?${parsed.monthParam}=${parsed.month}` : '';
-    const label = parsed.month ? `${parsed.label} — ${formatNavigationMonth(parsed.month)}` : parsed.label;
+    // Every parameter a destination's page reads, composed off the parsed request:
+    // the month the medication pages live on, and the week the rota planner opens.
+    const params = [
+      parsed.monthParam && parsed.month ? `${parsed.monthParam}=${parsed.month}` : '',
+      parsed.weekParam && parsed.week ? `${parsed.weekParam}=${parsed.week}` : '',
+    ].filter(Boolean).join('&');
+    const search = params ? `?${params}` : '';
+    const label = parsed.month
+      ? `${parsed.label} — ${formatNavigationMonth(parsed.month)}`
+      : parsed.week
+        ? `${parsed.label} — week of ${formatSpokenDay(parsed.week, today)}`
+        : parsed.label;
     return { answer: `Opening ${label}.`, navigate: { destination: parsed.destination, path: `${parsed.path}${search}`, label } };
   }
 
@@ -248,8 +336,12 @@ async function resolveMicaNavigation(orgId: string, utterance: string): Promise<
   if (people.status === 'one') {
     const person = { id: people.id, name: people.name };
     if (parsed.destination === 'person') {
-      const label = `${person.name}'s profile`;
-      return { answer: `Here's ${label}.`, navigate: { destination: parsed.destination, path: `/people/${person.id}`, label, person } };
+      // The tab, when one was asked for. The profile page reads `?tab=`, and the
+      // label follows it, so the carer hears "Grace Roberts's health tab" rather
+      // than "profile" — the page they are about to be shown is the difference.
+      const label = `${person.name}'s ${parsed.label}`;
+      const search = parsed.tab ? `?tab=${parsed.tab}` : '';
+      return { answer: `Here's ${label}.`, navigate: { destination: parsed.destination, path: `/people/${person.id}${search}`, label, person } };
     }
     const monthPrefix = parsed.month ? `${formatNavigationMonth(parsed.month)} ` : '';
     const label = `${person.name}'s ${monthPrefix}MAR chart`;
@@ -1474,7 +1566,32 @@ export class AIController {
         entity_id: (confirmedResult.result.taskId as string) || (confirmedResult.result.appointmentId as string) || undefined,
         new_data: { action: draft.action, result: confirmedResult.result },
       });
-      return res.json({ confirmed: true, result: confirmedResult.result });
+
+      // A write ends where a read answer ends: with the record's own page offered
+      // by name, so the carer's next word can open what was just saved instead of
+      // leaving them to go and hunt for the row (`mica.recordPages.ts`). The gate
+      // is the router's own — roles *and* modules — so a caller who cannot open the
+      // page is asked nothing about it. Both halves are resolved only when a record
+      // was actually written: a refused draft reaches nobody.
+      const ref = recordRefFromWrite(confirmedResult.result);
+      const page = ref
+        ? recordPageFor(ref, role as UserRole | undefined, await loadModuleAccess(userId, orgId, role))
+        : undefined;
+
+      // The offer is what the reply asks about, so it has to outlive the request
+      // that made it: recorded on the caller's session when they had one, which is
+      // what lets a bare "yes" to /ai/mica/ask resolve to this record. A write that
+      // can offer nothing still retires whatever was offered before it.
+      const sessionId = (req.body as { sessionId?: string }).sessionId;
+      const session = sessionId ? await loadOrCreateSession(orgId, userId, sessionId) : null;
+      if (session) await setPendingPage(session, page).catch(() => undefined);
+
+      return res.json({
+        confirmed: true,
+        result: confirmedResult.result,
+        ...(page ? { offer: page } : {}),
+        ...(session ? { sessionId: session.sessionId } : {}),
+      });
     } catch (err: any) {
       return res.status(400).json({ error: { message: err?.message || 'Could not save that.' } });
     }
@@ -1695,7 +1812,7 @@ export class AIController {
     // costs nothing for the ones that have.
     try {
       const startedAt = Date.now();
-      const navigation = await resolveMicaNavigation(orgId, (req.body as { question: string }).question);
+      const navigation = await resolveMicaNavigation(orgId, (req.body as { question: string }).question, req.user?.role);
       if (navigation) {
         await AIRepository.logAudit({
           organizationId: orgId,
@@ -1723,7 +1840,7 @@ export class AIController {
     try {
       const startedAt = Date.now();
       const question = (req.body as { question: string }).question;
-      const fact = await resolveMicaFact(orgId, question);
+      const fact = await resolveMicaFact(orgId, userId, question, req.user?.role);
       if (fact) {
         // The answer joins the conversation memory exactly as a model answer
         // does, so the elliptical follow-up ("what about tomorrow?") is grounded
@@ -2031,9 +2148,15 @@ export class AIController {
       return res.status(404).json({ error: { message: 'Person not found' } });
     }
 
-    const client = await pool.connect();
+    // The RLS session variables are set on the *request's* pooled client by
+    // `rlsMiddleware` + `authenticate`. `pool.connect()` hands out a different
+    // connection that carries none of them, and the `daily_notes` tenant policy
+    // then rejects the insert below — the note was never saved at all, and the
+    // carer saw "Failed to save daily note". `transaction()` is the helper that
+    // reaches for the request-scoped client when the request has one.
+    let note: Record<string, any> | undefined;
     try {
-      await client.query('BEGIN');
+      note = await transaction(async (client) => {
 
       // 1. Insert the daily note with AI analysis metadata
       // Shift is passed through from the approved draft. If the client already
@@ -2091,15 +2214,26 @@ export class AIController {
       if (safeguardingFlags && safeguardingFlags.length > 0) {
         for (const flag of safeguardingFlags) {
           if (flag.severity !== 'low') {
+            // The alert carries the note that raised it. "Safeguarding Alert: fall" with
+            // no way to read what was written is a sentence a manager has to go hunting
+            // behind; the same link Mica speaks back when it saves that note opens the
+            // note itself, on the profile it belongs to.
             await client.query(
-              `INSERT INTO notifications (user_id, title, message, type)
-               SELECT u.id, $1, $2, 'warning'
+              `INSERT INTO notifications (user_id, title, message, type, link)
+               SELECT u.id, $1, $2, 'warning', $4
                FROM users u WHERE u.organization_id = $3 AND u.role IN ('ORG_ADMIN', 'MANAGER')
                LIMIT 5`,
               [
                 `Safeguarding Alert: ${flag.concern_type}`,
                 `${flag.description}. Action: ${flag.action_required}. Severity: ${flag.severity.toUpperCase()}`,
                 orgId,
+                // `personId` is optional on the request, and a care note's link names the
+                // profile it sits on: with no person there is no note to open, so the
+                // alert carries no link rather than pointing into a profile that is not
+                // the one the note was written against.
+                personId
+                  ? micaRecordPath({ kind: 'care-note', id: noteResult.rows[0].id, personId })
+                  : null,
               ]
             );
           }
@@ -2124,19 +2258,32 @@ export class AIController {
         ]
       );
 
-      await client.query('COMMIT');
+      return noteResult.rows[0];
+      });
+
+      // A saved care note ends where a saved task does: with its own page offered,
+      // so the carer lands on the note that was just written instead of on the top
+      // of the notes list looking for it. The link names the profile *and* the note
+      // (see `micaRecordPath`), which is also what makes it the same link another
+      // device, a notification or a colleague can arrive on. The gate is the
+      // router's, both halves: the profile is gated by the `people` module, so a
+      // caller who is not offered `/people/:id` is not offered the note on it.
+      const role = (req as unknown as { user?: { role?: UserRole } }).user?.role;
+      const page = recordPageFor(
+        { kind: 'care-note', id: note!.id, personId: note!.person_id },
+        role,
+        await loadModuleAccess(userId, orgId, role),
+      );
 
       res.status(201).json({
-        dailyNote: noteResult.rows[0],
+        dailyNote: note,
         message: 'Daily note saved successfully',
         safeguardingAlerts: safeguardingFlags?.filter((f: any) => f.severity !== 'low').length || 0,
+        ...(page ? { offer: page } : {}),
       });
     } catch (err: any) {
-      await client.query('ROLLBACK');
       logger.error(err, 'Failed to approve daily note');
       res.status(500).json({ error: { message: 'Failed to save daily note' } });
-    } finally {
-      client.release();
     }
   }
 

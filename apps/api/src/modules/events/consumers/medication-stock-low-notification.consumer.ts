@@ -1,5 +1,6 @@
 import { EventConsumer, DomainEvent } from '../events.consumers';
 import { NotificationsController } from '../../notifications/notifications.controller';
+import { micaRecordPath } from '@meticle/shared';
 import { query } from '../../../shared/database';
 import logger from '../../../shared/utils/logger';
 import { STOCK_USAGE_CTES } from '../../emedication/medication-alert.service';
@@ -106,10 +107,28 @@ export const MedicationStockLowNotificationConsumer: EventConsumer = {
     const title = `Stock low: ${med}${dosage}`;
     const message = `${urgency} ${quantity} ${quantityUnit} remaining of ${med}${dosage} (reorder at ${reorder})${person}${location}. Please arrange a delivery.`;
 
+    // Where the warning is read: the person's MAR chart for this month, which is the
+    // page that shows the medication, its remaining stock and its administrations.
+    // Stock on its own has no page — the chart is the record the manager actions this
+    // from — and a warned manager who has one tap to get there is the whole point of
+    // the alert. Only when the line belongs to a person: a stock line held as general
+    // supply has no chart to open, and a link to a chart that does not exist is worse
+    // than no link.
+    const chartLink = typeof line.person_id === 'string' && line.person_id
+      ? micaRecordPath({
+          kind: 'medication-chart',
+          // The line this warning is about, so the ref names the record even though
+          // the chart path is person-and-month scoped.
+          id: String(line.id),
+          personId: line.person_id,
+          month: new Date().toISOString().slice(0, 7),
+        })
+      : undefined;
+
     // `general` type also preserves existing preference and delegation fan-out.
     for (const row of recipients.rows) {
       await NotificationsController.createNotification(
-        row.id, title, message, 'general',
+        row.id, title, message, 'general', chartLink,
       ).catch((err) =>
         logger.warn(
           { err: err?.message, eventId: event.id, userId: row.id },

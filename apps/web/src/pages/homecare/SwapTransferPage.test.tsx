@@ -1,7 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SwapTransferPage from './SwapTransferPage'
 import api from '../../services/api'
+
+/**
+ * The page is a route, so it is rendered as one.
+ *
+ * It reads `?swap=<id>` — the record link a swap email or a notification carries —
+ * and a hook that reads the query string needs the router it reads it from.
+ */
+const renderPage = () => render(
+  <MemoryRouter initialEntries={['/swap-transfer']}>
+    <SwapTransferPage />
+  </MemoryRouter>,
+)
 
 vi.mock('../../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }))
 
@@ -21,7 +34,7 @@ beforeEach(() => {
 
 describe('SwapTransferPage', () => {
   it('filters requests by explicit sent and received ownership flags', async () => {
-    render(<SwapTransferPage />)
+    renderPage()
     expect(await screen.findByRole('heading', { name: 'Swap & Transfer' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Sent' }))
@@ -36,7 +49,7 @@ describe('SwapTransferPage', () => {
 
   it('surfaces a load error instead of leaving the page blank', async () => {
     mockedApi.get.mockRejectedValueOnce(new Error('Network unavailable'))
-    render(<SwapTransferPage />)
+    renderPage()
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Swap & Transfer' })).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent('Network unavailable')
   })

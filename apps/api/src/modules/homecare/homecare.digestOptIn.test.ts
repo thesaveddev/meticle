@@ -142,8 +142,9 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // and so that adding one forces whoever added it to come back here. That
     // is deliberate: this assertion went red on migration 134 (carer location
     // retention) and again on 135 (medicines in care), and the fix both times
-    // was to advance the run rather than loosen the pattern.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_147\]\)/)
+    // was to advance the run rather than loosen the pattern — as it was again on
+    // 148 (the notification record link), which is the latest one registered.
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_148\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, MenuItem, Paper, Stack, Table, TableBody,
@@ -7,6 +7,8 @@ import {
 import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 
 const NAVY = '#0164C8'
@@ -36,12 +38,32 @@ export default function TasksPage() {
   const [viewing, setViewing] = useState<any>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
+  // The deep link a Mica write ends on: `?task=<id>`, the task it just created.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedTaskId = searchParams.get(MICA_RECORD_PARAMS.task)
+  const openedLinkedTaskRef = useRef<string | null>(null)
 
   const { data: taskData, isLoading } = useQuery({
     queryKey: ['tasks', filter],
     queryFn: () => api.get('/tasks', { params: { status: filter || undefined } }).then(r => r.data),
   })
   const tasks = asArray(taskData, ['tasks'])
+
+  // Opens the one task a deep link names, through the same read-only dialog the
+  // table rows open — the row is not on screen to be clicked when the link
+  // arrives, and the list on screen is filtered, so the link is followed by id
+  // rather than by looking for the row in it. Guarded by the id, so a refetch
+  // (or a second render) cannot re-open a dialog the carer has closed.
+  useEffect(() => {
+    if (!linkedTaskId || openedLinkedTaskRef.current === linkedTaskId) return
+    const loaded = tasks.find((t: any) => t.id === linkedTaskId)
+    if (loaded) { openedLinkedTaskRef.current = linkedTaskId; openView(loaded); return }
+    if (isLoading) return
+    openedLinkedTaskRef.current = linkedTaskId
+    api.get(`/tasks/${linkedTaskId}`)
+      .then(r => { const task = r.data?.task || r.data; if (task?.id) openView(task) })
+      .catch(() => { /* the link named a task this caller cannot read: nothing to open */ })
+  }, [linkedTaskId, tasks, isLoading])
 
   const { data: staffData } = useQuery({ queryKey: ['staff-task'], queryFn: () => api.get('/staff/org-members').then(r => r.data) })
   const members = useMemo(() => {
@@ -66,7 +88,7 @@ export default function TasksPage() {
     onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['tasks'] }); if (viewing?.id === vars.id) setViewing((v: any) => ({ ...v, status: vars.status })) },
     onError: (e: any) => setError(e.response?.data?.message || 'Could not update task'),
   })
-  const deleteMutation = useMutation({ mutationFn: (id: string) => api.delete(`/tasks/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); setViewDialog(false) } })
+  const deleteMutation = useMutation({ mutationFn: (id: string) => api.delete(`/tasks/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); closeViewDialog() } })
 
   function closeDialog() { setDialog(false); setEditing(null); setForm(EMPTY_FORM); setError('') }
   function openCreate() { setEditing(null); setForm(EMPTY_FORM); setError(''); setDialog(true) }
@@ -76,6 +98,9 @@ export default function TasksPage() {
     setError(''); setDialog(true)
   }
   function openView(task: any) { setViewing(task); setViewDialog(true) }
+  // Closing the record also drops its link, so a reload or a later render cannot
+  // put the carer back in a dialog they just closed.
+  function closeViewDialog() { setViewDialog(false); if (linkedTaskId) setSearchParams({}, { replace: true }) }
   function openCompletion(task: any) { setViewing(task); setCompletionNotes(''); setCompletionDialog(true) }
   const pending = tasks.filter((t: any) => t.status === 'pending').length
   const inProgress = tasks.filter((t: any) => t.status === 'in_progress').length
@@ -132,7 +157,7 @@ export default function TasksPage() {
         <TablePagination component="div" count={tasks.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
 
-      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={viewDialog} onClose={closeViewDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>{viewing?.title}</DialogTitle>
         <DialogContent>
           {viewing && <Stack spacing={2} sx={{ mt: 1 }}>
@@ -143,13 +168,13 @@ export default function TasksPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}><Typography variant="body2"><strong>For:</strong> {viewing.person_name || 'House / team'}</Typography><Typography variant="body2"><strong>Owner:</strong> {viewing.assigned_name || 'Unassigned'}</Typography><Typography variant="body2"><strong>Due:</strong> {viewing.due_date ? new Date(viewing.due_date).toLocaleDateString('en-GB') : 'No due date'}</Typography></Stack>
           </Stack>}
         </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}><Button onClick={() => setViewDialog(false)}>Close</Button>{viewing && viewing.status !== 'completed' && viewing.status !== 'cancelled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => openCompletion(viewing)} sx={{ bgcolor: '#087A55', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { setViewDialog(false); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button>{viewing && <Button color="error" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(viewing.id) }} sx={{ textTransform: 'none' }}>Delete</Button>}</DialogActions>
+        <DialogActions sx={{ p: 2.5 }}><Button onClick={closeViewDialog}>Close</Button>{viewing && viewing.status !== 'completed' && viewing.status !== 'cancelled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => openCompletion(viewing)} sx={{ bgcolor: '#087A55', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { closeViewDialog(); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button>{viewing && <Button color="error" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(viewing.id) }} sx={{ textTransform: 'none' }}>Delete</Button>}</DialogActions>
       </Dialog>
 
       <Dialog open={completionDialog} onClose={() => setCompletionDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>Complete task</DialogTitle>
         <DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Record what was done for {viewing?.title || 'this task'}.</Typography><TextField label="Completion details" multiline rows={4} fullWidth placeholder="What was completed, observed, or handed over?" value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} /></DialogContent>
-        <DialogActions><Button onClick={() => setCompletionDialog(false)}>Cancel</Button><Button variant="contained" disabled={statusMutation.isPending} onClick={() => { statusMutation.mutate({ id: viewing.id, status: 'completed' }); setCompletionDialog(false); setViewDialog(false) }} sx={{ bgcolor: '#087A55' }}>Save completion</Button></DialogActions>
+        <DialogActions><Button onClick={() => setCompletionDialog(false)}>Cancel</Button><Button variant="contained" disabled={statusMutation.isPending} onClick={() => { statusMutation.mutate({ id: viewing.id, status: 'completed' }); setCompletionDialog(false); closeViewDialog() }} sx={{ bgcolor: '#087A55' }}>Save completion</Button></DialogActions>
       </Dialog>
 
       <Dialog open={dialog} onClose={closeDialog} maxWidth="sm" fullWidth>

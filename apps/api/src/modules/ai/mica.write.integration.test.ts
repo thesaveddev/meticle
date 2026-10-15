@@ -18,6 +18,9 @@ import { migrateQuery } from '../../shared/database'
  *      org-scoped references server-side.
  *   3. A draft cannot be cross-confirmed or confirmed for a foreign org.
  *   4. The feature flag and role gates hold.
+ *   5. The write ends where a read answer ends: the reply carries the new
+ *      record's own page (`offer`), and with a session the carer's next "yes"
+ *      opens that page through the same door a list answer's offer uses.
  */
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -53,7 +56,11 @@ async function seedOrg() {
       enabledFeatures: ['natural_language_assistant'],
     }), org.id],
   )
-  return { org, admin, location, person, staff, token: generateToken(admin) }
+  return {
+    org, admin, worker, location, person, staff,
+    token: generateToken(admin),
+    workerToken: generateToken(worker),
+  }
 }
 
 async function taskCount(orgId: string): Promise<number> {
@@ -162,6 +169,104 @@ describe('POST /ai/mica/actions — CREATE_TASK', () => {
     expect(rows.rows[0].created_by).toBe(seeded.admin.id)
   })
 
+  it('ends by offering the task it just saved, and opens it when the carer says yes', async () => {
+    const seeded = await seedOrg()
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ action: 'CREATE_TASK', input: { title: 'Check fire doors' } })
+    expect(prepare.status).toBe(200)
+
+    // The voice flow confirms inside the conversation the draft was prepared in,
+    // because the offer that follows the save has to be answerable in it.
+    const confirm = await request(app)
+      .post('/ai/mica/actions/confirm')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ draft: prepare.body, sessionId: 'session-for-a-write' })
+    expect(confirm.status).toBe(200)
+    expect(confirm.body.confirmed).toBe(true)
+
+    // The write ends where a list answer ends: the record's own page in the reply,
+    // under the same key and with the same question shape (`mica.recordPages.ts`).
+    const taskId = confirm.body.result.taskId
+    expect(taskId).toBeTruthy()
+    expect(confirm.body.offer.path).toBe(`/tasks?task=${taskId}`)
+    expect(confirm.body.offer.destination).toBe('tasks')
+    expect(confirm.body.offer.offer).toBe('Want me to open the new task?')
+    expect(typeof confirm.body.sessionId).toBe('string')
+
+    // And the carer's next word opens it — the same endpoint, the same word, and
+    // the same reply a list answer's "yes" gets.
+    const yes = await request(app)
+      .post('/ai/mica/ask')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ question: 'yes', sessionId: confirm.body.sessionId })
+    expect(yes.status).toBe(200)
+    expect(yes.body.navigate.destination).toBe('tasks')
+    expect(yes.body.navigate.path).toBe(`/tasks?task=${taskId}`)
+    expect(yes.body.answer).toBe('Opening the new task.')
+  })
+
+  it('saves a care worker’s task without offering the page they cannot open', async () => {
+    // The other half of the gate, end to end. The action names CARE_WORKER, so the
+    // write is allowed — but `/tasks` is gated by the `tasks` module and a care
+    // worker's level for it is 'none' by default, so `ModuleGuard` would bounce them
+    // to /unauthorized. The row is saved and the reply is a plain sentence: no
+    // question is asked, so none is broken.
+    const seeded = await seedOrg()
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.workerToken}`)
+      .send({ action: 'CREATE_TASK', input: { title: 'Restock the first-aid kit' } })
+    expect(prepare.status).toBe(200)
+
+    const confirm = await request(app)
+      .post('/ai/mica/actions/confirm')
+      .set('Authorization', `Bearer ${seeded.workerToken}`)
+      .send({ draft: prepare.body, sessionId: 'session-for-a-worker-write' })
+    expect(confirm.status).toBe(200)
+    expect(confirm.body.confirmed).toBe(true)
+
+    // The write happened — the module gate is about the page, not the record…
+    expect(confirm.body.result.taskId).toBeTruthy()
+    expect(await taskCount(seeded.org.id)).toBe(1)
+    // …and it is not followed by an offer, because the same caller is not offered
+    // the page for the same reason the router would refuse it.
+    expect(confirm.body.offer).toBeUndefined()
+  })
+
+  it('retires the offer with the write that follows it, rather than the write answering it', async () => {
+    const seeded = await seedOrg()
+
+    // A list answer leaves a page waiting on the carer's yes…
+    const offered = await request(app)
+      .post('/ai/mica/ask')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ question: 'who is on shift today' })
+    expect(offered.body.offer?.path).toBe('/scheduling')
+    const sessionId = offered.body.sessionId
+
+    // …and instead of saying yes, the carer asks for something to be created,
+    // which is now the last thing said in this conversation.
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ action: 'CREATE_TASK', input: { title: 'Restock PPE' } })
+    const confirm = await request(app)
+      .post('/ai/mica/actions/confirm')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ draft: prepare.body, sessionId })
+    expect(confirm.status).toBe(200)
+
+    // The write replaced the rota offer with its own record: a "yes" now opens the
+    // task, not the page the carer stopped talking about.
+    const yes = await request(app)
+      .post('/ai/mica/ask')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ question: 'yes', sessionId: confirm.body.sessionId })
+    expect(yes.body.navigate.path).toBe(`/tasks?task=${confirm.body.result.taskId}`)
+  })
+
   it('clarifies when two staff share a name instead of guessing the assignee', async () => {
     const seeded = await seedOrg()
     const twin = await createUser({
@@ -247,6 +352,32 @@ describe('POST /ai/mica/actions — CREATE_APPOINTMENT', () => {
     expect(rows.rows[0].person_id).toBe(seeded.person.id)
     expect(rows.rows[0].staff_id).toBe(seeded.staff.id)
     expect(rows.rows[0].status).toBe('scheduled')
+  })
+
+  it('offers the appointment it just booked', async () => {
+    const seeded = await seedOrg()
+    const prepare = await request(app)
+      .post('/ai/mica/actions')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({
+        action: 'CREATE_APPOINTMENT',
+        input: {
+          title: 'Podiatry clinic',
+          personName: 'Elsie Fletcher',
+          startTime: new Date(Date.now() + 86_400_000).toISOString(),
+        },
+      })
+    expect(prepare.status).toBe(200)
+
+    const confirm = await request(app)
+      .post('/ai/mica/actions/confirm')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({ draft: prepare.body })
+    expect(confirm.status).toBe(200)
+    // The offer names the appointment's id, which is what the page opens the
+    // record's dialog from — not the hour, and not the day the page defaults to.
+    expect(confirm.body.offer.path).toBe(`/appointments?appointment=${confirm.body.result.appointmentId}`)
+    expect(confirm.body.offer.destination).toBe('appointments')
   })
 
   it('missing start time is an error, not a silent default', async () => {
@@ -338,6 +469,40 @@ describe('POST /ai/mica/actions — CREATE_APPOINTMENT', () => {
     // July is BST, so 14:00 London is 13:00Z — and the test runner's own zone
     // must not be able to change that.
     expect(prepare.body.output.startTime).toBe('2030-07-04T13:00:00.000Z')
+  })
+})
+
+describe('POST /ai/daily-notes/approve — the note Mica just wrote', () => {
+  it('ends by offering the note on the profile it belongs to', async () => {
+    const seeded = await seedOrg()
+    const res = await request(app)
+      .post('/ai/daily-notes/approve')
+      .set('Authorization', `Bearer ${seeded.token}`)
+      .send({
+        personId: seeded.person.id,
+        dailyNote: {
+          content: 'Enjoyed the music session this morning and ate a full breakfast.',
+          shift: 'day',
+          category: 'wellbeing',
+        },
+        source: 'voice',
+      })
+    expect(res.status).toBe(201)
+
+    // The note exists…
+    const noteId = res.body.dailyNote.id
+    expect(noteId).toBeTruthy()
+    const stored = await migrateQuery(
+      `SELECT person_id, generated_by_ai FROM daily_notes WHERE id = $1`,
+      [noteId],
+    )
+    expect(stored.rows[0].person_id).toBe(seeded.person.id)
+
+    // …and the reply says where it is: the profile's notes tab, opened on that
+    // one note, which is the same link any other client can arrive on.
+    expect(res.body.offer.path).toBe(`/people/${seeded.person.id}?tab=daily-notes&source=${noteId}`)
+    expect(res.body.offer.destination).toBe('person')
+    expect(res.body.offer.offer).toBe('Want me to open the new care note?')
   })
 })
 

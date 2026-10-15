@@ -1,4 +1,5 @@
 import { EventConsumer, DomainEvent } from '../events.consumers';
+import { micaRecordPath } from '@meticle/shared';
 import { query } from '../../../shared/database';
 import logger from '../../../shared/utils/logger';
 
@@ -51,7 +52,11 @@ export const MissionControlAlertConsumer: EventConsumer = {
         await upsertAlert(orgId, alertType, aggregateId, 'high',
           `Action overdue: ${p.incident_title || 'Incident'}`,
           `"${p.action}" was due ${formatDate(p.due_date)}${p.assigned_name ? ' — assigned to ' + p.assigned_name : ''}`,
-          `/incidents/${p.incident_id}`, null, p.incident_id || null);
+          // The incident itself, through the same contract every other channel uses.
+          // Building it here by hand is how this alert and Mica's own reply would
+          // drift, and the alert's whole value is that it opens the incident.
+          p.incident_id ? micaRecordPath({ kind: 'incident', id: String(p.incident_id) }) : '/incidents',
+          null, p.incident_id || null);
         break;
       }
 
@@ -159,19 +164,27 @@ export const MissionControlAlertConsumer: EventConsumer = {
 
       case 'mica.task_confirmed': {
         const p = event.payload as any;
+        // The task Mica wrote, not the tasks page: a manager who reads "Task from
+        // Mica" in Mission Control should land on the row the sentence is about. The
+        // event's aggregate is that task (`mica.events.ts`), so the id is in hand.
+        const taskId = typeof p.task_id === 'string' && p.task_id ? p.task_id : aggregateId;
         await upsertAlert(orgId, alertType, aggregateId, 'low',
           `Task from Mica: ${p.title || 'Untitled'}`,
           `${p.priority || 'medium'} priority${p.due_date ? ' — due ' + formatDate(p.due_date) : ''}${p.assigned_user_id ? ' — assigned via Mica voice' : ''}`,
-          `/tasks`, null, null);
+          taskId ? micaRecordPath({ kind: 'task', id: String(taskId) }) : '/tasks', null, null);
         break;
       }
 
       case 'mica.appointment_confirmed': {
         const p = event.payload as any;
+        const appointmentId = typeof p.appointment_id === 'string' && p.appointment_id
+          ? p.appointment_id
+          : aggregateId;
         await upsertAlert(orgId, alertType, aggregateId, 'low',
           `Appointment from Mica: ${p.title || 'Untitled'}`,
           `${formatTime(p.start_time)}${p.person_id ? ' — for a service user' : ''} — booked via Mica voice`,
-          `/appointments`, p.person_id || null, null);
+          appointmentId ? micaRecordPath({ kind: 'appointment', id: String(appointmentId) }) : '/appointments',
+          p.person_id || null, null);
         break;
       }
 

@@ -30,9 +30,17 @@
  * clinic" names an appointment and returns null, because `book` is not a
  * navigation verb. Write intents belong to the action gateway.
  *
- * Pure by design: `today` is a parameter, so the month arithmetic is testable
- * without a clock or a frozen process timezone. The caller passes the database's
- * CURRENT_DATE, the same source `cleanDate` uses in `mica.tools.ts`.
+ * Where a destination has more than one view, the detail the carer said travels
+ * with it: which week for the rota, which tab for a person's profile, and which
+ * incident for the incidents page — that last one as the *subject* they called it
+ * by, because an incident is named by its free-text title and matching that is a
+ * database read, not a parse. The pages read the parameters they are given and
+ * ignore the rest, which is the same bargain `/emedication` already makes with
+ * `?personId=` and `?month=`.
+ *
+ * Pure by design: `today` is a parameter, so the month and week arithmetic is
+ * testable without a clock or a frozen process timezone. The caller passes the
+ * database's CURRENT_DATE, the same source `cleanDate` uses in `mica.tools.ts`.
  */
 
 export type MicaNavigationDestination =
@@ -74,6 +82,31 @@ export interface MicaNavigationRequest {
   /** YYYY-MM, only for the month-scoped medication destinations. */
   month?: string;
   /**
+   * The Monday of the week to open, YYYY-MM-DD, only ever for the `rota`
+   * destination.
+   *
+   * Absent when the carer said nothing about a week, which is deliberate: the
+   * planner's own default (this week) is what they get today, so a rota request
+   * with no week in it keeps opening the week it always did.
+   */
+  week?: string;
+  /**
+   * A profile tab slug, only for the `person` destination.
+   *
+   * The slugs are `PersonProfilePage`'s own (`TAB_SLUGS` there), because that page
+   * reads `?tab=` and a slug it does not know would open the profile on its first
+   * tab instead of the one asked for. See `TAB_PHRASES`.
+   */
+  tab?: string;
+  /**
+   * The subject of one incident, as the carer referred to it — "the fire door
+   * incident" is the subject `fire door`.
+   *
+   * The caller resolves it against the organisation's incident titles; the parser
+   * cannot, and guessing an id would open a record nobody asked for.
+   */
+  incidentSubject?: string;
+  /**
    * True when the destination is person-specific *and* a name was heard, so the
    * caller must resolve `personName` to an id (and append `/:id` for 'person').
    * Absent when no name was said, which is why "open the medications" still
@@ -81,8 +114,15 @@ export interface MicaNavigationRequest {
    * without a person, and inventing one would be worse than not resolving one.
    */
   needsPerson?: boolean;
+  /**
+   * True when the incident was named by its subject, so the caller must resolve it
+   * to one record before a route can exist at all. Without it, an incident request
+   * is the directory (`/incidents`), which is what it has always been.
+   */
+  needsIncident?: boolean;
   /** Query-parameter names the destination's page actually honours. */
   monthParam?: 'month';
+  weekParam?: 'week';
 }
 
 interface DestinationRule {
@@ -230,6 +270,157 @@ function resolveMonth(lower: string, today: string): string | undefined {
   return iso(explicitYear ? Number(explicitYear) : year, MONTHS[named[1]]);
 }
 
+/** Two digits, for the ISO days this module builds. */
+const pad = (value: number): string => String(value).padStart(2, '0');
+
+/**
+ * Whole days added to an ISO day. Pure UTC arithmetic on the date, exactly as
+ * `mica.facts.ts` shifts its days, so no local timezone can move the answer.
+ */
+function addDaysIso(iso: string, days: number): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`;
+}
+
+/**
+ * The Monday of the week an ISO day falls in.
+ *
+ * Weeks start on Monday here, because that is what the rota planner itself does
+ * (`RotaPlannerPage` builds its default week from `getDay()` with Sunday counting
+ * back six days). Getting that case wrong is the whole risk of this function: a
+ * Sunday that snapped forward would open the week the carer is not looking at.
+ */
+function mondayOfIso(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return addDaysIso(iso, weekday === 0 ? -6 : 1 - weekday);
+}
+
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/**
+ * The week a rota request is about, as that week's Monday, or undefined.
+ *
+ * The shapes are the ones a carer says: "this week", "next week", "last week", a
+ * weekday, and a stated ISO date. A weekday means the *coming* one — said on a
+ * Wednesday, "the rota for Monday" is the Monday five days away rather than the
+ * one that has just gone — which is the reading that cannot send someone to a week
+ * already behind them.
+ *
+ * Deliberately absent: "the week after next", "in three weeks", "the week of the
+ * 4th". Those are arithmetic or resolution this module does not do, and the honest
+ * answer is the planner's default week rather than a confident wrong one. ("the
+ * week of the 4th" is the same refusal `mica.facts.ts` makes for windows it cannot
+ * resolve.)
+ */
+function resolveNavigationWeek(lower: string, today: string): string | undefined {
+  const monday = mondayOfIso(today);
+  if (/\bnext week\b/.test(lower)) return addDaysIso(monday, 7);
+  if (/\b(?:last|previous) week\b/.test(lower)) return addDaysIso(monday, -7);
+  if (/\bthis week\b/.test(lower)) return monday;
+
+  const iso = lower.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (iso) return mondayOfIso(iso[1]);
+
+  const named = lower.match(new RegExp(`\\b(${WEEKDAYS.join('|')})\\b`));
+  if (named) {
+    const from = new Date(`${today}T00:00:00Z`).getUTCDay();
+    const to = WEEKDAYS.indexOf(named[1]);
+    return mondayOfIso(addDaysIso(today, (to - from + 7) % 7));
+  }
+  return undefined;
+}
+
+/**
+ * The profile tabs a carer can name out loud, and the slug the page reads.
+ *
+ * Every slug is one of `TAB_SLUGS` in `PersonProfilePage.tsx` — the page's own
+ * vocabulary rather than a second one invented here — and `mica.navigation.test.ts`
+ * holds the two together, because a slug the page does not know opens the profile
+ * on its first tab instead of the one asked for, silently and plausibly.
+ *
+ * The list is the tabs a person would say out loud. That is the only criterion:
+ * "open Grace's nutrition" is a sentence a carer says, so it is here, while a tab
+ * nobody can name is one no phrase should map to. Order matters where nouns
+ * overlap — "care plans" before "care assessments" — and the patterns are
+ * word-bounded so "care record" (a profile) never reads as "care plans".
+ */
+const TAB_PHRASES: ReadonlyArray<{ pattern: RegExp; slug: string; label: string }> = [
+  { pattern: /\bhealth\b|\bobservations?\b/, slug: 'health', label: 'health tab' },
+  { pattern: /\bcare plans?\b|\bsupport plans?\b/, slug: 'care-plans', label: 'care plans' },
+  { pattern: /\b(?:daily|care|progress) notes?\b/, slug: 'daily-notes', label: 'daily notes' },
+  { pattern: /\brisk assessments?\b/, slug: 'risk-assessments', label: 'risk assessments' },
+  { pattern: /\bfamily contacts?\b|\bnext of kin\b/, slug: 'family-contacts', label: 'family contacts' },
+  { pattern: /\bgoals?\b/, slug: 'goals', label: 'goals' },
+  { pattern: /\bmemory book\b/, slug: 'memory-book', label: 'memory book' },
+  { pattern: /\bbody map\b/, slug: 'body-map', label: 'body map' },
+  { pattern: /\bdocuments?\b/, slug: 'documents', label: 'documents' },
+  { pattern: /\bwell-?being\b/, slug: 'wellbeing', label: 'wellbeing' },
+  { pattern: /\bnutrition\b|\bfood and fluid\b|\bfluid intake\b/, slug: 'nutrition', label: 'nutrition' },
+  { pattern: /\bmood\b/, slug: 'mood-chart', label: 'mood chart' },
+  { pattern: /\bcare assessments?\b/, slug: 'care-assessments', label: 'care assessments' },
+  { pattern: /\broom checks?\b/, slug: 'room-checks', label: 'room checks' },
+  { pattern: /\bcapacity\b/, slug: 'capacity', label: 'capacity' },
+  { pattern: /\bclinical scores?\b/, slug: 'clinical-scores', label: 'clinical scores' },
+  { pattern: /\bcommunication\b/, slug: 'communication', label: 'communication' },
+  { pattern: /\btime away\b/, slug: 'time-away', label: 'time away' },
+  { pattern: /\bcare pathways?\b/, slug: 'care-pathways', label: 'care pathways' },
+  { pattern: /\baudit trail\b/, slug: 'audit-trail', label: 'audit trail' },
+  { pattern: /\btimeline\b/, slug: 'timeline', label: 'timeline' },
+];
+
+/** The tab an utterance names, or undefined. Only meaningful with a named person. */
+function resolveNavigationTab(lower: string): { slug: string; label: string } | undefined {
+  return TAB_PHRASES.find(entry => entry.pattern.test(lower));
+}
+
+/**
+ * The words a carer used to name one incident.
+ *
+ * An incident has no reference number in this product — its handle is its title
+ * ("Fire door held open") — so the subject is whatever the carer put around the
+ * noun: "the fire door incident", "the incident about the fire door". Everything
+ * that is not the subject is stripped back off it, including the verbs and articles
+ * that precede it ("open the fire door incident" → "fire door").
+ *
+ * A day or a scope word is not a subject. "Show me today's incidents" is the whole
+ * list, and searching the titles for the word "today's" would answer it with a
+ * miss — so those fall back to the directory, which is the page that question was
+ * always about. Nothing here is fuzzy: a subject that is not in a title is reported
+ * as no match rather than widened until something fits.
+ */
+const INCIDENT_SUBJECT_AFTER =
+  /\b(?:incidents?|near miss(?:es)?)\s+(?:about|where|involving|with|regarding|to do with)\s+([a-z0-9][a-z0-9'\u2019\- ]{1,60})/;
+const INCIDENT_SUBJECT_BEFORE = /\b([a-z0-9][a-z0-9'\u2019\- ]{1,60}?)\s+(?:incidents?|near miss(?:es)?)\b/;
+
+/** Words that introduce or dress the noun rather than name the incident. */
+const INCIDENT_SUBJECT_FILLER = new Set([
+  'open', 'show', 'me', 'see', 'view', 'display', 'pull', 'bring', 'jump', 'take', 'up', 'to',
+  'please', 'can', 'could', 'you', 'i', 'want', 'need', 'the', 'a', 'an', 'that', 'this', 'these',
+  'those', 'my', 'our', 'for', 'of', 'about', 'on', 'in', 'at', 'detail', 'details',
+  'incident', 'incidents', 'near', 'miss', 'misses',
+]);
+
+/** A day or a scope word means the list, not a search for that word. */
+const NOT_AN_INCIDENT_SUBJECT = new Set([
+  'today', "today's", 'tonight', 'yesterday', "yesterday's", 'tomorrow', "tomorrow's",
+  'all', 'any', 'every', 'each', 'recent', 'latest', 'new', 'last', 'week', 'month',
+]);
+
+function extractIncidentSubject(lower: string): string | undefined {
+  const candidate = lower.match(INCIDENT_SUBJECT_AFTER)?.[1] ?? lower.match(INCIDENT_SUBJECT_BEFORE)?.[1];
+  if (!candidate) return undefined;
+
+  const words = candidate.split(/\s+/).filter(Boolean);
+  while (words.length && INCIDENT_SUBJECT_FILLER.has(words[0])) words.shift();
+  while (words.length && INCIDENT_SUBJECT_FILLER.has(words[words.length - 1])) words.pop();
+
+  const subject = words.join(' ').replace(/[^a-z0-9'\u2019]+$/, '').trim();
+  if (!subject || NOT_AN_INCIDENT_SUBJECT.has(subject)) return undefined;
+  return subject;
+}
+
 /** Builds the request for a matched destination, applying the person/month rules. */
 function toRequest(
   rule: DestinationRule,
@@ -311,7 +502,44 @@ export function parseNavigationRequest(utterance: string, today: string): MicaNa
   // never capitalised a name, and the chart page is where the month lives.
   if (GIVE_ME_ONLY.test(lower) && !personName && !CHART_NOUN.test(lower)) return null;
 
+  // A named person plus a tab noun is *that person's* tab, and it is read before
+  // the destination table because the name is what makes it one: "open Grace's
+  // goals" is her goals, where "open the goals" is the organisation's. This is the
+  // same upgrade the chart branch above makes when a name turns "medications" into
+  // that person's MAR chart.
+  if (personName) {
+    const tab = resolveNavigationTab(lower);
+    if (tab) {
+      return request('person', '/people', tab.label, {
+        personName,
+        needsPerson: true,
+        tab: tab.slug,
+      });
+    }
+  }
+
+  // One incident named by its subject is read *before* the destination table, because
+  // the noun the carer used is "incident" and whatever else is in the sentence only
+  // qualifies it: "the medication incident" is an incident about medication, and the
+  // table would match "medication" first and open the medication charts instead. A
+  // phrase with no subject is not read here at all, so "open the incidents" is still
+  // the directory it has always been.
+  const incidentSubject = extractIncidentSubject(lower);
+  if (incidentSubject) {
+    return request('incidents', '/incidents', 'incidents', { incidentSubject, needsIncident: true });
+  }
+
   const rule = DESTINATIONS.find(candidate => candidate.pattern.test(lower));
   if (!rule) return null;
-  return toRequest(rule, personName, lower, today);
+  const destination = toRequest(rule, personName, lower, today);
+  if (!destination) return null;
+
+  // The week a rota request is about, when the carer named one. A rota request that
+  // named no week keeps the planner's own default, which is what it does today.
+  if (destination.destination === 'rota') {
+    const week = resolveNavigationWeek(lower, today);
+    return week ? { ...destination, week, weekParam: 'week' } : destination;
+  }
+
+  return destination;
 }

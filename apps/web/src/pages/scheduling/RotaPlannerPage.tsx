@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Box, Typography, Paper, Button, Stack, Chip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel,
@@ -16,7 +17,7 @@ import {
   Today as TodayIcon,
   ViewWeek as ViewWeekIcon, ViewTimeline as ViewTimelineIcon, Group as GroupIcon,
 } from '@mui/icons-material'
-import { UserRole } from '@meticle/shared'
+import { UserRole, MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 import { fetchUserPermissions } from '../../utils/permissions'
 import DayBoardView from './rota/DayBoardView'
@@ -24,6 +25,7 @@ import TimelineView from './rota/TimelineView'
 import RosterView from './rota/RosterView'
 import ShiftDetailDialog from './rota/ShiftDetailDialog'
 import { rotaHelpers } from './rota/helpers'
+import { weekStartFromParam } from './rota.week'
 import type { RotaViewMode } from './rota/types'
 import PageContainer from '../../components/design/PageContainer'
 import { PageHeader } from '../../components/ui'
@@ -68,14 +70,34 @@ function RotaSkeleton() {
 }
 
 export default function RotaPlannerPage() {
-  const [weekStart, setWeekStart] = useState(() => {
-    const now = new Date()
-    const day = now.getDay()
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-    const d = new Date(now.setDate(diff))
-    d.setHours(0, 0, 0, 0)
-    return d
-  })
+  // The week the route asks for, when it asks for one: Mica pushes
+  // `/scheduling?week=2026-11-02` for "open the rota for next week". Absent or
+  // malformed, this is this week — the parsing and the fallback both belong to
+  // `weekStartFromParam`, so the page only has to ask for them.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedWeek = searchParams.get('week')
+  // The shift a link names: an unclaimed-shift reminder, the shift-start digest and
+  // Mica's own "want me to open it?" all hand over one shift, and the route carries
+  // which one beside the week that holds it (`micaRecordPath`).
+  const requestedShiftId = searchParams.get(MICA_RECORD_PARAMS.shift)
+  const [weekStart, setWeekStart] = useState(() => weekStartFromParam(requestedWeek))
+
+  /**
+   * A second deep link while the page is already open.
+   *
+   * Mica can push `/scheduling?week=…` again without unmounting this page — the
+   * carer asks for next week and then the week after — and a route change that
+   * only alters the query string does not re-run the initialiser above. Without
+   * this, the planner would keep showing the week it already had while Mica said
+   * it had opened the new one. The prev/next buttons do not write the URL, so this
+   * only ever reacts to a navigation the carer made, never to their own paging.
+   */
+  useEffect(() => {
+    if (!requestedWeek) return
+    const requested = weekStartFromParam(requestedWeek)
+    setWeekStart(current => (current.getTime() === requested.getTime() ? current : requested))
+  }, [requestedWeek])
+
   const [shifts, setShifts] = useState<any[]>([])
   const [staffList, setStaffList] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
@@ -449,6 +471,48 @@ export default function RotaPlannerPage() {
         _endLabel: et.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       }
     }), [shifts])
+
+  /**
+   * The shift a link names, opened the way a click opens it.
+   *
+   * The record's own view is the detail dialog — the same one `onOpenDetail` fills
+   * when a carer clicks a shift on the grid — so a link arrives at the state a click
+   * arrives at rather than at a second rendering of the shift. Driven by
+   * `normalizedShifts` rather than run once on mount, because the row only arrives
+   * with the fetch the `week` parameter triggered: an effect that ran before it would
+   * find nothing and open nothing.
+   *
+   * It reads the *week's* data rather than the location-filtered grid, deliberately:
+   * the filter is the carer's own position, and the link names a shift, which may be
+   * at a location they were not looking at. Their filter is left exactly as they set
+   * it. A shift the week does not hold opens nothing, which is the honest answer to a
+   * link whose record has since been deleted or moved.
+   */
+  useEffect(() => {
+    if (!requestedShiftId) return
+    const shift = normalizedShifts.find((s: any) => s.id === requestedShiftId)
+    if (!shift) return
+    // Idempotent: a refetch that rebuilds the array must not reopen a dialog the
+    // carer has closed.
+    setDetailShift((current: any) => (current?.id === shift.id ? current : shift))
+  }, [requestedShiftId, normalizedShifts])
+
+  /**
+   * Closing the record's view also drops `shift` from the URL, so a reload or a
+   * second click on the same link opens the dialog again instead of finding it
+   * already dismissed.
+   *
+   * `week` is deliberately kept. It is where the carer is on the grid — the link set
+   * it, and the prev/next buttons move it — so rewriting it here would move somebody
+   * off the week they were reading, the one thing a close button must not do.
+   */
+  const closeShiftDetail = useCallback(() => {
+    setDetailShift(null)
+    if (!searchParams.get(MICA_RECORD_PARAMS.shift)) return
+    const next = new URLSearchParams(searchParams)
+    next.delete(MICA_RECORD_PARAMS.shift)
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const careNeedsByLoc = useMemo(() => {
     const m = new Map<string, number>()
@@ -1142,7 +1206,7 @@ export default function RotaPlannerPage() {
       <ShiftDetailDialog
         shift={detailShift}
         open={Boolean(detailShift)}
-        onClose={() => setDetailShift(null)}
+        onClose={closeShiftDetail}
         canEdit={canEdit}
         isReadOnly={isReadOnly}
         canClaim={canClaim}
