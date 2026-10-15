@@ -527,17 +527,30 @@ counterparts in every case, old set and new. The dark projects therefore duplica
 rather than exercising a dark surface — either the harness should make the app answer
 `prefers-color-scheme`, or those two projects are dead weight in the matrix.
 
-**Not run (blocked by environment, not by the code):** the full web vitest suite
+**Not run locally (blocked by environment, not by the code):** the full web vitest suite
 (~170 files), the API integration suite, `npm run visual:test` (Playwright snapshots), and
 any interactive browser pass over the 129 routes.
+
+**CI has since run three of those four against these two commits.** Both commits are green,
+including the screenshot job under the tightened comparator — which is the only proof that
+matters for the baselines, since the artifact and the comparison both come from the runner. The
+API suite ran 1,605 tests and exposed one pre-existing flake, worth naming so it is not
+rediscovered as a mystery: `locationRetention.integration.test.ts > switching collection off asks
+about what was already collected > deletes everything held when asked, and says what it
+removed` failed with a Postgres `40P01 deadlock detected` (a `RowShareLock` on one relation
+cycle-waiting with an `AccessExclusiveLock` on another) and passed on a rerun. Nothing in these
+two commits touches the app or the database — the whole suite passed on the same commit when
+retried — so this is a real, intermittent lock-ordering bug in the retention purge path, not a
+consequence of the baseline repair.
 
 ---
 
 ## 11. Outstanding work
 
-1. **Full web suite + API integration suite on an unloaded machine.** The guards that
-   cover this migration are green, but the whole suite has not been run end-to-end since
-   the sweep. This is the first thing to run before shipping.
+1. **Full web suite on an unloaded machine.** The API suite has now been run end-to-end by CI
+   on these commits (1,605 tests, green on retry — see the deadlock note above), but the web
+   vitest suite (~170 files) has not been run whole since the sweep. This is the first thing to
+   run before shipping.
 2. **Route-by-route regression sweep (Phase F).** Appendix A answers this per route, derived
    rather than claimed: the page module each route renders, whether that module is recorded as
    reviewed here, whether it is token-clean, and whether a test covers it — alongside the routes
