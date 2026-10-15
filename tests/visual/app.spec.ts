@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { seedTheme } from './theme'
 
 /**
  * Authenticated application-surface visual regression.
@@ -31,19 +32,21 @@ import { test, expect, type Page } from '@playwright/test'
  *
  * Updating the baselines: `npm run visual:update` writes them where you run it,
  * and on a Windows machine that is not where the gate compares. The same page
- * rendered here and on the CI runner differs by ~7.75% of the frame in text
- * rasterisation alone, against a 1% `maxDiffPixelRatio`, so a locally generated
- * baseline cannot pass. Regenerate by letting the pipeline produce the actuals
- * (the visual job uploads `tests/visual/__results__` on failure) and adopting
- * those, which is how every baseline in this directory was produced.
+ * rendered here and on the CI runner differs by several percent of the frame in
+ * text rasterisation alone — 4.7% measured on the workspace, 7.75% on the
+ * marketing home page — against a `maxDiffPixelRatio` of 0.001, so a locally
+ * generated baseline can never pass. Regenerate by letting the pipeline produce
+ * the actuals (the visual job uploads `tests/visual/__results__` on failure) and
+ * adopting those, which is how every baseline in this directory was produced.
  *
  * What this gate actually detects, measured rather than assumed: widening the
  * Today metric gutters from 12px to 32px moved 13,391 pixels (2.0%) on
  * desktop-light and 8,265 (3.0%) on mobile-light — red on all four projects and
  * green on every marketing capture. So the four frames carry real weight. It
- * also locates the floor: against a 1% `maxDiffPixelRatio`, a change smaller
- * than roughly one card gutter can still slip through, which is the same
- * tolerance question §11 of the design audit leaves open for the marketing set.
+ * also locates the floor: the comparator now trips at roughly 2,600 pixels on
+ * desktop and 345 on mobile (`maxDiffPixelRatio: 0.001`), a small fraction of
+ * that gutter change, so what the allowance covers is a glyph edge and not a
+ * layout move. §11 of the design audit records why it is this tight.
  */
 
 // Monday 12 October 2026, 09:15 in Europe/London (the config pins the locale and
@@ -272,9 +275,13 @@ async function awaitFrame(page: Page) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 }
 
-test('the seeded Mission Control workspace matches its baseline', async ({ page }) => {
+test('the seeded Mission Control workspace matches its baseline', async ({ page }, testInfo) => {
   // Pin the clock before the app boots so every rendered date is fixed.
   await page.clock.setFixedTime(new Date(FROZEN_NOW))
+
+  // Seed the stored theme, so `-dark` renders dark. Playwright's `colorScheme`
+  // only moves `prefers-color-scheme`, which this app does not read.
+  await seedTheme(page, testInfo)
 
   const unmatched = await installSeededSession(page)
 

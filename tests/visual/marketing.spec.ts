@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { seedTheme } from './theme'
 
 /**
  * Marketing-surface visual regression.
@@ -85,7 +86,11 @@ async function settle(page: import('@playwright/test').Page) {
 }
 
 for (const route of ROUTES) {
-  test(`${route.name} renders and matches its baseline`, async ({ page }) => {
+  test(`${route.name} renders and matches its baseline`, async ({ page }, testInfo) => {
+    // The stored theme, not `prefers-color-scheme`: the app reads the former and
+    // this spec's dark projects were capturing light pages without it.
+    await seedTheme(page, testInfo)
+
     // `domcontentloaded` rather than `load`: the dev server runs a PWA service
     // worker and the pages hold long-lived requests, so `load` can hang well
     // past the point where the UI is visually complete.
