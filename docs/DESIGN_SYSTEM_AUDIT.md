@@ -527,30 +527,60 @@ counterparts in every case, old set and new. The dark projects therefore duplica
 rather than exercising a dark surface — either the harness should make the app answer
 `prefers-color-scheme`, or those two projects are dead weight in the matrix.
 
-**Not run locally (blocked by environment, not by the code):** the full web vitest suite
-(~170 files), the API integration suite, `npm run visual:test` (Playwright snapshots), and
-any interactive browser pass over the 129 routes.
+**CI has since run three of those four against these two commits**, and both are green — including
+the screenshot job under the tightened comparator, which is the only proof that matters for the
+baselines, since the artifact and the comparison both come from the runner.
 
-**CI has since run three of those four against these two commits.** Both commits are green,
-including the screenshot job under the tightened comparator — which is the only proof that
-matters for the baselines, since the artifact and the comparison both come from the runner. The
-API suite ran 1,605 tests and exposed one pre-existing flake, worth naming so it is not
-rediscovered as a mystery: `locationRetention.integration.test.ts > switching collection off asks
-about what was already collected > deletes everything held when asked, and says what it
-removed` failed with a Postgres `40P01 deadlock detected` (a `RowShareLock` on one relation
-cycle-waiting with an `AccessExclusiveLock` on another) and passed on a rerun. Nothing in these
-two commits touches the app or the database — the whole suite passed on the same commit when
-retried — so this is a real, intermittent lock-ordering bug in the retention purge path, not a
-consequence of the baseline repair.
+**The remaining suites have now been run locally, on a throwaway database built by the same setup
+path** (`meticle_test_local`, created and dropped by a scratch runner, so the dev database's own
+rows were never in the blast radius of a suite that — as the next paragraph records — used to
+delete table-wide): web 63 files / 485 tests, API 163 files / 1,605 tests, mobile 37 suites / 310
+tests, all green. `npm run visual:test` is the one that still cannot run here by construction: a
+Windows render of the same page sits several percent of the frame from the Linux capture, so the
+runner is the only place a screenshot comparison means anything. No interactive browser pass over
+the routes was performed.
+
+**The one flake that run surfaced has been traced and fixed, and the first guess was wrong.** CI's
+API suite exposed it (1,605 tests, one failure, green on rerun) as a Postgres `40P01 deadlock
+detected` reported against
+`locationRetention.integration.test.ts > switching collection off asks about what was already
+collected > deletes everything held when asked, and says what it removed`, with the cycle printed
+as one session waiting for a `RowShareLock` and the other for an `AccessExclusiveLock`. That reads
+like a purge-path lock-ordering bug, and it is not one: the statement the failing session was
+waiting on is the purge's own `SELECT ... FOR UPDATE`, its first statement in that transaction, so
+that session held nothing with which to block anybody.
+
+The `AccessExclusiveLock` was taken by the test suite itself. `rls.integration.test.ts`
+re-applied `002_enable_rls.sql` and `003_add_missing_rls.sql` and ran `GRANT ... ON ALL TABLES IN
+SCHEMA public` from its own `beforeAll` — 162 statements of DDL taking an exclusive lock on every
+table in the schema — inside a parallel run whose other three workers are unavoidably
+mid-transaction. Measured on 15 October 2026 with a single ordinary read transaction held open:
+361 lock waits, the sweep blocked for 55 seconds, `AccessExclusiveLock` granted on users, people,
+locations, teams, invoices, invitations and more, other suites' foreign-key checks queued behind
+it (`RowShareLock on users`, 141 samples), and the suite itself dead on its 30-second hook
+timeout. CI met the same graph and resolved it as a deadlock instead of a stall.
+
+The role and its grants now come from `test/global-setup.ts` via `test/rlsTestRole.ts`, which runs
+before any worker exists and therefore cannot meet a transaction. The suite asserts the
+precondition — role present, privilege present, FORCE RLS on — rather than creating it, so a
+missing prerequisite fails by name instead of quietly locking the schema. Its cleanup no longer
+deletes table-wide: eight tables are scoped to the two staff profiles and two service users this
+file creates, and `compliance_profile_requirements` was dropped from that list because this file
+never inserts into it (settings does), so the old statement was destroying another suite's
+fixtures. With the same read held open the measurement is zero waits and the suite passes in 6s
+rather than failing at 35s, and across the whole local API run the only `AccessExclusiveLock` in
+seven minutes was one session's `CREATE TEMP TABLE`.
 
 ---
 
 ## 11. Outstanding work
 
-1. **Full web suite on an unloaded machine.** The API suite has now been run end-to-end by CI
-   on these commits (1,605 tests, green on retry — see the deadlock note above), but the web
-   vitest suite (~170 files) has not been run whole since the sweep. This is the first thing to
-   run before shipping.
+1. **Suites run; the route sweep is what is left.** Everything this audit listed as unrun has now
+   been run whole and green — web 63 files / 485 tests, API 163 files / 1,605, mobile 37 suites /
+   310 — and the single API failure was traced to the RLS suite's mid-run DDL and fixed (see the
+   deadlock note above). What remains is the interactive pass: the routes in Appendix A are
+   reviewed in source and their access rules are generated and checked, but no one has walked them
+   in a browser on this machine.
 2. **Route-by-route regression sweep (Phase F).** Appendix A answers this per route, derived
    rather than claimed: the page module each route renders, whether that module is recorded as
    reviewed here, whether it is token-clean, and whether a test covers it — alongside the routes

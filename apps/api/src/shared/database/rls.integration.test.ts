@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import fs from 'fs';
-import path from 'path';
 import pool, { query, migrateQuery, migratePool, resetRlsSessionVars } from './index';
+import { RLS_TEST_ROLE } from '../../test/rlsTestRole';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword } from '../../modules/auth/password.util';
 import { PoolClient } from 'pg';
@@ -17,7 +16,7 @@ const personIdB = uuidv4();
 const locationIdA = uuidv4();
 const locationIdB = uuidv4();
 
-const TEST_ROLE = 'rls_test_role';
+const TEST_ROLE = RLS_TEST_ROLE;
 
 async function setupOrg(orgId: string, orgName: string) {
   await migrateQuery(
@@ -89,26 +88,35 @@ async function releaseClient(client: PoolClient) {
 }
 
 beforeAll(async () => {
-  // Ensure RLS is applied and FORCE RLS is enabled
-  const migrationFiles = ['002_enable_rls.sql', '003_add_missing_rls.sql'];
-  try {
-    for (const file of migrationFiles) {
-      const p = path.join(__dirname, 'migrations', file);
-      if (fs.existsSync(p)) {
-        const sql = fs.readFileSync(p, 'utf8');
-        try { await migrateQuery(sql); } catch { /* already applied */ }
-      }
-    }
+  // The role, its grants and the RLS migration files are all established by
+  // `test/global-setup.ts` before any worker starts — see test/rlsTestRole.ts
+  // for why they no longer happen here (they take ACCESS EXCLUSIVE across the
+  // schema, and this file runs beside three other suites).
+  //
+  // What replaces that work is the check that it happened. These three read a
+  // constant and a catalogue, so they take no lock anybody else can wait on, and
+  // they fail by name rather than as twenty-three confusing isolation results.
+  const role = await migrateQuery('SELECT 1 FROM pg_roles WHERE rolname = $1', [TEST_ROLE]);
+  expect(role.rowCount, `Role ${TEST_ROLE} does not exist — test/global-setup.ts should have created it`).toBe(1);
 
-    // Ensure test role exists (non-superuser, non-login) — uses migrateQuery (superuser)
-    try { await migrateQuery(`CREATE ROLE ${TEST_ROLE} NOLOGIN`); } catch { /* exists */ }
-    // Grant basic permissions needed for queries
-    await migrateQuery(`GRANT CONNECT ON DATABASE ${getDatabaseName()} TO ${TEST_ROLE}`);
-    await migrateQuery(`GRANT USAGE ON SCHEMA public TO ${TEST_ROLE}`);
-    await migrateQuery(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${TEST_ROLE}`);
-    await migrateQuery(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${TEST_ROLE}`);
-    await migrateQuery(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${TEST_ROLE}`);
-  } catch { /* partial failure is OK — role may already exist */ }
+  const privilege = await migrateQuery(`SELECT has_table_privilege($1, 'users', 'SELECT') AS can_select`, [TEST_ROLE]);
+  expect(
+    privilege.rows[0].can_select,
+    `Role ${TEST_ROLE} cannot read users — the grants in test/rlsTestRole.ts did not run`,
+  ).toBe(true);
+
+  // FORCE ROW LEVEL SECURITY is what every isolation assertion below rests on.
+  // If it is off those assertions do not fail, they pass for the wrong reason.
+  const forced = await migrateQuery(`
+    SELECT count(*)::int AS tables_with_force
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relrowsecurity AND c.relforcerowsecurity
+  `);
+  expect(
+    forced.rows[0].tables_with_force,
+    'No table has FORCE ROW LEVEL SECURITY — the RLS migrations did not apply',
+  ).toBeGreaterThan(0);
 
   await setupOrg(orgAId, 'RLS Test Org A');
   await setupOrg(orgBId, 'RLS Test Org B');
@@ -122,21 +130,34 @@ beforeAll(async () => {
   await setupLocation(locationIdB, orgBId, 'Location B');
 }, 30_000);
 
-function getDatabaseName(): string {
-  const url = process.env.DATABASE_URL || '';
-  const match = url.match(/\/([^/?]+)$/);
-  return match ? match[1] : 'meticle';
-}
-
 afterAll(async () => {
-  // Only clean up test data created by this test (by specific IDs)
-  const tables = [
-    'qualifications', 'skills', 'emergency_contacts', 'staff_availability',
-    'health_observations', 'bowel_movements', 'dental_records', 'fluid_intake',
-    'compliance_profile_requirements',
+  // Fixtures this file inserted, deleted by the key that makes them ours.
+  //
+  // This was a bare `DELETE FROM <table>` over nine shared tables, which deleted
+  // whatever any other suite had in them at that moment — and
+  // `compliance_profile_requirements` was on the list although this file never
+  // inserts a row into it (settings does), so it was destroying somebody else's
+  // fixtures and cleaning nothing of its own. On a developer's machine the same
+  // statements delete seeded rows. Every table below is now scoped to the two
+  // staff profiles or the two service users this file created.
+  const ownRows: Array<[string, string, string[]]> = [
+    ['qualifications', 'staff_id', [staffProfileIdA, staffProfileIdB]],
+    ['skills', 'staff_id', [staffProfileIdA, staffProfileIdB]],
+    ['emergency_contacts', 'staff_id', [staffProfileIdA, staffProfileIdB]],
+    ['staff_availability', 'staff_id', [staffProfileIdA, staffProfileIdB]],
+    ['health_observations', 'person_id', [personIdA, personIdB]],
+    ['bowel_movements', 'person_id', [personIdA, personIdB]],
+    ['dental_records', 'person_id', [personIdA, personIdB]],
+    ['fluid_intake', 'person_id', [personIdA, personIdB]],
   ];
-  for (const table of tables) {
-    try { await migrateQuery(`DELETE FROM ${table}`); } catch { /* skip */ }
+  for (const [table, column, ids] of ownRows) {
+    // One table failing must not skip the rest, but it must not be silent
+    // either: the next run's assertions would then read rows this one left.
+    try {
+      await migrateQuery(`DELETE FROM ${table} WHERE ${column} IN ($1, $2)`, ids);
+    } catch (err) {
+      console.warn(`RLS cleanup left rows in ${table}: ${(err as Error).message}`);
+    }
   }
   // Delete people, staff_profiles, locations by org ID
   for (const orgId of [orgAId, orgBId]) {
