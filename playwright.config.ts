@@ -43,10 +43,24 @@ export default defineConfig({
       animations: 'disabled',
       caret: 'hide',
       scale: 'css',
-      // Not zero: font rasterisation differs very slightly across platforms,
-      // and a harness that fails on antialiasing noise gets switched off. This
-      // still fails hard on any real colour, spacing or layout change.
-      maxDiffPixelRatio: 0.01,
+      // Both numbers are measured against a runner-rendered set, and they can be
+      // this tight for one reason: the baselines and the comparison come from the
+      // same runner. Two independent regenerations of one commit returned
+      // byte-identical PNGs in all sixteen files — a zero-pixel noise floor. The
+      // old 1% was paying for cross-platform rasterisation this harness does not
+      // have, because `npm run visual:update` never runs on a workstation (a
+      // Windows render of the same page sits 4.7% of the frame away).
+      //
+      // What that allowance hid is the reason for tightening it. The default
+      // `threshold` of 0.2 is 1,408 units of squared-YIQ distance, and the
+      // retired brand blue -> the current one (#2F80ED -> #0164C8) measures 625,
+      // so a whole palette moved under a gate whose job is to notice that. 0.1 is
+      // 352 units: below any brand-colour change, above sub-perceptual noise.
+      threshold: 0.1,
+      // ~345 pixels at mobile, ~2,600 at desktop. Room for a stray caret or one
+      // glyph edge, and far below the ~0.17% header regression that once passed
+      // unnoticed for a week.
+      maxDiffPixelRatio: 0.001,
     },
   },
 

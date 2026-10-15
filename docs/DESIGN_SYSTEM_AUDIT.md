@@ -577,13 +577,18 @@ any interactive browser pass over the 129 routes.
    renders them, so they are dead code or pages whose route was removed — and several were
    tokenised during the colour sweep, which is effort spent on code that does not ship. Each
    needs a route-or-delete decision; the tracker keeps listing them until then.
-10. **The visual gate's 1% `maxDiffPixelRatio` is wider than the regressions it should
-    catch.** A header change worth ~0.17% of the frame passed against a baseline that no
-    longer matched its page for a week (see §10). The tolerance exists for cross-platform
-    font rasterisation, and this repository sidesteps that by making the baselines
-    Linux-rendered, so it can probably come down — but tightening a gate in the same change
-    that repairs it would confuse cause and effect, and a too-strict gate gets switched off.
-    Decide it deliberately, with a CI-rendered baseline set to test against.
+10. **The visual gate's tolerance is now measured rather than inherited — decided 15 October,
+    in its own commit, against the CI-rendered baseline set this item asked for.** Two
+    independent regenerations of one commit returned byte-identical PNGs in all sixteen files,
+    so the cross-run noise floor is zero pixels and the cross-platform allowance the old
+    `maxDiffPixelRatio: 0.01` was paying for does not exist here. The comparator is now
+    `threshold: 0.1` with `maxDiffPixelRatio: 0.001`: 352 units of squared-YIQ distance, below
+    the 625 that `#2F80ED` → `#0164C8` measures and above a stray caret or a single glyph edge,
+    with a pixel allowance small enough to catch the ~0.17% header regression that previously
+    sat inside the old one for a week (§10). What remains outstanding is the environment the
+    tolerance is now trusting: a roll of `ubuntu-latest` changes text rasterisation, which will
+    turn this gate red and wants `visual-baselines.yml` re-dispatched — not a widened tolerance,
+    which is how this item started.
 
 <!-- BEGIN generated route tracker -->
 
