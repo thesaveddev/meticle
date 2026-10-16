@@ -3,6 +3,7 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
+import { localToday } from '../utils/localDay'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
 import { getDietaryProfile, getMealRecords, createMealRecord } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -48,7 +49,9 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
   const [refusalReason, setRefusalReason] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const today = new Date().toISOString().split('T')[0]
+  // The day the carer is logging against, not the UTC day: a meal entered at
+  // 00:30 on a night shift belongs to today.
+  const today = localToday()
 
   const load = async () => {
     try {

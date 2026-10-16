@@ -6,6 +6,7 @@ import { SkeletonScreen } from '../components/Skeleton'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getMyEarnings } from '../services/api'
+import { localDate } from '../utils/localDay'
 import { Ionicons } from '@expo/vector-icons'
 import { IconCheck, IconClock, IconMiles, IconWarning } from '../components/Icons'
 import { downloadAndSharePayslip } from '../services/payslip'
@@ -25,11 +26,21 @@ function mins(h: number) {
   return hrs > 0 ? `${hrs}h ${m}m` : `${m}m`
 }
 
+/**
+ * This month as the API's day range, in the carer's own timezone.
+ *
+ * It returned full ISO timestamps, and `/homecare/my-earnings` accepts
+ * `YYYY-MM-DD` only — so the request was rejected every time and this screen
+ * showed "No earnings data" to every carer, on the one screen that is about
+ * their pay. React Native's own errors are invisible here because the screen
+ * treats a failed load as "no data yet", and the test agreed with the screen
+ * because it rebuilt the same timestamps.
+ */
 function monthRange() {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth(), 1)
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
-  return { from: from.toISOString(), to: to.toISOString() }
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  return { from: localDate(from), to: localDate(to) }
 }
 
 // Status badge colors are now theme-aware, applied inline

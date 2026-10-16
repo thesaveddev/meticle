@@ -27,7 +27,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 - **Cache**: Redis with in-memory fallback (rate limiter, token blacklist)
 - **Realtime**: Socket.IO v4 with JWT auth + DB validation + rate limiting + Redis adapter
 - **Auth**: JWT access + refresh tokens, MFA (TOTP/speakeasy), RBAC + permission checks per request
-- **Infra**: Docker compose (dev 4 services + prod 6 services), GitHub Actions CI/CD with GHCR + auto-rollback, Prometheus metrics, Swagger auto-docs
+- **Infra**: Docker compose (dev 4 services + prod 6 services), GitHub Actions CI/CD with GHCR + auto-rollback, Prometheus-format metrics (exported, not yet collected — T1-13), Swagger auto-docs
 - **AI**: OpenAI + Anthropic adapters, per-org API keys, audit logging
 
 ## Current State (Phase 1 — Launched August 2026)
@@ -100,12 +100,12 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 ### ✅ Infrastructure
 | Component | Status |
 |---|---|
-| Docker compose (dev) | ✅ 4 services (postgres, redis, api, web) with health checks + volumes |
-| Docker compose (prod) | ✅ 6 services (postgres, redis, api, web, nginx, prometheus) with health checks + volumes |
+| Docker compose (dev) | ✅ 5 services (postgres, redis, api, web, uptime-kuma) with health checks + volumes — corrected 16 Oct 2026, the row said 4 and omitted the uptime service |
+| Docker compose (prod) | ✅ 6 services (web — which is nginx, api, postgres, redis, backup, uptime-kuma) with health checks + volumes. **Corrected 16 Oct 2026:** this row previously listed nginx and prometheus as separate services; neither exists — nginx is inside the web image, and no Prometheus is deployed anywhere (T1-13). |
 | CI (GitHub Actions) | ✅ Lint + typecheck + test + build + Docker push to GHCR + deploy with auto-rollback |
 | Redis | ✅ In-memory fallback (rate limiter, token blacklist) |
 | Socket.IO | ✅ JWT auth, DB validation, rate limiting, membership gating, online presence, Redis adapter |
-| Prometheus metrics | ✅ Histograms + counters |
+| Prometheus metrics | 🟡 Histograms + counters, exposed at `/metrics` — behind `METRICS_SECRET` in production, and **scraped by nothing**: there is no Prometheus in either compose file, no alert rules and no dashboard (T1-13). The format is emitted; the collection is not built. |
 | Swagger docs | ✅ Auto-generated from router stack |
 | File uploads | ✅ Multer + UUID names + MIME allowlist + extension/magic-byte blocking |
 | Email | ✅ 20+ branded templates, Nodemailer SMTP, DB-backed queue with retry |
@@ -116,7 +116,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 | Testing | ✅ 395 tests across 44 modules (integration + unit) |
 | Postgres RLS | ✅ AsyncLocalStorage + dual-pool + RLS policies on all tables |
 | Migrations | ✅ 33 migrations, versioned with checksums |
-| Monitoring | ⚠️ Prometheus only — no alerting, no dashboards, no uptime checks |
+| Monitoring | ⚠️ Uptime Kuma **is** deployed (loopback-bound) but whether it has monitors is invisible from the repo (T0-4); `monitor/health_check.py` emails on container failure via cron, unverified in production; `/metrics` is exported and unscraped (T1-13) |
 
 ### ✅ Seed Script (`seed-orbis.ts`)
 Creates a fresh demo org with random name each run (~1,550 rows total):
@@ -196,4 +196,4 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | **Family Portal Finances** | Tab placeholder — invoices/payments not exposed to family members |
 | **Staff 1-2-1s** | One-to-one meeting records, action tracking, review scheduling |
 | **Payroll & Timesheets** | Timesheet submission, approval workflow, payroll export/integration |
-| **Monitoring & Alerting** | Prometheus exists but no alerting rules, no dashboards, no uptime checks |
+| **Monitoring & Alerting** | Metrics are exported but nothing collects them; no alerting rules, no dashboards, no verified uptime checks (T1-13, T0-4) |

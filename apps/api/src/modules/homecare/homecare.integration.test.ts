@@ -326,4 +326,31 @@ describe('Homecare Phase 2 foundation', () => {
     const res = await request(app).get('/homecare/packages')
     expect(res.status).toBe(401)
   })
+
+  /**
+   * A day range is a calendar day, and this is the contract that says so.
+   *
+   * The money screens take a range of days (`billingPeriodSchema` is a strict
+   * YYYY-MM-DD pattern). A client that sends a full ISO timestamp gets a 400 —
+   * which is exactly what shipped: the mobile pay screen built its month window
+   * with `toISOString()` and rendered the rejection as "No earnings data", so
+   * every carer saw an empty pay screen, and the mobile suite agreed with it
+   * because its fixture rebuilt the same timestamps.
+   *
+   * Both halves are pinned here, so neither client can drift back.
+   */
+  it('accepts a day range on my-earnings and refuses an ISO timestamp', async () => {
+    const org = await createOrg()
+    const carer = await createUser({ email: `hc-range-carer-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: carer.id })
+    const carerToken = generateToken(carer)
+
+    const days = await request(app).get(`/homecare/my-earnings?from=${fd(0)}&to=${fd(1)}`).set('Authorization', `Bearer ${carerToken}`)
+    expect(days.status).toBe(200)
+
+    const stamp = new Date().toISOString()
+    const timestamps = await request(app).get(`/homecare/my-earnings?from=${stamp}&to=${stamp}`).set('Authorization', `Bearer ${carerToken}`)
+    expect(timestamps.status).toBe(400)
+    expect(timestamps.body.errors.map((e: any) => e.field)).toContain('from')
+  })
 })

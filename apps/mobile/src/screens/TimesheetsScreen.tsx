@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAppColors, typography, spacing, radii, elevation } from '../theme'
 import { getPendingTimesheets, approveTimesheet, rejectTimesheet } from '../services/api'
 import { hapticLight, hapticSuccess, hapticWarning } from '../services/haptics'
+import { localDate } from '../utils/localDay'
 
 /* ── Helpers ── */
 const money = (p: number | null | undefined) => p == null ? '—' : `£${(Number(p) / 100).toFixed(2)}`
@@ -20,8 +21,10 @@ const fmtTime = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '
 function getMonthRange(monthsBack = 0) {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)
-  const to = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0, 23, 59, 59)
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+  const to = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0)
+  // Local days: an ISO slice put the window's own boundaries on the neighbouring
+  // day for anyone east or west of UTC.
+  return { from: localDate(from), to: localDate(to) }
 }
 
 /* ── Props ── */

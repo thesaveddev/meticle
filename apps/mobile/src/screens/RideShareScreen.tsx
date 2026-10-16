@@ -9,6 +9,7 @@ import type { AuthSession, HomecareVisit } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { listRideShareRequests, createRideShareRequest, respondRideShareRequest, getMyVisits } from '../services/api'
 import { hapticLight, hapticMedium } from '../services/haptics'
+import { localToday, shiftDay } from '../utils/localDay'
 
 function time(value?: string | null) {
   return value ? new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'
@@ -68,7 +69,9 @@ export function RideShareScreen({ session, currentVisit, onBack }: Props) {
     try {
       const [reqs, visits] = await Promise.all([
         listRideShareRequests(session.accessToken),
-        getMyVisits(session.accessToken, new Date().toISOString().slice(0, 10), new Date(Date.now() + 86400000).toISOString().slice(0, 10)),
+        // Today where the carer is, not the UTC day: before 01:00 BST the UTC
+        // slice asked for yesterday's calls and this list came back empty.
+        getMyVisits(session.accessToken, localToday(), shiftDay(localToday(), 1)),
       ])
       setRequests(Array.isArray(reqs) ? reqs : [])
       setTodayVisits(Array.isArray(visits) ? visits.filter((v: HomecareVisit) => !['completed', 'missed', 'cancelled'].includes(v.status)) : [])

@@ -4,6 +4,7 @@ import { MileageScreen } from '../MileageScreen'
 import type { AuthSession } from '../../types'
 import * as api from '../../services/api'
 import * as payslip from '../../services/payslip'
+import { localDate } from '../../utils/localDay'
 
 jest.mock('../../services/api', () => ({
   getMyEarnings: jest.fn(async () => null),
@@ -34,12 +35,20 @@ const earnings = (overrides: Partial<Earnings> = {}): Earnings => ({
   ...overrides,
 })
 
-/** The current pay period, computed independently of the screen's own helper. */
+/**
+ * The current pay period, computed independently of the screen's own helper.
+ *
+ * As `YYYY-MM-DD`, because that is the only form `/homecare/my-earnings`
+ * accepts — `billingPeriodSchema` in `homecare.routes.ts` is a strict
+ * `^\d{4}-\d{2}-\d{2}$` — and because a full ISO timestamp is not a day
+ * boundary at all. The earlier version of this helper rebuilt the screen's own
+ * ISO timestamps, so it agreed with a request that was rejected every time.
+ */
 function thisMonthRange() {
   const now = new Date()
   return {
-    from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
-    to: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString(),
+    from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: localDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
   }
 }
 
@@ -59,6 +68,20 @@ async function renderEarnings(payload: Earnings) {
 beforeEach(() => {
   mockGetMyEarnings.mockResolvedValue(earnings())
   mockDownloadPayslip.mockResolvedValue(true)
+})
+
+describe('MileageScreen pay period', () => {
+  it('asks for the month as days the API accepts, not as timestamps', async () => {
+    await renderEarnings(earnings())
+
+    const [token, from, to] = mockGetMyEarnings.mock.calls[0]
+    expect(token).toBe('token-1')
+    // A timestamp here is a 400 from the API, and the screen renders that as
+    // "No earnings data" — a carer being told they earned nothing.
+    expect(from).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(to).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect({ from, to }).toEqual(thisMonthRange())
+  })
 })
 
 describe('MileageScreen headline', () => {

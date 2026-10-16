@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
+import { localToday } from '../utils/localDay'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight, hapticWarning } from '../services/haptics'
@@ -98,7 +99,9 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
         is_near_miss: isNearMiss,
         ...(personId ? { person_ids: [personId] } : {}),
         ...(visitId ? { visit_id: visitId } : {}),
-        incident_date: new Date().toISOString().split('T')[0],
+        // The date on the incident is the day it happened where the reporter is
+        // standing; the UTC day filed a 00:30 incident on yesterday.
+        incident_date: localToday(),
         incident_time: new Date().toTimeString().slice(0, 5),
       }
       const result = await submitIncidentReport(session.accessToken, session.user.id, session.user.organizationId || session.organization?.id || null, payload)
