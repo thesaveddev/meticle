@@ -13,10 +13,10 @@ function S({ title, children }: { title: string; children: React.ReactNode }) {
 export default function CookiePolicyPage() {
   return (
     <>
-      <PageMeta title="Cookie Policy | Meticle Care" description="How Meticle Care uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
+      <PageMeta title="Cookie Policy | Meticle Care" description="How Meticle Care uses cookies. Our care management platform sets two essential cookies and no tracking, advertising or analytics cookies." canonicalPath="/cookies" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 600, color: '#0164C8', mb: 1 }}>Cookie Policy</Typography>
-      <Typography variant="body2" color="#51637A" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
+      <Typography variant="body2" color="#51637A" sx={{ mb: 5 }}>Last updated: October 2026</Typography>
 
       <S title="About the Company">
         <p>MeticleCare is a product operated by <strong>34Orients Ltd</strong>, company number <strong>17446318</strong>. Our registered office is 3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS.</p>
@@ -27,12 +27,33 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="2. Cookies We Use">
-        <p>Meticle Care uses only <strong>essential cookies</strong>:</p>
+        <p>
+          Meticle Care sets exactly two cookies. Both are <strong>essential</strong>, first-party and set by our own
+          API — they are the only cookies we place on your device.
+        </p>
         <ul>
-          <li><strong>Authentication token</strong> — stored in your browser to keep you logged in. Required for the Service to function.</li>
-          <li><strong>CSRF token</strong> — prevents cross-site request forgery attacks.</li>
-          <li><strong>Session preference</strong> — remembers your selected organisation and role.</li>
+          <li>
+            <strong>accessToken</strong> — identifies your signed-in session. Expires after <strong>15 minutes</strong>.
+          </li>
+          <li>
+            <strong>refreshToken</strong> — lets the session be renewed without asking for your password again.
+            Expires after <strong>7 days</strong>.
+          </li>
         </ul>
+        <p>
+          Both are marked <strong>HttpOnly</strong> (no script on the page can read them), <strong>Secure</strong> (sent
+          only over HTTPS) and <strong>SameSite=Lax</strong> (not sent on requests started by another site). Lax
+          SameSite is what protects the session from cross-site request forgery: an attacker's page cannot make your
+          browser send these cookies. We do not issue a separate CSRF token cookie, because there is no CSRF token to
+          issue — API requests are authenticated with a bearer token that a cross-site form cannot set.
+        </p>
+        <p>
+          <strong>Preferences are not cookies.</strong> Your selected organisation and role, the sign-in details this
+          browser holds, your appearance settings (theme, branding, zoom) and your collapsed menu groups are stored in
+          your browser's <strong>local storage</strong>. Local storage is not sent to us with every request and cannot
+          be read by another site; it is covered by our Privacy Policy, and clearing your browser's site data removes
+          it and signs you out.
+        </p>
         <p>We do not use:</p>
         <ul>
           <li>Tracking cookies</li>
@@ -43,11 +64,21 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="3. Third-Party Services">
-        <p><strong>Stripe</strong> — our payment processor. Stripe may set its own essential cookies during the payment process. See Stripe's cookie policy for details.</p>
+        <p>
+          <strong>Stripe</strong> — our payment processor, and the only third party our application asks to place a
+          cookie. Stripe sets
+          its own fraud-prevention cookies (<strong>__stripe_mid</strong> and <strong>__stripe_sid</strong>) when our
+          billing page loads Stripe's payment form, and only then. They are used to detect fraudulent card use, not for
+          advertising or profiling. See Stripe's cookie policy for details.
+        </p>
       </S>
 
       <S title="4. Managing Cookies">
-        <p>Most browsers allow you to block or delete cookies. However, Meticle Care requires essential cookies to function — blocking them will prevent you from logging in.</p>
+        <p>
+          Most browsers allow you to block or delete cookies. Meticle Care requires these two to function — blocking
+          them prevents you from signing in. Removing them, or clearing your browser's site data, also clears the
+          preferences held in local storage described above; nothing in your care records is stored in your browser.
+        </p>
       </S>
 
       <S title="5. Changes">
