@@ -37,6 +37,14 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
       const fresh = await refreshAccessToken()
       return request<T>(path, options, fresh, true)
     }
+    // Screens swallow failures on purpose so a carer still sees the rest of the
+    // page, and that is how a permanently rejected request looked like an empty
+    // month for weeks: the pay screen sent its range as ISO timestamps, the API
+    // answered 400 every time, and the carer was told they had earned nothing.
+    // The message reaches the device log now, so the next one is diagnosable.
+    if (response.status !== 401) {
+      console.warn(`[api] ${options.method || 'GET'} ${path} -> ${response.status} ${data?.message || data?.error?.message || ''}`.trim())
+    }
     throw new ApiError(response.status, data?.message || data?.error?.message || 'Request failed', data)
   }
   return data as T

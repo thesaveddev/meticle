@@ -109,12 +109,27 @@ describe('MileageScreen headline', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
-  it('still renders when the earnings request fails', async () => {
-    mockGetMyEarnings.mockRejectedValue(new Error('offline'))
+  it('says the load failed instead of showing an empty month, and retries', async () => {
+    mockGetMyEarnings.mockRejectedValueOnce(new Error('offline'))
+    mockGetMyEarnings.mockResolvedValueOnce(earnings({ summary: { total_gross_pay_pence: 1200 } }))
 
     const screen = render(<MileageScreen session={session} />)
 
-    expect(await screen.findByText('No earnings data')).toBeTruthy()
+    // A carer who is owed money must not be told they have earned nothing.
+    expect(await screen.findByText('Could not load your earnings')).toBeTruthy()
+    expect(screen.queryByText('No earnings data')).toBeNull()
+
+    fireEvent.press(screen.getByText('Try again'))
+
+    await waitFor(() => expect(screen.getByText('£12.00')).toBeTruthy())
+    expect(screen.queryByText('Could not load your earnings')).toBeNull()
+  })
+
+  it('still shows the empty month when the request succeeds with nothing in it', async () => {
+    const screen = await renderEarnings(earnings())
+
+    expect(screen.getByText('No earnings data')).toBeTruthy()
+    expect(screen.queryByText('Could not load your earnings')).toBeNull()
   })
 })
 

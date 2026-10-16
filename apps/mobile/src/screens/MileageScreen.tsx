@@ -63,6 +63,7 @@ export function MileageScreen({ session }: Props) {
   }
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'completed' | 'upcoming'>('overview')
   const [downloading, setDownloading] = useState(false)
@@ -70,11 +71,17 @@ export function MileageScreen({ session }: Props) {
 
   const load = async (refresh = false) => {
     if (refresh) setRefreshing(true)
+    setLoadError(null)
     try {
       const range = monthRange()
       const earnings = await getMyEarnings(session.accessToken, range.from, range.to)
       setData(earnings)
-    } catch { /* ignore */ }
+    } catch {
+      // Swallowing this is how a permanently rejected request looked like a carer
+      // with no pay rather than a broken screen. A failure says so, and offers a
+      // retry; only a successful empty answer says "no earnings yet".
+      setLoadError('Could not load your earnings. Please try again.')
+    }
     finally { setLoading(false); setRefreshing(false) }
   }
 
@@ -374,8 +381,25 @@ export function MileageScreen({ session }: Props) {
           </View>
         )}
 
-        {/* Empty state for no data at all */}
-        {!loading && completed.length === 0 && scheduled.length === 0 && (
+        {/* A failed load is not an empty month. */}
+        {!loading && loadError && (
+          <View style={[s.emptyCard, { backgroundColor: c.surface, marginTop: spacing.lg }]}>
+            <IconWarning size={32} color={c.danger || '#B42318'} />
+            <Text style={[s.emptyTitle, { color: c.ink }]}>Could not load your earnings</Text>
+            <Text style={[s.emptyCopy, { color: c.muted }]}>{loadError}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+              onPress={() => { hapticLight(); setLoading(true); load() }}
+              style={[s.retryButton, { backgroundColor: c.primary }]}
+            >
+              <Text style={s.retryButtonText}>Try again</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Empty state for a month that genuinely has nothing in it */}
+        {!loading && !loadError && completed.length === 0 && scheduled.length === 0 && (
           <View style={[s.emptyCard, { backgroundColor: c.surface, marginTop: spacing.lg }]}>
             <IconWarning size={32} color={c.subtle} />
             <Text style={[s.emptyTitle, { color: c.ink }]}>No earnings data</Text>
@@ -459,6 +483,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...typography.bodyBold, marginTop: spacing.md, marginBottom: spacing.xs },
   emptyCopy: { ...typography.small, textAlign: 'center', paddingHorizontal: spacing.lg },
+  retryButton: {
+    marginTop: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm,
+    borderRadius: radii.md, alignSelf: 'center',
+  },
+  retryButtonText: { ...typography.bodyBold, color: '#FFFFFF' },
 
   /* Visit cards */
   visitCard: { borderRadius: radii.lg, padding: spacing.base, marginBottom: spacing.sm, ...elevation.sm },
