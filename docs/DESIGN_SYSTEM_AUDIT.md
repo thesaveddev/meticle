@@ -522,10 +522,40 @@ render of the same page sits 4.7% of the frame from the Linux capture.
 All sixteen baselines are adopted from that run, and every one is verified to paint the master
 palette — no retired blue, ink or canvas value survives in any of them.
 
-**Observation, not fixed here:** the `*-dark` captures are md5-identical to their `*-light`
-counterparts in every case, old set and new. The dark projects therefore duplicate the light ones
-rather than exercising a dark surface — either the harness should make the app answer
-`prefers-color-scheme`, or those two projects are dead weight in the matrix.
+**That observation is now closed, and the cause was the harness rather than the design system.**
+The `*-dark` captures were md5-identical to their `*-light` counterparts in every case, old set and
+new, because Playwright's `colorScheme` only emulates `prefers-color-scheme` while this app reads
+its theme from `localStorage['theme-mode']` — defaulting to light — so two of the four projects were
+photographing light pages under a dark name. `tests/visual/theme.ts` now seeds the stored
+preference, which is the same path a person takes in Appearance.
+
+The eight `-dark` baselines were then adopted from the runner's own regeneration of `c4d0dc79`, and
+the adoption is checkable rather than trusted: all eight `-light` captures in that artifact are
+byte-identical to the ones already committed, so only the dark set moved, and no `-light` baseline
+is touched by the change. In the tree now, mean luminance on `desktop-dark/login.png` is **38.6**
+against `desktop-light`'s 243.0, and `mission-control-today.png` **31.9** against 247.3, with 94.0%
+and 99.5% of their pixels differing — twins no longer. The marketing pairs move 7.2% (`home`) and
+7.4% (`pricing`), which is what that commit's message says they should: those pages stay light by
+design and only the dark ground shows through.
+
+**The gate is green on the adoption.** `ci.yml` run 38896138463 on `96374dfd` — the baselines-only
+commit — reports the `Visual regression (marketing + app)` job **success, 36 passed**: the sixteen
+screenshot comparisons (three marketing routes plus the mission-control route, in each of the four
+projects) and the twenty palette/Lenis assertions, with `lint-and-typecheck` and the design-system
+job green beside it. Before that run, `Visual regression` was the *only* failing job on `32bef695`
+and on `c4d0dc79`, which is what a baseline set that answers the wrong question looks like: the
+comparison had begun rendering dark pages and was diffing them against light images.
+
+**Nothing checked that the dark renders stayed dark, so that gap is now closed too.** A `-dark`
+baseline could return to duplicating its `-light` twin and no comparison would notice — both sides
+of it move together, which is exactly how sixteen files carried a lie about two thirds of the
+matrix. Both screenshot specs now assert the page answered the seeded preference before it is
+photographed (`expectThemeApplied`, `tests/visual/theme.ts`), reading `data-theme` — the attribute
+`ThemeContext` writes from the same `localStorage` key a person's Appearance choice lands in. It is
+not vacuous: forcing `theme-mode: light` in the `desktop-dark` project makes it fail with
+`answered "light"`. And it holds on every captured route in both modes — a throwaway probe of `/`,
+`/pricing`, `/login` and the authenticated workspace returned `data-theme` equal to the seeded
+value in all eight cases.
 
 **CI has since run three of those four against these two commits**, and both are green — including
 the screenshot job under the tightened comparator, which is the only proof that matters for the

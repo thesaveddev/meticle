@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { seedTheme } from './theme'
+import { expectThemeApplied, seedTheme } from './theme'
 
 /**
  * Authenticated application-surface visual regression.
@@ -294,6 +294,10 @@ test('the seeded Mission Control workspace matches its baseline', async ({ page 
   // ThemeContext writes `data-theme` on mount; capturing before it lands is what
   // makes dark projects disagree with their own baselines.
   await page.waitForFunction(() => document.documentElement.hasAttribute('data-theme'), null, { timeout: 4000 }).catch(() => {})
+  // …and prove it is the *seeded* theme rather than merely present: the failure
+  // this catches is a `-dark` project capturing a light page, where `data-theme`
+  // would read "light" and no screenshot comparison could ever say so.
+  await expectThemeApplied(page, testInfo)
 
   // Prove the frame is the seeded screen and not a redirect, a skeleton or a
   // section error before anything is compared. Each of these fails for its own

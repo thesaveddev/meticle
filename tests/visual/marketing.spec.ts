@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { seedTheme } from './theme'
+import { expectThemeApplied, seedTheme } from './theme'
 
 /**
  * Marketing-surface visual regression.
@@ -98,6 +98,7 @@ for (const route of ROUTES) {
     expect(response?.ok(), `${route.path} did not return 2xx`).toBeTruthy()
 
     await settle(page)
+    await expectThemeApplied(page, testInfo)
 
     await expect(page).toHaveScreenshot(`${route.name}.png`, { fullPage: false })
   })

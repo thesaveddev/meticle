@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test'
+import { expect, type Page, type TestInfo } from '@playwright/test'
 
 /**
  * Make the `-dark` projects dark.
@@ -17,9 +17,10 @@ import type { Page, TestInfo } from '@playwright/test'
  * Appearance, so this drives the real path rather than a test-only switch.
  *
  * Verifying a regeneration: the `-dark` captures of the authenticated
- * workspace and the auth screens should differ from their `-light` twins. The
- * marketing pages are light-only by design and may legitimately stay identical;
- * `docs/DESIGN_SYSTEM_AUDIT.md` §11 records which ones do.
+ * workspace and the auth screens differ from their `-light` twins by most of
+ * the frame, and the marketing pages keep their light design — measured at
+ * 7.2% (`home`) and 7.4% (`pricing`) of the frame, which is the dark ground
+ * showing through. `docs/DESIGN_SYSTEM_AUDIT.md` §10 carries the numbers.
  */
 export function projectTheme(testInfo: TestInfo): 'light' | 'dark' {
   return testInfo.project.use.colorScheme === 'dark' ? 'dark' : 'light'
@@ -41,4 +42,31 @@ export async function seedTheme(page: Page, testInfo: TestInfo): Promise<void> {
       // nothing to fall back to and nothing to fail for.
     }
   }, mode)
+}
+
+/**
+ * Assert the page answered the seeded preference before it is photographed.
+ *
+ * This guards the failure that went unnoticed for weeks: the seeding is a line
+ * of JavaScript, and if it stops running — a renamed storage key, a blocked
+ * origin, a provider that writes `data-theme` from somewhere else — the `-dark`
+ * projects return to photographing light pages while the comparison agrees with
+ * a baseline set that is light too. That is a green gate measuring nothing, and
+ * no screenshot comparison can catch it, because both sides move together: the
+ * old set had every `-dark` file byte-identical to its `-light` twin.
+ *
+ * It reads the real signal rather than a test-only switch. `ThemeContext` writes
+ * `document.documentElement.dataset.theme` from the same `localStorage` key a
+ * person's Appearance choice lands in, so this asserts the app's own answer.
+ * Measured on all four captured routes — `/`, `/pricing`, `/login` and the
+ * authenticated workspace — it is the seeded value in both modes.
+ */
+export async function expectThemeApplied(page: Page, testInfo: TestInfo): Promise<void> {
+  const expected = projectTheme(testInfo)
+  const applied = await page.evaluate(() => document.documentElement.dataset.theme ?? null)
+  expect(
+    applied,
+    `the ${testInfo.project.name} project seeded "${expected}" and the page answered "${applied}" — `
+      + 'a capture taken now is of the wrong theme, whatever it is compared against'
+  ).toBe(expected)
 }
