@@ -58,8 +58,20 @@ async function renderClientInvoicePdf(invoice: any, lines: any[], supplier: any)
   }, supplier, { name: invoice.recipient_name || invoice.payer_name, address: invoice.recipient_address, contact_email: invoice.recipient_email });
 }
 
+/**
+ * Write an audit row without failing the user's action.
+ *
+ * The promise is returned rather than discarded so a caller whose *purpose* is
+ * the row itself can await it; ordinary mutations deliberately do not, because a
+ * manager saving a visit must not be blocked by the audit log. Errors are
+ * swallowed either way — an audit failure is a gap in the trail, never a 500.
+ *
+ * `acknowledgeStaffNotice` is the case that awaits it, and the reason is in that
+ * handler: for a notice acknowledgement the row *is* the evidence, so a response
+ * that does not guarantee it exists is a promise the endpoint cannot keep.
+ */
 function audit(req: Request, action: string, entityType: string, entityId?: string, newData?: unknown) {
-  AuditRepository.log({ user_id: userId(req), action, entity_type: entityType, entity_id: entityId, new_data: newData, ip_address: req.ip }).catch(() => {});
+  return AuditRepository.log({ user_id: userId(req), action, entity_type: entityType, entity_id: entityId, new_data: newData, ip_address: req.ip }).catch(() => {});
 }
 
 export class HomecareController {
@@ -1219,7 +1231,15 @@ export class HomecareController {
     // a composite string here would be rejected by Postgres — and because audit()
     // swallows its own errors, the row would simply never be written, leaving the
     // employer with an acknowledgement and no record of it having been shown.
-    audit(req, 'read', 'staff_data_notice', inserted.rows[0].id, {
+    //
+    // Awaited, unlike every other audit call in this controller. This endpoint
+    // exists to produce that row (it is what an employer shows an inspector when
+    // asked whether workers were told), so it must not be possible to get the 201
+    // before the row exists — which it was: the insert was issued and the response
+    // sent without waiting, and the integration test read the table on another
+    // connection and found nothing. It cannot fail the request either way, because
+    // audit() swallows its own errors.
+    await audit(req, 'read', 'staff_data_notice', inserted.rows[0].id, {
       notice_key, notice_version, app_version: app_version ?? null,
     });
     res.status(201).json({ notice_key, notice_version, accepted: true });

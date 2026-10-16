@@ -821,7 +821,35 @@ const emergencyPhoneSchema = z.string().trim().max(30)
   .regex(/^[0-9+()\-\s]*$/, 'Use digits, spaces and + - ( ) only')
   .optional();
 
+/**
+ * An IANA time zone the server can resolve.
+ *
+ * Checked twice, deliberately. Here it is a `RangeError` from `Intl`, which
+ * rejects a name the runtime has never heard of and so answers a typo with a
+ * field-level 400 before it reaches a database. Then the controller checks it
+ * against `pg_timezone_names`, because the value ends up in the session `TimeZone`
+ * GUC and the database is the thing that has to be able to resolve it — the two
+ * tz databases are not guaranteed to be the same version.
+ */
+export const timeZoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .refine(
+    (value) => {
+      try {
+        new Intl.DateTimeFormat('en-GB', { timeZone: value })
+        return true
+      } catch {
+        return false
+      }
+    },
+    { message: 'Not a recognised IANA time zone (for example Europe/London)' }
+  );
+
 export const updateOrgSettingsSchema = z.object({
+  timezone: timeZoneSchema.optional(),
   leave_start_month: z.number().int().min(1).max(12).optional(),
   leave_calculation_type: z.string().optional(),
   default_hours_per_leave_day: z.number().min(0).optional(),

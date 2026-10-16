@@ -1,5 +1,6 @@
 import { query } from '../../shared/database';
 import logger from '../../shared/utils/logger';
+import { trackAuditWrite } from '../../shared/audit/auditDurability';
 
 const SENSITIVE_FIELDS = new Set([
   'password', 'password_hash', 'newPassword', 'confirmPassword',
@@ -32,6 +33,16 @@ function redactAuditData(data: any): any {
 }
 
 export class AuditRepository {
+  /**
+   * Write an audit row.
+   *
+   * The promise resolves whether the insert worked or not: this is called beside
+   * a mutation that has already committed, so a failure here is reported in the
+   * log and never propagated to a caller. It is *registered* with the request
+   * (`trackAuditWrite`) rather than only returned, which is what makes the row
+   * exist before the response does — see `shared/audit/auditDurability.ts` for
+   * why every call site gets that and not just the ones somebody remembered.
+   */
   static async log(data: {
     user_id?: string;
     action: string;
@@ -41,15 +52,19 @@ export class AuditRepository {
     new_data?: any;
     ip_address?: string;
   }) {
-    try {
-      const { user_id, action, entity_type, entity_id, old_data, new_data, ip_address } = data;
-      await query(
-        'INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_data, new_data, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [user_id, action, entity_type, entity_id, redactAuditData(old_data), redactAuditData(new_data), ip_address]
-      );
-    } catch (err) {
-      logger.error({ err }, 'Audit log failed');
-    }
+    const write = (async () => {
+      try {
+        const { user_id, action, entity_type, entity_id, old_data, new_data, ip_address } = data;
+        await query(
+          'INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_data, new_data, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [user_id, action, entity_type, entity_id, redactAuditData(old_data), redactAuditData(new_data), ip_address]
+        );
+      } catch (err) {
+        logger.error({ err }, 'Audit log failed');
+      }
+    })();
+    trackAuditWrite(write);
+    return write;
   }
 
   static async getLogs(filters: any) {

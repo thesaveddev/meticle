@@ -14,6 +14,7 @@ export class SettingsController {
       `SELECT leave_start_month, leave_calculation_type, default_hours_per_leave_day,
                 base_leave_hours, base_contracted_hours, minimum_compliance_percent,
                 minimum_staffing_coverage_percent, overtime_requires_approval, force_mfa, regulator,
+                timezone,
                 compliance_digest_enabled, predictive_alerts_enabled,
                 auto_evidence_pack_enabled, auto_evidence_pack_frequency,
                 daily_shift_audit_enabled, daily_shift_audit_time,
@@ -96,8 +97,10 @@ export class SettingsController {
 
     // MANAGERs may change day-to-day operational settings: staffing rules,
     // leave policy, notification/alert behaviour and medication safety.
-    // Identity and security policy (force_mfa, regulator, service model) and
-    // SOS contacts stay with the org admin.
+    // Identity and security policy (force_mfa, regulator, service model),
+    // SOS contacts and the organisation's time zone stay with the org admin —
+    // the time zone is not a preference, it decides which day every record
+    // written by everyone in the tenant is filed against.
     const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'stock_low_alert_days_threshold', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention', 'minimum_compliance_percent', 'minimum_staffing_coverage_percent', 'overtime_requires_approval', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'auto_evidence_pack_enabled', 'auto_evidence_pack_frequency', 'leave_start_month', 'leave_calculation_type', 'default_hours_per_leave_day', 'base_leave_hours', 'base_contracted_hours']);
     if (user.role === 'MANAGER') {
       const filtered: any = {};
@@ -110,7 +113,20 @@ export class SettingsController {
       req.body = filtered;
     }
 
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, minimum_staffing_coverage_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, service_types, primary_service_type, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone } = req.body;
+    const { timezone, leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, minimum_staffing_coverage_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, service_types, primary_service_type, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone } = req.body;
+
+    // The schema already refuses a name the runtime cannot resolve. This checks
+    // the one that matters at the point of use — the database that will be asked
+    // to set its session `TimeZone` to it on every subsequent request. A value it
+    // cannot resolve is not a wrong day, it is a tenant whose requests all fail,
+    // so it is rejected here rather than discovered then.
+    if (timezone !== undefined) {
+      const known = await pool.query('SELECT 1 FROM pg_timezone_names WHERE name = $1', [timezone]);
+      if (known.rowCount === 0) {
+        throw new AppError(400, `"${timezone}" is not a time zone this server knows about.`);
+      }
+    }
+
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -118,6 +134,7 @@ export class SettingsController {
         default_hours_per_leave_day = COALESCE($3, default_hours_per_leave_day),
         base_leave_hours = COALESCE($4, base_leave_hours),
         base_contracted_hours = COALESCE($5, base_contracted_hours),
+        timezone = COALESCE($31, timezone),
         minimum_compliance_percent = COALESCE($6, minimum_compliance_percent),
         minimum_staffing_coverage_percent = COALESCE($30, minimum_staffing_coverage_percent),
         overtime_requires_approval = COALESCE($7, overtime_requires_approval),
@@ -144,7 +161,7 @@ export class SettingsController {
         emergency_contact_2_phone = CASE WHEN $29::text IS NULL THEN emergency_contact_2_phone ELSE NULLIF($29, '') END,
         primary_service_type = COALESCE($25, primary_service_type)
        WHERE id = $23 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, orgId, service_types || null, primary_service_type || null, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone, minimum_staffing_coverage_percent]
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, stock_low_alert_days_threshold, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, orgId, service_types || null, primary_service_type || null, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone, minimum_staffing_coverage_percent, timezone ?? null]
     );
 
     AuditRepository.log({

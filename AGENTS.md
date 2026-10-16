@@ -13,6 +13,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 - 11-hour rest enforced for OT; conflicting shifts blocked
 - Duplicate manager delegations → 409; notifications on OT + dept/team assignment
 - Email: branded HTML templates, queue with retry (DB-backed inbox)
+- Audit: every mutation's `audit_logs` row is committed before its response is sent (per-request tracking + a bounded `res.end` deferral in `rls.middleware.ts`); an audit failure is logged, never a 500
 - Error messages inside modals (not behind); tables paginated; buttons have loading spinners
 - Guard: `npx tsc --noEmit` in both `apps/web` and `apps/api`
 - **No eye icons** (`VisibilityIcon`/`RemoveRedEye`/`Visibility` as a "view" affordance) anywhere except password show/hide toggles on auth forms; use `OpenInNewIcon`/`DownloadIcon` for file-open actions
@@ -21,9 +22,9 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 
 ## Architecture
 - **Monorepo**: npm workspaces (`apps/api`, `apps/web`, `apps/marketing`, `packages/shared`)
-- **Backend**: Express modular monolith, 45 module dirs, raw SQL (no ORM), Zod validation (80+ schemas)
+- **Backend**: Express modular monolith, 51 module dirs, raw SQL (no ORM), Zod validation (80+ schemas)
 - **Frontend**: React 18 + TypeScript + MUI 5 + TanStack React Query + React Router 6
-- **Database**: PostgreSQL 15 (pg pool), dual-pool (app role + superuser), AsyncLocalStorage request-scoped clients, RLS enforcement
+- **Database**: PostgreSQL 15 (pg pool), dual-pool (app role + superuser), AsyncLocalStorage request-scoped clients, RLS enforcement, session timezone set per request from `organizations.timezone` (migration 149, applied in `setRlsSessionVars`) so `CURRENT_DATE` means the provider's day; `DB_TIMEZONE` is only the deploy-time default/fallback
 - **Cache**: Redis with in-memory fallback (rate limiter, token blacklist)
 - **Realtime**: Socket.IO v4 with JWT auth + DB validation + rate limiting + Redis adapter
 - **Auth**: JWT access + refresh tokens, MFA (TOTP/speakeasy), RBAC + permission checks per request
@@ -32,7 +33,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 
 ## Current State (Phase 1 — Launched August 2026)
 
-### ✅ Backend Modules (45)
+### ✅ Backend Modules (51 directories; the 45 rows below are the Phase 1 set, so a module missing from this table is not a module that does not exist — check `apps/api/src/modules/`)
 | Module | Endpoints | Key Features |
 |---|---|---|
 | auth | 11 | Register, login, MFA challenge, refresh, forgot/reset, me, logout |
@@ -79,7 +80,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 | alerts | 4 | Alert rules CRUD + evaluate + acknowledge + preferences |
 | audit-trail | 1 | Audit trail viewer (filtered, paginated, exportable) |
 
-### ✅ Frontend Pages (68)
+### ✅ Frontend Pages (103 `*Page.tsx` files; the 68 described below are the Phase 1 set)
 | Area | Pages | Features |
 |---|---|---|
 | Auth | 7 | Login, Register, Forgot/Reset Password, Verify Email, MFA Challenge, MFA Setup |
@@ -113,9 +114,9 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 | Encryption | ✅ AES-256-GCM per-org key derivation |
 | HTTPS | ✅ Optional cert-based |
 | PWA | ✅ Service worker, manifest, offline caching, installable, GPS/voice pages |
-| Testing | ✅ 395 tests across 44 modules (integration + unit) |
+| Testing | ✅ **2,465 tests, all green 16 Oct 2026**: API 168 files / 1,631, web 67 files / 512, mobile 40 suites / 322. The per-module table further down is the Phase 1 count (395) and is stale as a breakdown — trust the totals and the suites themselves |
 | Postgres RLS | ✅ AsyncLocalStorage + dual-pool + RLS policies on all tables |
-| Migrations | ✅ 33 migrations, versioned with checksums |
+| Migrations | ✅ 97 migration files (numbered to 149), versioned with checksums |
 | Monitoring | ⚠️ Uptime Kuma **is** deployed (loopback-bound) but whether it has monitors is invisible from the repo (T0-4); `monitor/health_check.py` emails on container failure via cron, unverified in production; `/metrics` is exported and unscraped (T1-13) |
 
 ### ✅ Seed Script (`seed-orbis.ts`)
@@ -137,7 +138,9 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 - 4 eMAR records (12 meds, ~76 administrations)
 - 15 evidence mappings
 
-### ✅ Test Suite (395 tests)
+### ✅ Test Suite
+
+**Totals verified by running all three suites on 16 Oct 2026:** API 168 files / 1,631 tests, web 67 files / 512 tests (511 in the whole-suite run, plus one helper test added after it and verified with the file and the source guards re-run), mobile 40 suites / 322 tests — 2,465 in all, green. The per-module breakdown below is the Phase 1 count and has not been re-attributed since; new modules (homecare, mission-control, supervisions, shift-audit, rbac, reviews, contact, shift-marketplace) appear in the suites but not in this table.
 | Module | Tests | Coverage |
 |---|---|---|
 | auth | 12 | Register, login, MFA, refresh, forgot/reset, logout, /auth/me |

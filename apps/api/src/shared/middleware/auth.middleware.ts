@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '@meticle/shared';
 import { isTokenBlacklisted } from './tokenBlacklist';
-import { query, requestDBStorage } from '../database';
+import { query, requestDBStorage, databaseSessionTimeZone } from '../database';
 
 export interface AuthUser {
   userId: string;
@@ -36,28 +36,38 @@ const getJwtSecret = (): string => {
 };
 
 /**
- * Set RLS session variables on a pg client (typically the request-scoped client
+ * Set the session context on a pg client (typically the request-scoped client
  * from ALS). Must be called after the JWT is decoded and before any
  * tenant-scoped queries. Also used by the event outbox worker to run background
  * consumers with an org context.
+ *
+ * One statement, because all four settings are the same context and a partial
+ * context is what connection poisoning looks like: the RLS variables say who is
+ * asking and the timezone says which day their answer names, so a request that
+ * got three of them and not the fourth would be scoped to the right tenant and
+ * still file its note against the wrong day.
+ *
+ * The timezone is the organisation's own (migration 149, `organizations.timezone`,
+ * resolved by `app_org_time_zone`) and is applied here rather than in the roughly
+ * forty queries that name a day — `CURRENT_DATE`, `NOW()::date` and
+ * `date_trunc('day', …)` all read the session `TimeZone`, so setting it once per
+ * request makes every one of them the provider's day without touching any of
+ * them. `$4` is the deploy-time default, which is what an organisation whose
+ * value the server cannot resolve falls back to instead of failing the request —
+ * the resolver returns NULL rather than raising, deliberately, because this is
+ * the statement that carries the RLS context.
  */
 export async function setRlsSessionVars(
   client: { query: (text: string, params?: any[]) => Promise<any> },
   decoded: AuthUser
 ) {
-  const promises: Promise<any>[] = [];
-  if (decoded.organizationId) {
-    promises.push(
-      client.query(`SELECT set_config('app.current_org_id', $1, false)`, [decoded.organizationId])
-    );
-  }
-  promises.push(
-    client.query(`SELECT set_config('app.current_user_id', $1, false)`, [decoded.userId])
+  await client.query(
+    `SELECT set_config('app.current_org_id', $1, false),
+            set_config('app.current_user_id', $2, false),
+            set_config('app.current_user_role', $3, false),
+            set_config('TimeZone', COALESCE(app_org_time_zone(NULLIF($1, '')::uuid), $4), false)`,
+    [decoded.organizationId || '', decoded.userId, decoded.role, databaseSessionTimeZone]
   );
-  promises.push(
-    client.query(`SELECT set_config('app.current_user_role', $1, false)`, [decoded.role])
-  );
-  await Promise.all(promises);
 }
 
 export const authenticateMfaSetup = async (req: Request, res: Response, next: NextFunction) => {

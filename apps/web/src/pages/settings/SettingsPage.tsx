@@ -38,6 +38,7 @@ import LocationDecisionControl from '../../components/LocationDecisionControl'
 import LocationDecisionEvidence from '../../components/LocationDecisionEvidence'
 import LocationRetentionCard from '../../components/LocationRetentionCard'
 import { getDashboardServiceMode } from '../dashboard/dashboardServiceMode'
+import { deviceTimeZone, timeZoneSelectOptions } from '../../utils/timeZones'
 
 // Mirrors the API rule for SOS contact numbers: a number that reaches the mobile
 // dialer must contain nothing but dialable characters.
@@ -1049,6 +1050,64 @@ export default function SettingsPage() {
           <Button onClick={() => setHistoryDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
+
+      {/*
+        The day this organisation's records are filed against.
+
+        It is on this page, with this explanation, because it looks like a
+        preference and is not one: it decides which day `CURRENT_DATE` means for
+        every query in the product — the day a 00:30 note is filed against, which
+        appointments count as "today", the month the medicines roll-up is keyed to.
+        Left as a bare select it reads like a display setting, and the person who
+        changed it to fix their own calendar would move everyone's.
+      */}
+      {isOrgAdmin && (
+        <Paper sx={{ p: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Day and time zone
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            The time zone the system uses to decide what “today” is. This sets the day a
+            record is filed against — a note written at 00:30 belongs to the day it was written,
+            not the day before — and it applies to everyone in the organisation, on every device.
+          </Typography>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Time zone"
+                value={orgSettings.timezone || 'Europe/London'}
+                onChange={e => setOrgSettings((p: any) => ({ ...p, timezone: e.target.value }))}
+                helperText={(() => {
+                  const device = deviceTimeZone()
+                  return device && device === (orgSettings.timezone || 'Europe/London')
+                    ? 'Matches this device.'
+                    : device
+                      ? `This device reports ${device}.`
+                      : 'Select the zone your services operate in.'
+                })()}
+                SelectProps={{ native: true }}
+              >
+                {timeZoneSelectOptions().map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+
+          <Button variant="contained" sx={{ mt: 3 }} onClick={() => saveOrgSettings({ timezone: orgSettings.timezone || 'Europe/London' })}>
+            <SaveIcon sx={{ mr: 1 }} /> Save Time Zone
+          </Button>
+          <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 2 }}>
+            Changing this does not rewrite anything already recorded. Records written under the old
+            zone keep the day they were written on; only new days — and “today” — are named
+            in the new one.
+          </Typography>
+        </Paper>
+      )}
 
       {/* Organization Details */}
       {orgDetails && (

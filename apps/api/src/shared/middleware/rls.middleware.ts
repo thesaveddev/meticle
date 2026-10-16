@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import pool, { requestDBStorage, resetRlsSessionVars } from '../database';
 import logger from '../utils/logger';
+import { auditWriteStorage, createAuditWriteStore, flushAuditWrites } from '../audit/auditDurability';
 
 /**
  * Per-request DB client middleware.
@@ -20,6 +21,13 @@ import logger from '../utils/logger';
  * Before a client is released back to the pool, the RLS session variables
  * are cleared so a subsequent request can never inherit the previous
  * user's tenant context (connection poisoning).
+ *
+ * It also owns the request-scoped audit store and the deferral of `res.end`,
+ * because both are about this same lifetime: the audit rows a request writes use
+ * the connection held here, so the response must not complete (and therefore
+ * release the connection) while one of them is still in flight. That is why the
+ * flush lives in this middleware rather than beside it — anything that mounts
+ * this middleware gets both, including the test app.
  */
 export function rlsMiddleware(req: Request, res: Response, next: NextFunction) {
   pool.connect().then(client => {
@@ -35,9 +43,34 @@ export function rlsMiddleware(req: Request, res: Response, next: NextFunction) {
     res.on('finish', () => { void releaseClient(); });
     res.on('close', () => { void releaseClient(); });
 
-    // Store the client in AsyncLocalStorage so query() uses it
+    // Hold the response open until the audit rows this request wrote have
+    // committed, so a client that received a 201 cannot be looking at a change
+    // with no record of who made it. Two things this is not: it is not a wait on
+    // a *failed* write (the write's promise resolves either way), and it is not
+    // unbounded (see the timeout in the module). Requests that write no audit
+    // row take the untracked path and are not delayed at all.
+    const auditStore = createAuditWriteStore();
+    const originalEnd = res.end.bind(res);
+    let ending = false;
+    res.end = function (this: Response, ...args: any[]) {
+      if (ending || auditStore.pending.size === 0) {
+        ending = true;
+        return (originalEnd as (...a: any[]) => Response)(...args);
+      }
+      ending = true;
+      // `then` rather than `finally`: flushAuditWrites does not reject, and a
+      // rejection here must not leave the response unsent.
+      void flushAuditWrites(auditStore).then(() => { (originalEnd as (...a: any[]) => Response)(...args); });
+      return res;
+    } as typeof res.end;
+
+    // Store the client in AsyncLocalStorage so query() uses it, and the audit
+    // store alongside it so audit_logs writes can be found at the end of the
+    // response rather than only by the handler that made them.
     requestDBStorage.run({ client }, () => {
-      next();
+      auditWriteStorage.run(auditStore, () => {
+        next();
+      });
     });
   }).catch(err => {
     // Never fall back to an unscoped pool query. That would allow a request to

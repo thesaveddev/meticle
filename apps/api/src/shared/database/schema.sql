@@ -435,6 +435,9 @@ ALTER TABLE organizations ADD COLUMN IF NOT EXISTS leave_calculation_type VARCHA
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_hours_per_leave_day DECIMAL(5,1) DEFAULT 7.5;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS base_leave_hours DECIMAL(6,1) DEFAULT 240;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS base_contracted_hours DECIMAL(5,1) DEFAULT 40;
+-- The zone CURRENT_DATE resolves in for this provider — see migration 149 for the
+-- resolver and why an unusable value falls back rather than failing the request.
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/London';
 ALTER TABLE locations ADD COLUMN IF NOT EXISTS manager_id UUID REFERENCES users(id) ON DELETE SET NULL;
 
 -- Add missing updated_at columns
