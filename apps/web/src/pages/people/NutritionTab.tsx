@@ -17,8 +17,11 @@ import { P } from '../../styles/tokens'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { EmptyState } from '../../components/design/EmptyState'
 import PrintableWeeklyMealPlan from '../../components/nutrition/PrintableWeeklyMealPlan'
+import { localToday } from '../../utils/dateFormat'
 
-const today = () => new Date().toISOString().split('T')[0]
+// Meals and fluids are recorded against the local day, so an entry logged during
+// a night shift before 01:00 BST is not filed under yesterday.
+const today = localToday
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B' },

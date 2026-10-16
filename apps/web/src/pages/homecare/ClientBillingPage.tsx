@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 import { EmptyState } from '../../components/design/EmptyState'
 import AppButton from '../../components/design/AppButton'
 import PageContainer from '../../components/design/PageContainer'
@@ -41,23 +42,22 @@ const deliveryStatusPresentation: Record<string, { label: string; color: 'defaul
 }
 const minutesLabel = (value: unknown) => { const mins = Number(value || 0); return `${Math.floor(mins / 60)}h ${mins % 60}m` }
 
-// Local-date formatting: slicing ISO strings shifts billing-period boundaries
-// a day for any timezone off UTC (a UK user's "this month" started on the 31st
-// of the previous month). Billing windows must match the calendar exactly.
-const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
+// Slicing ISO strings shifts billing-period boundaries a day for any timezone off
+// UTC (a UK user's "this month" started on the 31st of the previous month).
+// Billing windows must match the calendar exactly, and `localDate` is the one
+// place that convention lives.
 function monthRange(offset = 0) {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth() - offset, 1)
   const to = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0)
-  return { from: ymd(from), to: ymd(to) }
+  return { from: localDate(from), to: localDate(to) }
 }
 
 function quarterRange() {
   const now = new Date(); const quarter = Math.floor(now.getMonth() / 3)
   return {
-    from: ymd(new Date(now.getFullYear(), quarter * 3, 1)),
-    to: ymd(new Date(now.getFullYear(), quarter * 3 + 3, 0)),
+    from: localDate(new Date(now.getFullYear(), quarter * 3, 1)),
+    to: localDate(new Date(now.getFullYear(), quarter * 3 + 3, 0)),
   }
 }
 

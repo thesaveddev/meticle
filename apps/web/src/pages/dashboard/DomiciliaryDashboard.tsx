@@ -20,6 +20,7 @@ import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader, StatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 import { P } from '../../styles/tokens'
+import { localDate, shiftDay } from '../../utils/dateFormat'
 
 interface DomiciliaryData {
   selected_date: string
@@ -55,7 +56,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 export default function DomiciliaryDashboard() {
   const navigate = useNavigate()
   const theme = useTheme()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDate()
   const [selectedDate, setSelectedDate] = useState(today)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DomiciliaryData | null>(null)
@@ -92,11 +93,7 @@ export default function DomiciliaryDashboard() {
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
   })()
 
-  const navigateDate = (offset: number) => {
-    const d = new Date(selectedDate + 'T12:00:00')
-    d.setDate(d.getDate() + offset)
-    setSelectedDate(d.toISOString().split('T')[0])
-  }
+  const navigateDate = (offset: number) => setSelectedDate(shiftDay(selectedDate, offset))
 
   return (
     <Box sx={{ width: '100%' }}>

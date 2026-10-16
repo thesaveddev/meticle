@@ -19,7 +19,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { fetchUserPermissions, updateUserPermissions, formatPermissionLabel, LEVEL_LABELS, type PermissionLevel, type RolePermissionDefaults } from '../../utils/permissions'
-import { formatDateOnly } from '../../utils/dateFormat'
+import { formatDateOnly, localToday } from '../../utils/dateFormat'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
 // The record-link contract: the parameter this page reads and the tab slug a
@@ -251,7 +251,7 @@ export default function StaffProfilePage() {
     setCompPage(Math.floor(index / compRowsPerPage))
   }, [linkedRecordId, complianceData, competencyRecords, compRowsPerPage])
   const [assessOpen, setAssessOpen] = useState(false)
-  const [assessForm, setAssessForm] = useState({ template_id: '', passed: true, assessed_at: new Date().toISOString().split('T')[0], reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
+  const [assessForm, setAssessForm] = useState({ template_id: '', passed: true, assessed_at: localToday(), reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
   const [assessError, setAssessError] = useState('')
 
   const assessMutation = useMutation({
@@ -272,7 +272,7 @@ export default function StaffProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['competency-staff'] })
       queryClient.invalidateQueries({ queryKey: ['competency-pending'] })
       setAssessOpen(false)
-      setAssessForm({ template_id: '', passed: true, assessed_at: new Date().toISOString().split('T')[0], reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
+      setAssessForm({ template_id: '', passed: true, assessed_at: localToday(), reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
       setAssessError('')
     },
     onError: (err: any) => {
@@ -950,7 +950,7 @@ export default function StaffProfilePage() {
               onChange={e => setAssessForm(p => ({ ...p, involved_parties: e.target.value }))} />
             <TextField label="Reassessment date" type="date" value={assessForm.reassessment_date}
               InputLabelProps={{ shrink: true }}
-              inputProps={{ min: new Date().toISOString().split('T')[0] }}
+              inputProps={{ min: localToday() }}
               onChange={e => setAssessForm(p => ({ ...p, reassessment_date: e.target.value }))} />
             <TextField label="Notes" multiline rows={3} value={assessForm.notes}
               onChange={e => setAssessForm(p => ({ ...p, notes: e.target.value }))} />
@@ -1166,7 +1166,7 @@ function EditRequirementDialog({ open, requirement, onClose, onSaved }: {
           <TextField label="Issued date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
             value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} />
           <TextField label="Expiry date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
-            inputProps={{ min: new Date().toISOString().split('T')[0] }}
+            inputProps={{ min: localToday() }}
             value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
           <TextField label="Notes" multiline rows={3} fullWidth size="small" value={notes}
             onChange={(e) => setNotes(e.target.value)} />

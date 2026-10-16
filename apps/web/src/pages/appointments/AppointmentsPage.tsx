@@ -5,6 +5,7 @@ import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material'
 import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
+import { localDate, toLocalDateTimeInput } from '../../utils/dateFormat'
 
 const NAVY = '#0164C8'
 const RECURRENCE_LABELS: Record<string, string> = { once: 'Once', daily: 'Daily', monthly: 'Monthly', yearly: 'Yearly' }
@@ -16,7 +17,10 @@ function asArray(value: any, keys: string[] = []) {
   for (const key of keys) if (Array.isArray(value?.[key])) return value[key]
   return Array.isArray(value?.data) ? value.data : []
 }
-function inputDateTime(value?: string) { return value ? new Date(value).toISOString().slice(0, 16) : '' }
+// A `datetime-local` field is read back as the user's own wall clock, so it has to
+// be filled from local fields: the UTC slice showed a BST appointment an hour
+// early and then saved that hour back on every open-and-save.
+const inputDateTime = toLocalDateTimeInput
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
@@ -32,7 +36,7 @@ export default function AppointmentsPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [fetchError, setFetchError] = useState('')
-  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0])
+  const [dateFilter, setDateFilter] = useState(localDate())
   const [completionOpen, setCompletionOpen] = useState(false)
   const [completionNotes, setCompletionNotes] = useState('')
   const [followUp, setFollowUp] = useState('')
@@ -80,7 +84,9 @@ export default function AppointmentsPage() {
     api.get(`/appointments/${linkedAppointmentId}`).then(res => {
       const appointment = res.data?.appointment || res.data
       if (!appointment?.id) { setFetchError('That appointment could not be opened.'); return }
-      const day = appointment.start_time ? new Date(appointment.start_time).toISOString().slice(0, 10) : ''
+      // The day the appointment falls on where the carer is standing, not the
+      // UTC day of its timestamp: a 00:30 BST booking is 23:30Z the day before.
+      const day = appointment.start_time ? localDate(new Date(appointment.start_time)) : ''
       if (day && day !== dateFilter) setDateFilter(day)
       setViewing(appointment); setViewOpen(true)
     }).catch((e: any) => setFetchError(e?.response?.data?.message || 'That appointment could not be opened.'))

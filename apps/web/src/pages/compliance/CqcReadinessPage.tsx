@@ -7,6 +7,9 @@ import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning,
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
 import { X as DX } from '../../styles/export-tokens'
+// The export is named for the day the manager made it in their own timezone, not
+// the UTC day of the moment they clicked.
+import { localDate } from '../../utils/dateFormat'
 
 type Html2Pdf = typeof import('html2pdf.js').default
 let html2pdfLoader: Promise<Html2Pdf> | undefined
@@ -177,7 +180,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
       const html2pdf = await loadHtml2Pdf()
       html2pdf().from(iframe.contentWindow!.document.body).set({
         margin: [10, 10],
-        filename: `ai-gap-analysis-${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: `ai-gap-analysis-${localDate()}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true, logging: false, width: 800 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -233,13 +236,13 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
       const html2pdf = await loadHtml2Pdf()
       const pdfBlob = await html2pdf().from(iframe.contentWindow!.document.body).set({
         margin: [10, 10],
-        filename: `ai-gap-analysis-${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: `ai-gap-analysis-${localDate()}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true, logging: false, width: 800 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       }).outputPdf('blob')
       document.body.removeChild(iframe)
-      const pdfFile = new File([pdfBlob], `AI-Compliance-Analysis-${new Date().toISOString().split('T')[0]}.pdf`, { type: 'application/pdf' })
+      const pdfFile = new File([pdfBlob], `AI-Compliance-Analysis-${localDate()}.pdf`, { type: 'application/pdf' })
       const formData = new FormData()
       formData.append('file', pdfFile)
       const uploadRes = await api.post('/settings/upload', formData, {
@@ -249,7 +252,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         await api.post(`/chat/channels/${channel.id}/messages`, {
           content: undefined,
           file_url: uploadRes.data.url,
-          file_name: `AI-Compliance-Analysis-${new Date().toISOString().split('T')[0]}.pdf`,
+          file_name: `AI-Compliance-Analysis-${localDate()}.pdf`,
         })
       }
       setShareSuccess(true)
@@ -332,7 +335,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
     const a = document.createElement('a')
     a.href = url
     const frameworkSlug = (data?.framework?.name || 'readiness').toLowerCase().replace(/\s+/g, '-')
-    a.download = `${frameworkSlug}-readiness-${new Date().toISOString().split('T')[0]}.html`
+    a.download = `${frameworkSlug}-readiness-${localDate()}.html`
     a.click()
     URL.revokeObjectURL(url)
   }

@@ -9,7 +9,7 @@ import AppButton from '../../components/design/AppButton'
 import PageContainer from '../../components/design/PageContainer'
 import { PageHeader } from '../../components/ui'
 import api from '../../services/api'
-import { formatDateOnly } from '../../utils/dateFormat'
+import { formatDateOnly, localToday } from '../../utils/dateFormat'
 
 interface Supervision {
   id: string
@@ -52,7 +52,7 @@ const OVERDUE = '#EF4444'
 const DUE = '#F59E0B'
 const OK = '#10B981'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = localToday
 
 export default function SupervisionsPage() {
   const queryClient = useQueryClient()

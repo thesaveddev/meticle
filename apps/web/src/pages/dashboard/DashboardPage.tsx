@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query'
 import Skeleton from '@mui/material/Skeleton'
 import { METICLE_COLORS } from '../../context/ThemeContext'
 import { getDashboardServiceMode } from './dashboardServiceMode'
+import { localDate } from '../../utils/dateFormat'
 
 interface DashboardStats {
   total_staff: number
@@ -115,7 +116,7 @@ export default function DashboardPage() {
 
         // Service type is authoritative before loading any model-specific dashboard data.
         const mode = getDashboardServiceMode(orgData)
-        const todayStr = new Date().toISOString().split('T')[0]
+        const todayStr = localDate()
         if (mode === 'domiciliary' && !isStaff) {
           setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
           setLoading(false)
@@ -133,7 +134,10 @@ export default function DashboardPage() {
             const visitsRes = await api.get('/homecare/my-visits', { timeout: 15000 })
             const visits = Array.isArray(visitsRes.data) ? visitsRes.data : []
             setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
-            setTodayRota(visits.filter((visit: any) => String(visit.scheduled_start || '').startsWith(todayStr)).map((visit: any) => ({
+            // The visit's own day, not the UTC prefix of its timestamp: a call at
+            // 00:30 BST is 23:30Z the day before, so a prefix comparison dropped
+            // the first calls of a night shift off "today".
+            setTodayRota(visits.filter((visit: any) => visit.scheduled_start && localDate(new Date(visit.scheduled_start)) === todayStr).map((visit: any) => ({
               id: visit.id,
               start_time: visit.scheduled_start,
               end_time: visit.scheduled_end,

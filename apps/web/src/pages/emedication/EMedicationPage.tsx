@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined, Person as PersonIcon, Search as SearchIcon, Today as TodayIcon } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
-import { formatDateOnly, parseDateOnly } from '../../utils/dateFormat'
+import { formatDateOnly, localDate, localToday, parseDateOnly, toLocalDateTimeInput } from '../../utils/dateFormat'
 import { P } from '../../styles/tokens'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { METICLE_COLORS } from '../../context/ThemeContext'
@@ -129,15 +129,19 @@ interface AuditLog {
   created_at: string; ip_address: string
 }
 
-const todayStr = () => new Date().toISOString().split('T')[0]
+/**
+ * Today as the browser counts days.
+ *
+ * This was `new Date().toISOString().split('T')[0]` — today in **UTC** — so under
+ * BST the MAR sheet highlighted yesterday's column and the daily count defaulted
+ * to yesterday's date for the first hour of every day, which is exactly when a
+ * night shift does its round. Named here because twenty call sites read it.
+ */
+const todayStr = localToday
 
-const toDatetimeLocal = (iso?: string) => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+/* A `datetime-local` field carries the carer's own wall clock, which is what the
+ * shared helper builds. */
+const toDatetimeLocal = toLocalDateTimeInput
 
 const COUNT_TYPES = ['am', 'pm', 'administration', 'end_of_day']
 
@@ -2768,7 +2772,7 @@ export default function EMedicationPage() {
                               </Box>
                               <Stack direction="row" spacing={0.5}>
                                 {(() => {
-                                  const nowStr = new Date().toISOString().split('T')[0]
+                                  const nowStr = todayStr()
                                   const prnStart = item.start_date ? item.start_date.slice(0, 10) : ''
                                   const prnEnd = item.end_date ? item.end_date.slice(0, 10) : ''
                                   const prnStock = getItemStock(item)
@@ -2779,8 +2783,11 @@ export default function EMedicationPage() {
                                     <Tooltip title={prnNoStock ? 'Out of stock — log a delivery or stock adjustment first' : !item.is_active ? 'Archived' : prnDisabled ? 'Outside medication date range' : 'Log PRN administration'}>
                                       <span>
                                         <IconButton size="small" color="success" disabled={prnDisabled} onClick={() => {
+                                          // The dose is filed against the carer's day, not UTC's — the
+                                          // time beside it has always come from local hours, so a UTC
+                                          // date here filed a 00:30 PRN dose on yesterday.
                                           const now = new Date()
-                                          const dateStr = now.toISOString().split('T')[0]
+                                          const dateStr = localDate(now)
                                           const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
                                           handleCellClick(item, dateStr, timeStr)
                                         }}>

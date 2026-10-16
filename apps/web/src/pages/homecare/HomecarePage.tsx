@@ -7,13 +7,10 @@ import PageContainer from '../../components/design/PageContainer'
 import EmptyState from '../../components/design/EmptyState'
 import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
+import { addLocalDays, localDate } from '../../utils/dateFormat'
 import './homecare.css'
 
 const money = (pence: unknown) => pence == null || pence === '' ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
-const localDate = (date = new Date()) => {
-  const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
 const dateLabel = (value: string) => new Date(value).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 const WEEK_DAYS = [
@@ -51,7 +48,7 @@ export default function HomecarePage() {
   const to = new Date(from); to.setDate(to.getDate() + 2)
 
   const { data: visits = [], isLoading: visitsLoading } = useQuery({
-    queryKey: ['homecare-visits', overdueOnly ? 'overdue-backlog' : from.toISOString().slice(0, 10), isManager, selectedStatus, selectedAssignment],
+    queryKey: ['homecare-visits', overdueOnly ? 'overdue-backlog' : localDate(from), isManager, selectedStatus, selectedAssignment],
     queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', {
       params: {
         ...(!overdueOnly ? { from: from.toISOString(), to: to.toISOString() } : {}),
@@ -125,7 +122,7 @@ function CallPatternDialog({ pkg, staff, onClose }: { pkg: any; staff: any[]; on
   const qc = useQueryClient()
   const [draft, setDraft] = useState<any>({ label: '', visit_type: 'routine', days_of_week: [1, 2, 3, 4, 5], start_time: '09:00', duration_minutes: 30, default_staff_id: '' })
   const [genFrom, setGenFrom] = useState(localDate())
-  const [genTo, setGenTo] = useState(localDate(new Date(Date.now() + 13 * 86400000)))
+  const [genTo, setGenTo] = useState(localDate(addLocalDays(new Date(), 13)))
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data: plans = [], isLoading: plansLoading } = useQuery({

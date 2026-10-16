@@ -14,17 +14,10 @@ import {
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 import AppButton from '../../components/design/AppButton'
+import { addLocalDays, localDate } from '../../utils/dateFormat'
 
 function time(v: string) {
   return new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
-
-function localDateKey(value: Date | string) {
-  const date = typeof value === 'string' ? new Date(value) : value
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function startOfWeek(date: Date) {
@@ -32,12 +25,6 @@ function startOfWeek(date: Date) {
   d.setHours(0, 0, 0, 0)
   const day = (d.getDay() + 6) % 7 // Monday = 0
   d.setDate(d.getDate() - day)
-  return d
-}
-
-function addDays(date: Date, days: number) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
   return d
 }
 
@@ -58,8 +45,8 @@ export default function MyWeekPage() {
   const [weekOffset, setWeekOffset] = useState(0)
   const [detail, setDetail] = useState<any | null>(null)
 
-  const weekStart = addDays(startOfWeek(new Date()), weekOffset * 7)
-  const weekEnd = addDays(weekStart, 6)
+  const weekStart = addLocalDays(startOfWeek(new Date()), weekOffset * 7)
+  const weekEnd = addLocalDays(weekStart, 6)
 
   const loadWeek = useCallback(async () => {
     setLoading(true)
@@ -84,18 +71,18 @@ export default function MyWeekPage() {
   // Group calls by day
   const grouped: Record<string, any[]> = {}
   for (const v of visits) {
-    const key = localDateKey(v.scheduled_start)
+    const key = localDate(new Date(v.scheduled_start))
     if (!grouped[key]) grouped[key] = []
     grouped[key].push(v)
   }
 
-  const today = localDateKey(new Date())
+  const today = localDate()
   const completed = visits.filter(v => v.status === 'completed').length
 
   // Monday → Sunday of the selected week, always all seven days
   const days = Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(weekStart, i)
-    const key = localDateKey(date)
+    const date = addLocalDays(weekStart, i)
+    const key = localDate(date)
     return {
       key,
       date,

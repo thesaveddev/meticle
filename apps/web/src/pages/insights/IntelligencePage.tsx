@@ -4,6 +4,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Divider, Paper, Stack, Text
 import { AutoAwesome, OpenInNew, WarningAmber } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
+import { addLocalDays, localDate } from '../../utils/dateFormat'
 
 /**
  * Labels describe the action, not a model.
@@ -50,7 +51,7 @@ type DataBoundary = { direct_identifiers_removed: boolean; clinical_narrative: '
 
 export default function IntelligencePage() {
   const navigate = useNavigate()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
   const [from, setFrom] = useState(today)
   const [to, setTo] = useState(today)
   const [selected, setSelected] = useState<(typeof capabilities)[number]['key']>('manager-briefing')
@@ -106,7 +107,7 @@ export default function IntelligencePage() {
         <Typography variant="body2" color="text.secondary" sx={{ mt: .5, mb: 2 }}>{selectedCapability.description}</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <Stack direction="row" spacing={.5} alignItems="center">
-            {[['7', '7 days'], ['14', '14 days'], ['30', '30 days']].map(([value, label]) => <Button key={value} size="small" variant={windowDays === value ? 'contained' : 'outlined'} onClick={() => { setWindowDays(value); if (value !== '7') { const d = new Date(); d.setDate(d.getDate() - (Number(value) - 1)); setFrom(d.toISOString().slice(0, 10)); setTo(new Date().toISOString().slice(0, 10)) } }} sx={{ textTransform: 'none', minWidth: 0, px: 1 }}>{label}</Button>)}
+            {[['7', '7 days'], ['14', '14 days'], ['30', '30 days']].map(([value, label]) => <Button key={value} size="small" variant={windowDays === value ? 'contained' : 'outlined'} onClick={() => { setWindowDays(value); if (value !== '7') { setFrom(localDate(addLocalDays(new Date(), -(Number(value) - 1)))); setTo(localDate()) } }} sx={{ textTransform: 'none', minWidth: 0, px: 1 }}>{label}</Button>)}
           </Stack>
           <TextField label="From" type="date" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField label="To" type="date" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 import { MICA_STOP_PHRASES, type MicaState } from './mica.identity'
 import { createMicaAudioChannel, type MicaAudioChannel } from './mica.audio'
 import { createMicaTimings, type MicaTimingsRecorder } from './mica.timings'
@@ -1103,7 +1104,9 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         ...(personName ? { personName } : {}),
         ...(!personId && !personName && selectedPersonRef.current ? { personId: selectedPersonRef.current.id } : {}),
         source: 'voice',
-        noteDate: new Date().toISOString().split('T')[0],
+        // The day the carer is speaking, in their own timezone: a night-shift
+        // note taken at 00:30 would otherwise be filed on the previous date.
+        noteDate: localDate(),
       })
       const data = res.data as MicaVoiceResult
       if (data?.needClarification) {

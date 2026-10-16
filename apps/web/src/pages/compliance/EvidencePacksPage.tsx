@@ -8,6 +8,9 @@ import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
 import { X as DX } from '../../styles/export-tokens'
+// The pack is named for the day the manager made it in their own timezone, not
+// the UTC day of the moment they clicked.
+import { localDate } from '../../utils/dateFormat'
 
 type Section = 'training' | 'documents' | 'competency'
 
@@ -167,7 +170,7 @@ export default function EvidencePacksPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `evidence-pack-${new Date().toISOString().split('T')[0]}.html`
+    a.download = `evidence-pack-${localDate()}.html`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -192,7 +195,7 @@ export default function EvidencePacksPage() {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
-      a.download = `evidence-pack-${new Date().toISOString().split('T')[0]}.pdf`
+      a.download = `evidence-pack-${localDate()}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch { /* ignore */ }

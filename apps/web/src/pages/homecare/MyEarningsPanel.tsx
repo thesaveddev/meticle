@@ -14,6 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import AppButton from '../../components/design/AppButton'
+import { localDate } from '../../utils/dateFormat'
 
 function fmtPence(p: number | null | undefined) {
   return p == null ? '—' : `£${(Number(p) / 100).toFixed(2)}`
@@ -26,15 +27,14 @@ function fmtMins(m: number | null | undefined) {
   return hrs > 0 ? `${hrs}h ${rem}m` : `${rem}m`
 }
 
-// Local-date formatting: slicing ISO strings shifts the boundary a day for any
-// timezone off UTC, which mislabelled the period and dropped its last day.
-const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
+// The pay period is a local calendar month: slicing an ISO string shifted the
+// boundary a day for any timezone off UTC, which mislabelled it and dropped its
+// last day. `localDate` is the one place that convention lives.
 function monthRange() {
   const now = new Date()
   return {
-    from: ymd(new Date(now.getFullYear(), now.getMonth(), 1)),
-    to: ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: localDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
   }
 }
 

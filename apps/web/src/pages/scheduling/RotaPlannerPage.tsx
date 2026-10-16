@@ -20,6 +20,7 @@ import {
 import { UserRole, MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 import { fetchUserPermissions } from '../../utils/permissions'
+import { localDate } from '../../utils/dateFormat'
 import DayBoardView from './rota/DayBoardView'
 import TimelineView from './rota/TimelineView'
 import RosterView from './rota/RosterView'
@@ -1767,7 +1768,8 @@ export default function RotaPlannerPage() {
                         color="success"
                         onClick={() => {
                           setEditableGenShifts([...editableGenShifts, {
-                            date: new Date().toISOString().substring(0, 10),
+                            // A generated shift's first day is the planner's day, not UTC's.
+                            date: localDate(),
                             shift_type: 'day',
                             start_time: '07:00',
                             end_time: '14:00',

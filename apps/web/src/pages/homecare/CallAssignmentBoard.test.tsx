@@ -28,6 +28,41 @@ beforeEach(() => {
   })
 })
 
+/**
+ * The board's window is a calendar day in the manager's own timezone.
+ *
+ * `toISOString().slice(0, 10)` is UTC, not today: under BST the board opened on
+ * the previous day's calls for the first hour of the day — the hour an early
+ * handover happens in — and west of UTC it opened on tomorrow's for part of the
+ * evening. The expectation below is computed in local time on purpose, so it
+ * disagrees with the UTC form whenever the two differ; on a UTC runner they agree
+ * and this passes either way, which is why the fix was demonstrated at UTC+1.
+ */
+describe('CallAssignmentBoard date window', () => {
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const dayAfter = (d: Date) => { const n = new Date(`${ymd(d)}T12:00:00`); n.setDate(n.getDate() + 1); return ymd(n) }
+
+  it('asks for today locally, and steps a day locally', async () => {
+    renderPage()
+    await screen.findByTestId('carer-drop-zone-carer-1')
+
+    const visitsCall = () => mockedApi.get.mock.calls.filter(([url]) => url === '/homecare/visits').pop()
+    const today = new Date()
+    expect((visitsCall()?.[1] as any)?.params).toEqual({ from: ymd(today), to: dayAfter(today) })
+
+    fireEvent.click(screen.getByRole('button', { name: '→' }))
+    const tomorrow = new Date(`${ymd(today)}T12:00:00`)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    await waitFor(() =>
+      expect((visitsCall()?.[1] as any)?.params).toEqual({ from: ymd(tomorrow), to: dayAfter(tomorrow) }),
+    )
+
+    // And the chip resets to today, not to the UTC day.
+    fireEvent.click(screen.getByText(/— \d+ calls$/))
+    await waitFor(() => expect((visitsCall()?.[1] as any)?.params.from).toBe(ymd(new Date())))
+  })
+})
+
 describe('CallAssignmentBoard drag workflows', () => {
   it('assigns an unassigned call when dragged onto a carer', async () => {
     mockedApi.get.mockImplementation((url: string) => {

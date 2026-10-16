@@ -5,6 +5,7 @@ import api from '../../services/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import EmptyState from '../../components/EmptyState'
 import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
+import { localToday } from '../../utils/dateFormat'
 
 const CATEGORIES = ['Mandatory', 'Clinical', 'Safeguarding', 'Health & Safety', 'Fire Safety', 'Infection Control', 'Manual Handling', 'Food Hygiene', 'Medication', 'First Aid', 'Dementia', 'Autism', 'Mental Health', 'Other']
 
@@ -46,7 +47,7 @@ function GridView() {
 
   const completeMutation = useMutation({
     mutationFn: async ({ module_id, staff_id }: { module_id: string; staff_id: string }) =>
-      api.post('/training/records', { module_id, staff_id, status: 'completed', completed_at: new Date().toISOString().split('T')[0] }),
+      api.post('/training/records', { module_id, staff_id, status: 'completed', completed_at: localToday() }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-matrix'] })
   })
 

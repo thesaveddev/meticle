@@ -3,9 +3,11 @@ import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogConte
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon, Bedtime as BedtimeIcon, LightMode as WakeIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { localToday } from '../../utils/dateFormat'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
 
-const today = () => new Date().toISOString().split('T')[0]
+// A night's sleep is attributed to the local calendar day, not the UTC one.
+const today = localToday
 
 const QUALITY_LABELS: Record<number, string> = {
   1: 'Very poor',

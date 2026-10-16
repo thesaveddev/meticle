@@ -13,15 +13,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
+// The day being shown is the user's calendar day; the shared helper is the one
+// place that convention lives.
+import { localDate } from '../../utils/dateFormat'
 
 const timeLabel = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 const dateLabel = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-const localDate = (date: Date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const statusColor = (s: string) => {
   if (s === 'completed') return { bg: '#EAFBF5', color: '#087A55' }

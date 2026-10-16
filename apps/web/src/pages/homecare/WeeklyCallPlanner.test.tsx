@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WeeklyCallPlanner from './WeeklyCallPlanner'
 import api from '../../services/api'
+import { addLocalDays, localDate } from '../../utils/dateFormat'
 
 vi.mock('../../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }))
 
@@ -41,12 +42,18 @@ describe('WeeklyCallPlanner', () => {
     // test that fails CI on the worst possible morning.
     const monday = new Date()
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
-    const day = new Date(monday.getTime() + 24 * 3600 * 1000).toISOString().slice(0, 10)
+    // The planner's week is a local week and its grid only draws 07:00–20:00, so
+    // the fixture is a local day and a local morning. A UTC day string would fall
+    // outside the displayed week under BST and a UTC timestamp would sit outside
+    // the grid west of Greenwich — both make the assertion fail for a reason that
+    // has nothing to do with the staff name it is checking.
+    const day = localDate(addLocalDays(monday, 1))
+    const at = (hour: number) => new Date(`${day}T${String(hour).padStart(2, '0')}:00:00`).toISOString()
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/homecare/visits') return Promise.resolve({ data: [{
         id: 'visit-1', label: 'Morning call', person_name: 'Alex Jones', assigned_staff_id: 'staff-1',
         assigned_staff_name: 'Jordan Smith', carer_name: null, status: 'scheduled',
-        scheduled_start: `${day}T09:00:00.000Z`, scheduled_end: `${day}T09:30:00.000Z`,
+        scheduled_start: at(9), scheduled_end: at(10),
       }] })
       return Promise.resolve({ data: [] })
     })

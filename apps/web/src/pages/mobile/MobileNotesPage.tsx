@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Stack, TextField, Chip, CircularProgres
 import { Mic as MicIcon, Stop as StopIcon, Send as SendIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 
 export default function MobileNotesPage() {
   const qc = useQueryClient()
@@ -57,7 +58,7 @@ export default function MobileNotesPage() {
       person_id: personId,
       content: transcript.trim(),
       shift, category,
-      note_date: new Date().toISOString().split('T')[0],
+      note_date: localDate(),
     })
     setTranscript('')
   }

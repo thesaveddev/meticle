@@ -18,10 +18,15 @@ import { getSocket } from '../../services/socket'
 import { P } from '../../styles/tokens'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
 import PageContainer from '../../components/design/PageContainer'
+// The board's window is a calendar day in the manager's own timezone. `localDate`
+// used to be a UTC slice here: under BST that opened the board on **yesterday's**
+// calls for the first hour of the day, which is the hour an early-shift handover
+// happens in; west of UTC it opened on tomorrow's for the last part of the
+// evening. The shared helpers are the one place that convention lives.
+import { formatDayOnly, localDate, shiftDay } from '../../utils/dateFormat'
 
 /* ─── Helpers ──────────────────────────────────────────────── */
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-const dateStr = (d: string) => new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 
 function minsBetween(a: string, b: string) {
   return Math.abs(new Date(b).getTime() - new Date(a).getTime()) / 60000
@@ -114,7 +119,7 @@ function checkConflicts(
 
 /* ─── Main Component ───────────────────────────────────────── */
 export default function CallAssignmentBoard() {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => localDate(new Date()))
   const [draggedVisitId, setDraggedVisitId] = useState<string | null>(null)
   const [dropTargetCarer, setDropTargetCarer] = useState<string | null>(null)
   const [expandedVisit, setExpandedVisit] = useState<string | null>(null)
@@ -138,7 +143,7 @@ export default function CallAssignmentBoard() {
     return () => { socket.off('homecare:visit-updated', handleVisitUpdate) }
   }, [qc])
 
-  const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
+  const nextDate = shiftDay(date, 1)
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['homecare-visits-assign', date],
@@ -355,9 +360,9 @@ export default function CallAssignmentBoard() {
           </Tooltip>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
-          <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 600, bgcolor: '#0164C8', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
-          <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>→</Button>
+          <Button size="small" onClick={() => setDate(shiftDay(date, -1))} sx={{ minWidth: 'auto' }}>←</Button>
+          <Chip label={`${formatDayOnly(date)} — ${visits.length} calls`} sx={{ fontWeight: 600, bgcolor: '#0164C8', color: 'white' }} onClick={() => setDate(localDate())} />
+          <Button size="small" onClick={() => setDate(shiftDay(date, 1))} sx={{ minWidth: 'auto' }}>→</Button>
           {unassigned.length > 0 && (
             <Button
               size="small"

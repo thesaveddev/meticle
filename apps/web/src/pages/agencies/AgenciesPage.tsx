@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import { localDate } from '../../utils/dateFormat'
 
 const rowsPerPage = 10
 
@@ -411,7 +412,7 @@ export default function AgenciesPage() {
       {tab === 2 && (
         <>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditRate({ agency_id: agencies[0]?.id || '', shift_type: 'day', rate_per_hour: '', effective_from: new Date().toISOString().split('T')[0], effective_to: '' }); setRateDialog(true) }}
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditRate({ agency_id: agencies[0]?.id || '', shift_type: 'day', rate_per_hour: '', effective_from: localDate(), effective_to: '' }); setRateDialog(true) }}
               sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Add Rate</Button>
           </Stack>
           {ratesLoading ? <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress /></Box> : (

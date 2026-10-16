@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { PageHeader, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
+import { localToday } from '../../utils/dateFormat'
 
 const SEVERITY_TONE: Record<string, 'success' | 'warning' | 'error' | 'purple'> = {
   low: 'success', medium: 'warning', high: 'error', critical: 'purple',
@@ -38,7 +39,7 @@ export default function IncidentDirectoryPage() {
   const [dateTo, setDateTo] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
+  const [form, setForm] = useState({ title: '', description: '', category_id: '', incident_date: localToday(), incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
@@ -67,7 +68,7 @@ export default function IncidentDirectoryPage() {
       queryClient.invalidateQueries({ queryKey: ['incidents'] })
       queryClient.invalidateQueries({ queryKey: ['incident-stats'] })
       setAddOpen(false)
-      setForm({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
+      setForm({ title: '', description: '', category_id: '', incident_date: localToday(), incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
     },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to create incident'),
   })

@@ -29,7 +29,7 @@ import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
-import { formatDateOnly } from '../../utils/dateFormat'
+import { formatDateOnly, localDate } from '../../utils/dateFormat'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
 import HealthTab from './HealthTab'
 import NutritionTab from './NutritionTab'
@@ -150,7 +150,7 @@ export default function PersonProfilePage() {
   const [editForm, setEditForm] = useState<any>({})
   const [planForm, setPlanForm] = useState({ ...EMPTY_PLAN_FORM })
   const [planTab, setPlanTab] = useState(0)
-  const [noteForm, setNoteForm] = useState({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' })
+  const [noteForm, setNoteForm] = useState({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' })
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [viewNote, setViewNote] = useState<any>(null)
   const [riskForm, setRiskForm] = useState({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' })
@@ -231,7 +231,7 @@ export default function PersonProfilePage() {
 
   const addNoteMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/daily-notes`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddNoteOpen(false); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddNoteOpen(false); setNoteForm({ note_date: localDate(), shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add note'),
   })
 
@@ -267,7 +267,7 @@ export default function PersonProfilePage() {
 
   const updateNoteMutation = useMutation({
     mutationFn: ({ noteId, data }: { noteId: string; data: any }) => api.patch(`/people/daily-notes/${noteId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditNoteId(null); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditNoteId(null); setNoteForm({ note_date: localDate(), shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update note'),
   })
 
@@ -1076,12 +1076,12 @@ export default function PersonProfilePage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Daily Notes</Typography>
             <Stack direction="row" spacing={1}>
               <Tooltip title="Write with AI">
-                <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
+                <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
                   sx={{ bgcolor: '#8B7CF6', color: '#FFFFFF', borderRadius: 1.5, width: 32, height: 32, '&:hover': { bgcolor: '#8B7CF6' } }}>
                   <AiIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetAiMode(); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetAiMode(); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
                 sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Note</Button>
             </Stack>
           </Stack>
@@ -1090,7 +1090,7 @@ export default function PersonProfilePage() {
               icon={<NoteIcon />}
               title="No daily notes yet"
               description="Record observations, activities, and wellbeing notes for this person."
-              action={{ label: 'Add Note', onClick: () => { setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'morning', category: '', content: '', support_level: '' }); setAddNoteOpen(true) } }}
+              action={{ label: 'Add Note', onClick: () => { setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setAddNoteOpen(true) } }}
             />
           ) : (
             <Stack spacing={1.5}>
@@ -2427,7 +2427,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const [selected, setSelected] = useState<any>(null)
   const [editAssessment, setEditAssessment] = useState<any>(null)
   const [deleteAssessmentId, setDeleteAssessmentId] = useState<string | null>(null)
-  const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
+  const [form, setForm] = useState({ assessment_type: '', assessment_date: localDate(), assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
   const [error, setError] = useState('')
   const assessmentFileInputRef = useRef<HTMLInputElement>(null)
   const [assessmentFileUploading, setAssessmentFileUploading] = useState(false)
@@ -2435,7 +2435,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
     queryKey: ['assessments', personId],
     queryFn: () => api.get(`/people/${personId}/assessments`).then(r => r.data),
   })
-  const resetForm = () => setForm({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
+  const resetForm = () => setForm({ assessment_type: '', assessment_date: localDate(), assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { ...form }
@@ -2699,7 +2699,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
   const [rcView, setRcView] = useState<any>(null)
   const [rcDeleteTarget, setRcDeleteTarget] = useState<string | null>(null)
   const [rcPhotoBlob, setRcPhotoBlob] = useState<string | null>(null)
-  const [rcForm, setRcForm] = useState({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] })
+  const [rcForm, setRcForm] = useState({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: localDate() })
   const [rcError, setRcError] = useState('')
 
   const { data: checks = [], isLoading, isError } = useQuery({
@@ -2737,11 +2737,11 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
     return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl) }
   }, [rcView])
 
-  const rcResetForm = () => setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] })
+  const rcResetForm = () => setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: localDate() })
 
   const rcOpenEdit = (c: any) => {
     setRcEditId(c.id)
-    setRcForm({ status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 5, safety_rating: c.safety_rating || 5, notes: c.notes || '', check_date: c.check_date?.slice(0, 10) || new Date().toISOString().split('T')[0] })
+    setRcForm({ status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 5, safety_rating: c.safety_rating || 5, notes: c.notes || '', check_date: c.check_date?.slice(0, 10) || localDate() })
     setRcError('')
     setRcView(null)
     setAddOpen(true)
@@ -2906,7 +2906,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewScore, setViewScore] = useState<any>(null)
-  const [form, setForm] = useState({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] })
+  const [form, setForm] = useState({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
@@ -2918,13 +2918,13 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/clinical-scores`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add score'),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/${personId}/clinical-scores/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update score'),
   })
 
@@ -2939,7 +2939,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }); setFormError(''); setAddOpen(true) }}
+      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() }); setFormError(''); setAddOpen(true) }}
         sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record Score</Button>} />
       {scores.length === 0 ? (
         <EmptyRow message="No clinical scores recorded" />
@@ -3054,7 +3054,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
 function DocumentsTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
-  const [form, setForm] = useState({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: new Date().toISOString().split('T')[0] })
+  const [form, setForm] = useState({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: localDate() })
   const [formError, setFormError] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -3068,7 +3068,7 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/documents`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: new Date().toISOString().split('T')[0] }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: localDate() }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to upload'),
   })
 
@@ -3382,7 +3382,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewEntry, setViewEntry] = useState<any>(null)
-  const [form, setForm] = useState({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] })
+  const [form, setForm] = useState({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: localDate() })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
@@ -3392,7 +3392,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
     queryFn: () => api.get(`/people/${personId}/communication-log`).then(r => r.data),
   })
 
-  const resetForm = () => setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] })
+  const resetForm = () => setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: localDate() })
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/communication-log`, data),
@@ -3560,7 +3560,7 @@ const CAPACITY_STATUS_COLORS: Record<string, string> = {
 function CapacityMcaTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [form, setForm] = useState({ assessment_date: new Date().toISOString().split('T')[0], decision_to_be_made: '', capacity_found: null as boolean | null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
+  const [form, setForm] = useState({ assessment_date: localDate(), decision_to_be_made: '', capacity_found: null as boolean | null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
@@ -3591,7 +3591,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
   const [viewEntry, setViewEntry] = useState<any>(null)
 
   function resetForm() {
-    setForm({ assessment_date: new Date().toISOString().split('T')[0], decision_to_be_made: '', capacity_found: null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
+    setForm({ assessment_date: localDate(), decision_to_be_made: '', capacity_found: null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
   }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
@@ -3623,7 +3623,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                 <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => {
                     setForm({
-                      assessment_date: a.assessment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+                      assessment_date: a.assessment_date?.split('T')[0] || localDate(),
                       decision_to_be_made: a.decision_to_be_made || '',
                       capacity_found: a.capacity_found,
                       capacity_status: a.capacity_status || 'not_assessed',
@@ -3736,7 +3736,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                 const a = viewEntry
                 setViewEntry(null)
                 setForm({
-                  assessment_date: a.assessment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+                  assessment_date: a.assessment_date?.split('T')[0] || localDate(),
                   decision_to_be_made: a.decision_to_be_made || '',
                   capacity_found: a.capacity_found,
                   capacity_status: a.capacity_status || 'not_assessed',
@@ -3802,7 +3802,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewId, setViewId] = useState<string | null>(null)
-  const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
+  const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: localDate(), end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
   const [formError, setFormError] = useState('')
   const pathwayFileInputRef = useRef<HTMLInputElement>(null)
   const [pathwayFileUploading, setPathwayFileUploading] = useState(false)
@@ -3842,7 +3842,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function resetForm() {
-    setForm({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
+    setForm({ pathway_type: 'hospital_admission', title: '', start_date: localDate(), end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
   }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
@@ -4336,7 +4336,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [viewEntry, setViewEntry] = useState<any>(null)
   const [view, setView] = useState<'chart' | 'table'>('chart')
-  const [form, setForm] = useState({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' })
+  const [form, setForm] = useState({ domain: 'mood', score: 7, recorded_date: localDate(), notes: '' })
   const [formError, setFormError] = useState('')
 
   const { data: entries = [], isLoading } = useQuery({
@@ -4346,7 +4346,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/wellbeing`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 7, recorded_date: localDate(), notes: '' }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to save'),
   })
 
@@ -4389,7 +4389,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
               Table
             </Button>
           </Stack>
-          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }); setFormError(''); setAddOpen(true) }}
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: localDate(), notes: '' }); setFormError(''); setAddOpen(true) }}
             sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Entry</Button>
         </Stack>
       </Stack>

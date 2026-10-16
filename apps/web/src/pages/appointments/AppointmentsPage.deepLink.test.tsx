@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import AppointmentsPage from './AppointmentsPage'
+import { localDate, shiftDay } from '../../utils/dateFormat'
 
 vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -28,8 +29,12 @@ import api from '../../services/api'
  * titled the same as another must still be the one that was linked to.
  */
 
-const TODAY = new Date().toISOString().slice(0, 10)
-const TOMORROW = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+// The page names its days locally — that is what its "Showing date" filter holds
+// and what the linked record's day is compared against — so the fixtures are
+// built the same way. A UTC form here would agree on a UTC runner and disagree
+// with the component for the first hour of a BST day.
+const TODAY = localDate()
+const TOMORROW = shiftDay(TODAY, 1)
 
 const NEXT_WEEK = {
   id: 'a-next-week',

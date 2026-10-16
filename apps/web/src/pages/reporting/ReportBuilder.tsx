@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { StatCard, BarChart, PieChart, LineChart, AreaChart, RadarChart, ReportTable } from '../../components/charts'
+import { localDate } from '../../utils/dateFormat'
 
 interface ReportData {
   report: { id: string; title: string; category: string; generatedAt: string }
@@ -139,7 +140,10 @@ export default function ReportBuilder() {
       const blob = new Blob([res.data])
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = `${reportId}-${new Date().toISOString().split('T')[0]}.${ext}`
+      // The name carries the day the operator made the export, in their own
+      // timezone: the UTC slice this used to use put yesterday's date on an
+      // export taken in the first hour of a BST day.
+      a.href = url; a.download = `${reportId}-${localDate()}.${ext}`
       a.click(); URL.revokeObjectURL(url)
       setSnackbar(`Report exported as ${ext.toUpperCase()}`)
     } catch { setSnackbar('Export failed') }

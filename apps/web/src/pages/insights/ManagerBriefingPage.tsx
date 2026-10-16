@@ -3,11 +3,14 @@ import { Alert, Box, Button, Chip, CircularProgress, Divider, Grid, Paper, Stack
 import { AutoAwesome, CalendarMonth, CheckCircle, OpenInNew, WarningAmber } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
+import { addLocalDays, localDate } from '../../utils/dateFormat'
 
 const today = new Date()
-const toInputDate = (date: Date) => date.toISOString().slice(0, 10)
-const initialTo = toInputDate(today)
-const initialFrom = toInputDate(new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000))
+// A week ending today, counted in the operator's own calendar days: a UTC slice
+// here would end the briefing on yesterday's records for the first hour of a
+// BST day, which is the hour the night shift's notes are written.
+const initialTo = localDate(today)
+const initialFrom = localDate(addLocalDays(today, -6))
 
 type Briefing = {
   headline: string

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PageContainer from '../../components/design/PageContainer'
 import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 
 /* ── Helpers ── */
 const fmtMoney = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
@@ -127,7 +128,7 @@ const emptyPolicyForm = { tax_year: '2024/25', vehicle_type: 'car', fuel_categor
 export default function MileagePage() {
   const [tab, setTab] = useState(0)
   const [searchParams] = useSearchParams()
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [month, setMonth] = useState(localDate().slice(0, 7))
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
   const qc = useQueryClient()
@@ -137,7 +138,9 @@ export default function MileagePage() {
   }, [isManager, searchParams])
 
   const from = `${month}-01`
-  const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0).toISOString().slice(0, 10)
+  // Day 0 of the following month is this month's last day, built locally so the
+  // period ends on the 31st rather than the 30th in BST.
+  const to = localDate(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
 
   /* ── Travel & Mileage data ── */
   const { data: visits = [], isLoading } = useQuery({

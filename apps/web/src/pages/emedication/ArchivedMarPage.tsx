@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowBack, Medication as MedIcon, Schedule as ScheduleIcon, Check as CheckIcon, Close as CloseIcon, ExpandMore, ExpandLess, Search as SearchIcon, Unarchive as UnarchiveIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import { localToday } from '../../utils/dateFormat'
 
 const ADMIN_STATUSES = ['given', 'refused', 'missed', 'omitted', 'not_available', 'n/a'] as const
 type AdminStatus = typeof ADMIN_STATUSES[number]
@@ -42,7 +43,8 @@ interface MarChartData {
   adminMap: Record<string, Record<string, Administration[]>>
 }
 
-const todayStr = () => new Date().toISOString().split('T')[0]
+/* The archived sheet's today-cell must be the reader's day, not UTC's. */
+const todayStr = localToday
 
 function getAdminDisplay(admins: Administration[] | undefined): Administration | undefined {
   if (!admins || admins.length === 0) return undefined

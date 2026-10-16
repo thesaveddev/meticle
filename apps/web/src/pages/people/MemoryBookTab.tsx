@@ -8,6 +8,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, CameraAlt, Imag
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog, SectionHeader } from '../../components/ui'
+import { localDate } from '../../utils/dateFormat'
 import { EmptyState } from '../../components/design/EmptyState'
 
 const SUPPORT_LEVELS = [
@@ -66,7 +67,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
   const [viewEntry, setViewEntry] = useState<MemoryEntry | null>(null)
   const [viewImageIdx, setViewImageIdx] = useState(0)
   const [editingEntry, setEditingEntry] = useState<MemoryEntry | null>(null)
-  const [form, setForm] = useState({ title: '', description: '', recorded_date: new Date().toISOString().split('T')[0], support_level: '' })
+  const [form, setForm] = useState({ title: '', description: '', recorded_date: localDate(), support_level: '' })
   const [files, setFiles] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [error, setError] = useState('')
@@ -108,14 +109,14 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
   const closeDialog = useCallback(() => {
     setDialogOpen(false); setEditingEntry(null)
-    setForm({ title: '', description: '', recorded_date: new Date().toISOString().split('T')[0], support_level: '' })
+    setForm({ title: '', description: '', recorded_date: localDate(), support_level: '' })
     setFiles([]); previewUrls.forEach(u => URL.revokeObjectURL(u)); setPreviewUrls([]); setError('')
   }, [previewUrls])
 
   const openCreate = () => { closeDialog(); setDialogOpen(true) }
   const openEdit = (e: MemoryEntry) => {
     setEditingEntry(e)
-    setForm({ title: e.title, description: e.description || '', recorded_date: e.recorded_date || new Date().toISOString().split('T')[0], support_level: e.support_level || '' })
+    setForm({ title: e.title, description: e.description || '', recorded_date: e.recorded_date || localDate(), support_level: e.support_level || '' })
     setFiles([]); previewUrls.forEach(u => URL.revokeObjectURL(u)); setPreviewUrls([]); setError('')
     setDialogOpen(true)
   }

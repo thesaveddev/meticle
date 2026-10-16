@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 
 const NAVY = '#0164C8'
 const PRIORITY_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = { urgent: 'error', high: 'warning', medium: 'info', low: 'default' }
@@ -31,7 +32,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('')
   const [dialog, setDialog] = useState(false)
   const [viewDialog, setViewDialog] = useState(false)
-  const [calendarDate, setCalendarDate] = useState(new Date().toISOString().slice(0, 10))
+  const [calendarDate, setCalendarDate] = useState(localDate())
   const [completionDialog, setCompletionDialog] = useState(false)
   const [completionNotes, setCompletionNotes] = useState('')
   const [editing, setEditing] = useState<any>(null)

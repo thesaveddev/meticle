@@ -4,10 +4,16 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Add a
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import PageContainer from '../../components/design/PageContainer'
+// The grid is a local week: `toISOString().slice(0, 10)` is a UTC day, so under
+// BST the whole planner shifted a day for the first hour of every day and west of
+// UTC it did so in the evening. Labels go through `formatDayOnly` because
+// `new Date('2026-06-15')` is UTC midnight — it renders as the 14th west of
+// Greenwich.
+import { addLocalDays, formatDayOnly, localDate } from '../../utils/dateFormat'
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-const dayName = (d: string) => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' })
-const dayNum = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+const dayName = (d: string) => formatDayOnly(d, { weekday: 'short' })
+const dayNum = (d: string) => formatDayOnly(d, { day: 'numeric', month: 'short' })
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 7) // 7am - 8pm
 
@@ -28,7 +34,7 @@ export default function WeeklyCallPlanner() {
   const [createDialog, setCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState({
     person_id: '', label: 'Routine call', visit_type: 'routine',
-    day: new Date().toISOString().slice(0, 10),
+    day: localDate(),
     start_time: '09:00', duration_minutes: 30, assigned_staff_id: '',
   })
   const [reassignVisit, setReassignVisit] = useState<any>(null)
@@ -48,11 +54,12 @@ export default function WeeklyCallPlanner() {
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
     d.setDate(d.getDate() + i)
-    return d.toISOString().slice(0, 10)
+    return localDate(d)
   })
 
-  const weekFrom = monday.toISOString().slice(0, 10)
-  const weekTo = new Date(sunday.getTime() + 86400000).toISOString().slice(0, 10)
+  const weekFrom = localDate(monday)
+  const weekTo = localDate(addLocalDays(sunday, 1))
+  const todayKey = localDate()
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['homecare-visits-week', weekFrom, weekTo],
@@ -83,7 +90,7 @@ export default function WeeklyCallPlanner() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['homecare-visits-week'] })
       setCreateDialog(false)
-      setCreateForm({ person_id: '', label: 'Routine call', visit_type: 'routine', day: new Date().toISOString().slice(0, 10), start_time: '09:00', duration_minutes: 30, assigned_staff_id: '' })
+      setCreateForm({ person_id: '', label: 'Routine call', visit_type: 'routine', day: localDate(), start_time: '09:00', duration_minutes: 30, assigned_staff_id: '' })
     },
     onError: (e: any) => alert(e.response?.data?.message || 'Could not create call'),
   })
@@ -103,7 +110,7 @@ export default function WeeklyCallPlanner() {
   const dayMap = new Map<string, Visit[]>()
   for (const d of weekDays) dayMap.set(d, [])
   for (const v of visits) {
-    const day = new Date(v.scheduled_start).toISOString().slice(0, 10)
+    const day = localDate(new Date(v.scheduled_start))
     if (dayMap.has(day)) dayMap.get(day)!.push(v)
   }
 
@@ -141,7 +148,7 @@ export default function WeeklyCallPlanner() {
             <Stack direction="row" sx={{ mb: 1 }}>
               <Box sx={{ width: 60, flexShrink: 0 }} />
               {weekDays.map(d => {
-                const isToday = d === new Date().toISOString().slice(0, 10)
+                const isToday = d === todayKey
                 const dayVisits = dayMap.get(d) || []
                 return (
                   <Box key={d} sx={{ flex: 1, textAlign: 'center', px: 0.5 }}>

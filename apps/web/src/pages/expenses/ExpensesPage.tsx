@@ -12,6 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyRow } from '../../components/ui'
+import { localToday } from '../../utils/dateFormat'
 import './expenses.css'
 
 const CATEGORIES = [
@@ -30,7 +31,9 @@ function asArray(value: any, keys: string[] = []): any[] {
   for (const key of keys) if (Array.isArray(value?.[key])) return value[key]
   return Array.isArray(value?.data) ? value.data : []
 }
-function today() { return new Date().toISOString().slice(0, 10) }
+// The day a cash entry is filed under, and the day in the report's filename:
+// both are the operator's own day, not its UTC equivalent.
+function today() { return localToday() }
 function money(pence: number | string | null | undefined) { return `£${(Number(pence || 0) / 100).toFixed(2)}` }
 function pounds(value: number | string | null | undefined) { return `£${Number(value || 0).toLocaleString('en-GB')}` }
 function personName(person: any) { return `${person?.first_name || ''} ${person?.last_name || ''}`.trim() || person?.email || 'Unnamed staff member' }

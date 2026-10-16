@@ -17,6 +17,7 @@ import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 import { ConfirmDialog, EmptyRow } from '../../components/ui'
 import { P } from '../../styles/tokens'
+import { localDate } from '../../utils/dateFormat'
 
 interface LeaveType {
   id: string; name: string; color: string; days_allowed: number; hours_allowed: number; duration_type: string
@@ -380,7 +381,10 @@ export default function LeaveManagerPage() {
   }
 
   const getDelegationMinDate = () => {
-    const today = new Date().toISOString().split('T')[0]
+    // A `min` bound on a date input has to be the operator's own today: the UTC
+    // slice this used to use barred them from picking today for an hour of every
+    // BST day, and let them pick yesterday for an hour west of UTC.
+    const today = localDate()
     return delegationLeaveStart && delegationLeaveStart > today ? delegationLeaveStart : today
   }
 

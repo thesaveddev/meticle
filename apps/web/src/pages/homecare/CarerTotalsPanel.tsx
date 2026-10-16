@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material'
 import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 
 /* ── Types ── */
 interface CarerTotal {
@@ -73,15 +74,14 @@ const normaliseCarerTotal = (row: any): CarerTotal => ({
   exception_count: Number(row?.exception_count || 0),
 })
 
-// Local-date formatting: slicing ISO strings shifts month boundaries a day for
-// any timezone off UTC, so the roll-up window missed its own last day.
-const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
+// Slicing ISO strings shifts month boundaries a day for any timezone off UTC,
+// so the roll-up window missed its own last day. `localDate` is the one place
+// that convention lives.
 function getMonthRange(monthsBack = 0) {
   const now = new Date()
   return {
-    from: ymd(new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)),
-    to: ymd(new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0)),
+    from: localDate(new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)),
+    to: localDate(new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0)),
   }
 }
 

@@ -7,6 +7,7 @@ import {
 import { useParams } from 'react-router-dom'
 import { Edit as EditIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import { localDate } from '../../utils/dateFormat'
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   active: 'success',
@@ -148,7 +149,10 @@ export default function AdminOrganizationDetailPage() {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Billing Controls</Typography>
           <Button size="small" startIcon={<EditIcon />} onClick={() => {
-            setBillingForm({ subscription_status: org.subscription_status || '', plan: org.plan || '', trial_ends_at: org.trial_ends_at ? new Date(org.trial_ends_at).toISOString().slice(0, 10) : '' })
+            // The trial end is stored as an instant but edited as a day, so it is read
+            // as the admin's own local day. The UTC slice this used to use made the
+            // date they were shown disagree with the stored record for part of every day.
+            setBillingForm({ subscription_status: org.subscription_status || '', plan: org.plan || '', trial_ends_at: org.trial_ends_at ? localDate(new Date(org.trial_ends_at)) : '' })
             setBillingDialog(true)
           }}>Override Billing</Button>
         </Stack>

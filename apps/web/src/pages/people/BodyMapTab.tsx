@@ -8,6 +8,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
+import { localDate } from '../../utils/dateFormat'
 import bodyMapUrl from './body-map.svg'
 
 const CONDITION_COLORS: Record<string, string> = {
@@ -184,7 +185,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
     const r = el.getBoundingClientRect()
     setHoverPos({ x: ev.clientX - r.left, y: ev.clientY - r.top })
   }
-  const [form, setForm] = useState({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: new Date().toISOString().split('T')[0], status: 'active' as string })
+  const [form, setForm] = useState({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: localDate(), status: 'active' as string })
   const [error, setError] = useState('')
 
   const { data: entries = [], isLoading } = useQuery<BodyMapEntry[]>({
@@ -209,7 +210,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
   })
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
-  const openCreate = (z: Zone) => { setSelectedZone(z); setSelectedEntry(null); setForm({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: new Date().toISOString().split('T')[0], status: 'active' }); setError(''); setDialogOpen(true) }
+  const openCreate = (z: Zone) => { setSelectedZone(z); setSelectedEntry(null); setForm({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: localDate(), status: 'active' }); setError(''); setDialogOpen(true) }
   const openEdit = (e: BodyMapEntry) => { setSelectedEntry(e); setSelectedZone(null); setForm({ condition_type: e.condition_type, severity: e.severity, description: e.description || '', recorded_date: e.recorded_date, status: e.status }); setError(''); setDialogOpen(true) }
 
   const save = (ev: React.FormEvent) => {

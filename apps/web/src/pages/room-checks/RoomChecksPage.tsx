@@ -5,6 +5,7 @@ import { Add as AddIcon, CameraAlt, Edit as EditIcon, Delete as DeleteIcon, Clos
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog } from '../../components/ui'
+import { localToday } from '../../utils/dateFormat'
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'warning' }> = {
   pass: { label: 'Pass', color: 'success' },
@@ -12,7 +13,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
   needs_attention: { label: 'Needs Attention', color: 'warning' },
 }
 
-const EMPTY_FORM = () => ({ location_id: '', room_number: '', check_date: new Date().toISOString().split('T')[0], status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' })
+const EMPTY_FORM = () => ({ location_id: '', room_number: '', check_date: localToday(), status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' })
 
 function openFileInNewTab(url: string) {
   const token = localStorage.getItem('accessToken')
@@ -78,7 +79,7 @@ export default function RoomChecksPage() {
 
   const openEdit = (c: any) => {
     setEditingId(c.id)
-    setForm({ location_id: c.location_id || '', room_number: c.room_number || '', check_date: c.check_date?.slice(0, 10) || new Date().toISOString().split('T')[0], status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 3, safety_rating: c.safety_rating || 3, notes: c.notes || '' })
+    setForm({ location_id: c.location_id || '', room_number: c.room_number || '', check_date: c.check_date?.slice(0, 10) || localToday(), status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 3, safety_rating: c.safety_rating || 3, notes: c.notes || '' })
     setFile(null); setPreview(null); setError('')
     setView(null)
     setDialog(true)

@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogConte
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { localToday } from '../../utils/dateFormat'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
 import { P, BRISTOL_SCALE_COLORS } from '../../styles/tokens'
 import SleepTab from './SleepTab'
@@ -14,7 +15,9 @@ const BRISTOL_LABELS: Record<number, string> = { 1: 'Type 1: Separate hard lumps
 const BRISTOL_COLORS = BRISTOL_SCALE_COLORS
 const SEVERITY_COLORS: Record<string, string> = { normal: P.green, mild: P.amber, moderate: P.red, severe: P.indigo }
 
-const today = () => new Date().toISOString().split('T')[0]
+// A carer recording at 00:30 is still on the shift that started yesterday, and the
+// UTC form of "today" filed the entry under the wrong date until 01:00 BST.
+const today = localToday
 
 function useDeleteConfirm() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)

@@ -6,6 +6,7 @@ import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
 import PageContainer from '../../components/design/PageContainer'
 import { PageHeader } from '../../components/ui'
+import { localToday } from '../../utils/dateFormat'
 
 const CATEGORIES = ['Medication', 'Manual Handling', 'Clinical Procedures', 'Safeguarding', 'Emergency Response', 'Communication', 'Dementia Care', 'End of Life', 'Other']
 
@@ -42,7 +43,7 @@ function PendingView() {
   const queryClient = useQueryClient()
   const [assessOpen, setAssessOpen] = useState(false)
   const [selectedPending, setSelectedPending] = useState<any>(null)
-  const [form, setForm] = useState({ passed: true, assessed_at: new Date().toISOString().split('T')[0], reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
+  const [form, setForm] = useState({ passed: true, assessed_at: localToday(), reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
   const [rubricScores, setRubricScores] = useState<Record<number, number>>({})
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
   const [search, setSearch] = useState('')
@@ -120,7 +121,7 @@ function PendingView() {
       setSelectedPending(null)
       setRubricScores({})
       setEvidenceFile(null)
-      setForm({ passed: true, assessed_at: new Date().toISOString().split('T')[0], reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
+      setForm({ passed: true, assessed_at: localToday(), reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
       setAssessError('')
     },
     onError: (err: any) => {
@@ -275,7 +276,7 @@ function PendingView() {
                 onChange={e => setForm(p => ({ ...p, involved_parties: e.target.value }))} />
               <TextField label="Reassessment Date" type="date" value={form.reassessment_date}
                 InputLabelProps={{ shrink: true }}
-                inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                inputProps={{ min: localToday() }}
                 onChange={e => setForm(p => ({ ...p, reassessment_date: e.target.value }))} />
               <TextField label="Notes" multiline rows={3} value={form.notes}
                 onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
