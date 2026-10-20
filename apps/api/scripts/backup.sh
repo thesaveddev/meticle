@@ -131,10 +131,35 @@ if [ -z "$STALE" ]; then
 fi
 
 if [ "$STALE" -gt "$ARCHIVE_STALE_SECONDS" ]; then
-  echo "[$(date)] ERROR: no WAL segment archived for ${STALE}s (limit ${ARCHIVE_STALE_SECONDS}s)." >&2
-  echo "[$(date)] Point-in-time recovery is NOT keeping up. Check the archive" >&2
-  echo "[$(date)] destination is writable by the postgres user and has space." >&2
-  exit 1
+  # A long gap only means archiving has stopped if something was waiting to be
+  # archived. On a still database no WAL is written, `archive_timeout` has no
+  # half-filled segment to switch, and the gap since the last segment grows for
+  # as long as the quiet lasts — so on 20 Oct 2026 a 26-minute lull at 02:37
+  # failed this check and blocked a deploy, while the archiver was fine: it had
+  # nothing to do. A finished segment waits in pg_wal as `.ready` until the
+  # archiver copies it, which is exactly the difference between idle and wedged.
+  PENDING=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -At \
+    -c "SELECT count(*) FROM pg_ls_waldir() WHERE name LIKE '%.ready';" 2>/dev/null \
+    || echo "QUERY_FAILED")
+
+  if [ "$PENDING" = "0" ]; then
+    echo "[$(date)] NOTE: nothing archived for ${STALE}s (limit ${ARCHIVE_STALE_SECONDS}s), but"
+    echo "[$(date)] nothing is waiting either: 0 finished segment(s) in pg_wal. The database"
+    echo "[$(date)] has been idle, not wedged. PITR remains usable up to the last segment."
+  elif [ "$PENDING" = "QUERY_FAILED" ]; then
+    # Cannot count what is pending, so the claim "archiving is fine" cannot be
+    # made. Fail the way this did before the idle case was understood.
+    echo "[$(date)] ERROR: no WAL segment archived for ${STALE}s (limit ${ARCHIVE_STALE_SECONDS}s)" >&2
+    echo "[$(date)] and the pending-segment count could not be read. Treating archiving as" >&2
+    echo "[$(date)] stalled: check the archive destination is writable by the postgres user." >&2
+    exit 1
+  else
+    echo "[$(date)] ERROR: no WAL segment archived for ${STALE}s (limit ${ARCHIVE_STALE_SECONDS}s)" >&2
+    echo "[$(date)] and ${PENDING} finished segment(s) are waiting in pg_wal. Point-in-time" >&2
+    echo "[$(date)] recovery is NOT keeping up. Check the archive destination is writable by" >&2
+    echo "[$(date)] the postgres user and has space." >&2
+    exit 1
+  fi
 fi
 
 if [ "${FAILED:-0}" -gt 0 ]; then
