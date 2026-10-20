@@ -82,6 +82,16 @@
           "faceIDPermission": "Meticle Care uses Face ID to confirm it is you before opening records that contain personal health information."
         }
       ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Meticle Care uses the microphone so you can talk to Mica, your voice assistant, instead of typing.",
+          "speechRecognitionPermission": "Meticle Care recognises your speech so Mica can answer rota, resident and shift questions hands-free.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
       "expo-font",
       "expo-sharing",
       "@react-native-community/datetimepicker",

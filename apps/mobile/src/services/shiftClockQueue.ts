@@ -83,7 +83,25 @@ export async function pendingShiftClockActions(shiftId?: string): Promise<Queued
  * the reload that follows shows what the server actually recorded; only a transport
  * failure keeps the action waiting.
  */
-export async function flushShiftClockActions(
+/**
+ * Flushes are chained so two of them can never interleave. Each flush reads the
+ * whole queue and rewrites it at the end; a second flush running between that
+ * read and write would work from a stale copy and silently drop a press — a
+ * clock-on the worker believes landed and the rota never saw. The incident queue
+ * already serializes this way; this is the same contract.
+ */
+let flushChain: Promise<unknown> = Promise.resolve()
+
+export function flushShiftClockActions(
+  token: string,
+  options: { shiftId?: string } = {},
+): Promise<{ synced: number; remaining: number; refused: number }> {
+  const result = flushChain.then(() => flushShiftClockActionsInner(token, options))
+  flushChain = result.then(() => undefined, () => undefined)
+  return result
+}
+
+async function flushShiftClockActionsInner(
   token: string,
   options: { shiftId?: string } = {},
 ): Promise<{ synced: number; remaining: number; refused: number }> {

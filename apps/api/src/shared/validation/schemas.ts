@@ -494,8 +494,14 @@ export const assignStaffSchema = z.object({
   staffId: z.string().uuid(),
 });
 
+/**
+ * Applying to a marketplace shift. `staffId` is optional on purpose: someone
+ * applying for themselves is named by their session, and the server resolves
+ * their staff profile. A manager applying on a colleague's behalf may still
+ * name them.
+ */
 export const applyShiftSchema = z.object({
-  staffId: z.string().uuid(),
+  staffId: z.string().uuid().optional(),
   notes: z.string().optional(),
 });
 

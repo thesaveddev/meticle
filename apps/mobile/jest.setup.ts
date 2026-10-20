@@ -93,3 +93,28 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
 }))
+
+// Speech recognition ships native Swift/Kotlin that is not in the jest runtime —
+// and not in Expo Go either, only in dev/EAS builds. The app's voice service is
+// tested through these doubles: tests drive the listeners the service
+// subscribes to, which is the whole surface the screens depend on.
+jest.mock('expo-speech-recognition', () => ({
+  ExpoSpeechRecognitionModule: {
+    requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+    isRecognitionAvailable: jest.fn(() => true),
+    getSupportedLocales: jest.fn(async () => ({ locales: ['en-GB'], installedLocales: ['en-GB'] })),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+  useSpeechRecognitionEvent: jest.fn(),
+}))
+
+// OS text-to-speech: same treatment — the service is tested through the double,
+// and the double records what Mica would have said aloud.
+jest.mock('expo-speech', () => ({
+  speak: jest.fn(),
+  stop: jest.fn(async () => {}),
+  isSpeakingAsync: jest.fn(async () => false),
+}))

@@ -15,6 +15,7 @@ import { readSession, clearSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { flushIncidentQueue, getIncidentQueue } from './src/services/incidentQueue'
+import { flushShiftClockActions, pendingShiftClockActions } from './src/services/shiftClockQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
 import { notificationTarget, resolveTab } from './src/utils/notificationLinks'
 import { LoginScreen } from './src/screens/LoginScreen'
@@ -288,6 +289,11 @@ function AppInner() {
       activeSession.user.id,
       activeSession.user.organizationId || activeSession.organization?.id || null
     ).catch(() => null)
+    // A queued clock press is evidence too: leaving it out of a manual sync
+    // would tell the worker everything was sent while the rota still showed an
+    // unopened shift.
+    const clockResult = await flushShiftClockActions(activeSession.accessToken).catch(() => null)
+    if (clockResult && clockResult.synced > 0) setShiftRevision(value => value + 1)
     await loadQueue()
     await loadIncidentQueue(activeSession)
     return incidentResult
@@ -475,21 +481,28 @@ function AppInner() {
 
   useEffect(() => {
     if (!session?.accessToken) return
-    const retryIncidentReports = () => {
+    // Every queue the phone holds, not just incident reports. This used to retry
+    // only the incident queue here, so a check-in or a clock-on that failed while
+    // the worker was underground sat unsent until a manual sync, a reboot, or a
+    // sign-out attempt — indefinitely, if none of those happened. A connection
+    // coming back is exactly when all three should move.
+    const retryOfflineQueues = () => {
       if (AppState.currentState !== 'active') return
-      flushIncidentQueue(
-        session.accessToken,
-        session.user.id,
-        session.user.organizationId || session.organization?.id || null
-      ).then(() => loadIncidentQueue(session)).catch(() => {})
+      const token = session.accessToken
+      const orgId = session.user.organizationId || session.organization?.id || null
+      flushQueue(token).then(() => loadQueue()).catch(() => {})
+      flushIncidentQueue(token, session.user.id, orgId).then(() => loadIncidentQueue(session)).catch(() => {})
+      flushShiftClockActions(token)
+        .then(result => { if (result.synced > 0) setShiftRevision(value => value + 1) })
+        .catch(() => {})
     }
-    retryIncidentReports()
+    retryOfflineQueues()
     const stateSubscription = AppState.addEventListener('change', state => {
-      if (state === 'active') retryIncidentReports()
+      if (state === 'active') retryOfflineQueues()
     })
-    const retryInterval = setInterval(retryIncidentReports, 30_000)
+    const retryInterval = setInterval(retryOfflineQueues, 30_000)
     return () => { stateSubscription.remove(); clearInterval(retryInterval) }
-  }, [loadIncidentQueue, session])
+  }, [loadIncidentQueue, loadQueue, session])
 
   useEffect(() => {
     if (!session?.accessToken) return
@@ -553,15 +566,20 @@ function AppInner() {
     if (session?.accessToken) {
       await flushQueue(session.accessToken).catch(() => null)
       await flushIncidentQueue(session.accessToken, session.user.id, session.user.organizationId || session.organization?.id || null).catch(() => null)
+      // A clock press is on-duty evidence: signing out with one still queued
+      // would strand it behind a session that no longer exists, exactly the
+      // loss the sign-out flush exists to prevent.
+      await flushShiftClockActions(session.accessToken).catch(() => null)
 
       const stranded = (await getQueue()).filter(item => item.state !== 'synced').length
       const strandedReports = await getIncidentQueue(session.user.id, session.user.organizationId || session.organization?.id || null)
-      if (stranded > 0 || strandedReports.length > 0) {
-        const pendingCount = stranded + strandedReports.length
+      const strandedClock = (await pendingShiftClockActions().catch(() => [])).length
+      if (stranded > 0 || strandedReports.length > 0 || strandedClock > 0) {
+        const pendingCount = stranded + strandedReports.length + strandedClock
         const proceed = await new Promise<boolean>(resolve => {
           Alert.alert(
             `${pendingCount} item${pendingCount === 1 ? '' : 's'} not yet synced`,
-            `${stranded} visit action${stranded === 1 ? '' : 's'} may be lost on sign-out. ${strandedReports.length} incident report${strandedReports.length === 1 ? ' stays' : 's stay'} encrypted on this device and will sync only if this same account signs in again.`,
+            `${stranded} visit action${stranded === 1 ? '' : 's'} and ${strandedClock} clock action${strandedClock === 1 ? '' : 's'} may be lost on sign-out. ${strandedReports.length} incident report${strandedReports.length === 1 ? ' stays' : 's stay'} encrypted on this device and will sync only if this same account signs in again.`,
             [
               { text: 'Keep me signed in', style: 'cancel', onPress: () => resolve(false) },
               { text: 'Sign out anyway', style: 'destructive', onPress: () => resolve(true) },
@@ -692,7 +710,7 @@ function AppInner() {
     case 'learn':
       return frame(<SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack>)
     case 'mica':
-      return frame(<SwipeBack onBack={goBack}><MicaHomeScreen navigation={{ pop: goBack }} session={session} onCloseSheet={() => goBack()} onOpenSheet={openMica} /></SwipeBack>)
+      return frame(<SwipeBack onBack={goBack}><MicaHomeScreen navigation={{ pop: goBack }} session={session} onNavigate={openNotificationLink} onCloseSheet={() => goBack()} onOpenSheet={openMica} /></SwipeBack>)
     case 'sos':
       return frame(<SwipeBack onBack={goBack}><SosHelpScreen navigation={{ pop: goBack }} session={session} onMicaPress={openMica} /></SwipeBack>)
     case 'tabs':

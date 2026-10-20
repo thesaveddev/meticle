@@ -94,6 +94,25 @@ describe('shift clock queue', () => {
     expect(storage.__store()).toHaveLength(0)
   })
 
+  it('serializes concurrent flushes so one press is replayed once, not twice', async () => {
+    // A foreground retry racing the clock screen's own flush used to read the
+    // same queue twice and replay the same press twice. The action key would
+    // have saved it from a double record — but only by luck of the server's
+    // idempotency, not by the queue's discipline. They now run one after the
+    // other, so the second finds nothing left to send.
+    await queueShiftClockAction(press)
+    mockedReplay.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({} as any), 20)))
+
+    const [first, second] = await Promise.all([
+      flushShiftClockActions('token-1'),
+      flushShiftClockActions('token-1'),
+    ])
+
+    expect(mockedReplay).toHaveBeenCalledTimes(1)
+    expect(first.synced + second.synced).toBe(1)
+    expect(storage.__store()).toHaveLength(0)
+  })
+
   it('leaves another shift’s saved actions alone', async () => {
     await queueShiftClockAction(press)
     await queueShiftClockAction({

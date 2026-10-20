@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Alert, Box, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { ErrorOutline as ExceptionIcon, HomeWork as PackageIcon, ReceiptLong as PayrollIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
+import { ErrorOutline as ExceptionIcon, Feedback as FeedbackIcon, HomeWork as PackageIcon, ReceiptLong as PayrollIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import PageContainer from '../../components/design/PageContainer'
 import EmptyState from '../../components/design/EmptyState'
 import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
+import FamilyFeedbackBoard from './FamilyFeedbackBoard'
 import { addLocalDays, localDate } from '../../utils/dateFormat'
 import './homecare.css'
 
@@ -88,11 +89,13 @@ export default function HomecarePage() {
       <Tab icon={<ScheduleIcon />} iconPosition="start" label={isManager ? 'Visit board' : 'My visits'} />
       {isManager && <Tab icon={<PackageIcon />} iconPosition="start" label="Care packages" />}
       {isManager && <Tab icon={<ExceptionIcon />} iconPosition="start" label={`Missed calls${exceptions.length ? ` · ${exceptions.length}` : ''}`} />}
+      {isManager && <Tab icon={<FeedbackIcon />} iconPosition="start" label="Family feedback" />}
     </Tabs>
     {overdueOnly && <Alert severity="warning" sx={{ mb: 2 }}>Showing the outstanding overdue backlog across all dates. Overdue means a scheduled or en-route call whose scheduled end time has passed; unassigned calls are not counted as overdue unless they also meet that rule.</Alert>}
     {tab === 0 && <VisitBoard visits={filteredVisits} loading={visitsLoading} />}
     {tab === 1 && isManager && <PackageBoard packages={visiblePackages} total={filteredPackages.length} search={packageSearch} status={packageStatus} page={packagePage} pages={packagePages} onSearch={(value: string) => { setPackageSearch(value); setPackagePage(0) }} onStatus={(value: string) => { setPackageStatus(value); setPackagePage(0) }} onPage={setPackagePage} onPattern={(pkg: any) => setPatternPkg(pkg)} />}
     {tab === 2 && isManager && <ExceptionBoard exceptions={exceptions} />}
+    {tab === 3 && isManager && <FamilyFeedbackBoard />}
     <PackageDialog packageDraft={newPackage} people={people} billingProfiles={billingProfiles} payProfiles={payProfiles} onClose={() => setNewPackage(null)} onSaved={() => { setNewPackage(null); setMessage('Care package created.'); window.location.reload() }} />
     <CallPatternDialog pkg={patternPkg} staff={staff} onClose={() => setPatternPkg(null)} />
   </Box></PageContainer>

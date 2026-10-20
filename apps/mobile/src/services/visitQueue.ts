@@ -38,7 +38,23 @@ export async function getQueue() {
   return readQueue()
 }
 
-export async function flushQueue(token: string) {
+/**
+ * Flushes are chained so two of them can never interleave. Each flush reads the
+ * whole queue and rewrites it at the end; a second flush running between that
+ * read and write would work from a stale copy and silently drop whatever the
+ * first one had done. The incident queue already serializes this way — this is
+ * the same contract, because a lost check-in is a lost check-in whichever queue
+ * lost it.
+ */
+let flushChain: Promise<unknown> = Promise.resolve()
+
+export function flushQueue(token: string): Promise<{ synced: number; failed: number; remaining: number }> {
+  const result = flushChain.then(() => flushQueueInner(token))
+  flushChain = result.then(() => undefined, () => undefined)
+  return result
+}
+
+async function flushQueueInner(token: string) {
   const queue = await readQueue()
   let synced = 0
   let failed = 0

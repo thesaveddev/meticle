@@ -650,6 +650,14 @@ seven minutes was one session's `CREATE TEMP TABLE`.
    renders them, so they are dead code or pages whose route was removed — and several were
    tokenised during the colour sweep, which is effort spent on code that does not ship. Each
    needs a route-or-delete decision; the tracker keeps listing them until then.
+   **Closed 20 Oct 2026 — delete**, all four live counterparts verified first:
+   `IncidentsPage` (superseded by `IncidentDirectoryPage` + `IncidentDetailPage` on
+   `/incidents`), `HomecareMissionControl` (superseded by `MissionControlViews`), and
+   `MileagePolicyPage` / `PublicSitePage` (unrouted, unreferenced). 1,105 lines removed;
+   the one load-bearing reference — the disclaimer the claims test required in
+   `PublicSitePage` — stays covered on the live `CompliancePage`/`FeaturePage`, and
+   `design:sync` + `design:check` are green after the removal. `LandingPage`, `BlogPage`
+   and `ContactPage` from the original list of seven are routed and were never dead.
 10. **The visual gate's tolerance is now measured rather than inherited — decided 15 October,
     in its own commit, against the CI-rendered baseline set this item asked for.** Two
     independent regenerations of one commit returned byte-identical PNGs in all sixteen files,
@@ -691,8 +699,8 @@ once — the first declaration wins at runtime.
 | Redirect routes (no page to review) | 7 |
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
-| Page-tree modules the router does not reach | 7 |
-| audited / updated / tested | 19 / 123 / 33 |
+| Page-tree modules the router does not reach | 3 |
+| audited / updated / tested | 19 / 123 / 34 |
 | Fully signed off (all three) | 13 |
 | Gaps (any of the three missing) | 110 |
 
@@ -761,7 +769,7 @@ once — the first declaration wins at runtime.
 | `/locations/:locationId` | `pages/locations/LocationDetailPage.tsx` | no | yes | no |
 | `/login` | `pages/auth/LoginPage.tsx` | no | yes | no |
 | `/manager-briefing` | `pages/insights/ManagerBriefingPage.tsx` | no | yes | no |
-| `/marketplace` | `pages/marketplace/MarketplacePage.tsx` | no | yes | no |
+| `/marketplace` | `pages/marketplace/MarketplacePage.tsx` | no | yes | yes |
 | `/meal-plans` | `pages/nutrition/MealPlanPage.tsx` | no | yes | no |
 | `/medications` | `pages/emedication/EMedicationPage.tsx` | yes | yes | yes |
 | `/mfa-challenge` | `pages/auth/MfaChallengePage.tsx` | no | yes | no |
@@ -835,11 +843,7 @@ listed here and neither is anything the router imports directly. An entry below 
 by nothing in the application: dead code, or a page whose route was removed.
 
 - `pages/LandingPage.tsx`
-- `pages/homecare/MileagePolicyPage.tsx`
-- `pages/incidents/IncidentsPage.tsx`
 - `pages/marketing/BlogPage.tsx`
 - `pages/marketing/ContactPage.tsx`
-- `pages/marketing/PublicSitePage.tsx`
-- `pages/mission-control/HomecareMissionControl.tsx`
 
 <!-- END generated route tracker -->

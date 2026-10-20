@@ -389,7 +389,9 @@ export const REQUIRED_DISCLAIMERS: {
     requiredIn: [
       'src/pages/marketing/CompliancePage.tsx',
       'src/pages/marketing/FeaturePage.tsx',
-      'src/pages/marketing/PublicSitePage.tsx',
+      // PublicSitePage.tsx carried this disclaimer but was deleted 20 Oct 2026:
+      // it was unreachable from the router (design audit §11 item 9) and its
+      // feature content duplicates FeaturePage, which remains covered above.
     ],
   },
   {

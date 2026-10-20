@@ -51,6 +51,7 @@ import taskRoutes from '../modules/tasks/tasks.routes'
 import roomCheckRoutes from '../modules/room-checks/room-checks.routes'
 import mobileRoutes from '../modules/mobile/mobile.routes'
 import familyPortalRoutes from '../modules/family-portal/familyPortal.routes'
+import familyFeedbackRoutes, { publicRouter as familyFeedbackPublicRoutes } from '../modules/family-portal/familyFeedback.routes'
 import dbsRoutes from '../modules/dbs/dbs.routes'
 import expensesRoutes from '../modules/expenses/expenses.routes'
 import dsptRoutes from '../modules/dspt/dspt.routes'
@@ -121,6 +122,8 @@ export function createTestApp(): Express {
   app.use('/compliance-portal', compliancePortalRoutes)
   app.use('/ai', aiRoutes)
   app.use('/family-portal', familyPortalRoutes)
+  app.use('/family-feedback', familyFeedbackRoutes)
+  app.use('/api/family-feedback', familyFeedbackPublicRoutes)
   app.use('/delegations', delegationRoutes)
   app.use('/agencies', authenticate, requireSupportedLivingOnly, agencyRoutes)
   app.use('/dbs', dbsRoutes)

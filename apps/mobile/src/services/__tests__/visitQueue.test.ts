@@ -126,6 +126,20 @@ describe('offline visit action queue', () => {
     expect(mockExecute.mock.calls.length).toBeLessThanOrEqual(5)
   })
 
+  it('serializes concurrent flushes so one action is sent once, not twice', async () => {
+    // Two flushes overlapping — a manual sync racing the foreground retry — used
+    // to read the same queue and each send the check-in, because neither saw the
+    // other's write. They now run one after the other: the second finds an empty
+    // queue instead of a stale copy of it.
+    seed()
+    mockExecute.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({} as any), 20)))
+    const [first, second] = await Promise.all([flushQueue('token'), flushQueue('token')])
+
+    expect(mockExecute).toHaveBeenCalledTimes(1)
+    expect(first.synced + second.synced).toBe(1)
+    expect(queue()).toHaveLength(0)
+  })
+
   it('records a fresh action as pending with no attempts yet', async () => {
     const item = await enqueueVisitAction('visit-9', 'check-out', { latitude: 1, longitude: 2 })
     expect(item.state).toBe('pending')

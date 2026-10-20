@@ -1203,3 +1203,174 @@ export async function acknowledgeShiftHandover(
     body: JSON.stringify(note ? { note } : {}),
   }, token)
 }
+
+/**
+ * Mica's question answering, the same endpoint the web assistant asks.
+ *
+ * The server answers in layers: a navigation destination resolved without any
+ * model, then a deterministic fact from the organisation's own rows, then the
+ * configured provider — and it keeps the conversation in `sessionId`, so a
+ * follow-up like "what about tomorrow?" is answered against what was just said.
+ * The phone sends the same envelope the web client sends and honours the same
+ * contract: `navigate` means go there now, `offer` means a page is waiting on
+ * the carer's yes. Nothing here is voice — the spoken web flow and this typed
+ * flow meet at this endpoint, which is what makes the answers the same Mica.
+ */
+export interface MicaAskResponse {
+  answer?: string
+  sessionId?: string
+  navigate?: { path?: string; label?: string }
+  /** A page waiting on the carer's yes, with the words that offered it. */
+  offer?: { path?: string; label?: string; offer?: string }
+}
+
+export async function askMica(
+  token: string,
+  question: string,
+  sessionId?: string,
+): Promise<MicaAskResponse> {
+  return request<MicaAskResponse>('/ai/mica/ask', {
+    method: 'POST',
+    body: JSON.stringify({
+      question,
+      ...(sessionId ? { sessionId } : {}),
+    }),
+  }, token)
+}
+
+/**
+ * Mica write actions: the confirm-before-persist gateway, the same two
+ * endpoints the web drafts through. The prepare call never writes — it
+ * returns a reviewable draft (or a clarification) — and only the confirm call
+ * with the server-issued envelope persists a row. Care notes keep their own
+ * endpoint and feature flag, so they are refused here exactly as the server
+ * refuses them (`Send care notes to /ai/voice/notes`).
+ */
+export type MicaWriteAction = 'CREATE_TASK' | 'CREATE_APPOINTMENT'
+
+export interface MicaActionPrepareResponse {
+  draft?: boolean
+  action?: string
+  utterance?: string
+  output?: Record<string, unknown>
+  summary?: string
+  needClarification?: boolean
+  type?: string
+  prompt?: string
+  candidates?: Array<{ id: string; name: string; detail?: string }>
+  options?: Array<{ id: string; label: string }>
+  error?: { message?: string }
+}
+
+export async function prepareMicaAction(
+  token: string,
+  action: MicaWriteAction,
+  utterance: string,
+  input: Record<string, unknown>,
+): Promise<MicaActionPrepareResponse> {
+  return request<MicaActionPrepareResponse>('/ai/mica/actions', {
+    method: 'POST',
+    body: JSON.stringify({ action, utterance, input: { utterance, source: 'voice', ...input } }),
+  }, token)
+}
+
+export interface MicaActionConfirmResponse {
+  confirmed?: boolean
+  sessionId?: string
+  offer?: { path?: string; label?: string; offer?: string }
+  result?: Record<string, unknown>
+}
+
+export async function confirmMicaAction(
+  token: string,
+  draftEnvelope: Record<string, unknown>,
+  sessionId?: string,
+): Promise<MicaActionConfirmResponse> {
+  return request<MicaActionConfirmResponse>('/ai/mica/actions/confirm', {
+    method: 'POST',
+    // The envelope goes back exactly as the server issued it: confirm
+    // re-validates its own draft, and a forged one is refused.
+    body: JSON.stringify({
+      draft: draftEnvelope,
+      ...(sessionId ? { sessionId } : {}),
+    }),
+  }, token)
+}
+
+/**
+ * The care-note path: a statement about someone is drafted as a note, and the
+ * note's subject is the name spoken in it. The server answers with the draft
+ * or asks who the note is about (`needClarification`), and the next utterance
+ * is the answer. `noteDate` is the carer's own calendar day — a night-shift
+ * note taken at 00:30 belongs to the day they are living, not UTC's.
+ */
+export interface MicaCareNoteResponse {
+  result?: { message?: string }
+  question?: string
+  person?: { id: string; name: string }
+  noteContext?: { personId: string; shift: string; noteDate: string; source: string }
+  needClarification?: boolean
+  candidates?: Array<{ id: string; name: string; detail?: string }>
+  error?: { message?: string }
+}
+
+export async function requestVoiceNote(
+  token: string,
+  utterance: string,
+  opts?: { personId?: string; personName?: string; noteDate?: string },
+): Promise<MicaCareNoteResponse> {
+  return request<MicaCareNoteResponse>('/ai/voice/notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      transcription: utterance,
+      intent: utterance,
+      ...(opts?.personId ? { personId: opts.personId } : {}),
+      ...(opts?.personName ? { personName: opts.personName } : {}),
+      source: 'voice',
+      noteDate: opts?.noteDate,
+    }),
+  }, token)
+}
+
+export interface MicaNoteApproveResponse {
+  dailyNote?: { id: string }
+  offer?: { path?: string; label?: string; offer?: string }
+}
+
+/**
+ * Persists a reviewed care-note draft. The draft's `result.daily_note`
+ * carries the generated content the server composed; the approval re-sends
+ * that content with the note context, exactly as the profile page's approve
+ * path does (`dailyNote: { content, shift, category, support_level }` plus
+ * the analysis the draft returned).
+ */
+export async function approveVoiceNote(
+  token: string,
+  personId: string,
+  draftResult: Record<string, unknown>,
+  noteContext: { shift?: string; noteDate?: string },
+): Promise<MicaNoteApproveResponse> {
+  const generated = (draftResult?.daily_note as Record<string, unknown>) || {}
+  return request<MicaNoteApproveResponse>('/ai/daily-notes/approve', {
+    method: 'POST',
+    body: JSON.stringify({
+      personId,
+      dailyNote: {
+        content: generated.content || '',
+        shift: generated.shift || noteContext.shift,
+        category: generated.category || 'wellbeing',
+        support_level: generated.support_level || '',
+      },
+      moodAnalysis: draftResult?.mood_analysis,
+      safeguardingFlags: draftResult?.safeguarding_flags,
+      carePlanUpdates: draftResult?.care_plan_updates,
+      interventionsSuggested: draftResult?.interventions_suggested,
+      riskLevel: draftResult?.risk_level,
+      followUpRequired: draftResult?.follow_up_required,
+      followUpDetails: draftResult?.follow_up_details,
+      linkedGoalId: draftResult?.linked_goal_id,
+      source: 'voice',
+      ...(noteContext.noteDate ? { noteDate: noteContext.noteDate } : {}),
+    }),
+  }, token)
+}
