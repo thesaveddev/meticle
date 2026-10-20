@@ -28,10 +28,6 @@ interface LinkDetails {
   scope_label: string
 }
 
-const NAVY = '#0164C8'
-const INK = '#0C1B2E'
-const MUTED = '#5D6E85'
-
 export default function UnsubscribePage() {
   const [params] = useSearchParams()
   const token = params.get('token') || ''
@@ -82,27 +78,27 @@ export default function UnsubscribePage() {
         description="Stop receiving Meticle Care emails you no longer want. Password resets and receipts are unaffected."
         canonicalPath="/unsubscribe"
       />
-      <Box sx={{ minHeight: '100vh', bgcolor: '#F4F9FC', display: 'flex', alignItems: 'center', py: 6 }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', alignItems: 'center', py: 6 }}>
         <Container maxWidth="sm">
-          <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3, border: '1px solid #E3E9F0', bgcolor: '#FFFFFF' }}>
+          <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
             <Stack spacing={2.5} alignItems="flex-start">
-              <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#EAF3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: 'notice.info.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {state === 'done'
-                  ? <MarkEmailReadIcon sx={{ color: NAVY }} />
-                  : <MailOutlineIcon sx={{ color: NAVY }} />}
+                  ? <MarkEmailReadIcon sx={{ color: 'notice.info.fg' }} />
+                  : <MailOutlineIcon sx={{ color: 'notice.info.fg' }} />}
               </Box>
 
               {state === 'loading' && (
                 <Stack direction="row" spacing={1.5} alignItems="center">
                   <CircularProgress size={18} />
-                  <Typography sx={{ color: MUTED }}>Checking your link…</Typography>
+                  <Typography sx={{ color: 'text.secondary' }}>Checking your link…</Typography>
                 </Stack>
               )}
 
               {state === 'invalid' && (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: INK }}>This link is not valid</Typography>
-                  <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>This link is not valid</Typography>
+                  <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
                     {message || 'The link may have been cut short by your email client.'} Reply to any email from us and
                     we will take you off the list by hand.
                   </Typography>
@@ -114,7 +110,7 @@ export default function UnsubscribePage() {
 
               {state === 'error' && (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: INK }}>Something went wrong</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>Something went wrong</Typography>
                   <Alert severity="error" sx={{ width: '100%' }}>{message}</Alert>
                   <Button onClick={confirm} variant="contained" disabled={busy} sx={{ textTransform: 'none' }}>
                     Try again
@@ -124,12 +120,12 @@ export default function UnsubscribePage() {
 
               {state === 'ready' && details && (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: INK }}>Stop these emails?</Typography>
-                  <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>Stop these emails?</Typography>
+                  <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
                     We will stop sending <strong>{details.scope_label}</strong> to <strong>{details.email}</strong>.
                   </Typography>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#F7FAFE', border: '1px solid #E3E9F0', width: '100%' }}>
-                    <Typography variant="body2" sx={{ color: MUTED, lineHeight: 1.7 }}>
+                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: 'divider', width: '100%' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
                       Account emails you need &mdash; password resets, security alerts, receipts and statutory notices
                       &mdash; will still arrive. You can fine-tune individual notifications from Settings once signed in.
                     </Typography>
@@ -139,11 +135,11 @@ export default function UnsubscribePage() {
                       onClick={confirm}
                       variant="contained"
                       disabled={busy}
-                      sx={{ textTransform: 'none', bgcolor: NAVY, '&:hover': { bgcolor: '#014FB5' } }}
+                      sx={{ textTransform: 'none' }}
                     >
                       {busy ? 'Unsubscribing…' : 'Unsubscribe'}
                     </Button>
-                    <Button component={RouterLink} to="/" variant="text" sx={{ textTransform: 'none', color: MUTED }}>
+                    <Button component={RouterLink} to="/" variant="text" sx={{ textTransform: 'none', color: 'text.secondary' }}>
                       Keep receiving them
                     </Button>
                   </Stack>
@@ -152,12 +148,12 @@ export default function UnsubscribePage() {
 
               {state === 'done' && details && (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: INK }}>You&rsquo;re unsubscribed</Typography>
-                  <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>You&rsquo;re unsubscribed</Typography>
+                  <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
                     We will not send <strong>{details.scope_label}</strong> to <strong>{details.email}</strong> again.
                     Account emails you need will still arrive.
                   </Typography>
-                  <Typography variant="body2" sx={{ color: MUTED }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Changed your mind? Sign in and turn the notifications you want back on in Settings.
                   </Typography>
                   <Button component={RouterLink} to="/login" variant="outlined" sx={{ textTransform: 'none' }}>

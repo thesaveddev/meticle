@@ -85,7 +85,9 @@ describe('TasksPage deep links', () => {
     renderTasks('/tasks')
 
     // The list itself renders, and no record dialog was opened by a stray param.
-    expect(await screen.findByText('Order grip rails')).toBeInTheDocument()
+    // `findAll`: the daily calendar shows this task too on a day it falls due, and
+    // a fixture date that happens to be today must not turn this into two elements.
+    expect((await screen.findAllByText('Order grip rails')).length).toBeGreaterThan(0)
     expect(screen.queryByText('Notes only the dialog shows')).not.toBeInTheDocument()
     expect(vi.mocked(api.get)).not.toHaveBeenCalledWith('/tasks/t1')
   })
