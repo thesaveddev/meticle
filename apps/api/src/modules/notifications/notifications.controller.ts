@@ -3,6 +3,25 @@ import pool from '../../shared/database';
 import { safeIo } from '../../shared/socket';
 import { AppError } from '../../shared/middleware/error.middleware';
 
+/**
+ * The ordering key of a notification page, as the client can actually see it.
+ *
+ * `created_at` is a timestamptz and holds microseconds. The row that reaches a
+ * client has been through a JS `Date`, which holds milliseconds, so the
+ * `created_at` a client echoes back as its cursor is the stored value *truncated*.
+ * Comparing the stored value against that truncated cursor excluded every row in
+ * the microsecond gap behind it: 25 notifications written in one burst paged back
+ * as 24, missing one from the middle of the burst, because the row before it sat
+ * at .123456 and its cursor said .123.
+ *
+ * Truncating both sides makes the predicate agree with the order the client is
+ * holding, so the tie-break is `id` on both sides rather than microseconds only
+ * one of them can see. That is what the keyset contract already claimed.
+ */
+const KEYSET_AT = "date_trunc('milliseconds', created_at)";
+/** The same truncation applied to the cursor, so both sides compare at one precision. */
+const KEYSET_CURSOR_AT = "date_trunc('milliseconds', $2::timestamptz)";
+
 export class NotificationsController {
   /** The default page: what one screen holds without scrolling for a while. */
   private static readonly PAGE_SIZE = 20;
@@ -21,6 +40,10 @@ export class NotificationsController {
    * page one and page two — and an offset page shifts under the reader by one row for
    * every arrival, silently skipping the row that got pushed across the boundary. A
    * keyset page always continues from the row it was handed.
+   *
+   * The key is millisecond-truncated `created_at` (see `KEYSET_AT`), because that is
+   * the precision the cursor carries: ordering by the microsecond column while
+   * comparing against a millisecond cursor skips rows created in the same millisecond.
    *
    * The body stays the bare array it has always been, so nothing that already calls
    * this has to change: a caller that wants older rows passes the last row it holds as
@@ -58,12 +81,12 @@ export class NotificationsController {
     let where = 'user_id = $1';
     if (before && beforeId) {
       params.push(before, beforeId);
-      where += ` AND (created_at, id) < ($2::timestamptz, $3::uuid)`;
+      where += ` AND (${KEYSET_AT}, id) < (${KEYSET_CURSOR_AT}, $3::uuid)`;
     }
     params.push(limit);
 
     const result = await pool.query(
-      `SELECT * FROM notifications WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT $${params.length}`,
+      `SELECT * FROM notifications WHERE ${where} ORDER BY ${KEYSET_AT} DESC, id DESC LIMIT $${params.length}`,
       params
     );
     res.json(result.rows);
