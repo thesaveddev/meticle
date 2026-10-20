@@ -54,6 +54,29 @@ function getClientIp(socket: Socket): string {
 }
 
 /**
+ * The web app's session cookie, read out of the handshake.
+ *
+ * The browser's own HTTP middleware (`cookie-parser`) never sees a websocket
+ * upgrade, so the header is parsed here — the same cookie the API accepts as a
+ * bearer-header alternative, and the only credential the web client has since
+ * the access token stopped living in localStorage. Parsing it by hand rather
+ * than through the `cookie` package keeps the API's declared dependencies
+ * honest: `cookie-parser` is ours, its transitive `cookie` is not.
+ */
+function sessionCookieToken(socket: Socket): string | null {
+  const header = socket.handshake.headers.cookie;
+  if (!header) return null;
+  for (const part of String(header).split(';')) {
+    const separator = part.indexOf('=');
+    if (separator === -1) continue;
+    if (part.slice(0, separator).trim() !== 'accessToken') continue;
+    const value = part.slice(separator + 1).trim();
+    return value ? decodeURIComponent(value) : null;
+  }
+  return null;
+}
+
+/**
  * Decide whether a socket.io connection origin is allowed. The allowlist is
  * built from CORS_ORIGINS (comma-separated) plus FRONTEND_URL plus the default
  * dev origins, so a misconfigured deployment degrades instead of silently
@@ -181,7 +204,10 @@ export async function initSocketServer(httpServer: HTTPServer) {
         return next(new Error('Connection rate limit exceeded'));
       }
 
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      // Three ways in, in order of explicitness: the client's `auth` payload
+      // (mobile and any script), the query string (the pre-cookie web client),
+      // and the httpOnly session cookie the web app now relies on.
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token || sessionCookieToken(socket);
       if (!token) return next(new Error('Authentication required'));
 
       const secret = process.env.JWT_SECRET!;

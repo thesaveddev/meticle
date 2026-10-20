@@ -16,8 +16,13 @@ import { micaRecordPath, type MicaRecordRef } from '@meticle/shared';
  * the route takes (`staff.routes.ts` reads `:userId`, and `GET /staff/:userId`
  * answers 404 for a `staff_profiles` id), and all three queries below join
  * `staff_profiles` to `users`, so `user_id` is both the id in hand and the id that
- * opens the profile. The push URLs elsewhere in this file that interpolate
- * `staff_id` are a pre-existing slip and are deliberately not copied here.
+ * opens the profile.
+ *
+ * The manager-facing reminders below used to interpolate `staff_id` directly — a
+ * `staff_profiles` id in a URL that reads `:userId`, which is a reminder that opens a
+ * 404 or, worse, somebody else. They now carry this same ref, so the bell, the inbox
+ * and the email all name the record the reminder is about rather than dropping the
+ * reader on a page that has to find it again.
  *
  * One ref serves both channels — the notification carries `micaRecordPath(ref)` and
  * the email carries `EmailService.recordUrl(ref)` — so the bell and the inbox cannot
@@ -143,7 +148,8 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care — Compliance Alert: Threshold Breached (${org.name})`,
-              `<p>Hi ${admin.name},</p><p>The overall compliance rate for <strong>${org.name}</strong> has fallen below your organisation's alert threshold.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="color:${EMAIL_TEXT.toneBad};font-size:24px">${Math.round(rate)}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Current compliance rate</span></td><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="font-size:24px">${threshold}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Alert threshold</span></td></tr></table><p style="color:${EMAIL_TEXT.toneBad};font-weight:700">Immediate attention required.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
+              `<p>Hi ${admin.name},</p><p>The overall compliance rate for <strong>${org.name}</strong> has fallen below your organisation's alert threshold.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="color:${EMAIL_TEXT.toneBad};font-size:24px">${Math.round(rate)}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Current compliance rate</span></td><td style="padding:12px;background:${EMAIL_TEXT.panelBg};border:1px solid ${EMAIL_TEXT.panelBg};border-radius:8px"><strong style="font-size:24px">${threshold}%</strong><br/><span style="color:${EMAIL_TEXT.secondary};font-size:13px">Alert threshold</span></td></tr></table><p style="color:${EMAIL_TEXT.toneBad};font-weight:700">Immediate attention required.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`,
+              'notifications',
             ).catch(logWarn('complianceThresholdEmail'));
           }
         }
@@ -207,7 +213,8 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care — Predictive Alert: Compliance Declining (${org.name})`,
-              `<p>Hi ${admin.name},</p><p>Compliance for <strong>${org.name}</strong> is on a declining trend.</p><p>${trendMsg}</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
+              `<p>Hi ${admin.name},</p><p>Compliance for <strong>${org.name}</strong> is on a declining trend.</p><p>${trendMsg}</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`,
+              'notifications',
             ).catch(logWarn('predictiveAlertEmail'));
           }
         }
@@ -349,17 +356,17 @@ export class ComplianceNotificationService {
       if (isExpired) {
         await this.notifyOrgAdmins(doc.organization_id, 'Document Expired',
           `${staffName}'s ${doc.type} has expired and needs immediate attention.`,
-          `/staff/${doc.staff_id}`
+          micaRecordPath(staffComplianceRef(doc.id, doc.user_id))
         );
         // Also push to mobile
         await this.pushToOrgManagers(doc.organization_id, 'Document Expired',
-          `${staffName}'s ${doc.type} has expired.`, `/staff/${doc.staff_id}`
+          `${staffName}'s ${doc.type} has expired.`, micaRecordPath(staffComplianceRef(doc.id, doc.user_id))
         );
       } else {
         const daysLeft = Math.ceil((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000);
         await this.notifyOrgAdmins(doc.organization_id, 'Document Expiring Soon',
           `${staffName}'s ${doc.type} expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${new Date(doc.expiry_date).toLocaleDateString()}).`,
-          `/staff/${doc.staff_id}`
+          micaRecordPath(staffComplianceRef(doc.id, doc.user_id))
         );
       }
 
@@ -438,16 +445,16 @@ export class ComplianceNotificationService {
       if (isExpired) {
         await this.notifyOrgAdmins(rec.organization_id, 'Training Expired',
           `${staffName}'s "${rec.module_name}" training has expired.`,
-          `/staff/${rec.staff_id}`
+          micaRecordPath(staffComplianceRef(rec.id, rec.user_id))
         );
         await this.pushToOrgManagers(rec.organization_id, 'Training Expired',
-          `${staffName}'s "${rec.module_name}" training has expired.`, `/staff/${rec.staff_id}`
+          `${staffName}'s "${rec.module_name}" training has expired.`, micaRecordPath(staffComplianceRef(rec.id, rec.user_id))
         );
       } else {
         const daysLeft = Math.ceil((new Date(rec.expires_at).getTime() - Date.now()) / 86400000);
         await this.notifyOrgAdmins(rec.organization_id, 'Training Expiring Soon',
           `${staffName}'s "${rec.module_name}" training expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`,
-          `/staff/${rec.staff_id}`
+          micaRecordPath(staffComplianceRef(rec.id, rec.user_id))
         );
       }
 
@@ -621,7 +628,8 @@ export class ComplianceNotificationService {
                   <li>Discuss with the care team and update nutrition records</li>
                   <li>Consider GP referral if appetite decline or weight loss is noted</li>
                 </ul>
-                <p><a href="${process.env.FRONTEND_URL || ''}/people/${person.person_id}" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
+                <p><a href="${process.env.FRONTEND_URL || ''}/people/${person.person_id}" style="display:inline-block;padding:10px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`,
+                'notifications',
               ).catch(logWarn('nutritionAlertEmail'));
             }
             result.notified++;
@@ -862,7 +870,8 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Care Evidence Pack — ${org.name} (${new Date().toLocaleDateString('en-GB')})`,
-              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:${EMAIL_BRAND.primaryDeep}">View in Meticle Care →</a></p><p style="color:${EMAIL_TEXT.secondary};font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_people || 0} · Training: ${pack.summary?.training_records || 0}</p>`
+              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:${EMAIL_BRAND.primaryDeep}">View in Meticle Care →</a></p><p style="color:${EMAIL_TEXT.secondary};font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_people || 0} · Training: ${pack.summary?.training_records || 0}</p>`,
+              'notifications',
             ).catch(logWarn('scheduledPackEmail'));
           }
         }

@@ -6,6 +6,7 @@ import { UserRole } from '@meticle/shared';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { resolveLocation, isLocationTrackingEnabled, getWorkerLocationDecision } from '../homecare/homecare.repository';
+import { getRoomCheckBoard } from './mobile.roomChecks';
 
 const router = Router();
 router.use(authenticate);
@@ -99,6 +100,131 @@ router.get('/my-roster', asyncHandler(async (req: any, res: any) => {
     [staffId]
   );
   res.json(result.rows);
+}));
+
+/**
+ * The signed-in carer's own shifts, with the state of each one's handover.
+ *
+ * `/my-roster` answers "what am I working this week" and only looks forward, which
+ * is the wrong window for a handover: the shift whose handover is due is the one
+ * that has just *ended*, so it is behind the roster's `CURRENT_DATE` filter. This
+ * looks both ways, defaults to the week either side, and carries the handover state
+ * so the phone can show which shifts still owe one instead of making the carer open
+ * each shift to find out.
+ *
+ * The handover fields are joined, not counted per row by the caller: one query per
+ * screen beats one per shift, and a carer on a slow connection opens this once.
+ *
+ * Since 18 October 2026 each row also carries **this carer's own attendance** — the
+ * first clock-on, the last clock-off, and whether the two count them as on duty. The
+ * phone is where a shift is clocked on, so the list has to say which shift is open
+ * rather than making the carer open each one to find out. Offsets, not a single
+ * "latest event": a worker who steps out and comes back has several intervals, and
+ * the counts are order-independent, which is the same rule the attendance endpoint
+ * applies.
+ */
+/**
+ * The rooms that should have a check today, and which of them have one.
+ *
+ * The overdue nudge (`room_check.overdue`) tells a worker that 12 at Ash Grove has
+ * no check; until this endpoint the only place to answer it was the web page, so the
+ * nudge was a reminder to do something later rather than a thing they could finish
+ * where they were standing. The board is the same rooms the sweep derives, with the
+ * day's check attached where somebody has recorded one — so the list both shows what
+ * is outstanding and remembers what has been done.
+ *
+ * A non-supported-living provider gets `applicable: false` and an empty board rather
+ * than a 403: the phone asks on behalf of every service type and hides the card.
+ */
+router.get('/room-checks/today', asyncHandler(async (req: any, res: any) => {
+  const user = req.user!;
+  const board = await getRoomCheckBoard(user.organizationId!, user.userId);
+  res.json(board);
+}));
+
+router.get('/my-shifts', asyncHandler(async (req: any, res: any) => {
+  const user = req.user!;
+  const { from, to } = req.query as { from?: string; to?: string };
+  const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
+  if ((from && !dayPattern.test(from)) || (to && !dayPattern.test(to))) {
+    throw new AppError(400, 'from and to must use YYYY-MM-DD');
+  }
+
+  const sp = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [user.userId]);
+  const staffId = sp.rows[0]?.id;
+  // No staff profile is not an error worth a 403 here: the empty list is the honest
+  // answer, and the same shape the carer's other list endpoints return.
+  if (!staffId) { res.json([]); return; }
+
+  const result = await pool.query(
+    `SELECT s.id, s.location_id, l.name AS location_name, s.shift_type, s.status,
+            s.start_time, s.end_time, s.actual_start_at, s.actual_end_at,
+            mine.clocked_on_at, mine.clocked_off_at, mine.clock_on_count, mine.clock_off_count,
+            h.id AS handover_id, h.version AS handover_version,
+            h.recorded_at AS handover_recorded_at, h.what_happened,
+            COALESCE(NULLIF(TRIM(spa.first_name || ' ' || spa.last_name), ''), ua.email) AS handover_author_name,
+            (SELECT COUNT(*)::int FROM shift_handover_acknowledgements a WHERE a.handover_id = h.id) AS acknowledgement_count,
+            EXISTS (
+              SELECT 1 FROM shift_handover_acknowledgements a
+               WHERE a.handover_id = h.id AND a.user_id = $2
+            ) AS viewer_acknowledged,
+            (h.id IS NOT NULL AND h.author_id = $2) AS viewer_is_author,
+            (h.id IS NULL AND s.end_time < CURRENT_TIMESTAMP) AS handover_due
+       FROM shifts s
+       JOIN locations l ON l.id = s.location_id
+       JOIN shift_assignments sa ON sa.shift_id = s.id
+       LEFT JOIN shift_handovers h ON h.shift_id = s.id AND h.organization_id = l.organization_id
+       LEFT JOIN staff_profiles spa ON spa.user_id = h.author_id
+       LEFT JOIN users ua ON ua.id = h.author_id
+       -- This carer's own attendance for this shift, in one scan rather than four
+       -- correlated subqueries. The counts answer "on duty now"; the offsets are what
+       -- the row prints.
+       LEFT JOIN LATERAL (
+         SELECT MIN(e.recorded_at) FILTER (WHERE e.event = 'clock_on') AS clocked_on_at,
+                MAX(e.recorded_at) FILTER (WHERE e.event = 'clock_off') AS clocked_off_at,
+                COUNT(*) FILTER (WHERE e.event = 'clock_on')::int AS clock_on_count,
+                COUNT(*) FILTER (WHERE e.event = 'clock_off')::int AS clock_off_count
+           FROM shift_attendance_events e
+          WHERE e.shift_id = s.id AND e.user_id = $2
+       ) mine ON TRUE
+      WHERE sa.staff_id = $1
+        AND l.organization_id = $3
+        AND sa.status <> 'rejected'
+        AND s.status <> 'cancelled'
+        AND s.start_time::date <= COALESCE($5::date, CURRENT_DATE + 7)
+        AND s.end_time::date >= COALESCE($4::date, CURRENT_DATE - 7)
+      ORDER BY s.start_time DESC
+      LIMIT 100`,
+    [staffId, user.userId, user.organizationId, from || null, to || null]
+  );
+
+  res.json(result.rows.map((row: any) => ({
+    id: row.id,
+    location_id: row.location_id,
+    location_name: row.location_name,
+    shift_type: row.shift_type,
+    status: row.status,
+    start_time: row.start_time,
+    end_time: row.end_time,
+    actual_start_at: row.actual_start_at,
+    actual_end_at: row.actual_end_at,
+    clocked_on_at: row.clocked_on_at,
+    clocked_off_at: row.clocked_off_at,
+    // Counted, not "the latest event was a clock-on": an offline replay can land out
+    // of order, and a worker who stepped out has more than one interval.
+    on_duty: row.clock_on_count > row.clock_off_count,
+    handover_due: row.handover_due,
+    handover: row.handover_id ? {
+      id: row.handover_id,
+      version: row.handover_version,
+      author_name: row.handover_author_name || 'Former user',
+      recorded_at: row.handover_recorded_at,
+      what_happened: row.what_happened,
+      acknowledgement_count: row.acknowledgement_count,
+      viewer_acknowledged: row.viewer_acknowledged,
+      viewer_is_author: row.viewer_is_author,
+    } : null,
+  })));
 }));
 
 // Voice notes via daily notes endpoint

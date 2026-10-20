@@ -6,6 +6,11 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { EmailService } from '../../shared/utils/email.service';
 import { requireLocationInOrg, requirePersonInOrg, requireShiftInOrg, requireSameOrgForStaff } from '../../shared/database/tenant';
 import { logDelegationAction } from '../delegations/delegation.audit';
+import { ShiftAttendanceRepository } from './shiftAttendance.repository';
+import { ShiftHandoverRepository } from './shiftHandover.repository';
+import { recordShiftOfflineAction } from './shiftOfflineActions';
+import { publishShiftHandoverAcknowledgedEvent, publishShiftHandoverRecordedEvent } from './scheduling.events';
+import type { ShiftAttendanceInput, ShiftAttendanceSource, ShiftHandoverInput } from './shiftAttendance.types';
 // The record a scheduling message is about travels as one ref, so the bell row, the
 // push and the email all open the same record (`@meticle/shared`).
 import { micaRecordPath, type MicaRecordRef } from '@meticle/shared';
@@ -915,5 +920,205 @@ export class SchedulingController {
     const shift = await SchedulingRepository.updateAgencyCoverage(id, user.organizationId!, covered);
     if (!shift) throw new AppError(404, 'Shift not found');
     res.json(shift);
+  }
+
+  // ── Shift attendance and handover (mobile blueprint §9.1/§9.2) ────────────
+  //
+  // Neither write is gated on `scheduling:edit`, for the same reason task
+  // completion and room checks are not: the duty belongs to the support worker
+  // and the ownership stays with the manager. Attendance is written only by the
+  // worker rostered on the shift, which the repository enforces; the handover is
+  // written by the staff on the shift, or by a manager writing on their behalf —
+  // attributed to the manager who wrote it, never to the worker they wrote it for.
+
+  /** The shift's attendance record: who was rostered, who clocked on, and when. */
+  static async getAttendance(req: Request, res: Response) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    const attendance = await ShiftAttendanceRepository.getAttendance(user.organizationId!, id, user.userId);
+    if (!attendance) throw new AppError(404, 'Shift not found');
+    res.json(attendance);
+  }
+
+  static async clockOn(req: Request, res: Response) {
+    return SchedulingController.recordClock(req, res, 'clock_on', 'online');
+  }
+
+  static async clockOff(req: Request, res: Response) {
+    return SchedulingController.recordClock(req, res, 'clock_off', 'online');
+  }
+
+  /** The offline queue's route, shared by clock-on, clock-off and handover. */
+  static async offlineShiftAction(req: Request, res: Response) {
+    const action = req.params.action as 'clock-on' | 'clock-off' | 'handover';
+    if (action === 'clock-on') return SchedulingController.recordClock(req, res, 'clock_on', 'offline');
+    if (action === 'clock-off') return SchedulingController.recordClock(req, res, 'clock_off', 'offline');
+    return SchedulingController.saveHandover(req, res, 'offline');
+  }
+
+  static async recordHandover(req: Request, res: Response) {
+    return SchedulingController.saveHandover(req, res, 'online');
+  }
+
+  static async getHandover(req: Request, res: Response) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    res.json(await ShiftHandoverRepository.getHandover(user.organizationId!, id, user.userId));
+  }
+
+  /** A named staff member confirms they have read the handover. */
+  static async acknowledgeHandover(req: Request, res: Response) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    const profile = await SchedulingRepository.getStaffIdByUserId(user.userId);
+    if (!profile) throw new AppError(403, 'Only a named staff member can acknowledge a handover');
+
+    const { acknowledgement, replayed, handover } = await ShiftHandoverRepository.acknowledge({
+      orgId: user.organizationId!,
+      userId: user.userId,
+      staffId: profile.id,
+      shiftId: id,
+      note: req.body?.note || null,
+    });
+    logDelegationAction(user.userId, 'ACKNOWLEDGE_HANDOVER', 'shift', id, 'Acknowledged a shift handover');
+
+    if (!replayed) {
+      // The outgoing worker is the one person who cannot see this happen — they
+      // are off shift by the time the handover is read. Awaited, so the insert
+      // runs on this request's client, and a failure is logged by being dropped
+      // rather than failing a write that has already committed.
+      const shift = await ShiftAttendanceRepository.getShiftForAttendance(user.organizationId!, id);
+      await publishShiftHandoverAcknowledgedEvent({
+        organizationId: user.organizationId!,
+        shiftId: id,
+        handoverId: handover.id,
+        version: handover.version,
+        authorId: handover.author_id,
+        acknowledgedByUserId: user.userId,
+        acknowledgedByName: acknowledgement.acknowledged_by_name,
+        locationName: shift?.location_name || '',
+        acknowledgedAt: String(acknowledgement.acknowledged_at),
+        week: shift ? new Date(shift.start_time).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      }).catch(() => undefined);
+    }
+
+    res.status(replayed ? 200 : 201).json({ acknowledgement, replayed });
+  }
+
+  /**
+   * Clock actions share everything but direction. An `action_key` is accepted on
+   * the online route as well as the offline one: the same key sent twice is one
+   * clock-on, which is what a double tap on a bad connection needs.
+   */
+  private static async recordClock(
+    req: Request,
+    res: Response,
+    event: 'clock_on' | 'clock_off',
+    source: ShiftAttendanceSource,
+  ) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    const profile = await SchedulingRepository.getStaffIdByUserId(user.userId);
+    if (!profile) throw new AppError(403, 'Only a staff member rostered on this shift can record attendance');
+    await ShiftAttendanceRepository.requireRosteredStaff(user.organizationId!, id, profile.id);
+
+    const input = (req.body || {}) as ShiftAttendanceInput;
+    const perform = () => (event === 'clock_on'
+      ? ShiftAttendanceRepository.clockOn({
+          orgId: user.organizationId!, userId: user.userId, staffId: profile.id, shiftId: id, input, source,
+        })
+      : ShiftAttendanceRepository.clockOff({
+          orgId: user.organizationId!, userId: user.userId, staffId: profile.id, shiftId: id, input, source,
+        }));
+
+    // The offline route always goes through the ledger, so an action that cannot
+    // be recognised on a retry is refused rather than accepted once and lost —
+    // a queued clock-on with no key is not evidence of anything.
+    const action = source === 'offline' || input.action_key
+      ? await recordShiftOfflineAction({
+          orgId: user.organizationId!,
+          shiftId: id,
+          userId: user.userId,
+          actionType: event === 'clock_on' ? 'clock-on' : 'clock-off',
+          input,
+          perform,
+        })
+      : { replayed: false, status: 'processed' as const, result: await perform() };
+
+    logDelegationAction(
+      user.userId,
+      event === 'clock_on' ? 'CLOCK_ON_SHIFT' : 'CLOCK_OFF_SHIFT',
+      'shift',
+      id,
+      event === 'clock_on' ? 'Clocked on to a shift' : 'Clocked off a shift',
+    );
+
+    if (action.replayed) {
+      res.json({ replayed: true, status: action.status });
+      return;
+    }
+    res.status(201).json({ replayed: false, status: action.status, ...(action.result as object) });
+  }
+
+  /** Record or amend the shift's handover. 201 when it is new, 200 when amended. */
+  private static async saveHandover(req: Request, res: Response, source: ShiftAttendanceSource) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    const input = (req.body || {}) as ShiftHandoverInput;
+    const allowManagerWrite = user.role === 'ORG_ADMIN' || user.role === 'MANAGER';
+
+    const perform = async () => {
+      const result = await ShiftHandoverRepository.recordHandover({
+        orgId: user.organizationId!,
+        userId: user.userId,
+        shiftId: id,
+        input,
+        source,
+        allowManagerWrite,
+      });
+      // Inside `perform`, so a replayed offline action publishes nothing: a
+      // handover retried from a bad connection is one event, not two.
+      const shift = await ShiftAttendanceRepository.getShiftForAttendance(user.organizationId!, id);
+      if (shift) {
+        await publishShiftHandoverRecordedEvent({
+          organizationId: user.organizationId!,
+          shiftId: id,
+          handoverId: result.handover.id,
+          version: result.handover.version,
+          authorId: user.userId,
+          locationId: shift.location_id,
+          locationName: shift.location_name,
+          recordedAt: String(result.handover.recorded_at),
+          amended: !result.created,
+          week: new Date(shift.start_time).toISOString().slice(0, 10),
+        }).catch(() => undefined);
+      }
+      return result;
+    };
+
+    const action = source === 'offline' || input.action_key
+      ? await recordShiftOfflineAction({
+          orgId: user.organizationId!,
+          shiftId: id,
+          userId: user.userId,
+          actionType: 'handover',
+          input,
+          perform,
+        })
+      : { replayed: false, status: 'processed' as const, result: await perform() };
+
+    logDelegationAction(user.userId, 'RECORD_HANDOVER', 'shift', id, 'Recorded a shift handover');
+
+    if (action.replayed) {
+      res.json({ replayed: true, status: action.status });
+      return;
+    }
+    const result = action.result as { handover: { created?: boolean }; created: boolean };
+    res.status(result.created ? 201 : 200).json({ replayed: false, status: action.status, ...result });
   }
 }

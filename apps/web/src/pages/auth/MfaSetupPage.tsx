@@ -45,8 +45,8 @@ export default function MfaSetupPage() {
     setError('')
     try {
       const res = await api.post('/auth/mfa/complete-setup', { setupToken, token: token.trim() })
-      localStorage.setItem('accessToken', res.data.accessToken)
-      localStorage.setItem('refreshToken', res.data.refreshToken)
+      // Completing MFA setup signs the user in, and the sign-in is a pair of
+      // httpOnly cookies on the response — nothing to keep here.
       localStorage.setItem('user', JSON.stringify(res.data.user))
       setBackupCodes(res.data.backupCodes || [])
     } catch (err: any) {

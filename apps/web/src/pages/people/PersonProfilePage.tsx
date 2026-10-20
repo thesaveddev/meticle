@@ -409,8 +409,7 @@ export default function PersonProfilePage() {
 
   const loadPhotoToBlob = async (url: string) => {
     try {
-      const token = localStorage.getItem('accessToken')
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load photo')
       const blob = await res.blob()
       const oldUrl = photoUrl
@@ -421,8 +420,7 @@ export default function PersonProfilePage() {
 
   const viewFileInNewTab = async (url: string) => {
     try {
-      const token = localStorage.getItem('accessToken')
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
@@ -660,6 +658,7 @@ export default function PersonProfilePage() {
     10: 'Care Assessments', 11: 'Room Checks', 12: 'Clinical Scores', 13: 'Documents',
     14: 'Wellbeing', 15: 'Communication', 16: 'MCA/Capacity', 17: 'Care Pathways',
     18: 'Time Away', 19: 'Mood Chart', 20: 'Audit Trail', 21: 'Nutrition',
+    22: 'Billing & Rates',
   }
 
   return (
@@ -1318,7 +1317,7 @@ export default function PersonProfilePage() {
       {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
 
       {/* Tab: Room Checks */}
-      {tab === 11 && <RoomChecksTab roomNumber={user.room_number} />}
+      {tab === 11 && <RoomChecksTab roomNumber={user.room_number} locationId={user.location_id || null} />}
 
       {/* Tab: Clinical Scores */}
       {tab === 12 && <ClinicalScoresTab personId={id!} />}
@@ -2691,7 +2690,15 @@ function TimelineTab({ personId }: { personId: string }) {
   )
 }
 
-function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
+/**
+ * The room checks recorded for one resident's room.
+ *
+ * `locationId` is the resident's own location and travels with each check. Without
+ * it the row has no placement at all, and the overdue sweep — which compares the
+ * rooms people sleep in against the checks recorded for today — cannot tell a check
+ * recorded from this profile apart from no check at all.
+ */
+function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; locationId: string | null }) {
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
   const [addOpen, setAddOpen] = useState(false)
@@ -2728,10 +2735,9 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
   useEffect(() => {
     if (!rcView?.photo_url) { setRcPhotoBlob(null); return }
-    const token = localStorage.getItem('accessToken')
     let active = true
     let blobUrl = ''
-    fetch(rcView.photo_url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+    fetch(rcView.photo_url).then(r => r.blob()).then(b => {
       if (active) { blobUrl = URL.createObjectURL(b); setRcPhotoBlob(blobUrl) }
     }).catch(() => { if (active) setRcPhotoBlob(rcView.photo_url) })
     return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl) }
@@ -2841,7 +2847,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
                     <Typography variant="caption" color="text.muted" sx={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
                       <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'notice.muted.bg' }} />
-                      <IconButton size="small" onClick={() => { const url = rcView.photo_url; const token = localStorage.getItem('accessToken'); fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
+                      <IconButton size="small" onClick={() => { const url = rcView.photo_url; fetch(url).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
                         sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'background.paper' } }}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
@@ -2860,7 +2866,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
       {/* Add / Edit Room Check Dialog */}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setRcEditId(null) }} maxWidth="xs" fullWidth>
-        <Box component="form" onSubmit={e => { e.preventDefault(); setRcError(''); const data = { ...rcForm, room_number: roomNumber }; if (rcEditId) updateCheckMutation.mutate(data); else addCheckMutation.mutate(data) }}>
+        <Box component="form" onSubmit={e => { e.preventDefault(); setRcError(''); const data = { ...rcForm, room_number: roomNumber, location_id: locationId || undefined }; if (rcEditId) updateCheckMutation.mutate(data); else addCheckMutation.mutate(data) }}>
           <DialogTitle sx={{ fontWeight: 600 }}>{rcEditId ? 'Edit Room Check' : 'Record Room Check'}</DialogTitle>
           <DialogContent>
             {rcError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{rcError}</Alert>}
@@ -3081,8 +3087,7 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   const viewDocument = async (fileUrl: string) => {
     try {
-      const token = localStorage.getItem('accessToken')
-      const res = await fetch(fileUrl, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(fileUrl)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
@@ -3761,8 +3766,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
 
 async function openFileInNewTab(url: string) {
   try {
-    const token = localStorage.getItem('accessToken')
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    const res = await fetch(url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const blob = await res.blob()
     const blobUrl = URL.createObjectURL(blob)

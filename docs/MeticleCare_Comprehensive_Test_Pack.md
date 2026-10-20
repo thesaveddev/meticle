@@ -126,7 +126,7 @@ Execute tests in order within each module. A failure in a prerequisite blocks do
 | DASH-004 | Stat cards — Compliance Rate | 1. Check Compliance Rate card | Shows percentage matching compliance module | |
 | DASH-005 | Stat cards — Open Shifts | 1. Check Open Shifts card | Shows count of unfilled shifts | |
 | DASH-006 | Stat cards — Alerts | 1. Check Alerts card | Shows open incident count | |
-| DASH-007 | Widget — DBS Expiring | 1. Check Staff with Expiring Docs widget | Shows count, links to /compliance/identity | |
+| DASH-007 | Widget — DBS Expiring | 1. Click the background-check alert in Alerts & updates | Names the earliest expiring check and opens that staff record's compliance tab on the record itself (/staff/<userId>?tab=compliance&record=<documentId>) | |
 | DASH-008 | Widget — Training Expiring | 1. Check Training Expiring widget | Shows count, links to /compliance/training | |
 | DASH-009 | Widget — Pending Leave | 1. Check Pending Leave widget | Shows count of pending leave requests | |
 | DASH-010 | Widget — Overdue Medications | 1. Check Overdue Medications widget | Shows count, links to /emedication | |

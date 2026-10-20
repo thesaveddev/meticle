@@ -36,8 +36,8 @@ const RECORD = {
 }
 
 beforeEach(() => {
+  // The session is an httpOnly cookie now; only the cached identity is local.
   window.localStorage.setItem('user', JSON.stringify({ id: 'u1', first_name: 'Sam', last_name: 'Admin', role: 'ORG_ADMIN', email: 'sam@test.care' }))
-  window.localStorage.setItem('accessToken', 'test-token')
 
   vi.mocked(api.get).mockImplementation(async (url: string) => {
     if (url === '/people') return { data: [PERSON] } as any

@@ -60,24 +60,26 @@ const s: LearnSection[] = [
 },
 { id:'dashboard', title:'The Dashboard — Complete Walkthrough',
   content:
-    h2('Dashboard Layout') +
-    p('The Dashboard is your landing page after login and provides an at-a-glance overview of your organisation\'s key metrics. It is divided into several sections, each described below.') +
-    h3('Top Row: Key Performance Indicators (KPIs)') +
-    p('Seven KPI cards span the top of the dashboard:') +
-    ul(['<strong>Total Staff:</strong> Number of active staff members in your organisation. Click to navigate to the <em>Staff Directory</em>.','<strong>Active People:</strong> Count of people with status "active". Click to navigate to <em>People</em>.','<strong>Staff on Duty:</strong> Number of staff with assigned shifts for today (counts shifts with status "assigned" or "accepted" that start today).','<strong>Compliance Rate:</strong> Your organisation\'s overall compliance percentage (completed compliance records ÷ total records). Click the card or the "View Full Report" button to navigate to the <em>Compliance Dashboard</em>.','<strong>Open Shifts:</strong> Number of unassigned shifts across all locations.','<strong>Alerts:</strong> Count of open incidents (status "reported" or "investigating").','<strong>Agency Saved:</strong> Placeholder for cost savings from filling shifts internally vs. using agencies (Phase 2 feature).']) +
-    h3('Onboarding Checklist') +
-    p('New organisations see a checklist guiding initial setup. Each item links to the relevant page:') +
-    ul(['Add staff members → Staff Directory','Configure locations → Settings → Locations','Set minimum staffing rules → Settings → Organisation','Upload branding/logo → Settings → Branding','Set compliance profiles → Settings → Compliance','Invite your team → Staff Directory → Invite button']) +
-    p('Completed items show a green checkmark. The checklist disappears once all items are complete.') +
-    h3('Widget Row') +
-    p('Below the KPIs, three widget cards show items needing attention:') +
-    ul(['<strong>DBS Renewals Due:</strong> Count of approved identity documents (DBS, Passport, Visa, RTW) expiring within 30 days. Click to navigate to <em>Identity Monitoring</em>.','<strong>Training Expiring:</strong> Count of completed training records expiring within 30 days. Click to navigate to the <em>Training Matrix expiring tab</em>.','<strong>Pending Leave:</strong> Count of leave requests with status "pending". Click to navigate to the <em>Leave Manager — All Requests tab</em>.']) +
-    h3('Compliance Snapshot') +
-    p('Shows: active staff count, compliance rate percentage, and a "Needs Attention" count of staff below the minimum compliance threshold. The "View Full Report" button navigates to the Compliance Dashboard. <strong>CARE_WORKER role does not see this section.</strong>') +
-    h3('Today\'s Rota') +
-    p('A table of all shifts happening today. Columns: Staff Name, Location, Time, Status. CARE_WORKERs see only their own shifts. Managers and admins see all shifts across all locations.') +
-    h3('Today\'s Appointments') +
-    p('Lists all appointments scheduled for today with person name, time, and status. Each appointment has a status chip: Scheduled (blue), In Progress (orange), Completed (green), Cancelled (grey).')
+    h2('Where you land, and who sees what') +
+    p('Signing in takes you to the Dashboard, which routes by role:') +
+    ul(['<strong>Frontline staff (CARE_WORKER):</strong> the Dashboard, described below.','<strong>ORG_ADMIN, MANAGER and COMPLIANCE_OFFICER:</strong> Mission Control — the operational brief — is the sidebar entry for these roles, and opening the Dashboard as one of them redirects you there. The Dashboard remains the frontline view.','<strong>Domiciliary service organisations:</strong> managers and staff see the domiciliary dashboard instead, built around calls rather than shifts (see the Domiciliary Care Guide).']) +
+    h2('Mission Control (managers, admins, compliance officers)') +
+    p('Mission Control is a workspace with its own tabs rather than one long page: <strong>Today, Calls, Staffing, Compliance, Care</strong> and <strong>Incidents</strong>, with a separate alerts view. Everything on it is computed from live records — overdue medications, unfilled and understaffed shifts, expiring training, expiring DBS certificates, overdue care-plan reviews, overdue policy reviews, low fluid intake and overdue incident actions.') +
+    h2('The Dashboard cards') +
+    p('The cards across the top depend on your role:') +
+    ul(['<strong>Frontline staff see one card:</strong> My Shifts Today, which opens My Week.','<strong>Managers and admins see four cards:</strong> Total Staff (opens the Staff Directory), People Supported (opens People), Staff on Duty, and Compliance Rate (opens Compliance).']) +
+    h3('Onboarding checklist (organisation admins)') +
+    p('A new organisation\'s first admin sees a welcome card showing how many of four steps are done, each linking to the page that completes it:') +
+    ul(['Add your location → Settings','Invite your team → Staff Directory','Add people in your care → People','Choose your plan → Billing (marked done once the organisation is no longer on trial)']) +
+    p('Completed steps show a green check. The card can be dismissed, and the dismissal is remembered for that organisation. It stops appearing once all four steps are complete.') +
+    h3('Alerts & updates') +
+    p('One panel lists what is genuinely open, most severe first, and every row is a link. It stays quiet ("Nothing needs attention") when nothing is wrong, and shows at most five rows:') +
+    ul(['<strong>Critical incidents open</strong> → Incidents','<strong>Medications overdue</strong> (doses past their scheduled time) → Medications','<strong>Staff below the compliance threshold</strong> → Staff Directory','<strong>Competency assessments due</strong> → Competency Assessments','<strong>Background checks expiring</strong> within 30 days → Identity Monitoring','<strong>Training records expiring</strong> within 30 days → Training Matrix','<strong>Leave requests pending</strong> → Leave Manager']) +
+    h3('The manager\'s brief') +
+    ul(['<strong>People you are supporting:</strong> name, room, status and the next scheduled event; the row opens the person.','<strong>Today\'s tasks:</strong> the real task list, with overdue and priority items labelled and a checkbox that reflects the record.','<strong>Care notes activity:</strong> today\'s care notes and medication administrations in one time-ordered feed.','<strong>Medication overview:</strong> doses due now, upcoming and completed.','<strong>Upcoming appointments:</strong> today\'s appointments with time, person and room.','<strong>Quick actions:</strong> Add care note, Record medication, Report incident, Create task.']) +
+    p('Open incidents are also surfaced at the foot of the page with a count and a Review incidents button, so a critical incident is never only inside the alerts panel.') +
+    h3('On the frontline dashboard') +
+    ul(['<strong>Today\'s Rota:</strong> your own shifts with location, time, assigned staff and status — not every shift in the organisation.','<strong>Today\'s Appointments:</strong> today\'s appointments with title, person, room, time and a status chip (scheduled, in progress, completed or cancelled).'])
 }
 ]},
 
@@ -107,47 +109,22 @@ const s: LearnSection[] = [
     p('People cannot be deleted from the directory page. To "remove" a person, change their status to "Discharged" or "Deceased" from their profile page. Only ORG_ADMIN can hard-delete a person via the API.') +
     tip('When creating a person, you can also set extended fields like GP details, pharmacy, and social worker information after creation by editing the profile. These fields are available in the "Edit Person" dialog on the profile page.')
 },
-{ id:'su-profile', title:'Profile Page — All 9 Tabs Explained',
+{ id:'su-profile', title:'Profile Page — Every Tab Explained',
   content:
     h2('Person Profile Overview') +
-    p('Clicking any person in the directory opens their profile page. The page has a header section with key info and photo upload, followed by 9 tabs for different aspects of care documentation.') +
-    h3('Header Section') +
-    ul(['<strong>Photo:</strong> Shows the person\'s photo if uploaded, otherwise shows initials. Click the camera icon overlay to upload a photo (JPEG, PNG, GIF, WebP). Photos are loaded securely via authenticated fetch. A loading spinner appears during upload.','<strong>Name:</strong> Full name in large text.','<strong>Room Chip:</strong> Shows room number if assigned, otherwise "No room assigned".','<strong>Status Chip:</strong> Green for Active, grey otherwise.','<strong>NHS Number:</strong> Displayed if set.','<strong>Edit Button:</strong> Opens the full edit dialog with all person fields (see below).']) +
+    p('Clicking any person in the directory opens their profile page. It has a header with the person\'s key information and photo upload, and the record itself is grouped into category tabs — 23 of them for a supported living or residential service, and 13 for a domiciliary service, where medication and unsupported clinical sections are not part of the client view.') +
+    h3('Header') +
+    ul(['<strong>Photo:</strong> the uploaded photo, or the person\'s initials. Click the camera overlay to upload one (JPEG, PNG, GIF, WebP); a spinner shows while it saves.','<strong>Name and status chip</strong>, then the chips that apply to this person — room, location, NHS number, gender, pronouns, funding type, support level.','<strong>Allergy chips</strong> in red, and any recorded flags.','<strong>Edit:</strong> opens the full edit dialog below.']) +
     h2('Edit Person Dialog') +
-    p('Clicking "Edit" in the header opens a comprehensive edit form with all fields organised into sections:') +
-    ul(['<strong>Personal:</strong> First Name, Last Name, Date of Birth, NHS Number, Room, Status dropdown','<strong>GP Details:</strong> GP Name, GP Surgery, GP Phone, GP Email, GP Address, Dietary Requirements (multiline)','<strong>Pharmacy:</strong> Pharmacy Name, Pharmacy Phone, Pharmacy Address (multiline)','<strong>Social Worker:</strong> Name, Phone, Email']) +
-    p('Changes are saved by clicking "Save" at the bottom of the dialog. The button shows a loading spinner while saving.') +
-    h2('Tab 0 — Overview') +
-    p('The default tab showing four information cards in a grid layout:') +
-    ul(['<strong>Personal Details:</strong> DOB, calculated Age, NHS Number, Room','<strong>Medical & GP:</strong> GP Name, Surgery, Phone, Email, Address, Dietary Requirements','<strong>Pharmacy:</strong> Pharmacy Name, Phone, Address','<strong>Social Worker:</strong> Name, Phone, Email']) +
-    p('If allergies are recorded, a red-bordered card appears below showing allergy chips.') +
-    h2('Tab 1 — Care Plans') +
-    p('Lists all care plans for this person as cards in a 2-column grid.') +
-    p('<strong>Add Care Plan:</strong> Click "Add Care Plan" button. Fill in: Title (required), Category (dropdown: personal_care, medication, mobility, nutrition, mental_health, behaviour, social, other), Description (multiline), Risk Assessment (multiline text), Review Date (date picker).') +
-    p('Each care plan card shows: Title, Category chip, Status chip (active/paused/archived), Description (if present), Review Date.') +
-    h2('Tab 2 — Daily Notes') +
-    p('Chronological list of daily care notes (up to 50 most recent, loaded from the server).') +
-    p('<strong>Add Note:</strong> Click "Add Note". Fill in: Date (defaults to today), Shift (Day/Night dropdown), Category (wellbeing, nutrition, hydration, mobility, mood, medication, personal_care, other), Content (required, multiline).') +
-    p('Each note shows: Shift chip (blue=day, grey=night), Category chip, Date, Author name, Content (preserves line breaks).') +
-    h2('Tab 3 — Risk Assessments') +
-    p('Table of risk assessments with columns: Type, Risk Level (color-coded chip), Details, Review Date.') +
-    p('<strong>Add Assessment:</strong> Click "Add Assessment". Fill in: Type (falls, pressure_sore, nutrition, behaviour, mobility, medication, other), Risk Level (low/medium/high/critical — each has a distinct color), Details (multiline), Mitigation Actions (multiline), Review Date.') +
-    h2('Tab 4 — Family & Contacts') +
-    p('Card grid showing family contacts and emergency contacts.') +
-    p('<strong>Add Contact:</strong> Fill in: Full Name (required), Relationship, Phone, Email, Emergency Contact toggle. Emergency contacts show a red left border.') +
-    p('Each card has a delete icon. Click to remove the contact.') +
-    h2('Tab 5 — Health') +
-    p('Delegates to a sub-component with 4 sub-tabs:') +
-    ul(['<strong>Observations:</strong> Record general health observations with date, category (general, skin, medication, sleep, pain, weight, other), notes, severity (normal/mild/moderate/severe). Add/delete per record.','<strong>Bowel Movements:</strong> Record date, time, Bristol stool type (1-7), color, frequency, consistency, notes.','<strong>Dental Records:</strong> Record checkup date, dentist name, findings, actions taken, next checkup date, notes.','<strong>Fluid Intake:</strong> Record date, time, amount in ml, fluid type, notes. A daily total is also shown.']) +
-    p('Each sub-tab has an Add button and per-record delete button.') +
-    h2('Tab 6 — Body Map') +
-    p('Interactive front/back human body diagrams for recording skin conditions and wounds. Detailed in the <strong>Body Map</strong> section below.') +
-    h2('Tab 7 — Memory Book') +
-    p('Photo journal for documenting outings, activities, and special moments. Detailed in the <strong>Memory Book</strong> section.') +
-    h2('Tab 8 — Goals') +
-    p('Inline summary of person goals. Shows stat cards (Total, Active, Completed, Avg Progress) and a list of goals with progress bars. "Manage Goals" button navigates to the full Goals page.') +
-    h2('Tab 9 — Care Assessments') +
-    p('Inline summary of care assessments. Shows stat cards (Total, Completed, Draft) and a table with assessment type, date, assessor, status, next review date. "Manage Assessments" button navigates to the full Care Assessments page.')
+    p('The edit dialog groups every field rather than showing one long form:') +
+    ul(['<strong>Personal:</strong> first name, last name, date of birth, NHS number, room, status','<strong>GP:</strong> name, surgery, phone, email, address, dietary requirements','<strong>Pharmacy:</strong> name, phone, address','<strong>Social worker:</strong> name, phone, email']) +
+    h2('Tab categories') +
+    p('Tabs are grouped into categories, so related record types sit together. For a supported living or residential service:') +
+    ul(['<strong>Overview:</strong> Overview','<strong>Care:</strong> Care Plans, Daily Notes, Risk Assessments, Goals, Care Assessments, Care Pathways','<strong>Clinical:</strong> Health, Clinical Scores, Wellbeing, Mood Chart, Nutrition','<strong>People:</strong> Family & Contacts, Communication','<strong>Safety:</strong> Body Map, MCA/Capacity, Room Checks','<strong>Records:</strong> Documents, Memory Book, Timeline, Time Away, Audit Trail, Billing & Rates']) +
+    p('A domiciliary service sees a shorter set:') +
+    ul(['<strong>Overview:</strong> Overview','<strong>Care:</strong> Care Plans, Risk Assessments, Goals, Care Pathways','<strong>People:</strong> Family & Contacts, Communication','<strong>Safety:</strong> Body Map','<strong>Records:</strong> Documents, Memory Book, Timeline, Time Away, Audit Trail']) +
+    h2('The tabs themselves') +
+    ul(['<strong>Overview:</strong> personal details, medical and GP details, pharmacy, social worker, and an allergy card when allergies are recorded.','<strong>Care Plans:</strong> cards in a grid. Add Care Plan takes title, category, description, risk assessment and review date.','<strong>Daily Notes:</strong> the 50 most recent notes, each with shift, category, date, author and content.','<strong>Risk Assessments:</strong> type, risk level, details, mitigation actions and review date.','<strong>Family & Contacts:</strong> contacts and emergency contacts, with a delete action on each card.','<strong>Health:</strong> its own sub-tabs — Observations, Bowel Movements, Dental Records, Fluid Intake and Sleep.','<strong>Body Map:</strong> front and back diagrams for skin conditions and wounds.','<strong>Memory Book:</strong> the photo journal.','<strong>Goals, Care Assessments and Care Pathways:</strong> inline summaries with a link through to the full page.','<strong>Documents:</strong> the person\'s uploaded documents.','<strong>Communication:</strong> the person and family communication record.','<strong>MCA/Capacity, Clinical Scores, Wellbeing, Mood Chart, Nutrition and Room Checks:</strong> the clinical and safety records used by residential and supported living services.','<strong>Timeline:</strong> the chronological record. <strong>Time Away:</strong> periods away. <strong>Audit Trail:</strong> every change made to this person\'s record.','<strong>Billing & Rates:</strong> the person\'s billing and rate information.'])
 },
 { id:'su-body-map', title:'Body Map — Recording Skin Conditions',
   content:
@@ -336,8 +313,8 @@ const s: LearnSection[] = [
     step(3,'Click <strong>Save</strong>.') +
     h3('Dashboard Widget') +
     p('Today\'s appointments appear on the main Dashboard as a list. Each shows the person name, appointment title, time, and status chip.') +
-    h3('Shift-Start Notifications') +
-    p('Staff assigned to shifts receive an automated "Today\'s Plan" email approximately 15 minutes before their first shift starts, listing their appointments for the day.') +
+    h3('The Shift Preview email') +
+    p('Staff with a shift starting in the next <strong>two to four hours</strong> receive a <strong>Shift Preview</strong> email. It carries the shift table (time, location, type, person), the people who need attention that day with their support level, allergies and flags, the day\'s appointments as links to each appointment record, and recent incidents. It is sent once per shift, and each shift is marked as notified so it cannot arrive twice.') +
     tip('Use the appointment status to track whether a person actually attended. Completed appointments are good evidence for CQC\'s Effective and Responsive domains.')
 }
 ]},
@@ -363,7 +340,7 @@ const s: LearnSection[] = [
     p('<strong>Clicking a day</strong> opens a detailed popup showing:') +
     ul(['Status chips (Approved/Rejected/Pending)','Duration (number of days/hours)','Reason for leave','<strong>Approve/Reject buttons</strong> for pending requests (managers only)']) +
     h3('Approval Workflow') +
-    ul(['Managers <strong>cannot approve their own leave</strong>.','Manager and admin leave requests are routed to a different ORG_ADMIN for review.','If no different ORG_ADMIN exists, the notification falls back to any ORG_ADMIN (not silent).','If a staff member has no location manager, the notification falls back to any ORG_ADMIN.']) +
+    ul(['Managers <strong>cannot approve their own leave</strong>.','A manager or admin request goes first to their <strong>active delegation (deputy)</strong>, if one covers those dates.','With no deputy, it goes to a <strong>different ORG_ADMIN</strong> — never the person who requested it.','With no other admin, it goes to <strong>any other manager or admin</strong> in the organisation, admins considered first.','Only where no alternative approver exists at all is the request <strong>auto-approved</strong>, and that decision is written to the audit trail with its reason shown to the requester.','A staff member with no location manager falls back to an ORG_ADMIN.']) +
     h3('All Requests Tab') +
     p('A table view of all leave requests across the organisation. Filter by:') +
     ul(['<strong>Status:</strong> Pending, Approved, Rejected','<strong>Location:</strong> Dropdown from live database','<strong>Date Range:</strong> Start and end date pickers']) +
@@ -468,8 +445,8 @@ const s: LearnSection[] = [
     ol(['<strong>Request Renewal:</strong> Click "Request Renewal" on a document. Sets renewal_status to "requested". Sends in-app notification to the staff member.','<strong>Submit Renewal:</strong> Staff upload a new document as a renewal. The old document is marked as "renewed" and linked to the new one via replaced_by. If auto_approve is on, the new document is auto-approved.','<strong>Send Reminder:</strong> Send a manual reminder notification to the staff member.']) +
     h3('Auto-Renewal') +
     p('The background compliance check (every 6 hours) automatically detects expired identity documents and sets their renewal_status to "requested". The staff member receives both an in-app notification and an email. No manual action is needed to trigger this.') +
-    h3('Dashboard Widget') +
-    p('The DBS Renewals Due widget on the Dashboard now shows all identity document types (DBS, Passport, Visa, RTW) expiring within 30 days, not just DBS.') +
+    h3('Where it surfaces') +
+    p('The Dashboard\'s <strong>Alerts & updates</strong> panel raises a "background checks expiring" row when any identity document — DBS, passport, visa or right-to-work — is within 30 days of expiry, and links straight to Identity Monitoring.') +
     h3('Dashboard Grid View') +
     p('Staff are grouped by compliance status:') +
     ul(['<strong>Compliant:</strong> All documents approved and not expiring soon','<strong>Incomplete:</strong> Missing required documents','<strong>Expiring Soon:</strong> Documents expiring within 30 days','<strong>Expired:</strong> One or more documents expired']) +
@@ -645,8 +622,8 @@ const s: LearnSection[] = [
     h3('Severity Classification') +
     p('Incident severity feeds into CQC scoring:') +
     ul(['<strong>Responsive domain:</strong> All incidents contribute to the score','<strong>Safe domain:</strong> High and critical open incidents negatively impact the score (-15 per incident)']) +
-    h3('CQC AI Triage') +
-    p('If AI is configured, incidents can be triaged by AI (Phase 1A feature). The AI classifies severity and suggests required actions. This is a decision-support tool — humans always make the final determination.') +
+    h3('AI triage') +
+    p('Where AI is configured for your organisation and the incident severity triage feature is enabled, the incident detail page shows an <strong>AI Triage</strong> panel: a written summary, a suggested severity with its chip, and recommended actions. It is attached to the record as a suggestion — the incident\'s own severity is what a person sets, and the recommended actions are prompts you turn into real action items rather than changes made for you. The triage request is written to the AI audit log like every other AI call.') +
     tip('Always close incidents after resolution. Open high/critical incidents drag down your CQC Safe domain score.')
 },
 { id:'policies', title:'Policy Management',
@@ -705,10 +682,16 @@ const s: LearnSection[] = [
 { id:'reports', title:'Reporting Suite',
   content:
     h2('Reports Page') +
-    p('Six report card templates for common reporting needs. Each card has a description and a "Download Sample CSV" button.') +
-    ul(['<strong>Staff Compliance Report:</strong> Staff names, roles, compliance rates, missing requirements','<strong>Training Matrix Report:</strong> Staff vs modules matrix with completion statuses','<strong>Incident Log Report:</strong> Incident title, severity, date, status, involved people','<strong>Leave Overview Report:</strong> Staff leave balances, used, pending, remaining','<strong>Person Roster Report:</strong> Active people with room numbers, care plans, risk counts','<strong>Medication Administration Report:</strong> MAR administration records with staff, times, statuses']) +
-    p('Note: These are Phase 1 templates. Full live-data reporting is planned for Phase 2.') +
-    tip('Use the sample CSVs to understand the report structure. Phase 2 will replace samples with live data and add PDF export.')
+    p('The reporting suite runs on live data. Forty reports are registered across nine categories, and each opens in a builder with its own filters, grouping and charts:') +
+    ul(['<strong>Staff (7):</strong> Staff Directory, Staff by Location, Staff by Role, Staff Compliance Status, Training Matrix, Staff Documents & DBS, Skills & Qualifications','<strong>People (10):</strong> Person Directory, People by Location, Care Plan Summary, Person Outcomes, Daily Notes Summary, Health Observations, Outcomes by CQC Domain, Wellbeing Scores, Goal Progress Trend, Satisfaction Surveys','<strong>Scheduling (5):</strong> Shift Coverage, Shift Fill Rate, Appointment Summary, Overtime Analysis, Agency Usage','<strong>Leave (4):</strong> Leave by Type, Leave Trends, Leave by Department, Leave Balance Utilisation','<strong>Incidents (3):</strong> Incident Summary, Incident Trends, Incidents by Location','<strong>Compliance (4):</strong> Compliance by Category, Compliance by Staff, Expiring Documents, Room Checks','<strong>Training (3):</strong> Training Completion Rates, Overdue Training, Competency Assessment Scores','<strong>eMAR (2):</strong> MAR Administration Compliance, PRN Medication Usage','<strong>Operations (2):</strong> Task Completion, Person Expenses']) +
+    p('Each report has its own filter set — typically date range, location, department, role and status — and its own group-by options. An incident report, for example, groups by severity, category, status or location. Where a report supports more than one view you can switch between bar, pie, line, area, radar and table without leaving the page, and each report opens with its own summary cards alongside the chart.') +
+    h3('Export') +
+    p('Every report exports to CSV from the toolbar with the filters and grouping you applied, and the file is named with the day the export was taken.') +
+    h3('Domiciliary services') +
+    p('A domiciliary organisation sees the 18 reports that fit its work — staff, people, leave, incidents, compliance and training. Reports that depend on residential records (room checks, agency usage, eMAR, some care-plan reporting) are not shown at all, rather than shown empty.') +
+    h3('Related') +
+    p('Reporting exports the data. The Insights page charts it and MeticleCare Intelligence writes about it — see the Insights article for those two.') +
+    tip('Work from the report, not a spreadsheet: pick the category, set the date range, then change the group-by to ask a different question of the same data.')
 }
 ]},
 
@@ -835,7 +818,7 @@ const s: LearnSection[] = [
     p('View past invoices with download capability.') +
     h3('Stripe Integration') +
     p('Meticle Care uses Stripe for payment processing. Products and prices are auto-provisioned on first use. Webhook can be tested locally using <code>stripe listen --forward-to localhost:3002/billing/webhook</code>.') +
-    warn('Phase 2 add-ons (eMAR, Mobile PWA, Shift Marketplace, etc.) are not yet available for purchase. They will appear in billing when launched.')
+    warn('There is no add-on checkout yet. Modules such as eMAR, the Shift Marketplace and the mobile app are included in your subscription rather than sold separately, and the billing page cannot yet sell extra add-ons — if you have bought something that is not shown here, speak to your account contact.')
 }
 ]},
 
@@ -852,8 +835,9 @@ const s: LearnSection[] = [
     h3('Invoices') +
     ul(['View invoice history','Download invoice PDFs']) +
     h2('Agencies Page') +
-    p('Manage external agency workers.') +
-    ul(['Add agency workers with: name, agency name, contact details, DBS check date, DBS expiry date, hourly rate','View and manage agency staff directory','The "Agency Saved" KPI on the dashboard is a placeholder for future cost calculation']) +
+    p('The Agencies page manages the agencies you buy cover from. It has five tabs:') +
+    ul(['<strong>Agencies:</strong> the agency list, with each agency\'s detail covering its workers and its rates.','<strong>Workers:</strong> the agency worker directory, including each worker\'s DBS certificate date and expiry date.','<strong>Rates:</strong> hourly rates per agency and shift type, with effective-from and effective-to dates, so a rate change is recorded rather than overwritten.','<strong>Shift History:</strong> the shifts agency workers have covered.','<strong>Analytics:</strong> the cost comparison — net saved or net cost against filling the same work internally, savings by month over the last six months, and savings by agency.']) +
+    p('The savings figures are calculated from your rates and agency shifts, and the headline is deliberately a net figure: it shows a saving, or a cost, in the same chip.') +
     tip('Stripe auto-provisions products and prices so you don\'t need to manually configure them in the Stripe dashboard.')
 }
 ]},
@@ -865,7 +849,7 @@ const s: LearnSection[] = [
     h2('A field-first way to work') +
     p('Domiciliary care supports people in their own homes. The workflow is organised around visits, travel, care plans, call notes, availability, and communication with families — not residential rooms, in-house rotas, or clinical ward routines.') +
     h3('Domiciliary modules you will use') +
-    ul(['<strong>People / Clients:</strong> Find each person, read their care plan, risks, body map, documents, family contacts, and communication history.','<strong>Visits & Packages:</strong> View the care packages and scheduled calls assigned to your service.','<strong>Call Schedule:</strong> See the visits you need to complete, check in/out, complete tasks, and write the call note.','<strong>Availability & Leave:</strong> Submit availability and leave so managers can plan safe cover.','<strong>Shift Marketplace:</strong> Managers post open calls; eligible carers can claim them.','<strong>Areas:</strong> Managers see the carers and active clients attached to each geographic area.','<strong>Communication:</strong> Use team chat and the person/family communication record where your role permits.']) +
+    ul(['<strong>People / Clients:</strong> Find each person, read their care plan, risks, body map, documents, family contacts, and communication history.','<strong>Visits & Packages:</strong> View the care packages and scheduled calls assigned to your service.','<strong>Call Schedule:</strong> See the visits you need to complete, check in/out, complete tasks, and write the call note.','<strong>Availability & Leave:</strong> Submit availability and leave so managers can plan safe cover.','<strong>Open Calls:</strong> Managers post open calls; eligible carers can claim them.','<strong>Areas:</strong> Managers see the carers and active clients attached to each geographic area.','<strong>Communication:</strong> Use team chat and the person/family communication record where your role permits.']) +
     h3('Modules you will not normally use') +
     p('Domiciliary organisations do not see residential rota planning, room checks, eMAR, meal plans, agencies, or MCA/capacity and clinical record sections. If your organisation later needs a capability, an administrator should enable it deliberately rather than recording unrelated information in call notes.') +
     tip('Care plan information is the source of truth for how support should be delivered. The call note records what happened during that visit — it does not replace the care plan.')
@@ -873,16 +857,16 @@ const s: LearnSection[] = [
 { id:'dom-manager-web', title:'Manager: run domiciliary care on the web',
   content:
     h2('Daily manager workflow') +
-    ol(['<strong>Dashboard:</strong> Start at Dashboard to review today\'s visits, open calls, exceptions, and operational alerts.','<strong>Visits & Packages:</strong> Open Homecare → Visits & Packages to review the day\'s workload and care packages.','<strong>Call Assignment:</strong> Use Homecare → Call Assignment to assign or reassign visits. Check the carer\'s submitted availability and booked leave before confirming cover.','<strong>Weekly Planner:</strong> Use Homecare → Weekly Planner to review the week, move visits, and identify gaps.','<strong>Exceptions:</strong> Open the exceptions view for missed, overdue, late, disrupted, or unassigned calls. Resolve the operational issue and record the outcome.','<strong>Communication:</strong> Use Communication for internal coordination and the client communication area for family feedback and follow-up.']) +
+    ol(['<strong>Dashboard:</strong> Start at Dashboard to review today\'s visits, open calls, exceptions, and operational alerts.','<strong>Visits & Packages:</strong> Open Homecare → Visits & Packages to review the day\'s workload and care packages.','<strong>Call Assignment:</strong> Use Homecare → Call Assignment to assign or reassign visits. Check the carer\'s submitted availability and booked leave before confirming cover.','<strong>Call Scheduling:</strong> Use Homecare → Call Scheduling — the weekly call planner — to review the week, move visits, and identify gaps.','<strong>Exceptions:</strong> Open the exceptions view for missed, overdue, late, disrupted, or unassigned calls. Resolve the operational issue and record the outcome.','<strong>Communication:</strong> Use Communication for internal coordination and the client communication area for family feedback and follow-up.']) +
     h2('Where to manage each thing') +
-    ul(['<strong>People → client → Care Plans:</strong> Read or update person-centred support plans.','<strong>People → client → Risks:</strong> Review risk assessments and mitigations.','<strong>People → client → Body Map:</strong> Record and review skin or wound observations.','<strong>People → client → Family & Contacts:</strong> Maintain family and emergency contact details.','<strong>People → client → Communication:</strong> Record feedback, calls, visits, and follow-up actions.','<strong>Homecare → Availability:</strong> Review a carer\'s working pattern and leave-aware schedule.','<strong>Homecare → Areas:</strong> Compare active carers and clients by geographic area.','<strong>Staffing → Shift Marketplace:</strong> Post an open call when a visit or cover slot needs a carer.','<strong>Leave Manager:</strong> Review pending leave and check the balance and availability context before approving.']) +
+    ul(['<strong>People → client → Care Plans:</strong> Read or update person-centred support plans.','<strong>People → client → Risks:</strong> Review risk assessments and mitigations.','<strong>People → client → Body Map:</strong> Record and review skin or wound observations.','<strong>People → client → Family & Contacts:</strong> Maintain family and emergency contact details.','<strong>People → client → Communication:</strong> Record feedback, calls, visits, and follow-up actions.','<strong>Homecare → Availability:</strong> Review a carer\'s working pattern and leave-aware schedule.','<strong>Homecare → Areas:</strong> Compare active carers and clients by geographic area.','<strong>Staffing → Open Calls:</strong> Post an open call when a visit or cover slot needs a carer.','<strong>Leave Manager:</strong> Review pending leave and check the balance and availability context before approving.']) +
     h2('Posting an open call') +
-    step(1,'Open <strong>Staffing → Shift Marketplace</strong>.') +
+    step(1,'Open <strong>Staffing → Open Calls</strong> (labelled Shift Marketplace in a supported living service).') +
     step(2,'Click <strong>Post open call</strong>.') +
     step(3,'Choose the care area, start time, end time, and call type.') +
     step(4,'Click <strong>Post open call</strong>. It appears in Available Shifts for eligible carers.') +
     step(5,'Use Claims to review or manage the claim. Reassign or cancel it if circumstances change.') +
-    warn('Posting an open call creates cover work; it does not replace assigning the actual client visit. Confirm that the visit is assigned in Call Assignment or the Weekly Planner after cover is accepted.')
+    warn('Posting an open call creates cover work; it does not replace assigning the actual client visit. Confirm that the visit is assigned in Call Assignment or Call Scheduling after cover is accepted.')
 },
 { id:'dom-carer-web', title:'Carer: work a visit on the web',
   content:
@@ -941,13 +925,17 @@ const s: LearnSection[] = [
 { id:'insights', title:'Insights Dashboard',
   content:
     h2('Insights Page') +
-    p('Provides analytics across your organisation.') +
-    ul(['Staff analytics: headcount trends, turnover rates','Person analytics: admissions, discharges, active counts','Operational metrics: shift fill rates, leave utilisation, incident frequency','Data visualisation with charts and tables']) +
+    p('The Insights page reads your live records and is organised into sections rather than one chart:') +
+    ul(['<strong>Overview:</strong> total staff, compliance rate, open shifts, staff on leave, pending leave, and overtime hours this month.','<strong>Staffing:</strong> headcount by role and by location.','<strong>Compliance:</strong> the overall rate, the rate by category, documents expiring in the next 30, 60 and 90 days, and the number of staff below your compliance threshold.','<strong>Leave:</strong> leave by type with its approval status, a monthly leave trend, and who is currently on leave.','<strong>Shifts:</strong> shift status counts, fill rate per location, and upcoming shifts against each location\'s minimum staffing.','<strong>Outcomes:</strong> goal completion and wellbeing averages by CQC domain, overdue reviews, and the goal progress trend.']) +
+    p('Insights is a reporting view: it charts your data and it does not model or predict.') +
+    h2('MeticleCare Intelligence') +
+    p('Intelligence is a separate page, and it is explicit about what it is. It offers twelve capabilities — among them Manager Briefing, Person Care Summary, Risk Signals, Compliance Copilot, the Data Assistant, Rota Alternatives and a family-update draft. All of them do the same thing: select records with date and status filters, then write about what came back, with every item linking to its source record.') +
+    p('The page states this directly: there is no statistical model, no learned baseline and no time-series comparison, so nothing is flagged as an \'anomaly\' that you could not have found with the same filters yourself. Two of the twelve names were previously the problem and were renamed to describe the action instead of a model. Output is a prompt for human review, never a decision, and where your organisation withholds clinical narrative from AI requests the page says so before you run anything.') +
     h2('Best Practices') +
     h3('For CQC Inspections') +
-    ul(['Generate an evidence pack at least 2 weeks before inspection','Review gap analysis and create action items for any HIGH priority gaps','Ensure all identity documents are current (check the expiring dashboard widget)','Run satisfaction and engagement surveys quarterly — data feeds directly into Caring and Well-led domain scores','Keep training records up to date — expiring training counts against your Safe domain score']) +
+    ul(['Generate an evidence pack at least 2 weeks before inspection','Review gap analysis and create action items for any HIGH priority gaps','Ensure all identity documents are current — the Alerts & updates panel flags them 30 days out','Run satisfaction and engagement surveys quarterly — data feeds directly into Caring and Well-led domain scores','Keep training records up to date — expiring training counts against your Safe domain score']) +
     h3('Daily Operations') +
-    ul(['Complete the daily medication count reconciliation every day','Review Today\'s Rota on the Dashboard each morning','Check the compliance dashboard weekly for trends','Use the body map to document any new skin conditions immediately','Record daily notes during or immediately after each shift for accuracy']) +
+    ul(['Complete the daily medication count reconciliation every day','Review today\'s rota each morning — Mission Control → Today for managers and admins, the Dashboard for frontline staff','Check the compliance dashboard weekly for trends','Use the body map to document any new skin conditions immediately','Record daily notes during or immediately after each shift for accuracy']) +
     h3('Staff Management') +
     ul(['Use the CSV import for bulk onboarding','Set up compliance profiles for each role before inviting staff','Use auto-assign by role for training modules to save time','Review staff compliance rates monthly and address anyone below threshold','Keep manager delegations up to date for leave/scheduling coverage'])
 }

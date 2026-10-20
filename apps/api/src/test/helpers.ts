@@ -2,6 +2,7 @@ import express, { Express } from 'express'
 import request from 'supertest'
 import cors from 'cors'
 import pinoHttp from 'pino-http'
+import cookieParser from 'cookie-parser'
 import crypto from 'crypto'
 import logger from '../shared/utils/logger'
 import { errorHandler, notFoundHandler } from '../shared/middleware/error.middleware'
@@ -26,6 +27,7 @@ import personRoutes from '../modules/people/people.routes'
 import leaveRoutes from '../modules/leave/leave.routes'
 import notificationRoutes from '../modules/notifications/notifications.routes'
 import pushRoutes from '../modules/notifications/push.routes'
+import emailUnsubscribeRoutes from '../modules/notifications/email-unsubscribe.routes'
 import incidentRoutes from '../modules/incidents/incidents.routes'
 import trainingRoutes from '../modules/training/training.routes'
 import competencyRoutes from '../modules/competency/competency.routes'
@@ -77,6 +79,11 @@ export function createTestApp(): Express {
   app.use(rlsMiddleware)
   app.use('/homecare/email/dsn-callback', express.raw({ type: 'application/json' }), publicEmailDsnRouter)
   app.use(express.json({ limit: '15mb' }))
+  // Mounted here exactly as `src/index.ts` mounts it, and not merely for
+  // convenience: the web app's session is an httpOnly cookie, so a test app
+  // without the parser would answer every cookie-authenticated request with a
+  // 401 that production does not send.
+  app.use(cookieParser())
 
   app.use('/auth', authRoutes)
   app.use('/mfa', mfaRoutes)
@@ -93,6 +100,7 @@ export function createTestApp(): Express {
   app.use('/dashboard', dashboardRoutes)
   app.use('/notifications', notificationRoutes)
   app.use('/notifications/push', pushRoutes)
+  app.use('/email', emailUnsubscribeRoutes)
   app.use('/permissions', permissionRoutes)
   app.use('/training', trainingRoutes)
   app.use('/competency', competencyRoutes)

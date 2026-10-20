@@ -5,7 +5,10 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { requirePermission } from '../../shared/middleware/requirePermission';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
-import { createShiftSchema, updateShiftSchema, assignStaffSchema, createTemplateSchema } from '../../shared/validation/schemas';
+import {
+  createShiftSchema, updateShiftSchema, assignStaffSchema, createTemplateSchema,
+  shiftClockOnSchema, shiftClockOffSchema, shiftHandoverSchema, shiftHandoverAcknowledgementSchema, shiftOfflineActionSchema,
+} from '../../shared/validation/schemas';
 import { UserRole } from '@meticle/shared';
 
 const router = Router();
@@ -28,6 +31,22 @@ router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermi
 router.get('/:id', asyncHandler(SchedulingController.getShift));
 router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), validate(updateShiftSchema), asyncHandler(SchedulingController.updateShift));
 router.delete('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.deleteShift));
+
+// Shift attendance and handover (mobile blueprint §9.1/§9.2).
+//
+// The reads sit with every other shift read. The writes are deliberately not
+// behind `requireRole` or `scheduling:edit`: recording that you were on duty and
+// what you handed over is the support worker's own duty, and the controller
+// refuses anyone who is not rostered on the shift — the same duty-without-
+// ownership shape as task completion and room checks. The offline route is the
+// visit check-in contract: one action key, replayed safely.
+router.get('/:id/attendance', asyncHandler(SchedulingController.getAttendance));
+router.post('/:id/clock-on', validate(shiftClockOnSchema), asyncHandler(SchedulingController.clockOn));
+router.post('/:id/clock-off', validate(shiftClockOffSchema), asyncHandler(SchedulingController.clockOff));
+router.get('/:id/handover', asyncHandler(SchedulingController.getHandover));
+router.post('/:id/handover', validate(shiftHandoverSchema), asyncHandler(SchedulingController.recordHandover));
+router.post('/:id/handover/acknowledge', validate(shiftHandoverAcknowledgementSchema), asyncHandler(SchedulingController.acknowledgeHandover));
+router.post('/:id/offline/:action(clock-on|clock-off|handover)', validate(shiftOfflineActionSchema), asyncHandler(SchedulingController.offlineShiftAction));
 router.post('/:id/assign', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), validate(assignStaffSchema), asyncHandler(SchedulingController.assignStaff));
 router.post('/:id/claim', asyncHandler(SchedulingController.claimOpenShift));
 router.patch('/:id/send-to-agency', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.sendToAgency));

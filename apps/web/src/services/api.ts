@@ -19,7 +19,7 @@ export function setOnApiError(handler: ErrorHandler) {
   onApiError = handler
 }
 
-let refreshPromise: Promise<string> | null = null
+let refreshPromise: Promise<void> | null = null
 
 function isPortalRequest(url?: string): boolean {
   return !!url && (url.includes('/compliance-portal/portal/verify') || url.includes('/compliance-portal/portal/dashboard') || url.includes('/compliance-portal/portal/person/'))
@@ -33,23 +33,28 @@ function getErrorMessage(error: any): string {
 }
 
 function clearAppSession() {
+  // The session itself is a pair of httpOnly cookies, which only the API can
+  // clear (`POST /auth/logout`). These are the browser-side leftovers, and the
+  // token keys are removed for the same reason the server clears them on
+  // logout: a credential left behind by an older build is not a session and
+  // must not be presented as one.
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
 }
 
-export function refreshAccessToken(): Promise<string> {
+/**
+ * Rotate the session. Resolves with nothing, deliberately: the new access token
+ * is an httpOnly cookie, so there is no value for a caller to hold or to attach
+ * to its own retry — the browser carries it on the next request.
+ */
+export function refreshAccessToken(): Promise<void> {
   if (refreshPromise) return refreshPromise
 
-  const refreshToken = localStorage.getItem('refreshToken')
-  if (!refreshToken) return Promise.reject(new Error('No refresh token available'))
-
-  refreshPromise = axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true })
-    .then(({ data }) => {
-      if (!data.accessToken) throw new Error('Refresh response did not include an access token')
-      localStorage.setItem('accessToken', data.accessToken)
-      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken)
-      return data.accessToken as string
+  refreshPromise = axios.post('/api/auth/refresh', {}, { withCredentials: true })
+    .then(() => {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
     })
     .finally(() => {
       refreshPromise = null
@@ -59,12 +64,13 @@ export function refreshAccessToken(): Promise<string> {
 }
 
 api.interceptors.request.use((config) => {
-  // Portal tokens apply only to portal endpoints. A stale portal token must
-  // never override the signed-in user's application token.
-  const token = isPortalRequest(config.url)
-    ? localStorage.getItem('portal_token')
-    : localStorage.getItem('accessToken')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  // The application session is an httpOnly cookie, so the browser attaches it
+  // and this interceptor has nothing to do for ordinary requests. Portal
+  // tokens are the exception: they are a separate credential for the external
+  // compliance portal, held in localStorage, and they apply only to portal
+  // endpoints. A stale portal token must never override the signed-in user.
+  const portalToken = isPortalRequest(config.url) ? localStorage.getItem('portal_token') : null
+  if (portalToken) config.headers.Authorization = `Bearer ${portalToken}`
   return config
 })
 
@@ -91,8 +97,9 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const accessToken = await refreshAccessToken()
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`
+        await refreshAccessToken()
+        // No Authorization header to set: the refreshed session is a cookie the
+        // browser already holds, so re-issuing the request is enough.
         return api(originalRequest)
       } catch (refreshError) {
         clearAppSession()

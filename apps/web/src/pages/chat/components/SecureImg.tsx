@@ -13,8 +13,8 @@ export default function SecureImg({ src, alt, sx }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    const token = localStorage.getItem('accessToken')
-    fetch(src, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    // Same-origin request: the session cookie authenticates it.
+    fetch(src)
       .then(r => r.blob())
       .then(blob => {
         if (cancelled) { URL.revokeObjectURL(URL.createObjectURL(blob)); return }

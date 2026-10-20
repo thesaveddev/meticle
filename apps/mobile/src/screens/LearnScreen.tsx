@@ -33,9 +33,9 @@ const DOM_GUIDES: Guide[] = [
     steps: ['Review today’s progress and exceptions.', 'Open a visit to inspect status, notes, disruptions, and incidents.', 'Use Clients to review care plans, risks, body maps, documents, and family communication.', 'Coordinate with carers in Chat and record formal feedback in Communication.', 'Follow your provider’s escalation procedure for safeguarding or urgent concerns.'],
   },
   {
-    title: 'Manager: post an open call', audience: 'Managers', where: 'Web: Staffing → Shift Marketplace',
+    title: 'Manager: post an open call', audience: 'Managers', where: 'Web: Staffing → Open Calls',
     summary: 'Post an unassigned call so eligible carers can claim it. This creates cover work; it does not replace assigning the actual client visit.',
-    steps: ['Open Shift Marketplace on the web.', 'Tap Post open call.', 'Choose the area, start and end time, and call type.', 'Post the call and monitor it in Available Shifts and Claims.', 'After a claim is accepted, confirm the client visit in Call Assignment or Weekly Planner.'],
+    steps: ['Open Staffing → Open Calls on the web.', 'Tap Post open call.', 'Choose the area, start and end time, and call type.', 'Post the call and monitor it in Open Calls and Claims.', 'After a claim is accepted, confirm the client visit in Call Assignment or Call Scheduling.'],
   },
   {
     title: 'Manager: plan with availability, leave and areas', audience: 'Managers', where: 'Web: Homecare → Availability / Leave Manager / Areas',

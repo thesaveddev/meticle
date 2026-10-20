@@ -144,8 +144,9 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // retention) and again on 135 (medicines in care), and the fix both times
     // was to advance the run rather than loosen the pattern — as it was again on
     // 148 (the notification record link) and again on 149 (the organisation time
-    // zone), which is the latest one registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_149\]\)/)
+    // zone), and again on 150-157, and again on 158 (email opt-outs), which is the
+    // latest one registered.
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_158\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

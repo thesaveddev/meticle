@@ -59,8 +59,9 @@ const GRANT_ALL_MODULES = [
 ].map((module) => ({ module, permission_level: 'view' }))
 
 beforeEach(() => {
+  // No access token is seeded: the session is an httpOnly cookie the browser
+  // holds, so the shell is gated on the cached user and on `/auth/me`.
   window.localStorage.setItem('user', JSON.stringify(ORG_ADMIN))
-  window.localStorage.setItem('accessToken', 'test-token')
   window.localStorage.removeItem('sidebarCollapsedGroups')
   vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })

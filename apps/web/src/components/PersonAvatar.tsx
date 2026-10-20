@@ -15,8 +15,8 @@ export default function PersonAvatar({ photoUrl, name, children, ...rest }: Prop
     if (!photoUrl) { setSrc(null); return }
     const load = async () => {
       try {
-        const token = localStorage.getItem('accessToken')
-        const res = await fetch(photoUrl, { headers: { Authorization: `Bearer ${token}` } })
+        // Same-origin request: the session cookie authenticates it.
+        const res = await fetch(photoUrl)
         if (!res.ok) throw new Error('Failed to load photo')
         const blob = await res.blob()
         if (cancelled) return

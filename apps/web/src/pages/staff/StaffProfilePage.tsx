@@ -26,6 +26,7 @@ import { EmptyState } from '../../components/design/EmptyState'
 // compliance email links to. Both come from `@meticle/shared` so the sender and this
 // reader cannot disagree about either.
 import { MICA_RECORD_PARAMS, MICA_STAFF_COMPLIANCE_TAB } from '@meticle/shared'
+import { StaffUpdateServicePanel } from './StaffUpdateServicePanel'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -653,6 +654,17 @@ export default function StaffProfilePage() {
             </Box>
           )}
         </Paper>
+      )}
+
+      {/* The DBS re-check record, beside the rest of this person's compliance
+          evidence. Its own block rather than a row inside the requirements card: it
+          is not a requirement, it is the individual's own Update Service
+          subscription, and it is shown only to the roles that may read DBS data —
+          the same roles the API's `/dbs/update-service` routes allow. */}
+      {tab === TAB_COMPLIANCE && canEdit && memberData?.staff_id && (
+        <Box sx={{ mt: 3 }}>
+          <StaffUpdateServicePanel staffId={memberData.staff_id} recordId={linkedRecordId} />
+        </Box>
       )}
 
       {tab === TAB_COMPETENCY && (

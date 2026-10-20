@@ -217,6 +217,18 @@ should not be reused.
 
 ## Unverified
 
-Nothing has been built, run on a device, or uploaded. All of the above is static
-config plus `tsc` and the test suites: API 650 tests across 92 files, mobile 103
-across 15, web typecheck clean.
+This section said "nothing has been built, run on a device, or uploaded", and
+carried test counts of "API 650 across 92 files, mobile 103 across 15, web
+typecheck clean". Both were stale: the counts came from an August baseline and
+were two months behind, and the first sentence was contradicted by the upload
+section above it in this same file.
+
+Everything else above is static config, the Play API reads of 2 October, and the
+automated suites measured in CI on 16 October 2026 (`FEATURE_READINESS_AUDIT.md`
+§6): **API 168 files / 1,631 tests, web 67 files / 511 tests, mobile 40 suites /
+322 tests**, all green.
+
+What is still unverified is named in `docs/STORE_RELEASE_RUNBOOK.md` §4: iOS in
+every respect, the store screenshots (all seven are one frame), the Data safety
+form (its Play template is absent), the content rating answers, and any human
+walk-through of the app.

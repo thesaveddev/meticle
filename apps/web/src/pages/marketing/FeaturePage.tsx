@@ -150,7 +150,7 @@ function RiskMockup() {
 
 function ComplianceMockup() {
   const items = [
-    { label: 'DBS Checks', pct: 100, color: '#10B981' },
+    { label: 'DBS Tracking', pct: 100, color: '#10B981' },
     { label: 'Mandatory Training', pct: 87, color: '#F59E0B' },
     { label: 'Right to Work', pct: 95, color: '#10B981' },
     { label: 'Competency', pct: 68, color: '#EF4444' },
@@ -292,7 +292,7 @@ const features: Record<string, FeatureData> = {
     icon: People,
     capabilities: ['Staff directory and profiles', 'Training and competency tracking', 'Availability, leave and approvals', 'Right-to-work and DBS reminders', 'Connected workforce reporting'],
     detailSections: [
-      { heading: 'Staff profiles and compliance', body: 'Every staff member has a profile with training records, competency assessments, right-to-work documents and DBS checks. Non-compliance is flagged before staff are assigned to shifts.' },
+      { heading: 'Staff profiles and compliance', body: 'Every staff member has a profile with training records, competency assessments, right-to-work documents and DBS records. Non-compliance is flagged before staff are assigned to shifts.' },
       { heading: 'Training and competency', body: 'Track mandatory training, specialist courses and competency assessments. Expiry dates generate alerts. The compliance dashboard shows the organisation-wide position at a glance.' },
       { heading: 'Availability and leave', body: 'Staff submit availability up to 4 months ahead. Managers approve leave, see coverage impact and use the shift marketplace to fill gaps. Everything connects to the rota.' },
     ],

@@ -141,8 +141,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
     if (thumbnails[imageUrl] || loadingThumbs[imageUrl]) return
     setLoadingThumbs(prev => ({ ...prev, [imageUrl]: true }))
     try {
-      const token = localStorage.getItem('accessToken')
-      const res = await fetch(`/api${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(`/api${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
       if (!res.ok) { setLoadingThumbs(prev => ({ ...prev, [imageUrl]: false })); return }
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)

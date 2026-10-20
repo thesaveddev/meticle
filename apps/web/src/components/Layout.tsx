@@ -47,12 +47,14 @@ import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
 import { useSubscriptionStatus } from './SubscriptionGuard'
 import { useThemeMode, METICLE_PRIMARY, METICLE_SECONDARY } from '../context/ThemeContext'
+import { useSnackbar } from '../context/SnackbarContext'
 import { useTheme } from '@mui/material/styles'
 
 const drawerWidth = 248
 
 function LayoutShell({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate()
+  const { showSnackbar } = useSnackbar()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -256,9 +258,11 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
   const activeModuleLabel = (activeNavItem ? labelOverride[activeNavItem.text] || activeNavItem.text : '') || (location.pathname.startsWith('/platform-admin') ? 'Platform Admin' : 'Overview')
 
   useEffect(() => {
+    // Gated on a signed-in user rather than on a token. The session is an
+    // httpOnly cookie now, so there is no token in the browser to test for —
+    // `rawUser` comes from `/auth/me`, which is the same question asked of the
+    // server, and asking it here means a signed-out browser makes no request.
     if (!rawUser.id) return
-    const token = localStorage.getItem('accessToken')
-    if (!token) return
 
     const fetchNotifications = async () => {
       setNotificationsLoading(true)
@@ -314,7 +318,7 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
       Notification.requestPermission()
     }
 
-    const socket = connectSocket(() => localStorage.getItem('accessToken'))
+    const socket = connectSocket()
     // After a genuine reconnect, resync unread counts and notifications
     const offReconnect = onReconnect(() => {
       fetchNotifications()
@@ -455,7 +459,24 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
     localStorage.setItem('sidebarCollapsedGroups', JSON.stringify([...collapsedGroups]))
   }, [collapsedGroups])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // End the session on the server first, because only the API can: the
+    // session is a pair of httpOnly cookies, so clearing browser state alone
+    // would leave the cookie in place and the next person on this device
+    // signed in as the last one.
+    try {
+      await api.post('/auth/logout')
+    } catch (error: any) {
+      // A 401 means there was no session left to end, so sign-out is already
+      // true and the local cleanup below is all that remains. Anything else
+      // means the session is still live, and the honest answer is to stay and
+      // say so rather than show a login page over a session that still works.
+      if (error?.response?.status !== 401) {
+        showSnackbar('Could not sign you out — your session is still active. Check your connection and try again.', 'error', 'Sign out failed')
+        return
+      }
+    }
+
     localStorage.clear()
     updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F7FAFE' }, '')
     navigate('/login')

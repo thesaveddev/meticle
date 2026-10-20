@@ -434,6 +434,133 @@ function countsByStatus(homecare: HomecareData) {
   }
 }
 
+interface HandoverGap {
+  shift_id: string
+  shift_type: string | null
+  start_time: string
+  end_time: string
+  location_id: string
+  location_name: string
+  staff_notified: boolean
+  hours_since_end: number
+  rostered: Array<{ user_id: string; name: string }>
+}
+
+interface HandoverGaps {
+  window_days: number
+  grace_minutes: number
+  total: number
+  shifts: HandoverGap[]
+}
+
+const HANDOVER_GAP_PAGE_SIZE = 5
+const HANDOVER_GAPS_TABLE = 'Shifts that ended without a handover'
+
+const shortDate = (value: string) => new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+
+/**
+ * Shifts that ended with nobody's handover recorded, read from the shifts themselves
+ * rather than from the alerts: an alert can be dismissed, and the sweep that raises it
+ * stops looking after 24 hours. A manager asking about last week needs the state, not
+ * the notification. Selecting a row opens that shift on the rota, where the handover
+ * can be read or recorded.
+ */
+function HandoverGapsPanel() {
+  const navigate = useNavigate()
+  const [page, setPage] = useState(0)
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['mission-control-handover-gaps'],
+    queryFn: () => api.get('/mission-control/handover-gaps', { timeout: 15000 }).then(res => res.data as HandoverGaps),
+  })
+
+  const gaps = data?.shifts ?? []
+  const total = data?.total ?? gaps.length
+  const windowDays = data?.window_days ?? 7
+  const graceMinutes = data?.grace_minutes ?? 30
+  const lastPage = Math.max(0, Math.ceil(gaps.length / HANDOVER_GAP_PAGE_SIZE) - 1)
+  const currentPage = Math.min(page, lastPage)
+  const pageRows = gaps.slice(currentPage * HANDOVER_GAP_PAGE_SIZE, (currentPage + 1) * HANDOVER_GAP_PAGE_SIZE)
+
+  if (isLoading) return <Stack spacing={1}><Skeleton height={38} /><Skeleton height={38} /><Skeleton height={38} /></Stack>
+  if (isError) return <SectionError message="Could not load the handover gaps." onRetry={() => { void refetch() }} />
+
+  if (total === 0) {
+    return (
+      <Stack spacing={0.5}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>Every shift in the last {windowDays} days has a handover recorded.</Typography>
+        <Typography variant="caption" color="text.secondary">A shift is counted here once it ended more than {graceMinutes} minutes ago with no handover.</Typography>
+      </Stack>
+    )
+  }
+
+  return (
+    <Stack spacing={1.25}>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        {total} shift{total === 1 ? '' : 's'} ended without a handover in the last {windowDays} day{windowDays === 1 ? '' : 's'}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Select a shift to open it on the rota and read or record its handover. Shifts that ended in the last {graceMinutes} minutes are left out while the worker finishes writing one.
+      </Typography>
+      <TableContainer sx={{ overflowX: 'auto' }}>
+        <Table size="small" aria-label={HANDOVER_GAPS_TABLE}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Shift</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>On shift</TableCell>
+              <TableCell>Nudge</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {pageRows.map(gap => (
+              <TableRow
+                key={gap.shift_id}
+                hover
+                tabIndex={0}
+                onClick={() => navigate(`/scheduling?week=${gap.start_time.slice(0, 10)}&shift=${gap.shift_id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/scheduling?week=${gap.start_time.slice(0, 10)}&shift=${gap.shift_id}`) } }}
+                sx={{ cursor: 'pointer', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 } }}
+              >
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{shortDate(gap.start_time)}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>{formatTime(gap.start_time)} – {formatTime(gap.end_time)}</Typography>
+                </TableCell>
+                <TableCell sx={{ maxWidth: 180 }}><Typography variant="body2" noWrap>{gap.location_name}</Typography></TableCell>
+                <TableCell sx={{ maxWidth: 220 }}>
+                  <Typography variant="body2" noWrap>
+                    {gap.rostered.map(person => person.name).join(', ')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {gap.rostered.length} staff on the shift
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color={gap.staff_notified ? 'default' : 'warning'}
+                    label={gap.staff_notified ? 'Staff notified' : 'Not yet notified'}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {gaps.length > HANDOVER_GAP_PAGE_SIZE && (
+        <TablePagination
+          component="div"
+          count={gaps.length}
+          page={currentPage}
+          onPageChange={(_, next) => setPage(next)}
+          rowsPerPage={HANDOVER_GAP_PAGE_SIZE}
+          rowsPerPageOptions={[]}
+        />
+      )}
+    </Stack>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Today: concise overview with links into the other workspaces.
 // ---------------------------------------------------------------------------
@@ -620,6 +747,11 @@ export function MissionControlComplianceView() {
               <ActionRow icon={<DocumentIcon fontSize="small" />} title="Background checks expiring" description="Vetting checks due within 30 days" count={supported.widgets.dbs_expiring_soon} href="/compliance/identity?expiry=30" />
               <ActionRow icon={<ComplianceIcon fontSize="small" />} title="Competency assessments due" description="Staff competencies due for review" count={supported.widgets.competency_due ?? 0} href="/compliance/competency" />
             </Stack>
+          </Card>
+        </Grid>
+        <Grid item xs={12}>
+          <Card header={{ title: 'Shift handovers', subtitle: 'Shifts that ended without one, and who was on them' }}>
+            <HandoverGapsPanel />
           </Card>
         </Grid>
       </Grid>

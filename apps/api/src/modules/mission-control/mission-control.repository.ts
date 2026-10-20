@@ -1,5 +1,6 @@
 import { query } from '../../shared/database';
 import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
+import { HANDOVER_GRACE_MINUTES } from '../scheduling/shiftHandoverDue';
 
 // Nation-aware identity documents. ENHANCED_DBS is a legacy type that nothing
 // writes today, kept only in this alert's type list so historical rows do not
@@ -21,9 +22,15 @@ export class MissionControlRepository {
     if (filters?.category) {
       const catMap: Record<string, string[]> = {
         medication: ["alert_type LIKE 'medication.%'"],
-        staffing: ["alert_type IN ('shift.unfilled', 'shift.understaffed', 'staffing.coverage_low')"],
+        // A shift that ended with no handover belongs here with the other staffing
+        // gaps: it is a shift that ran without its responsibility being handed on.
+        staffing: ["alert_type IN ('shift.unfilled', 'shift.understaffed', 'shift.handover_due', 'staffing.coverage_low')"],
         safety: ["alert_type IN ('incident.action_overdue')"],
-        compliance: ["alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due')"],
+        // A room with no check today is a missing daily safety and cleanliness
+        // record, so it is an evidence gap a manager filters for — the same place
+        // they would look for an expiring certificate. Filing it under no category
+        // at all is what made §9.9's alert invisible once a filter was applied.
+        compliance: ["alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due', 'room_check.overdue')"],
         care: ["alert_type IN ('care_plan.review_due', 'fluid.intake_below_target', 'nutrition.appetite_decline', 'nutrition.refused_meal')"],
       };
       const parts = catMap[filters.category];
@@ -182,9 +189,11 @@ export class MissionControlRepository {
     const categoryResult = await query(
       `SELECT
          COUNT(*) FILTER (WHERE alert_type LIKE 'medication.%' AND dismissed = FALSE)::int AS medication,
-         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'shift.understaffed', 'staffing.coverage_low', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
-         COUNT(*) FILTER (WHERE alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due') AND dismissed = FALSE)::int AS compliance,
-         COUNT(*) FILTER (WHERE alert_type IN ('care_plan.review_due', 'fluid.intake_below_target') AND dismissed = FALSE)::int AS care
+         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'shift.understaffed', 'shift.handover_due', 'staffing.coverage_low', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
+         -- These lists must match the category filter above, or the chip counts and
+         -- the filtered rows disagree — the drift audit §3.5 keeps finding.
+         COUNT(*) FILTER (WHERE alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due', 'room_check.overdue') AND dismissed = FALSE)::int AS compliance,
+         COUNT(*) FILTER (WHERE alert_type IN ('care_plan.review_due', 'fluid.intake_below_target', 'nutrition.appetite_decline', 'nutrition.refused_meal') AND dismissed = FALSE)::int AS care
        FROM mission_control_alerts
        WHERE organization_id = $1`,
       [orgId]
@@ -392,6 +401,73 @@ export class MissionControlRepository {
       overdue_policy_reviews: overduePolicyReviews.rows[0]?.count || 0,
       low_fluid_intake: lowFluid.rows[0]?.count || 0,
       overdue_incident_actions: overdueIncidentActions.rows[0]?.count || 0,
+    };
+  }
+
+  /**
+   * Shifts that ended with nobody's handover recorded.
+   *
+   * The handover-due sweep (§9.9) notices this state and nudges the staff who were
+   * on the shift, but a nudge is not a record: it is one notification, marked sent
+   * once per shift (`handover_due_notified_at`), and after 24 hours the sweep stops
+   * looking. A manager asking "which shifts this week ended without a handover?" had
+   * no way to answer it — the alert may have been dismissed, and the sweep's window
+   * is deliberately short.
+   *
+   * So this reads the state itself rather than the alerts: a supported-living shift
+   * that has ended, with staff on it, and no `shift_handovers` row. Three decisions
+   * keep it honest rather than noisy:
+   *
+   *  * **The same grace period as the sweep.** A shift that ended ten minutes ago is
+   *    one somebody is still writing up. `HANDOVER_GRACE_MINUTES` is imported from the
+   *    sweep rather than repeated, because two copies drift and the drift is silent.
+   *  * **Only shifts with somebody on them.** A shift that ended with no roster has
+   *    nobody to write a handover and no responsibility to transfer; that is
+   *    `shift.unfilled`'s business, not this one's.
+   *  * **The rota's own employees.** Rostered names come from the same joins the sweep
+   *    notifies, so the manager sees exactly who was told — including a worker whose
+   *    account has since been deactivated, who is deliberately not listed, because
+   *    the notification did not reach them either.
+   *
+   * Cancelled shifts are excluded: a shift that did not happen hands nothing over.
+   * `staff_notified` distinguishes "we already nudged them" from "nobody has been
+   * told", which is the difference between a chase and a first warning.
+   */
+  static async getHandoverGaps(orgId: string, days = 7) {
+    const windowDays = Math.min(Math.max(Math.trunc(days) || 7, 1), 30);
+    const result = await query(
+      `SELECT s.id AS shift_id, s.shift_type, s.start_time, s.end_time,
+              l.id AS location_id, l.name AS location_name,
+              (s.handover_due_notified_at IS NOT NULL) AS staff_notified,
+              FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - s.end_time)) / 3600)::int AS hours_since_end,
+              JSON_AGG(JSON_BUILD_OBJECT(
+                'user_id', sp.user_id,
+                'name', COALESCE(NULLIF(TRIM(sp.first_name || ' ' || sp.last_name), ''), u.email)
+              ) ORDER BY sp.first_name, sp.last_name) AS rostered,
+              COUNT(*) OVER ()::int AS total_matches
+       FROM shifts s
+       JOIN locations l ON l.id = s.location_id
+       JOIN shift_assignments sa ON sa.shift_id = s.id AND sa.status <> 'rejected'
+       JOIN staff_profiles sp ON sp.id = sa.staff_id
+       JOIN users u ON u.id = sp.user_id AND u.status = 'active'
+       LEFT JOIN shift_handovers h ON h.shift_id = s.id
+       WHERE l.organization_id = $1
+         AND s.status <> 'cancelled'
+         AND h.id IS NULL
+         AND s.end_time <= CURRENT_TIMESTAMP - make_interval(mins => $3::int)
+         AND s.end_time > CURRENT_TIMESTAMP - make_interval(days => $2::int)
+       GROUP BY s.id, s.shift_type, s.start_time, s.end_time, l.id, l.name, s.handover_due_notified_at
+       ORDER BY s.end_time DESC
+       LIMIT 200`,
+      [orgId, windowDays, HANDOVER_GRACE_MINUTES],
+    );
+
+    const rows = result.rows as Array<Record<string, any> & { total_matches: number }>;
+    return {
+      window_days: windowDays,
+      grace_minutes: HANDOVER_GRACE_MINUTES,
+      total: rows[0]?.total_matches ?? 0,
+      shifts: rows.map(({ total_matches: _total, ...row }) => row),
     };
   }
 

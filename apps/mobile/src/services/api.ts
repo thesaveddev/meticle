@@ -1,6 +1,16 @@
 import Constants from 'expo-constants'
 import { File, Paths } from 'expo-file-system'
-import type { AuthSession, HomecareVisit, IncidentReportPayload, MobileUser } from '../types'
+import type {
+  AuthSession,
+  HomecareVisit,
+  IncidentReportPayload,
+  MobileUser,
+  MyShift,
+  ShiftAttendance,
+  ShiftHandover,
+  ShiftHandoverAcknowledgement,
+  ShiftHandoverView,
+} from '../types'
 import { clearSession, readSession, writeSession } from './storage'
 
 const configuredBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl
@@ -573,9 +583,72 @@ export async function reportIncident(token: string, data: IncidentReportPayload 
   return request('/incidents', { method: 'POST', body: JSON.stringify(data) }, token)
 }
 
+// ── Room checks ──
+/** One room on the worker's board, with the day's check when there is one. */
+export type RoomCheckBoardRoom = {
+  room_number: string
+  room_key: string
+  location_id: string
+  location_name: string
+  checked_at: string | null
+  checked_by_name: string | null
+  status: string | null
+}
+
+export type RoomCheckBoard = {
+  applicable: boolean
+  today: string
+  due_hour: number
+  due: boolean
+  outstanding: number
+  rooms: RoomCheckBoardRoom[]
+}
+
+/**
+ * Today's rooms and their check state — the same rooms the overdue nudge names.
+ *
+ * `applicable: false` for a provider that is not supported living, which is how the
+ * phone knows to hide the card rather than show an empty one.
+ */
+export async function getRoomCheckBoard(token: string): Promise<RoomCheckBoard> {
+  return request('/mobile/room-checks/today', {}, token)
+}
+
+/**
+ * Record a room check. The server attributes it to the signed-in worker and holds
+ * the photo, so only the observation travels from here.
+ */
+export async function createRoomCheck(token: string, input: {
+  room_number: string
+  location_id?: string
+  status?: 'pass' | 'fail' | 'needs_attention'
+  cleanliness_rating?: number
+  safety_rating?: number
+  notes?: string
+}): Promise<any> {
+  return request('/room-checks', { method: 'POST', body: JSON.stringify(input) }, token)
+}
+
 // ── Notifications ──
-export async function getMyNotifications(token: string): Promise<any[]> {
-  return request('/notifications', {}, token)
+/**
+ * One page of the carer's notifications, newest first.
+ *
+ * `before`/`beforeId` are the `created_at` and `id` of the oldest row the screen
+ * already holds; the server continues from just below it. Both or neither — a page
+ * cursor is a pair, and half of one is rejected (`GET /notifications`).
+ */
+export async function getMyNotifications(
+  token: string,
+  page: { limit?: number; before?: string; beforeId?: string } = {},
+): Promise<any[]> {
+  const query = new URLSearchParams()
+  if (page.limit) query.set('limit', String(page.limit))
+  if (page.before && page.beforeId) {
+    query.set('before', page.before)
+    query.set('beforeId', page.beforeId)
+  }
+  const qs = query.toString()
+  return request(`/notifications${qs ? `?${qs}` : ''}`, {}, token)
 }
 
 export async function getUnreadNotificationCount(token: string): Promise<number> {
@@ -1003,4 +1076,130 @@ export async function rejectOpenCallClaim(token: string, shiftId: string, staffI
  */
 export async function withdrawOpenCallClaim(token: string, shiftId: string): Promise<{ id: string; shift_id: string; status: string }> {
   return request(`/shifts/${encodeURIComponent(shiftId)}/withdraw-claim`, { method: 'DELETE' }, token)
+}
+
+/* ─── Supported living: shift handover (§9.2) ───────────────── */
+
+/**
+ * The signed-in carer's own shifts with each one's handover state.
+ *
+ * `/mobile/my-roster` looks forward only, which is the wrong window for a handover:
+ * the shift that owes one has just ended. This looks a week either way by default
+ * and says, per shift, whether a handover is due, who wrote it, and whether this
+ * person has acknowledged it — so the screen does not have to open each shift.
+ */
+export async function getMyShifts(token: string, window: { from?: string; to?: string } = {}): Promise<MyShift[]> {
+  const query = new URLSearchParams()
+  if (window.from) query.set('from', window.from)
+  if (window.to) query.set('to', window.to)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return request<MyShift[]>(`/mobile/my-shifts${suffix}`, {}, token)
+}
+
+/**
+ * A shift, as `GET /shifts/:id` returns it. The handover screen is reachable from a
+ * notification that carries only the shift id, so it needs the header (where and
+ * when) from somewhere; when the schedule list already has the row, it passes it and
+ * this is not called.
+ */
+export interface ShiftSummary {
+  id: string
+  location_id: string
+  location_name: string
+  shift_type: string
+  status: string
+  start_time: string
+  end_time: string
+}
+
+export async function getShift(token: string, shiftId: string): Promise<ShiftSummary> {
+  return request<ShiftSummary>(`/shifts/${encodeURIComponent(shiftId)}`, {}, token)
+}
+
+/** The handover, its amendment history and its acknowledgements. */
+export async function getShiftHandover(token: string, shiftId: string): Promise<ShiftHandoverView> {
+  return request<ShiftHandoverView>(`/shifts/${encodeURIComponent(shiftId)}/handover`, {}, token)
+}
+
+/**
+ * Record the shift's handover, or amend the one already there.
+ *
+ * The server keeps every version and attributes the amendment to whoever wrote
+ * it, so an amend is not a destructive edit. `recorded_at` and `action_key` are
+ * what let a queued write survive a bad connection: the server recognises the same
+ * action and records the time the worker actually finished their shift.
+ */
+export async function recordShiftHandover(
+  token: string,
+  shiftId: string,
+  input: { what_happened: string; outstanding?: string | null; who_is_aware?: string | null; recorded_at?: string; action_key?: string },
+): Promise<{ handover: ShiftHandover; created: boolean; replayed?: boolean }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/handover`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, token)
+}
+
+/* ─── Supported living: shift attendance (§9.1) ─────────────── */
+
+/**
+ * The shift's attendance: who was rostered, who clocked on, and every event.
+ *
+ * The rows carry `is_me`, so the screen never has to work out which roster row is
+ * the signed-in carer's — the same decision the API makes when it decides whose
+ * clock button to offer.
+ */
+export async function getShiftAttendance(token: string, shiftId: string): Promise<ShiftAttendance> {
+  return request<ShiftAttendance>(`/shifts/${encodeURIComponent(shiftId)}/attendance`, {}, token)
+}
+
+/**
+ * A clock action, either as a fresh press or as the retry of one that was queued.
+ *
+ * `action_key` is generated once when the worker presses the button and reused on
+ * every retry. The online route accepts it too, so a double tap on a bad connection
+ * is one clock-on rather than two.
+ */
+export interface ShiftClockInput {
+  note?: string | null
+  /** The moment the worker pressed the button, not the moment this request was made. */
+  recorded_at?: string
+  action_key?: string
+}
+
+export async function clockShift(
+  token: string,
+  shiftId: string,
+  action: 'clock-on' | 'clock-off',
+  input: ShiftClockInput = {},
+): Promise<{ event: ShiftAttendance['events'][number]; shift: { actual_start_at: string | null; actual_end_at: string | null }; replayed?: boolean }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/${action}`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, token)
+}
+
+/** The queue's route: it records the action as replayed from this device. */
+export async function replayShiftClockAction(
+  token: string,
+  shiftId: string,
+  action: 'clock-on' | 'clock-off',
+  input: ShiftClockInput,
+): Promise<unknown> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/offline/${action}`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, token)
+}
+
+/** Confirm this person has read the handover. The author's own is refused. */
+export async function acknowledgeShiftHandover(
+  token: string,
+  shiftId: string,
+  note?: string,
+): Promise<{ acknowledgement: ShiftHandoverAcknowledgement; replayed: boolean }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/handover/acknowledge`, {
+    method: 'POST',
+    body: JSON.stringify(note ? { note } : {}),
+  }, token)
 }

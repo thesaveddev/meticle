@@ -107,7 +107,7 @@ const attentionItems = [
   { text: 'Training renewal due', count: 2, color: M.amber },
   { text: 'Care plan reviews overdue', count: 4, color: M.amber },
   { text: 'Risk assessments needing review', count: 2, color: M.coral },
-  { text: 'DBS checks expiring', count: 1, color: M.coral },
+  { text: 'DBS certificate expiring', count: 1, color: M.coral },
 ]
 
 /* ─── Overview Page ────────────────────────────────────── */

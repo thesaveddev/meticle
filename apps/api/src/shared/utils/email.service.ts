@@ -5,6 +5,15 @@ import type { MicaRecordRef } from '@meticle/shared';
 import { EmailSecurityNoticeHtml } from './email.securityNotice';
 import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
 import type { EmailQueueOptions } from './email.queue';
+import {
+  appendUnsubscribeFooter,
+  isEmailOptedOut,
+  unsubscribeHeaders,
+  unsubscribeOneClickUrl,
+  unsubscribePageUrl,
+  unsubscribeToken,
+  type EmailUnsubscribeScope,
+} from './emailUnsubscribe';
 import pool from '../database';
 import logger from './logger';
 
@@ -90,16 +99,83 @@ export function getTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
-async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications', attachments?: { filename: string; content: Buffer; contentType?: string }[], queueOptions?: EmailQueueOptions) {
+/**
+ * Enqueue one message, optionally giving the recipient a way out of it.
+ *
+ * `unsubscribeScope` is the difference between a message somebody is entitled to
+ * and one they can stop. When it is set, three things happen and none of them are
+ * the template's job: an address that has already opted out of that scope is
+ * skipped, the message gains the unsubscribe line at the bottom, and it carries
+ * the `List-Unsubscribe` headers a mail client's own button follows.
+ *
+ * Transactional mail — a reset, a receipt, an invoice, a statutory notice — is
+ * enqueued without a scope, because there is nothing to unsubscribe from and a
+ * link that claims otherwise would be a lie.
+ */
+async function sendMail(
+  to: string,
+  subject: string,
+  html: string,
+  category: SenderCategory = 'notifications',
+  attachments?: { filename: string; content: Buffer; contentType?: string }[],
+  queueOptions?: EmailQueueOptions,
+  unsubscribeScope?: EmailUnsubscribeScope,
+) {
+  let body = html;
+  let options = queueOptions;
+  if (unsubscribeScope) {
+    if (await isEmailOptedOut(to, unsubscribeScope)) {
+      logger.info({ to, subject, scope: unsubscribeScope }, 'Email skipped — recipient has unsubscribed');
+      return null;
+    }
+    // One token, two destinations: the page the footer links to, and the API
+    // endpoint the header's one-click POST has to reach. Minting it once keeps the
+    // two addresses provably about the same recipient and scope, and keeps a
+    // missing signing secret to a single log line rather than one per URL.
+    const token = unsubscribeToken(to, unsubscribeScope);
+    if (token) {
+      body = appendUnsubscribeFooter(html, unsubscribePageUrl(token), unsubscribeScope);
+      options = {
+        ...(queueOptions || {}),
+        headers: { ...(queueOptions?.headers || {}), ...unsubscribeHeaders(unsubscribeOneClickUrl(token)) },
+      };
+    }
+  }
   try {
     const { EmailQueue } = await import('./email.queue');
-    const queued = await EmailQueue.enqueue(to, subject, html, SENDERS[category], attachments, queueOptions);
+    const queued = await EmailQueue.enqueue(to, subject, body, SENDERS[category], attachments, options);
     logger.info({ to, subject, category, from: SENDERS[category], queueId: queued?.rows?.[0]?.id }, 'Email queued');
     return queued;
   } catch (err: any) {
     logger.error({ err: err.message, to, subject, category }, 'Email enqueue failed');
     throw err;
   }
+}
+
+/**
+ * An operational email the recipient may stop: a reminder, a digest, an alert.
+ *
+ * The in-app notification stays either way — the opt-out is about the mailbox, not
+ * about the work. That is why these carry `notifications` rather than the broader
+ * marketing scope.
+ */
+async function sendNotificationMail(
+  to: string,
+  subject: string,
+  html: string,
+  category: SenderCategory = 'notifications',
+) {
+  return sendMail(to, subject, html, category, undefined, undefined, 'notifications');
+}
+
+/** Lifecycle and winback mail: promotional, and the clearest case for an opt-out. */
+async function sendMarketingMail(
+  to: string,
+  subject: string,
+  html: string,
+  category: SenderCategory = 'billing',
+) {
+  return sendMail(to, subject, html, category, undefined, undefined, 'marketing');
 }
 
 const baseUrl = () =>
@@ -455,28 +531,28 @@ export class EmailService {
 
   // ── Leave ──
   static async sendLeaveRequestedEmail(email: string, reviewerName: string, staffName: string, leaveType: string, startDate: string, endDate: string, link?: string) {
-    await sendMail(email, `Leave Request — ${staffName}`,
+    await sendNotificationMail(email, `Leave Request — ${staffName}`,
       buildStatusEmailHtml('Leave Request', `Hi ${reviewerName},`, 'pending', 'Pending Approval',
         [`${staffName} has requested ${leaveType} leave from ${startDate} to ${endDate}.`],
         recordCta(link, 'Open the leave request', { label: 'Review Request', url: `${baseUrl()}/leave` })));
   }
 
   static async sendLeaveApprovedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string, link?: string) {
-    await sendMail(email, `Leave Approved — ${leaveType}`,
+    await sendNotificationMail(email, `Leave Approved — ${leaveType}`,
       buildStatusEmailHtml('Leave Approved', `Hi ${name},`, 'approved', 'Approved',
         [`Your ${leaveType} leave from ${startDate} to ${endDate} has been approved.`],
         recordCta(link, 'Open the leave request', { label: 'View My Leave', url: `${baseUrl()}/leave` })));
   }
 
   static async sendLeaveBookedEmail(email: string, staffName: string, bookedByName: string, leaveType: string, startDate: string, endDate: string, link?: string) {
-    await sendMail(email, `Leave Booked — ${leaveType}`,
+    await sendNotificationMail(email, `Leave Booked — ${leaveType}`,
       buildStatusEmailHtml('Leave Booked', `Hi ${staffName},`, 'approved', 'Approved',
         [`${bookedByName} has booked ${leaveType} leave for you from ${startDate} to ${endDate}. It has been approved.`],
         recordCta(link, 'Open the leave request', { label: 'View My Leave', url: `${baseUrl()}/leave` })));
   }
 
   static async sendLeaveRejectedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string, link?: string) {
-    await sendMail(email, `Leave Rejected — ${leaveType}`,
+    await sendNotificationMail(email, `Leave Rejected — ${leaveType}`,
       buildStatusEmailHtml('Leave Rejected', `Hi ${name},`, 'rejected', 'Rejected',
         [`Your ${leaveType} leave from ${startDate} to ${endDate} was not approved.`],
         recordCta(link, 'Open the leave request', { label: 'View Details', url: `${baseUrl()}/leave` })));
@@ -484,7 +560,7 @@ export class EmailService {
 
   // ── Documents ──
   static async sendDocumentExpiringEmail(email: string, staffName: string, docType: string, expiryDate: string, link?: string) {
-    await sendMail(email, `${docType} Expiring Soon`,
+    await sendNotificationMail(email, `${docType} Expiring Soon`,
       buildStatusEmailHtml('Document Expiring', `Hi ${staffName},`, 'pending', 'Action Required',
         [`Your ${docType} expires on ${expiryDate}. Please upload a renewed copy.`],
         recordCta(link, 'Open the document', { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` })));
@@ -500,7 +576,7 @@ export class EmailService {
    * which order won.
    */
   static async sendDocumentExpiredEmail(email: string, staffName: string, docType: string, link?: string) {
-    await sendMail(email, `${docType} Has Expired`,
+    await sendNotificationMail(email, `${docType} Has Expired`,
       buildStatusEmailHtml('Document Expired', `Hi ${staffName},`, 'rejected', 'Expired',
         [`Your ${docType} has expired. Please upload a renewed copy immediately.`],
         recordCta(link, 'Open the document', { label: 'Upload Now', url: `${baseUrl()}/compliance/identity` })));
@@ -508,14 +584,14 @@ export class EmailService {
 
   // ── Training ──
   static async sendTrainingExpiringEmail(email: string, staffName: string, moduleName: string, expiryDate: string, link?: string) {
-    await sendMail(email, `Training Expiring — ${moduleName}`,
+    await sendNotificationMail(email, `Training Expiring — ${moduleName}`,
       buildStatusEmailHtml('Training Expiring', `Hi ${staffName},`, 'pending', 'Action Required',
         [`Your "${moduleName}" training expires on ${expiryDate}.`],
         recordCta(link, 'Open the training record', { label: 'View Training', url: `${baseUrl()}/compliance/training` })));
   }
 
   static async sendTrainingExpiredEmail(email: string, staffName: string, moduleName: string, link?: string) {
-    await sendMail(email, `Training Expired — ${moduleName}`,
+    await sendNotificationMail(email, `Training Expired — ${moduleName}`,
       buildStatusEmailHtml('Training Expired', `Hi ${staffName},`, 'rejected', 'Expired',
         [`Your "${moduleName}" training has expired.`],
         recordCta(link, 'Open the training record', { label: 'View Training', url: `${baseUrl()}/compliance/training` })));
@@ -523,7 +599,7 @@ export class EmailService {
 
   // ── Competency ──
   static async sendCompetencyDueEmail(email: string, staffName: string, templateName: string, dueDate: string, isOverdue: boolean, link?: string) {
-    await sendMail(email, isOverdue ? `Competency Overdue — ${templateName}` : `Competency Due — ${templateName}`,
+    await sendNotificationMail(email, isOverdue ? `Competency Overdue — ${templateName}` : `Competency Due — ${templateName}`,
       buildStatusEmailHtml('Competency', `Hi ${staffName},`, isOverdue ? 'rejected' : 'pending', isOverdue ? 'Overdue' : 'Due Soon',
         [isOverdue ? `Your "${templateName}" assessment is overdue.` : `Your "${templateName}" assessment is due on ${dueDate}.`],
         recordCta(link, 'Open the assessment', { label: 'View', url: `${baseUrl()}/compliance/competency` })));
@@ -531,21 +607,21 @@ export class EmailService {
 
   // ── Overtime ──
   static async sendOvertimeClaimedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
-    await sendMail(email, `Overtime Claim — ${staffName}`,
+    await sendNotificationMail(email, `Overtime Claim — ${staffName}`,
       buildStatusEmailHtml('Overtime', `Overtime claim submitted`, 'pending', 'Pending',
         [`${staffName} claimed overtime at ${locationName} on ${date} (${time}).`],
         recordCta(link, 'Open the overtime claim', { label: 'Review', url: `${baseUrl()}/scheduling/overtime-claims` })));
   }
 
   static async sendOvertimeApprovedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
-    await sendMail(email, 'Overtime Approved',
+    await sendNotificationMail(email, 'Overtime Approved',
       buildStatusEmailHtml('Overtime', `Hi ${staffName},`, 'approved', 'Approved',
         [`Your overtime at ${locationName} on ${date} (${time}) has been approved.`],
         recordCta(link, 'Open the overtime claim', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
   static async sendOvertimeRejectedEmail(email: string, staffName: string, locationName: string, date: string, time: string, link?: string) {
-    await sendMail(email, 'Overtime Rejected',
+    await sendNotificationMail(email, 'Overtime Rejected',
       buildStatusEmailHtml('Overtime', `Hi ${staffName},`, 'rejected', 'Rejected',
         [`Your overtime at ${locationName} on ${date} (${time}) was not approved.`],
         recordCta(link, 'Open the overtime claim', { label: 'Browse Shifts', url: `${baseUrl()}/shift-marketplace` })));
@@ -553,7 +629,7 @@ export class EmailService {
 
   // ── Delegation ──
   static async sendDelegationAssignedEmail(email: string, delegateName: string, primaryName: string, endsAt?: string | null) {
-    await sendMail(email, 'Manager Delegation Assigned',
+    await sendNotificationMail(email, 'Manager Delegation Assigned',
       buildEmailHtml('Delegation', `Hi ${delegateName},`,
         `<p>You have been assigned as a delegate for ${primaryName}.${endsAt ? ` This delegation ends on ${new Date(endsAt).toLocaleDateString()}.` : ''}</p>`,
         { label: 'Open Meticle Care', url: `${baseUrl()}/leave` }));
@@ -561,7 +637,7 @@ export class EmailService {
 
   // ── Homecare ──
   static async sendHomecareVisitReminderEmail(email: string, carerName: string, personName: string, visitLabel: string, startTime: string) {
-    await sendMail(email, `Upcoming homecare visit — ${visitLabel}`,
+    await sendNotificationMail(email, `Upcoming homecare visit — ${visitLabel}`,
       buildEmailHtml('Upcoming Visit', `Hi ${carerName || 'there'},`,
         `<p>Your <strong>${visitLabel}</strong> visit with <strong>${personName}</strong> starts at <strong>${fmtTime(startTime)}</strong>.</p>` +
         `<p>Please allow enough time to travel to the client and use the app to check in when you arrive.</p>`,
@@ -607,12 +683,12 @@ export class EmailService {
   static async sendHomecareDigestEmail(email: string, name: string, digestType: DigestWindow, date: string, summary: any) {
     const heading = DIGEST_HEADINGS[digestType];
     const content = buildDigestEmailContent(name, digestType, date, summary);
-    await sendMail(email, `${heading} — ${date}`, buildEmailHtml('Homecare digest', heading, content, { label: 'Open Homecare', url: `${baseUrl()}/homecare` }), 'notifications');
+    await sendNotificationMail(email, `${heading} — ${date}`, buildEmailHtml('Homecare digest', heading, content, { label: 'Open Homecare', url: `${baseUrl()}/homecare` }), 'notifications');
   }
 
   // ── Homecare exception notifications ──
   static async sendMissedCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, lateReason?: string) {
-    await sendMail(managerEmail, `Missed call — ${personName}`,
+    await sendNotificationMail(managerEmail, `Missed call — ${personName}`,
       buildEmailHtml('Missed Call', `Hi ${managerName || 'Manager'},`,
         `<p>A scheduled <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> was marked as <strong style="color:${EMAIL_TEXT.toneBad}">missed</strong>.</p>` +
         (lateReason ? `<p><strong>Reason:</strong> ${lateReason}</p>` : '') +
@@ -621,7 +697,7 @@ export class EmailService {
   }
 
   static async sendUnassignedCallAlertEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string) {
-    await sendMail(managerEmail, `Unassigned call — ${personName}`,
+    await sendNotificationMail(managerEmail, `Unassigned call — ${personName}`,
       buildEmailHtml('Unassigned Call', `Hi ${managerName || 'Manager'},`,
         `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> has <strong style="color:${EMAIL_TEXT.toneWarn}">no carer assigned</strong>.</p>` +
         `<p>This call will be missed unless a carer is assigned soon. Please assign a carer or cancel the call.</p>`,
@@ -629,7 +705,7 @@ export class EmailService {
   }
 
   static async sendOverdueCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, overdueMinutes: number) {
-    await sendMail(managerEmail, `Overdue call — ${personName}`,
+    await sendNotificationMail(managerEmail, `Overdue call — ${personName}`,
       buildEmailHtml('Overdue Call', `Hi ${managerName || 'Manager'},`,
         `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> is now <strong style="color:${EMAIL_TEXT.toneBad}">${overdueMinutes} minutes overdue</strong>.</p>` +
         `<p>The carer has not checked in or completed this call. Please follow up to ensure the client is safe.</p>`,
@@ -637,14 +713,14 @@ export class EmailService {
   }
 
   static async sendCallCompletedEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string) {
-    await sendMail(managerEmail, `Call completed — ${personName}`,
+    await sendNotificationMail(managerEmail, `Call completed — ${personName}`,
       buildEmailHtml('Call Completed', `Hi ${managerName || 'Manager'},`,
         `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> has been <strong style="color:${EMAIL_TEXT.toneOk}">completed</strong>.</p>`,
         { label: 'View dashboard', url: `${baseUrl()}/dashboard` }), 'notifications');
   }
 
   static async sendDisruptionReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, disruptionType: string, description: string) {
-    await sendMail(managerEmail, `Disruption reported — ${personName}`,
+    await sendNotificationMail(managerEmail, `Disruption reported — ${personName}`,
       buildEmailHtml('Disruption Reported', `Hi ${managerName || 'Manager'},`,
         `<p><strong>${carerName}</strong> has reported a disruption during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
         `<p><strong>Type:</strong> ${disruptionType}</p>` +
@@ -653,7 +729,7 @@ export class EmailService {
   }
 
   static async sendIncidentReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, description: string, link?: string) {
-    await sendMail(managerEmail, `Incident reported — ${personName}`,
+    await sendNotificationMail(managerEmail, `Incident reported — ${personName}`,
       buildEmailHtml('Incident Reported', `Hi ${managerName || 'Manager'},`,
         `<p><strong>${carerName}</strong> has reported an incident during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
         `<p><strong>Description:</strong> ${description}</p>` +
@@ -725,7 +801,7 @@ export class EmailService {
       ? `<p style="margin-top:20px;font-weight:600">Recent incidents</p><ul style="margin:8px 0 0;padding-left:20px;color:${EMAIL_TEXT.paragraph}">${incidents.map((i: any) => `<li><strong>${i.title}</strong> — ${i.severity}</li>`).join('')}</ul>`
       : '';
 
-    await sendMail(staffEmail, `Your shift preview for ${fmtDate(date)}`,
+    await sendNotificationMail(staffEmail, `Your shift preview for ${fmtDate(date)}`,
       buildEmailHtml('Shift Preview', `Hi ${staffName},`,
         `<p>Here are the details for your shift on <strong>${fmtDate(date)}</strong>.</p>
          <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid ${EMAIL_TEXT.line};border-radius:8px;margin-top:12px">
@@ -763,7 +839,7 @@ export class EmailService {
     link: string,
   ) {
     const due = task.dueDate ? ` It is due on ${fmtDate(task.dueDate)}.` : '';
-    await sendMail(email, `New Task — ${task.title}`,
+    await sendNotificationMail(email, `New Task — ${task.title}`,
       buildEmailHtml('New Task', `Hi ${escapeHtml(assigneeName) || 'there'},`,
         `<p><strong>${escapeHtml(task.title)}</strong> has been assigned to you.</p>` +
         `<p><strong>Priority:</strong> ${escapeHtml(task.priority)}.${due}</p>` +
@@ -795,44 +871,52 @@ export class EmailService {
 
   // ── Shift Swaps ──
   static async sendSwapRequestedEmail(email: string, staffName: string, requesterName: string, shiftDate: string, shiftTime: string, link?: string) {
-    await sendMail(email, `Shift Swap Request — ${requesterName}`,
+    await sendNotificationMail(email, `Shift Swap Request — ${requesterName}`,
       buildStatusEmailHtml('Swap Request', `Hi ${staffName},`, 'pending', 'Swap Requested',
         [`${requesterName} wants to swap their shift on ${shiftDate} at ${shiftTime}.`],
         recordCta(link, 'Open the swap request', { label: 'View Swap Request', url: `${baseUrl()}/scheduling` })));
   }
 
   static async sendSwapAcceptedEmail(email: string, staffName: string, accepterName: string, shiftDate: string, shiftTime: string, locationName: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string, link?: string) {
-    await sendMail(email, `Swap Accepted — ${accepterName}`,
+    await sendNotificationMail(email, `Swap Accepted — ${accepterName}`,
       buildStatusEmailHtml('Swap Accepted', `Hi ${staffName},`, 'approved', 'Accepted',
         [`${accepterName} accepted your swap for ${shiftDate} at ${shiftTime} (${locationName}).${toShiftDate ? ` You are now covering ${toShiftDate} at ${toShiftTime}` : ''}`],
         recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
   static async sendSwapDeclinedEmail(email: string, staffName: string, declinerName: string, shiftDate: string, shiftTime: string, link?: string) {
-    await sendMail(email, `Swap Declined — ${declinerName}`,
+    await sendNotificationMail(email, `Swap Declined — ${declinerName}`,
       buildStatusEmailHtml('Swap Declined', `Hi ${staffName},`, 'rejected', 'Declined',
         [`${declinerName} declined your swap for ${shiftDate} at ${shiftTime}.`],
         recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
   static async sendSwapAcceptedToManagerEmail(email: string, managerName: string, accepterName: string, requesterName: string, locationName: string, shiftDate: string, shiftTime: string, toShiftDate?: string, toShiftTime?: string, toShiftLocation?: string, link?: string) {
-    await sendMail(email, `Swap Approved — ${accepterName} ↔ ${requesterName}`,
+    await sendNotificationMail(email, `Swap Approved — ${accepterName} ↔ ${requesterName}`,
       buildStatusEmailHtml('Swap', `Hi ${managerName},`, 'approved', 'Swap Completed',
         [`${accepterName} and ${requesterName} swapped shifts at ${locationName} on ${shiftDate}.`],
         recordCta(link, 'Open the swap request', { label: 'View Rota', url: `${baseUrl()}/scheduling` })));
   }
 
   static async sendUnclaimedShiftReminderEmail(email: string, managerName: string, locationName: string, shiftDate: string, shiftTime: string, shiftType: string, link?: string) {
-    await sendMail(email, `Unclaimed Shift — ${locationName}`,
+    await sendNotificationMail(email, `Unclaimed Shift — ${locationName}`,
       buildEmailHtml('Unclaimed Shift', `Hi ${managerName},`,
         `<p>A ${shiftType} shift at ${locationName} on ${shiftDate} at ${shiftTime} is still unclaimed.</p>`,
         recordCta(link, 'Open the shift', { label: 'View Unclaimed Shifts', url: `${baseUrl()}/scheduling/overtime-claims` })));
   }
 
-  /** Generic send used by chat notifications and other modules */
-  static async sendEmail(to: string, subject: string, htmlBody: string) {
+  /**
+   * Generic send used by chat notifications, compliance alerts and other modules.
+   *
+   * `unsubscribeScope` is opt-in, and it is the caller's judgement: a recurring alert
+   * or digest passes `'notifications'`, while a one-off access link or a reply to
+   * someone's own enquiry passes nothing, because there is nothing to stop. The
+   * default is no link rather than a link, so a caller that has not thought about it
+   * cannot promise a silence it does not implement.
+   */
+  static async sendEmail(to: string, subject: string, htmlBody: string, unsubscribeScope?: EmailUnsubscribeScope) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    await sendMail(to, subject, html, 'notifications');
+    await sendMail(to, subject, html, 'notifications', undefined, undefined, unsubscribeScope);
   }
 
   // ── Family Portal ──
@@ -854,15 +938,27 @@ export class EmailService {
       const reqs = s.incomplete.map(r => `<li>${r.requirement} (${r.category})</li>`).join('');
       return `<tr><td style="padding:6px 12px;font-weight:600">${s.staffName}</td><td style="padding:6px 12px"><ul style="margin:0;padding-left:16px">${reqs}</ul></td></tr>`;
     }).join('');
-    await sendMail(email, `Compliance Digest — ${locationName}`,
+    await sendNotificationMail(email, `Compliance Digest — ${locationName}`,
       buildEmailHtml('Compliance Digest', `Compliance Status for ${locationName}`,
         `<p>Hi ${managerName},</p><p>Here's your daily compliance update:</p><table border="0" cellpadding="0" cellspacing="0">${items}</table>`,
         { label: 'View Compliance', url: `${baseUrl()}/compliance` }));
   }
 
-  static async sendQueued(to: string, subject: string, htmlBody: string, category: SenderCategory = 'notifications', queueOptions?: EmailQueueOptions) {
+  /**
+   * A caller-built message. `unsubscribeScope` is opt-in on purpose: a caller that
+   * composes a statutory or transactional notice passes nothing, and one that
+   * composes a survey invite or an engagement nudge passes `'notifications'`.
+   */
+  static async sendQueued(
+    to: string,
+    subject: string,
+    htmlBody: string,
+    category: SenderCategory = 'notifications',
+    queueOptions?: EmailQueueOptions,
+    unsubscribeScope?: EmailUnsubscribeScope,
+  ) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    return sendMail(to, subject, html, category, undefined, queueOptions);
+    return sendMail(to, subject, html, category, undefined, queueOptions, unsubscribeScope);
   }
 
   static buildTrialFollowupEmailHtml(name: string, orgName: string, message: string) {
@@ -886,7 +982,7 @@ export class EmailService {
     const body = hasCard
       ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. We will charge the payment method on file when the trial ends.</p><p>You can review your plan or update your payment method from Billing.</p>`
       : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. Add a payment method before then if you want uninterrupted access after the trial.</p><p>Your account and data will remain available for reactivation if you decide not to continue.</p>`;
-    await sendMail(email, subject,
+    await sendMarketingMail(email, subject,
       buildEmailHtml('Trial ending', daysLeft === 1 ? 'Your trial ends tomorrow' : `Your trial ends in ${daysLeft} days`, body,
         { label: hasCard ? 'Review billing' : 'Add payment method', url }), 'billing');
   }
@@ -898,7 +994,7 @@ export class EmailService {
     const body = hasCard
       ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. A card is saved, but we could not confirm a paid subscription or successful charge for this organisation.</p><p>Open Billing to confirm the plan and payment method. Your data has been retained while you reactivate service.</p>`
       : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. No payment was taken because no payment method was on file.</p><p>Your data has been retained. Add a payment method if you want to reactivate the service.</p>`;
-    await sendMail(email, subject,
+    await sendMarketingMail(email, subject,
       buildEmailHtml('Trial ended', `Your trial for ${org} has ended`, body,
         { label: hasCard ? 'Open billing' : 'Reactivate service', url }), 'billing');
   }
@@ -909,7 +1005,7 @@ export class EmailService {
     const url = `${baseUrl()}/billing`;
     const plural = daysLeft !== 1;
     const headline = plural ? `Your subscription ends in ${daysLeft} days` : 'Your subscription ends tomorrow';
-    await sendMail(email,
+    await sendMarketingMail(email,
       plural ? `Your Meticle Care subscription ends in ${daysLeft} days` : 'Your Meticle Care subscription ends tomorrow',
       buildEmailHtml('Subscription Renewal', headline,
         `<p>Hi ${name},</p>` +
@@ -922,7 +1018,7 @@ export class EmailService {
   static async sendSubscriptionExpiredEmail(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, 'Your Meticle Care subscription has ended — reactivate to restore access',
+    await sendMarketingMail(email, 'Your Meticle Care subscription has ended — reactivate to restore access',
       buildEmailHtml('Subscription Ended', `Your subscription for ${org} has ended`,
         `<p>Hi ${name},</p>` +
         `<p>Your Meticle Care subscription for <strong>${org}</strong> has ended, so your team's access has been paused.</p>` +
@@ -935,7 +1031,7 @@ export class EmailService {
   static async sendWinbackDay3Email(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `We miss you at Meticle Care — your data is still safe`,
+    await sendMarketingMail(email, `We miss you at Meticle Care — your data is still safe`,
       buildEmailHtml('We miss you', `${org} is still on Meticle Care`,
         `<p>Hi ${name},</p>` +
         `<p>It's been 3 days since your ${org} trial ended. We wanted to let you know that <strong>all your data is still here</strong> — care plans, daily notes, staff records, everything.</p>` +
@@ -947,7 +1043,7 @@ export class EmailService {
   static async sendWinbackDay7Email(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `${org} — your data is waiting for you`,
+    await sendMarketingMail(email, `${org} — your data is waiting for you`,
       buildEmailHtml('Still thinking?', `${org} data is preserved`,
         `<p>Hi ${name},</p>` +
         `<p>A week has passed since your Meticle Care trial ended. We know choosing care management software is a big decision.</p>` +
@@ -963,7 +1059,7 @@ export class EmailService {
   static async sendWinbackDay14Email(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `Important: ${org} data retention notice`,
+    await sendMarketingMail(email, `Important: ${org} data retention notice`,
       buildEmailHtml('Data Retention', `Your ${org} data will be removed in 76 days`,
         `<p>Hi ${name},</p>` +
         `<p>It's been two weeks since your Meticle Care subscription for <strong>${org}</strong> ended.</p>` +
@@ -975,7 +1071,7 @@ export class EmailService {
   static async sendWinbackDay30Email(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `Final notice: ${org} data expires in 60 days`,
+    await sendMarketingMail(email, `Final notice: ${org} data expires in 60 days`,
       buildEmailHtml('Final Notice', `${org} data deletion approaching`,
         `<p>Hi ${name},</p>` +
         `<p>This is a final reminder that <strong>${org}</strong>'s data on Meticle Care will be permanently deleted in approximately <strong>60 days</strong>.</p>` +
@@ -987,7 +1083,7 @@ export class EmailService {
   static async sendWinbackFinalEmail(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `Last chance: ${org} data will be deleted tomorrow`,
+    await sendMarketingMail(email, `Last chance: ${org} data will be deleted tomorrow`,
       buildEmailHtml('Last Chance', `${org} data deletion tomorrow`,
         `<p>Hi ${name},</p>` +
         `<p>This is your final notification. <strong>${org}</strong>'s data on Meticle Care will be <strong>permanently deleted tomorrow</strong>.</p>` +
@@ -1332,7 +1428,7 @@ ${lowStockRows}
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
 
-    await sendMail(email,
+    await sendNotificationMail(email,
       `Daily Shift Audit — ${loc.location_name} — ${dateFormatted}`,
       buildEmailHtml(
         'Daily Shift Audit',
@@ -1438,7 +1534,7 @@ ${lowStockSection}`,
       : item.days_until_expiry != null && item.days_until_expiry <= 7
         ? `<p style="font-size:14px;color:${EMAIL_TEXT.toneWarn}">Expiry warning: current stock expires in ${item.days_until_expiry} day${item.days_until_expiry === 1 ? '' : 's'}. Check it remains usable and follow local medicines procedures.</p>`
         : '';
-    await sendMail(email,
+    await sendNotificationMail(email,
       `Stock Reorder Alert — ${item.medication_name} — ${item.location_name}`,
       buildEmailHtml(
         'Stock Reorder Alert',
@@ -1493,7 +1589,7 @@ ${expiryHtml}
       </tr>`;
     }).join('');
 
-    await sendMail(email,
+    await sendNotificationMail(email,
       `Medication Overdue — ${locationName} — ${items.length} due`,
       buildEmailHtml(
         'Late Medication Alert',

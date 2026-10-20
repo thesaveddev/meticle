@@ -28,7 +28,7 @@
  * application page) carries the restrictions of every declaration, because for an
  * offer the safe reading is the restrictive one.
  *
- * 128 routes, 83 of them authenticated.
+ * 129 routes, 83 of them authenticated.
  */
 
 // The enum itself, not its names as strings: this file is generated from text,
@@ -172,6 +172,7 @@ export const PAGE_ACCESS: Readonly<Record<string, PageAccess>> = {
   '/terms-of-use': { authenticated: false, roles: null, module: null },
   '/training': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], module: 'training' },
   '/unauthorized': { authenticated: true, roles: null, module: null },
+  '/unsubscribe': { authenticated: false, roles: null, module: null },
   '/verify-email': { authenticated: false, roles: null, module: null },
   '/weekly-planner': { authenticated: true, roles: null, module: null },
 }

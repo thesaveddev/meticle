@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import PersonAvatar from '../../components/PersonAvatar'
 import { Card, SectionError, EmptyRow, StatusBadge } from '../../components/ui'
+import { staffRecordPath } from '../../utils/staffRecordLink'
 
 /**
  * Types mirror GET /dashboard/daily-overview. The endpoint aggregates five
@@ -174,6 +175,11 @@ export function AlertsPanel({ widgets, loading, error, onRetry }: {
   widgets?: {
     overdue_medications: number; open_severe_incidents: number; dbs_expiring_soon: number
     training_expiring_soon: number; competency_due: number; staff_below_threshold: number; pending_leave_requests: number
+    /** The staff behind the expiring checks, earliest first — what makes the reminder openable. */
+    dbs_expiring_staff?: Array<{
+      document_id: string; staff_user_id: string; staff_name: string; document_type: string
+      expires_on: string; days_until: number
+    }>
   } | null
   loading: boolean
   error: boolean
@@ -187,7 +193,34 @@ export function AlertsPanel({ widgets, loading, error, onRetry }: {
     if (widgets.overdue_medications > 0) list.push({ tone: 'warning', title: `${widgets.overdue_medications} medication${widgets.overdue_medications === 1 ? '' : 's'} overdue`, detail: 'Doses past their scheduled time', path: '/emedication' })
     if (widgets.staff_below_threshold > 0) list.push({ tone: 'warning', title: `${widgets.staff_below_threshold} staff below compliance threshold`, detail: 'Review staff records', path: '/staff' })
     if (widgets.competency_due > 0) list.push({ tone: 'info', title: `${widgets.competency_due} competency assessment${widgets.competency_due === 1 ? '' : 's'} due`, detail: 'Assessments awaiting review', path: '/compliance/competency' })
-    if (widgets.dbs_expiring_soon > 0) list.push({ tone: 'info', title: `${widgets.dbs_expiring_soon} background check${widgets.dbs_expiring_soon === 1 ? '' : 's'} expiring`, detail: 'Renew within 30 days', path: '/compliance/identity' })
+    // A reminder about a person's check is about that person's record, so it opens the
+    // staff record — the same target the document-expiry email in the inbox uses — and
+    // not the compliance page, where a manager would have to find them again. With
+    // several checks expiring the earliest one is named, because "3 checks expiring"
+    // still has a first thing to do. The directory is the fallback for a count whose
+    // staff could not be read, so nothing here routes to a page that cannot show it.
+    if (widgets.dbs_expiring_soon > 0) {
+      const expiringChecks = widgets.dbs_expiring_staff ?? []
+      const earliest = expiringChecks[0]
+      const count = widgets.dbs_expiring_soon
+      if (earliest) {
+        const dayPhrase = earliest.days_until <= 0
+          ? 'expires today'
+          : `expires in ${earliest.days_until} day${earliest.days_until === 1 ? '' : 's'}`
+        list.push({
+          tone: 'info',
+          title: count === 1
+            ? `${earliest.staff_name}'s ${earliest.document_type} ${dayPhrase}`
+            : `${count} background checks expiring`,
+          detail: count === 1
+            ? 'Open the record to check it or renew it'
+            : `Earliest: ${earliest.staff_name}, ${dayPhrase}`,
+          path: staffRecordPath(earliest.staff_user_id, earliest.document_id),
+        })
+      } else {
+        list.push({ tone: 'info', title: `${count} background check${count === 1 ? '' : 's'} expiring`, detail: 'Renew within 30 days', path: '/staff' })
+      }
+    }
     if (widgets.training_expiring_soon > 0) list.push({ tone: 'info', title: `${widgets.training_expiring_soon} training record${widgets.training_expiring_soon === 1 ? '' : 's'} expiring`, detail: 'Refresh within 30 days', path: '/compliance/training' })
     if (widgets.pending_leave_requests > 0) list.push({ tone: 'info', title: `${widgets.pending_leave_requests} leave request${widgets.pending_leave_requests === 1 ? '' : 's'} pending`, detail: 'Awaiting your review', path: '/leave' })
     return list.slice(0, 5)

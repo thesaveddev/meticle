@@ -1211,6 +1211,7 @@ export default function RotaPlannerPage() {
         canEdit={canEdit}
         isReadOnly={isReadOnly}
         canClaim={canClaim}
+        isManager={isAdminOrManager}
         currentStaffId={currentStaffId}
         canEditLocation={canEditLocation}
         assignedStaffIdsByDate={assignedStaffIdsByDate}
@@ -1221,6 +1222,7 @@ export default function RotaPlannerPage() {
         onToggleCoverage={handleToggleCoverage}
         onClaimShift={handleClaimShift}
         onUnassign={handleUnassign}
+        onAttendanceRecorded={fetchData}
       />
 
       <Dialog open={shiftDialog} onClose={() => { if (!shiftSaving) setShiftDialog(false) }} maxWidth="sm" fullWidth>

@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer'
 import { getDb } from '../db/database'
 import { getTemplate, renderTemplate } from './templates'
+import {
+  appendUnsubscribeFooter,
+  isUnsubscribed,
+  unsubscribeHeaders,
+  unsubscribeUrl,
+} from './unsubscribe'
 
 let transporter: nodemailer.Transporter | null = null
 
@@ -22,6 +28,11 @@ export async function sendEmail(leadId: number, templateName: string, extraVars:
   const db = getDb()
   const lead: any = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId)
   if (!lead || !lead.contact_email) return false
+
+  // Somebody who has opted out is not a target that failed to send — they are out,
+  // and every campaign has to agree on that. Checked here as well as in the
+  // campaign query so a one-off send from the dashboard cannot forget it.
+  if (lead.unsubscribed_at || isUnsubscribed(leadId)) return false
 
   const trackingBase = process.env.TRACKING_BASE_URL || 'http://localhost:3005'
   const vars: Record<string, string> = {
@@ -54,13 +65,20 @@ export async function sendEmail(leadId: number, templateName: string, extraVars:
 
   const { subject, html } = renderTemplate(templateName, vars)
 
+  // The way out goes on centrally, and its link is the signed one for this lead:
+  // the footer a person clicks and the URL a mail client POSTs to are the same
+  // address, so neither can work while the other is broken.
+  const optOutUrl = unsubscribeUrl(leadId)
+  const bodyHtml = appendUnsubscribeFooter(html, optOutUrl, lead.provider_name)
+
   try {
     const transport = getTransporter()
     await transport.sendMail({
       from: process.env.SMTP_FROM || 'hello@meticlecare.com',
       to: lead.contact_email,
       subject,
-      html,
+      html: bodyHtml,
+      headers: unsubscribeHeaders(optOutUrl),
     })
 
     // Log the email send
@@ -81,7 +99,7 @@ export async function sendCampaign(stage: string = 'new', templateName: string =
   const db = getDb()
   const leads = db.prepare(`
     SELECT id FROM leads
-    WHERE status = ? AND contact_email IS NOT NULL AND contact_email != ''
+    WHERE status = ? AND contact_email IS NOT NULL AND contact_email != '' AND unsubscribed_at IS NULL
     LIMIT ?
   `).all(stage, limit) as { id: number }[]
 

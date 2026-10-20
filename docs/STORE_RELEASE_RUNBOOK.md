@@ -50,6 +50,8 @@ you must ask Google to reset the upload key. So decide now, and if Play Console
 already has an app for `com.meticlecare.mobile`, check which key it expects
 before the first upload.
 
+**Superseded on 2 October 2026:** that first upload has happened — a draft went to the internal track (`docs/STORE_LAUNCH_CHECKLIST.md`) — so the upload key is already fixed to whatever EAS signed that bundle with. The paragraph above is kept because it explains *why* the key is now unchangeable, but there is no longer a decision to make before an upload, and the bring-your-own-key path below is closed with it: signing a future bundle with a different keystore would be rejected as a signature mismatch, and the only way to change it is to ask Google to reset the upload key. What remains is the backup: see §4.
+
 If you want to bring your own upload key instead:
 
 ```bash
@@ -195,14 +197,39 @@ Two things about this sequence that are not obvious:
   menu" intro** before capturing, or it sits across the bottom of all seven
   images. It only reappears after a data clear.
 
-#### Known: the run is not yet reproducible on a slow machine
+#### Measured: the captured set is one frame, seven times
 
-A full seven-shot set has been captured and passed Play's format checks, but
-the images are not yet uploadable. On this machine the app takes long enough to
-boot that the first three shots photograph one unrendered frame — the three
-files come out byte-identical — and the fourth lands on a blank screen. The
-format checker passes regardless, because a flat grey frame is a valid PNG at
-1080x1920.
+An earlier version of this paragraph said the first three shots photograph one
+unrendered frame and "the fourth lands on a blank screen". **That was wrong in
+two directions and it was the more dangerous kind of wrong**, because it
+described a set with three bad files and four usable ones. There are zero usable
+ones.
+
+Measured on the artefacts in `store-assets/screenshots/android/`: all seven
+files are **byte-identical** — `sha256 427eeaa5…`, 143,366 bytes each,
+1080×1920 — and the frame they share is a fully rendered **Today** screen with
+fixture data ("Good morning, Amara", 25%, three actions waiting to sync, an
+07:30 call). The tour rendered; the capture photographed the same moment seven
+times.
+
+Play's format rules pass on every file — which is why the format check alone
+could never have caught this. What catches it is the duplicate-content check:
+
+```
+FAIL  1 group(s) of identical screenshot(s): 00-login.png = 01-today.png = … = 06-offline-sync.png.
+      The app did not move between these shots, so the set does not show the app.
+
+      NOT UPLOADABLE
+```
+
+`npm run store:verify-screenshots -- --platform android` exits **1** on this set.
+The gate that does this was added on 4 October, one day *after* this capture.
+
+**Re-checked against the files on disk on 16 October 2026:** `sha256sum` over the
+seven PNGs returns one digest (`427eeaa5…`) seven times, and the gate still exits
+**1** with the same message. This is the one P0 in the store path that needs no
+console access and no Play credentials to close — a capture run and then opening
+the seven images.
 
 **So a green format check is not evidence the screenshots are good.** Open them.
 The most likely fixes are to raise the per-shot dwell times in
@@ -315,10 +342,81 @@ composited image:
   production host's location has not been confirmed. The claim is only true once
   the UK VPS is live — check it before the app store submission goes in.
 
-## 4. Not yet verified by anything
+## 4. What has and has not been verified by anything
 
-No build has been produced, no device has run this, and nothing has been
-uploaded. Everything in the store configuration is verified statically
-(`npx expo config --type public`, `npx expo-doctor@latest` at 21/21) and by
-`tsc` plus the test suites. The first real `eas build` is still the thing that
-will surface whatever is left.
+This section said "no build has been produced, no device has run this, and
+nothing has been uploaded". None of the three is true now: a store build was
+produced on 26 September, the app has run on an emulator in capture mode, and a
+draft went to Play's internal track on 2 October 2026. Corrected below against
+the artefacts on disk and the Play API, because a reader who trusted the old
+paragraph would think there was nothing to look at.
+
+**Built and uploaded, confirmed through the Play API** rather than by EAS's own
+success message (`docs/STORE_LAUNCH_CHECKLIST.md`):
+
+```
+tracks/internal -> { "name": "0.1.0", "versionCodes": ["1"], "status": "draft" }
+bundles          -> versionCode 1, sha256 40e9eb8e0f98538a71e20e68649c4c4157e493b58e103c7a99b68deb477d9e4c
+```
+
+That is build `2668b5cd-5e38-47cb-aa0f-f551ea9413db`; the sha256 was checked
+against the downloaded AAB byte for byte. Its manifest was decoded **before**
+submission: `SYSTEM_ALERT_WINDOW`, `RECORD_AUDIO`, the external-storage
+permissions, `MANAGE_EXTERNAL_STORAGE` and `QUERY_ALL_PACKAGES` are all absent.
+`alpha`, `beta` and `production` remain empty, so the draft is not reviewable and
+not installable, and `versionCode 1` is now spent.
+
+**Verified statically, with no device and no credentials**: `npx expo config
+--type public` resolves clean, `npx expo-doctor@latest` is 21/21, `tsc` and the
+test suites are green, and `npm run verify:no-fixtures` bundles the app and fails
+if any capture fixture returns.
+
+**Run on a device exactly once, and never by a person.** §2's capture run
+installed the 3 October development-profile APK over `adb`, booted the app in
+capture mode and photographed seven screens. That is a real boot with real
+rendering, and it is the only time this app has run anywhere. Nobody has used
+it: no manual walk, no tap-through by a person, no physical phone, and iOS has
+never run at all. That gap between "it boots" and "it works" is still the
+largest one here.
+
+**Two preview APKs exist on this machine**, in `store-assets/apk/`:
+`meticle-care-preview-build1.apk` (26 September) and
+`meticle-care-preview-20261003.apk` (3 October, `development` profile — the one
+the capture run installed). Neither is a store artefact. The 26 September build
+survives as an AAB as well (`0759fd18-27de-40e7-9be4-62b4f84ce5c3`, `production`
+profile), whose manifest was decoded on 2 October: it carries
+`android.permission.SYSTEM_ALERT_WINDOW`, the permission
+`android.blockedPermissions` now removes, so it predates the `app.json` fix.
+**Do not submit either artefact** — Play requires strictly increasing
+`versionCode`, and uploading that one would burn `1` on a bundle that
+contradicts our own policy declaration (`docs/STORE_LAUNCH_CHECKLIST.md`).
+
+**Still verified by nothing at all:**
+
+- **The store screenshots.** All seven are one rendered frame — §2 — and
+  `npm run store:verify-screenshots -- --platform android` exits **1** on the
+  set. A green format check passes every file, so the fix is one capture run on
+  a machine with headroom **and then opening the images**.
+- **iOS.** No build, no capture, no App Privacy label.
+- **The Data safety form.** `store/data-safety/template.csv` is still absent, so
+  the form cannot be generated (`npm run store:validate` says so). One download
+  from Play Console unblocks it.
+- **The content rating questionnaire**, the store categories and the contact
+  details: console-only clicks nobody has done.
+
+**The upload key is now fixed, and unbacked-up.** The 2 October draft was the
+first bundle Play received for `com.meticlecare.mobile`, so whatever EAS signed
+it with is now the upload key and cannot be chosen again — §1's "decide now"
+decision has already been made by that upload. What is missing is the copy: EAS
+holds the keystore ("Build Credentials 1LdWOI-6iH"), and losing access to the
+Expo account means losing the only key Play will accept a future upload from.
+
+**Anything that exists only on this machine.** `store-assets/` is gitignored,
+so both preview APKs (86 MB each), the 512×512 Play icon, the feature graphic,
+the Google Play badge and the seven screenshots exist on one developer's machine
+and nowhere else — not in the repository, not in CI, and not in any backup the
+repository can see. The two brand assets are at least reproducible:
+`brand/build-from-supplied.mjs` regenerates them from the supplied brand kit and
+`npm run brand:check` validates the output. The APKs and screenshots are not
+reproducible from this checkout, because the emulator state and the capture run
+that produced them are not recorded anywhere.

@@ -194,7 +194,7 @@ export default function HomecareCompliancePage() {
   if (d.incidents.open > 0) actions.push({ area: 'Incidents', action: 'Resolve open incidents', priority: 'medium', detail: `${d.incidents.open} incidents still open or investigating`, path: '/incidents' })
   if (d.missedVisits7d > 0) actions.push({ area: 'Visits', action: 'Follow up missed visits', priority: 'medium', detail: `${d.missedVisits7d} visits missed in the last 7 days`, path: '/homecare' })
   if (d.staffTraining.rate < 90) actions.push({ area: 'Training', action: 'Complete outstanding training', priority: 'medium', detail: `${d.staffTraining.nonCompliant} staff need training completion`, path: '/compliance/training' })
-  if (d.dbs.rate < 100) actions.push({ area: 'DBS', action: 'Renew DBS checks', priority: 'high', detail: `${d.dbs.total - d.dbs.compliant} staff without valid DBS`, path: '/compliance/identity' })
+  if (d.dbs.rate < 100) actions.push({ area: 'DBS', action: 'Chase DBS renewals', priority: 'high', detail: `${d.dbs.total - d.dbs.compliant} staff without valid DBS`, path: '/compliance/identity' })
   if (d.visitCompletion.rate < 95) actions.push({ area: 'Visits', action: 'Improve visit completion rate', priority: 'low', detail: `Current completion rate is ${d.visitCompletion.rate}%`, path: '/homecare' })
   if (d.supervision.total > 0 && d.supervision.rate < 100) actions.push({ area: 'Supervision', action: 'Record outstanding supervisions', priority: 'medium', detail: `${d.supervision.total - d.supervision.done} staff have no supervision recorded in the last 6 months`, path: '/compliance/supervisions' })
 

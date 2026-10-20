@@ -273,7 +273,8 @@ export class ReviewNotificationService {
         </p>
       </div>`;
     try {
-      await EmailService.sendEmail(to, subject, html);
+      // A recurring operational notice, so it is one a manager may stop receiving.
+      await EmailService.sendEmail(to, subject, html, 'notifications');
     } catch { /* email non-critical */ }
   }
 }

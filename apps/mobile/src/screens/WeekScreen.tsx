@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonCalendar } from '../components/Skeleton'
-import type { AuthSession, HomecareVisit } from '../types'
-import { getMyVisits } from '../services/api'
+import type { AuthSession, HomecareVisit, MyShift } from '../types'
+import { getMyShifts, getMyVisits } from '../services/api'
 import { IconCheck, IconForward, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { hapticLight, hapticMedium } from '../services/haptics'
@@ -15,10 +16,63 @@ interface Props {
   session: AuthSession
   onVisit: (visit: HomecareVisit) => void
   onSwap: () => void
+  /** Supported living hands a shift over at the end; domiciliary completes calls. */
+  isSupportedLiving?: boolean
+  /** Bumped when a shift is clocked on or off, or its handover is written, elsewhere. */
+  refreshKey?: number
+  /** Opens the shift's handover record. */
+  onHandover?: (shift: MyShift) => void
+  /**
+   * Opens the shift itself: clock on/off, who is on duty, and the way to the handover.
+   * The two destinations are separate controls on the card, because a tap meant for the
+   * handover must not clock somebody on and a tap meant to clock off must not open a
+   * record they then have to find their way back from.
+   */
+  onShift?: (shift: MyShift) => void
+}
+
+/**
+ * What a shift's row says about its handover, in the words a carer would use.
+ *
+ * "Awaiting read" is deliberately not "unacknowledged": the handover exists, and
+ * the thing outstanding is somebody else reading it — which is the difference
+ * between work left to do and evidence that the transfer happened.
+ */
+function handoverState(shift: MyShift): { label: string; tone: 'danger' | 'warning' | 'success' | 'muted' } {
+  if (!shift.handover) {
+    return shift.handover_due
+      ? { label: 'Handover due', tone: 'danger' }
+      : { label: 'No handover yet', tone: 'muted' }
+  }
+  if (shift.handover.viewer_acknowledged) return { label: `Read by you · v${shift.handover.version}`, tone: 'success' }
+  if (shift.handover.acknowledgement_count > 0) {
+    return { label: `Read by ${shift.handover.acknowledgement_count} · v${shift.handover.version}`, tone: 'success' }
+  }
+  return { label: `Awaiting read · v${shift.handover.version}`, tone: 'warning' }
 }
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+/**
+ * Where this carer is in the shift, in the words they would use.
+ *
+ * The schedule is where a shift is entered, so it has to say which one is open. The
+ * count rule is the API's: clock-ons and clock-offs are compared, not ordered, so a
+ * replay from a bad connection or a step out mid-shift still reads correctly.
+ */
+function clockState(shift: MyShift): { label: string; tone: 'success' | 'muted' | 'primary' } {
+  if (shift.on_duty) {
+    return {
+      label: shift.clocked_on_at ? `On duty since ${time(shift.clocked_on_at)} — clock off` : 'On duty — clock off',
+      tone: 'success',
+    }
+  }
+  if (shift.clocked_off_at) {
+    return { label: `Clocked off ${time(shift.clocked_off_at)} — clock on again`, tone: 'muted' }
+  }
+  return { label: 'Not clocked on — clock on', tone: 'primary' }
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -54,7 +108,7 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
   )
 }
 
-export function WeekScreen({ session, onVisit, onSwap }: Props) {
+export function WeekScreen({ session, onVisit, onSwap, isSupportedLiving = false, refreshKey = 0, onHandover, onShift }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [visits, setVisits] = useState<HomecareVisit[]>([])
@@ -62,6 +116,7 @@ export function WeekScreen({ session, onVisit, onSwap }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date>(new Date())
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [myShifts, setMyShifts] = useState<MyShift[]>([])
   const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   const now = new Date()
@@ -80,6 +135,18 @@ export function WeekScreen({ session, onVisit, onSwap }: Props) {
   }, [session.accessToken, viewMonth, viewYear])
 
   useEffect(() => { loadMonth() }, [loadMonth])
+
+  // The carer's own shifts, for the handover state of each. Only supported living
+  // has these: a domiciliary rota is calls, and asking for shifts there would show
+  // an empty section on every screen.
+  useEffect(() => {
+    if (!isSupportedLiving) { setMyShifts([]); return }
+    let mounted = true
+    getMyShifts(session.accessToken)
+      .then(rows => { if (mounted) setMyShifts(Array.isArray(rows) ? rows : []) })
+      .catch(() => { /* the handover list is additive; the calendar still works */ })
+    return () => { mounted = false }
+  }, [session.accessToken, isSupportedLiving, refreshKey])
 
   // Calendar grid
   const calendarDays = useMemo(() => {
@@ -190,6 +257,82 @@ export function WeekScreen({ session, onVisit, onSwap }: Props) {
           </View>
           <Text style={[s.swapArrow, { color: c.primary }]}>→</Text>
         </Pressable>
+
+        {/* Shift handovers — supported living only. */}
+        {isSupportedLiving && onHandover && (() => {
+          const dayShifts = myShifts.filter(row => isSameDay(new Date(row.start_time), selectedDay))
+          if (dayShifts.length === 0) return null
+          return (
+            <View style={s.daySection}>
+              <Text style={[s.daySectionLabel, { color: c.subtle }]}>Shift handovers</Text>
+              {dayShifts.map(shift => {
+                const state = handoverState(shift)
+                const toneColor = state.tone === 'danger' ? c.danger
+                  : state.tone === 'warning' ? c.warning
+                  : state.tone === 'success' ? c.successDeep
+                  : c.muted
+                const toneBg = state.tone === 'danger' ? c.dangerSurface
+                  : state.tone === 'warning' ? c.warningSurface
+                  : state.tone === 'success' ? c.successSurface
+                  : c.surfaceAlt
+                const attendance = clockState(shift)
+                const attendanceColor = attendance.tone === 'success' ? c.successDeep
+                  : attendance.tone === 'muted' ? c.muted
+                  : c.primary
+                return (
+                  <View
+                    key={shift.id}
+                    style={[s.shiftCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}
+                  >
+                    <Pressable
+                      onPress={() => { hapticLight(); onHandover(shift) }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${shift.location_name} ${shift.shift_type} shift, ${state.label}. Open the handover`}
+                      style={({ pressed }) => [s.shiftMain, pressed && { opacity: 0.85 }]}
+                    >
+                      <View style={s.visitTimeCol}>
+                        <Text style={[s.visitTime, { color: c.primary }]}>{time(shift.start_time)}</Text>
+                        <View style={[s.visitTimeDash, { backgroundColor: c.border }]} />
+                        <Text style={[s.visitTimeEnd, { color: c.muted }]}>{time(shift.end_time)}</Text>
+                      </View>
+                      <View style={s.visitInfo}>
+                        <Text style={[s.visitLabel, { color: c.ink }]} numberOfLines={1}>{shift.location_name}</Text>
+                        <Text style={[s.visitPerson, { color: c.muted }]} numberOfLines={1}>
+                          {shift.shift_type.replace(/_/g, ' ').replace(/^\w/, letter => letter.toUpperCase())} shift
+                        </Text>
+                      </View>
+                      <View style={[s.statusPill, { backgroundColor: toneBg }]}>
+                        <Text style={[s.statusPillText, { color: toneColor }]}>{state.label}</Text>
+                      </View>
+                    </Pressable>
+
+                    {onShift ? (
+                      <Pressable
+                        onPress={() => { hapticLight(); onShift(shift) }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${shift.location_name} shift attendance, ${attendance.label.replace(' — ', ', ')}`}
+                        testID={`shift-attendance-${shift.id}`}
+                        style={({ pressed }) => [
+                          s.shiftClock,
+                          { borderTopColor: c.borderLight, backgroundColor: attendance.tone === 'success' ? c.successSurface : 'transparent' },
+                          pressed && { opacity: 0.7 },
+                        ]}
+                      >
+                        <Ionicons
+                          name={shift.on_duty ? 'log-out-outline' : 'log-in-outline'}
+                          size={14}
+                          color={attendanceColor}
+                        />
+                        <Text style={[s.shiftClockText, { color: attendanceColor }]} numberOfLines={1}>{attendance.label}</Text>
+                        <Ionicons name="chevron-forward" size={13} color={c.subtle} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                )
+              })}
+            </View>
+          )
+        })()}
 
         {/* Day visits */}
         <View style={s.daySection}>
@@ -349,4 +492,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center',
   },
   statusDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 4 },
+
+  /* Shift handovers (supported living) */
+  shiftCard: {
+    borderRadius: radii.lg, borderWidth: 1, marginBottom: spacing.sm, overflow: 'hidden',
+    ...elevation.sm,
+  },
+  shiftMain: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
+  shiftClock: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1,
+  },
+  shiftClockText: { flex: 1, fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, maxWidth: 132 },
+  statusPillText: { fontFamily: FONT, fontSize: 10, fontWeight: '700' },
 })

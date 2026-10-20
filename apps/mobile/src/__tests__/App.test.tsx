@@ -9,6 +9,7 @@ import type { AuthSession, MobileUser } from '../types'
 import * as storage from '../services/storage'
 import * as api from '../services/api'
 import * as visitQueue from '../services/visitQueue'
+import { getLaunchNotification } from '../services/notifications'
 import { resetScreenProps, screenProps } from './screenStub'
 
 /**
@@ -50,6 +51,9 @@ jest.mock('../screens/SettingsScreen', () => ({ SettingsScreen: require('./scree
 jest.mock('../screens/ClientListScreen', () => ({ ClientListScreen: require('./screenStub').stub('clientList') }))
 jest.mock('../screens/AllVisitsScreen', () => ({ AllVisitsScreen: require('./screenStub').stub('allVisits') }))
 jest.mock('../screens/NotificationsScreen', () => ({ NotificationsScreen: require('./screenStub').stub('notifications') }))
+jest.mock('../screens/HandoverScreen', () => ({ HandoverScreen: require('./screenStub').stub('handover') }))
+jest.mock('../screens/ShiftClockScreen', () => ({ ShiftClockScreen: require('./screenStub').stub('clock') }))
+jest.mock('../screens/RoomChecksScreen', () => ({ RoomChecksScreen: require('./screenStub').stub('roomChecks') }))
 jest.mock('../screens/VisitScreen', () => ({ VisitScreen: require('./screenStub').stub('visit') }))
 jest.mock('../screens/ClientDetailScreen', () => ({ ClientDetailScreen: require('./screenStub').stub('clientDetail') }))
 jest.mock('../screens/BodyMapScreen', () => ({ BodyMapScreen: require('./screenStub').stub('bodyMap') }))
@@ -83,6 +87,9 @@ jest.mock('../services/notifications', () => ({
   registerForPushNotifications: jest.fn(async () => null),
   addNotificationListeners: jest.fn(),
   removeNotificationListeners: jest.fn(),
+  // The notification that launched the app. Null by default: a normal cold start is
+  // not a notification tap, and the effect must do nothing in that case.
+  getLaunchNotification: jest.fn(async () => null),
 }))
 jest.mock('../services/visitQueue', () => ({
   getQueue: jest.fn(async () => []),
@@ -100,6 +107,7 @@ const mockGetUnread = api.getUnreadNotificationCount as jest.MockedFunction<type
 const mockGetChatUnread = api.getChatUnread as jest.MockedFunction<typeof api.getChatUnread>
 const mockGetManagerDashboard = api.getManagerDashboard as jest.MockedFunction<typeof api.getManagerDashboard>
 const mockGetQueue = visitQueue.getQueue as jest.MockedFunction<typeof visitQueue.getQueue>
+const mockLaunchNotification = getLaunchNotification as jest.MockedFunction<typeof getLaunchNotification>
 
 const signInAs = (role: MobileUser['role']): AuthSession => ({
   accessToken: 'token-1',
@@ -107,14 +115,22 @@ const signInAs = (role: MobileUser['role']): AuthSession => ({
   user: { id: 'user-1', email: 'me@example.com', role, first_name: 'Test', last_name: 'Carer' },
 })
 
-/** Boot the app into a signed-in session and wait for the tab bar to appear. */
-async function mountApp(role: MobileUser['role'] = 'CARE_WORKER') {
+/**
+ * Boot the app into a signed-in session and wait for the tab bar to appear.
+ *
+ * `awaitTabs: false` is for a cold start that lands somewhere *instead of* the tabs —
+ * a notification that opened a pushed screen. Waiting for a tab bar that the tap has
+ * deliberately replaced would never succeed.
+ */
+async function mountApp(role: MobileUser['role'] = 'CARE_WORKER', options: { awaitTabs?: boolean } = {}) {
   const session = signInAs(role)
   mockReadSession.mockResolvedValue(session)
   mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: null } as any)
 
   const screen = render(<App />)
-  await waitFor(() => expect(screen.queryAllByRole('tab').length).toBeGreaterThan(0))
+  if (options.awaitTabs !== false) {
+    await waitFor(() => expect(screen.queryAllByRole('tab').length).toBeGreaterThan(0))
+  }
   return { screen, session }
 }
 
@@ -147,6 +163,7 @@ beforeEach(() => {
   mockGetQueue.mockResolvedValue([])
   mockGetUnread.mockResolvedValue(0)
   mockGetChatUnread.mockResolvedValue({})
+  mockLaunchNotification.mockResolvedValue(null)
 })
 
 describe('App tab bar per role', () => {
@@ -308,6 +325,76 @@ describe('App badges and back stack', () => {
 
     expect(screen.queryByText('screen:notifications')).toBeNull()
     expect(screen.getByText('screen:today')).toBeTruthy()
+  })
+})
+
+/**
+ * A carer who taps a notification — or opens the app from one after it has been
+ * killed — must land on the thing it was about. Until this existed, a cold start
+ * from any notification the app did not already know was ignored entirely, and the
+ * supported-living events (a handover nobody wrote, a room nobody checked) are
+ * exactly the ones that arrive that way.
+ */
+describe('App notification cold start', () => {
+  it('opens the screen a record the phone cannot show lives on', async () => {
+    // A compliance notification: the phone has no compliance screen, so the message
+    // itself is the destination rather than a tap that does nothing.
+    mockLaunchNotification.mockResolvedValue({ type: 'compliance', link: '/compliance' } as any)
+
+    const { screen } = await mountApp('CARE_WORKER', { awaitTabs: false })
+
+    expect(await screen.findByText('screen:notifications')).toBeTruthy()
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
+  })
+
+  it('opens the room-check board from an overdue nudge', async () => {
+    // The sweep's link names a room the worker can walk to, and the phone now has the
+    // board that clears it — so the nudge opens the record, not a message about it.
+    mockLaunchNotification.mockResolvedValue({ type: 'compliance', link: '/room-checks' } as any)
+
+    const { screen } = await mountApp('CARE_WORKER', { awaitTabs: false })
+
+    expect(await screen.findByText('screen:roomChecks')).toBeTruthy()
+  })
+
+  it('opens the tab a shift link with no shift id is about', async () => {
+    // The rota link without a shift is the week view. A malformed id lands here too,
+    // rather than on a handover screen that cannot load.
+    mockLaunchNotification.mockResolvedValue({
+      type: 'shift',
+      link: '/scheduling?week=2026-10-16',
+    } as any)
+
+    const { screen } = await mountApp('CARE_WORKER')
+
+    expect(await screen.findByText('screen:week')).toBeTruthy()
+    // A tab, not a pushed screen: the tab bar stays available.
+    expect(tabNamed(screen, 'Schedule').props.accessibilityState).toEqual({ selected: true })
+  })
+
+  it('opens the shift handover a handover-due notification names', async () => {
+    // The supported-living nudge carries the shift id, and the phone now has the
+    // handover screen for exactly that record — so the tap is not a detour through
+    // the week view to find the shift again.
+    const shiftId = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+    mockLaunchNotification.mockResolvedValue({
+      type: 'shift',
+      link: `/scheduling?week=2026-10-16&shift=${shiftId}`,
+    } as any)
+
+    const { screen } = await mountApp('CARE_WORKER', { awaitTabs: false })
+
+    expect(await screen.findByText('screen:handover')).toBeTruthy()
+    expect(screenProps.handover.shiftId).toBe(shiftId)
+    // Pushed over the tabs, and the back stack can return to them.
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
+  })
+
+  it('leaves a normal cold start on the tabs', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+
+    expect(screen.getByText('screen:today')).toBeTruthy()
+    expect(screen.queryByText('screen:notifications')).toBeNull()
   })
 })
 

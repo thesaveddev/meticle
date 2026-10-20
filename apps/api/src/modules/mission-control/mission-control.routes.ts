@@ -14,6 +14,10 @@ const writeRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER];
 
 router.get('/summary', requireSupportedLivingOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getSummary));
 router.get('/homecare-summary', requireDomiciliaryOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getHomecareSummary));
+// A shift's handover is the supported-living responsibility transfer; there is no
+// equivalent artefact in a domiciliary visit, so this is gated to the service model
+// the view belongs to rather than returning an empty list everywhere.
+router.get('/handover-gaps', requireSupportedLivingOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getHandoverGaps));
 router.get('/alerts', requireSupportedLivingOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getAlerts));
 router.get('/alerts/history', requireSupportedLivingOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getAlertHistory));
 router.get('/trends', requireSupportedLivingOnly, requireRole(...mcRoles), asyncHandler(MissionControlController.getTrends));

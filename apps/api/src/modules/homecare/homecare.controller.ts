@@ -1166,7 +1166,10 @@ export class HomecareController {
               <p>A care visit for <strong>${personName}</strong>${visitDate ? ` on ${visitDate}` : ''} has been completed by ${carerName}.</p>
               <p>We would love to hear your feedback. It only takes a minute and helps us improve the care we provide.</p>
               <p><a href="${feedbackUrl}" style="display:inline-block;padding:12px 28px;background:#00C9A7;color:#0B1426;font-weight:700;text-decoration:none;border-radius:8px;font-size:15px">Share your feedback →</a></p>
-              <p style="color:#94A3B8;font-size:12px;margin-top:24px">This link expires in 7 days. Your feedback is confidential and helps us maintain high standards of care.</p>`
+              <p style="color:#94A3B8;font-size:12px;margin-top:24px">This link expires in 7 days. Your feedback is confidential and helps us maintain high standards of care.</p>`,
+              // A relative asked for their opinion did not sign up for a mailing
+              // list: this is the clearest case for a way out.
+              'notifications',
             ).catch(() => {});
           }
         }

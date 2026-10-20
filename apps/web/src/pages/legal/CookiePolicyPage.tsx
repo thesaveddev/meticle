@@ -45,12 +45,14 @@ export default function CookiePolicyPage() {
           only over HTTPS) and <strong>SameSite=Lax</strong> (not sent on requests started by another site). Lax
           SameSite is what protects the session from cross-site request forgery: an attacker's page cannot make your
           browser send these cookies. We do not issue a separate CSRF token cookie, because there is no CSRF token to
-          issue — API requests are authenticated with a bearer token that a cross-site form cannot set.
+          issue — the browser session is authenticated by these two SameSite cookies, and the API's other credential,
+          the bearer token our mobile app sends, is one a cross-site form cannot set either.
         </p>
         <p>
-          <strong>Preferences are not cookies.</strong> Your selected organisation and role, the sign-in details this
-          browser holds, your appearance settings (theme, branding, zoom) and your collapsed menu groups are stored in
-          your browser's <strong>local storage</strong>. Local storage is not sent to us with every request and cannot
+          <strong>Preferences are not cookies.</strong> The identity this browser remembers — your name, email,
+          organisation and role — plus your appearance settings (theme, branding, zoom) and your collapsed menu
+          groups are stored in your browser's <strong>local storage</strong>. Your session itself is not: it is the
+          <strong>accessToken</strong> and <strong>refreshToken</strong> cookies above, which no script on the page can read. Local storage is not sent to us with every request and cannot
           be read by another site; it is covered by our Privacy Policy, and clearing your browser's site data removes
           it and signs you out.
         </p>
@@ -70,6 +72,14 @@ export default function CookiePolicyPage() {
           its own fraud-prevention cookies (<strong>__stripe_mid</strong> and <strong>__stripe_sid</strong>) when our
           billing page loads Stripe's payment form, and only then. They are used to detect fraudulent card use, not for
           advertising or profiling. See Stripe's cookie policy for details.
+        </p>
+        <p>
+          <strong>Cloudflare</strong> — the network that serves this site: DNS, TLS and protection against
+          denial-of-service and hostile traffic. Cloudflare's bot-management features can place a security cookie of
+          their own on your browser before a request reaches us, and whether they do is a setting in Cloudflare's
+          dashboard rather than something our application decides. Checked on <strong>16 October 2026</strong>: three
+          requests to meticlecare.com — a public page, the sign-in page and our API's health endpoint — returned no
+          cookie from Cloudflare at all. If that changes, the cookie will be named here.
         </p>
       </S>
 

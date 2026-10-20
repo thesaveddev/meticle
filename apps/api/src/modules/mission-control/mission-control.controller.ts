@@ -16,6 +16,15 @@ export class MissionControlController {
     res.json(summary);
   }
 
+  static async getHandoverGaps(req: Request, res: Response) {
+    const requested = parseInt(req.query.days as string, 10);
+    const gaps = await MissionControlRepository.getHandoverGaps(
+      req.user!.organizationId!,
+      Number.isFinite(requested) ? requested : 7,
+    );
+    res.json(gaps);
+  }
+
   static async getHomecareSummary(req: Request, res: Response) {
     const summary = await MissionControlRepository.getHomecareSummary(
       req.user!.organizationId!,

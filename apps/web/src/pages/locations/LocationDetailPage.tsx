@@ -303,8 +303,7 @@ export default function LocationDetailPage() {
   const openCertFile = async (url: string, name?: string) => {
     setFileError('')
     try {
-      const token = localStorage.getItem('accessToken')
-      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const contentType = res.headers.get('content-type') || ''
       const blob = await res.blob()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { categoryLabel } from './alertLabels'
 import {
   Box, Typography, Paper, Grid, Card, CardContent, Stack, Chip, IconButton,
   Skeleton, Divider, Tooltip, Tab, Tabs, Button, Select, MenuItem,
@@ -96,20 +97,6 @@ const SeverityIcon = ({ severity }: { severity: string }) => {
     default: return <MediumIcon sx={{ color: c.icon, fontSize: 20 }} />
   }
 }
-
-const categoryLabel = (type: string): string => {
-  if (type.startsWith('medication.')) return 'Medication'
-  if (type === 'shift.unfilled' || type === 'shift.understaffed') return 'Staffing'
-  if (type === 'incident.action_overdue') return 'Safety'
-  if (type === 'training.expiring') return 'Training'
-  if (type === 'dbs.expiring') return 'DBS'
-  if (type === 'policy.review_due') return 'Policy'
-  if (type === 'care_plan.review_due') return 'Care Plan'
-  if (type === 'fluid.intake_below_target') return 'Health'
-  if (type.startsWith('nutrition.')) return 'Nutrition'
-  return type
-}
-
 
 export default function MissionControlPage() {
   const navigate = useNavigate()

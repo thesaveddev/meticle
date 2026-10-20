@@ -44,8 +44,10 @@ export default function LoginPage() {
         navigate('/mfa-setup', { state: { mfaSetupToken: response.data.mfaSetupToken, email: email.trim() } })
         return
       }
-      localStorage.setItem('accessToken', response.data.accessToken)
-      localStorage.setItem('refreshToken', response.data.refreshToken)
+      // The tokens in the response are not stored: the API has already issued
+      // the session as httpOnly cookies, which is what every later request is
+      // authenticated with. Only the user is kept, for the cached identity the
+      // shell renders while `/auth/me` is in flight.
       localStorage.setItem('user', JSON.stringify(response.data.user))
       const role = response.data.user?.role
       if (role === 'SUPER_ADMIN') {

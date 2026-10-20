@@ -14,7 +14,11 @@
  * work across a border. The API decides that; this list is only the vocabulary.
  */
 export const IDENTITY_DOCUMENT_TYPES = [
-  { value: 'DBS', label: 'DBS Check' },
+  // Labelled "certificate" rather than "check" on purpose: what a provider
+  // uploads here is the certificate they were issued, and the product tracks it
+  // and its renewal. It does not run the check — see
+  // `docs/DBS_INTEGRATION_PLAN.md` and the DBS panel in the compliance page.
+  { value: 'DBS', label: 'DBS Certificate' },
   { value: 'PVG', label: 'PVG Record' },
   { value: 'DISCLOSURE_SCOTLAND', label: 'Disclosure Scotland Record' },
   { value: 'ACCESSNI', label: 'AccessNI Check' },

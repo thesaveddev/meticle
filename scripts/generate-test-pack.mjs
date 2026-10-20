@@ -38,7 +38,7 @@ const tests = [
   { module: 'Dashboard', id: 'DASH-004', title: 'Stat cards — Compliance Rate', steps: '1. Check Compliance Rate card', expected: 'Shows percentage matching compliance module', priority: 'High' },
   { module: 'Dashboard', id: 'DASH-005', title: 'Stat cards — Open Shifts', steps: '1. Check Open Shifts card', expected: 'Shows count of unfilled shifts', priority: 'High' },
   { module: 'Dashboard', id: 'DASH-006', title: 'Stat cards — Alerts', steps: '1. Check Alerts card', expected: 'Shows open incident count', priority: 'High' },
-  { module: 'Dashboard', id: 'DASH-007', title: 'Widget — DBS Expiring', steps: '1. Check Staff with Expiring Docs widget', expected: 'Shows count, links to /compliance/identity', priority: 'Medium' },
+  { module: 'Dashboard', id: 'DASH-007', title: 'Widget — DBS Expiring', steps: '1. Click the background-check alert in Alerts & updates', expected: 'Names the earliest expiring check and opens that staff record\u2019s compliance tab on the record itself (/staff/<userId>?tab=compliance&record=<documentId>)', priority: 'Medium' },
   { module: 'Dashboard', id: 'DASH-008', title: 'Widget — Training Expiring', steps: '1. Check Training Expiring widget', expected: 'Shows count, links to /compliance/training', priority: 'Medium' },
   { module: 'Dashboard', id: 'DASH-009', title: 'Widget — Pending Leave', steps: '1. Check Pending Leave widget', expected: 'Shows count of pending leave requests', priority: 'Medium' },
   { module: 'Dashboard', id: 'DASH-010', title: 'Widget — Overdue Medications', steps: '1. Check Overdue Medications widget', expected: 'Shows count, links to /emedication', priority: 'Critical' },

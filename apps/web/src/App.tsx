@@ -52,6 +52,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
 const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'))
 const AccountDeletionPage = lazy(() => import('./pages/legal/AccountDeletionPage'))
+const UnsubscribePage = lazy(() => import('./pages/legal/UnsubscribePage'))
 const CompliancePage = lazy(() => import('./pages/compliance/CompliancePage'))
 const IdentityMonitoringPage = lazy(() => import('./pages/compliance/IdentityMonitoringPage'))
 const CompetencyAssessmentsPage = lazy(() => import('./pages/compliance/CompetencyAssessmentsPage'))
@@ -222,6 +223,8 @@ function App() {
       {/* Play and Apple both require a public URL for requesting account
           deletion, alongside the in-app path in Settings. */}
       <Route path="/delete-account" element={<ErrorBoundary><Suspense fallback={null}><AccountDeletionPage /></Suspense></ErrorBoundary>} />
+      {/* Public: an unsubscribe link has to work before signing in, and the token decides whose it is. */}
+      <Route path="/unsubscribe" element={<ErrorBoundary><Suspense fallback={null}><UnsubscribePage /></Suspense></ErrorBoundary>} />
 
       {/* Compliance Portal (no auth guard - uses portal token) */}
       <Route path="/portal/login" element={<PortalLoginPage />} />

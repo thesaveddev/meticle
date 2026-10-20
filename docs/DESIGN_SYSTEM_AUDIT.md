@@ -685,15 +685,15 @@ once — the first declaration wins at runtime.
 
 | Surface | Count |
 |---|---|
-| Routes with a page module | 121 |
-| Route × module rows | 122 |
-| Distinct page modules routed | 105 |
+| Routes with a page module | 122 |
+| Route × module rows | 123 |
+| Distinct page modules routed | 106 |
 | Redirect routes (no page to review) | 7 |
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 7 |
-| audited / updated / tested | 19 / 122 / 31 |
-| Fully signed off (all three) | 12 |
+| audited / updated / tested | 19 / 123 / 33 |
+| Fully signed off (all three) | 13 |
 | Gaps (any of the three missing) | 110 |
 
 **Structural wrapper routes** — guards and layouts that render no page of their own:
@@ -719,7 +719,7 @@ once — the first declaration wins at runtime.
 | `/case-studies` | `pages/marketing/CaseStudiesPage.tsx` | no | yes | no |
 | `/chat` | `pages/chat/ChatPage.tsx` | no | yes | no |
 | `/client-billing` | `pages/homecare/ClientBillingPage.tsx` | no | yes | no |
-| `/compliance` † | `pages/compliance/CompliancePage.tsx` | yes | yes | no |
+| `/compliance` † | `pages/compliance/CompliancePage.tsx` | yes | yes | yes |
 | `/compliance` † | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
 | `/compliance-badges` | `pages/marketing/ComplianceBadgesPage.tsx` | no | yes | no |
 | `/compliance/:slug` | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
@@ -824,6 +824,7 @@ once — the first declaration wins at runtime.
 | `/terms` | `pages/legal/TermsOfUsePage.tsx` | no | yes | no |
 | `/training` | `pages/training/TrainingMatrixPage.tsx` | yes | yes | no |
 | `/unauthorized` | `pages/errors/UnauthorizedPage.tsx` | no | yes | no |
+| `/unsubscribe` | `pages/legal/UnsubscribePage.tsx` | no | yes | yes |
 | `/verify-email` | `pages/auth/VerifyEmailPage.tsx` | no | yes | no |
 
 ### Page-tree modules the router does not reach

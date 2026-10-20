@@ -79,6 +79,33 @@ export const MissionControlAlertConsumer: EventConsumer = {
         break;
       }
 
+      case 'shift.handover_due': {
+        const p = event.payload as any;
+        const shiftId = typeof p.shift_id === 'string' && p.shift_id ? p.shift_id : aggregateId;
+        const week = typeof p.week === 'string' ? p.week : '';
+        const onShift = Array.isArray(p.rostered) ? p.rostered.length : 0;
+        await upsertAlert(orgId, alertType, aggregateId, 'high',
+          `Handover missing: ${p.location_name || 'Location'}`,
+          `${capitalize(String(p.shift_type || 'day'))} shift ended ${formatTime(p.end_time)} with no handover recorded — ${onShift} staff on the shift were told to write one`,
+          // The shift itself, on the week the rota grid opens on — the same record the
+          // staff notification opens, so a manager and the worker meet the same row.
+          shiftId && week ? micaRecordPath({ kind: 'shift', id: String(shiftId), week }) : '/scheduling',
+          null, null);
+        break;
+      }
+
+      case 'room_check.overdue': {
+        const p = event.payload as any;
+        const room = String(p.room_number || 'Room');
+        const where = p.location_name ? ` at ${p.location_name}` : '';
+        const dueHour = Number.isFinite(Number(p.due_hour)) ? Number(p.due_hour) : 18;
+        await upsertAlert(orgId, alertType, aggregateId, 'high',
+          `Room check overdue: ${room}`,
+          `${room}${where} had no room check recorded by ${String(dueHour).padStart(2, '0')}:00 today. A room check is a daily safety and cleanliness record — this one is missing.`,
+          '/room-checks', null, null);
+        break;
+      }
+
       case 'staffing.coverage_low': {
         const p = event.payload as any;
         const severity = p.coverage_percent < p.required_coverage_percent - 15 || p.unstaffed_shifts > 0 ? 'critical' : 'high';
@@ -205,7 +232,6 @@ export const MissionControlAlertConsumer: EventConsumer = {
     }
   },
 };
-
 /** Upsert a mission_control_alert row, deduped by (org, type, aggregate). */
 async function upsertAlert(
   orgId: string,

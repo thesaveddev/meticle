@@ -43,6 +43,10 @@ function migrate(db: Database.Database) {
       campaign_stage INTEGER DEFAULT 0,
       last_contacted TEXT,
       next_followup TEXT,
+      -- When this contact asked us to stop. Null means they may be emailed; a
+      -- timestamp is the suppression list, kept on the lead row so no sender can
+      -- look at the address without seeing it.
+      unsubscribed_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -89,5 +93,8 @@ function migrate(db: Database.Database) {
   const columns = db.prepare('PRAGMA table_info(leads)').all() as { name: string }[]
   if (!columns.some((c) => c.name === 'regulator')) {
     db.exec("ALTER TABLE leads ADD COLUMN regulator TEXT DEFAULT 'Care Quality Commission'")
+  }
+  if (!columns.some((c) => c.name === 'unsubscribed_at')) {
+    db.exec('ALTER TABLE leads ADD COLUMN unsubscribed_at TEXT')
   }
 }

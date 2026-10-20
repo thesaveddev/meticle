@@ -4,11 +4,67 @@ import { safeIo } from '../../shared/socket';
 import { AppError } from '../../shared/middleware/error.middleware';
 
 export class NotificationsController {
+  /** The default page: what one screen holds without scrolling for a while. */
+  private static readonly PAGE_SIZE = 20;
+  private static readonly MAX_PAGE_SIZE = 100;
+
+  /**
+   * The caller's own notifications, newest first, in pages.
+   *
+   * This used to be `LIMIT 20` and nothing else, which quietly decided that the
+   * thirty-first notification of a week away did not exist: a carer returning from
+   * leave saw twenty rows and no way to reach the twenty-first, and the handover nudge
+   * or missed round that actually mattered was the one that had fallen off.
+   *
+   * Paging is keyset on `(created_at, id)`, not `OFFSET`. Notifications are written
+   * while the list is being read — a room-check sweep or a handover nudge lands between
+   * page one and page two — and an offset page shifts under the reader by one row for
+   * every arrival, silently skipping the row that got pushed across the boundary. A
+   * keyset page always continues from the row it was handed.
+   *
+   * The body stays the bare array it has always been, so nothing that already calls
+   * this has to change: a caller that wants older rows passes the last row it holds as
+   * `before` (its `created_at`) and `beforeId` (its `id`). Two plain values rather than
+   * an opaque cursor token, because they are already on the row the client is looking
+   * at and an operator reading a query string can see exactly what it means.
+   *
+   * A malformed cursor is a 400 rather than a silent fall back to page one: quietly
+   * returning the newest rows to a client asking for older ones makes "load more"
+   * appear to do nothing, forever, which is harder to diagnose than a rejected request.
+   */
   static async getMyNotifications(req: Request, res: Response) {
     const userId = req.user!.userId;
+
+    const rawLimit = Number.parseInt(String(req.query.limit ?? ''), 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(rawLimit, NotificationsController.MAX_PAGE_SIZE)
+      : NotificationsController.PAGE_SIZE;
+
+    const before = typeof req.query.before === 'string' && req.query.before.trim() ? req.query.before.trim() : null;
+    const beforeId = typeof req.query.beforeId === 'string' && req.query.beforeId.trim() ? req.query.beforeId.trim() : null;
+
+    if ((before && !beforeId) || (beforeId && !before)) {
+      throw new AppError(400, 'A page cursor needs both `before` and `beforeId`.');
+    }
+    if (before && beforeId) {
+      const when = new Date(before);
+      if (Number.isNaN(when.getTime())) throw new AppError(400, '`before` must be a timestamp.');
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId)) {
+        throw new AppError(400, '`beforeId` must be a notification id.');
+      }
+    }
+
+    const params: unknown[] = [userId];
+    let where = 'user_id = $1';
+    if (before && beforeId) {
+      params.push(before, beforeId);
+      where += ` AND (created_at, id) < ($2::timestamptz, $3::uuid)`;
+    }
+    params.push(limit);
+
     const result = await pool.query(
-      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
-      [userId]
+      `SELECT * FROM notifications WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT $${params.length}`,
+      params
     );
     res.json(result.rows);
   }
@@ -56,6 +112,14 @@ export class NotificationsController {
    * whatever origin the app is served from and nothing parses a host out of a stored
    * string. Email is the one channel that needs an absolute address; it composes it
    * from the same path at send time (`micaRecordUrl`).
+   *
+   * `type` is also the preference key, so a user who has switched that type off is
+   * skipped — which is right for the everyday messages a preference exists for, and
+   * wrong for a statutory obligation the provider cannot opt out of. Those callers
+   * pass `ignorePreferences`, and there is one: DBS certificate information held past
+   * its six-month retention date, which a rule says must already have been deleted.
+   * Muting a category is a preference; being told you are still holding something you
+   * must not hold is not.
    */
   static async createNotification(
     userId: string,
@@ -63,6 +127,7 @@ export class NotificationsController {
     message: string,
     type: string = 'info',
     link?: string,
+    options: { ignorePreferences?: boolean } = {},
   ) {
     const notifyUserIds = new Set<string>([userId]);
     try {
@@ -77,7 +142,7 @@ export class NotificationsController {
 
     for (const uid of notifyUserIds) {
       try {
-        if (type && type !== 'info') {
+        if (!options.ignorePreferences && type && type !== 'info') {
           const prefRes = await pool.query(
             'SELECT enabled FROM notification_preferences WHERE user_id = $1 AND notification_type = $2',
             [uid, type]

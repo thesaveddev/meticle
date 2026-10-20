@@ -32,9 +32,9 @@ export default function ChatPage() {
   const getOnlineCount = useCallback((ch: any) => ch?.members ? ch.members.filter((m: any) => chat.onlineUsers.has(m.user_id)).length : 0, [chat.onlineUsers])
 
   const handleDownload = useCallback(async (url: string, name: string) => {
-    const token = localStorage.getItem('accessToken')
     try {
-      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      // Same-origin request: the session cookie authenticates it.
+      const res = await fetch(url)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')

@@ -20,3 +20,20 @@ export function isDomiciliaryOrganisation(organisation?: SessionOrganisation | n
   const types = Array.isArray(organisation.service_types) ? organisation.service_types : []
   return types.some((type: string) => type === 'domiciliary' || type === 'live_in')
 }
+
+/**
+ * Whether the session's organisation runs supported living, where work is a shift
+ * in a building that is handed over at the end — rather than a series of calls.
+ *
+ * Primary type first for the same reason as the domiciliary rule: an organisation
+ * that has moved into supported living may still list domiciliary from when it did
+ * both, and the primary type is what it actually trades as. A provider that only
+ * lists it counts too, because the list is what older sessions send.
+ */
+export function isSupportedLivingOrganisation(organisation?: SessionOrganisation | null): boolean {
+  if (!organisation) return false
+  const primary = typeof organisation.primary_service_type === 'string' ? organisation.primary_service_type : null
+  if (primary) return primary === 'supported_living'
+  const types = Array.isArray(organisation.service_types) ? organisation.service_types : []
+  return types.includes('supported_living')
+}

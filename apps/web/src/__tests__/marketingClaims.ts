@@ -303,11 +303,26 @@ export const REGISTERED_CLAIMS: {
   {
     label: 'TLS 1.3',
     pattern: /TLS 1\.3/i,
-    status: 'pending',
-    evidence: 'TLS 1.3 is confirmed on the outbound mail path (observed in Gmail Received headers: version=TLS1_3). TLS 1.3 is NOT yet confirmed for the web and API edge, which is terminated by our own nginx.',
+    status: 'verified',
+    // This entry was pending until 13 Oct 2026 and its evidence said the edge
+    // "is terminated by our own nginx". That was the assumption the tracker had
+    // recorded without checking, and it was wrong: apps/web/nginx.conf listens
+    // on :80 only, nothing in docker-compose.prod.yml publishes 443, and there
+    // is no ssl_protocols or certificate anywhere in the repo. The TLS endpoint
+    // is Cloudflare's, which is why every response carries `Server: cloudflare`.
+    evidence:
+      'TLS 1.3 is confirmed on the outbound mail path (Gmail Received headers, version=TLS1_3) and, measured on 13 Oct 2026, on the public edge as well: meticlecare.com negotiated TLS_AES_256_GCM_SHA384 with a Google Trust Services certificate valid to 23 Dec 2026, recorded with the duplicated-header finding in docs/MARKET_READINESS_AUDIT.md §3.2. Nothing in this repository configures or enforces it — the endpoint is Cloudflare Universal SSL, not our nginx (apps/web/nginx.conf, :80 only) — so this is a dated measurement rather than a standing guarantee. Re-probe after any change at the edge, and keep the weaker "TLS 1.2+" wording available if a probe ever fails.',
+    // The tracker row that carries the dated measurement (T0-16) — the path
+    // this claim can be checked against, and the only kind it can have: no test
+    // in this repository can negotiate TLS with the public edge, so the
+    // evidence is a recorded probe rather than an assertion, and the probe
+    // itself is written up in `docs/MARKET_READINESS_AUDIT.md` §3.2. Flipping
+    // this entry to `verified` without a path failed two guards — the citation
+    // check in `claimsSweep.test.ts` and the "has a test looked at it" check in
+    // `claimEvidenceIsTested.test.ts` — which is the pair doing their job.
+    evidencePath: 'docs/GO_LIVE_READINESS.md',
     owner: 'Opeyemi',
-    closesOn: 'T0-16',
-    notes: 'Verify the negotiated version against meticlecare.com and either keep the claim or restate it as TLS 1.2+.',
+    notes: 'Closed T0-16 as a TLS question. What the row turned up is tracked elsewhere: our origin and Cloudflare both set the same security headers with different values (two content-security-policy headers, two HSTS max-ages, x-frame-options DENY and SAMEORIGIN), so the effective policy is not readable from either config — one layer should own each header. Certificate renewal is Cloudflare\'s rather than a job in this repo.',
   },
   {
     // The three below were found by the 27 Sep 2026 sweep and are the reason

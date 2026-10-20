@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import Constants from 'expo-constants'
 import type { HomecareVisit } from '../types'
+import { createLaunchNotificationReader } from '../utils/launchNotification'
 
 // Lazy-load expo-notifications to avoid remote push initialization on Android SDK 53+.
 let Notifications: typeof import('expo-notifications') | null = null
@@ -169,20 +170,23 @@ export function removeNotificationListeners() {
   }
 }
 
+// One read per process, and the stored response cleared once it has been routed;
+// the rule and its reasoning live in `utils/launchNotification.ts`, where a test can
+// exercise it without a dynamic import.
+const launchNotification = createLaunchNotificationReader(getNotifications)
+
 /**
  * The notification that opened the app, if the app was launched by tapping one.
  * Without this, a cold start from a notification is indistinguishable from a
  * normal launch, and the tap the carer made appears to do nothing.
  */
-export async function getLaunchNotification(): Promise<Record<string, any> | null> {
-  try {
-    const N = await getNotifications()
-    if (!N) return null
-    const response = await N.getLastNotificationResponseAsync()
-    return response?.notification?.request?.content?.data || null
-  } catch {
-    return null
-  }
+export function getLaunchNotification(): Promise<Record<string, any> | null> {
+  return launchNotification.read()
+}
+
+/** Test seam only: lets a suite exercise the cold-start read more than once. */
+export function resetLaunchNotificationForTests() {
+  launchNotification.reset()
 }
 
 /* ─── Missed / Overdue / Unassigned alerts ───────────────────── */

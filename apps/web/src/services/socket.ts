@@ -3,7 +3,6 @@ import { refreshAccessToken } from './api'
 
 let socket: Socket | null = null
 let reconnectCallbacks: Array<() => void> = []
-let getToken: () => string | null = () => localStorage.getItem('accessToken')
 let lastAuthRetry = 0
 let hasConnected = false
 
@@ -22,14 +21,16 @@ function resumeIfDisconnected() {
   }
 }
 
-export function connectSocket(tokenProvider: (() => string | null) | null = null): Socket {
+export function connectSocket(): Socket {
   if (socket?.connected) return socket
-  getToken = tokenProvider || (() => localStorage.getItem('accessToken'))
   const url = import.meta.env.VITE_SOCKET_URL || window.location.origin
   socket = io(url, {
-    // Re-evaluated on every (re)connection attempt so a refreshed access token
-    // is always used — otherwise push notifications die on reconnect.
-    auth: (cb) => cb({ token: getToken() }),
+    // The session is an httpOnly cookie, so there is no token to hand over in an
+    // `auth` payload and none that can go stale in one: `withCredentials` is what
+    // makes the browser send the cookie on the handshake, exactly as it does on
+    // an API request. The server accepts either the cookie or an `auth` token,
+    // which is how the mobile app still authenticates.
+    withCredentials: true,
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -51,14 +52,13 @@ export function connectSocket(tokenProvider: (() => string | null) | null = null
     const now = Date.now()
     if (now - lastAuthRetry < 30000) return
     lastAuthRetry = now
-    let fresh: string | null = null
-    try { fresh = await refreshAccessToken() } catch { /* app interceptor handles session expiry */ }
-    if (fresh && socket) {
-      // auth is functional (getToken reads the fresh token from localStorage),
-      // so a simple reconnect is enough — do not overwrite socket.auth.
+    try {
+      // Rotates the session cookie in place. There is no token to store or to
+      // re-attach, so the reconnect below is the whole recovery.
+      await refreshAccessToken()
       socket.disconnect()
       socket.connect()
-    }
+    } catch { /* app interceptor handles session expiry */ }
   })
   socket.on('disconnect', (reason) => {
     console.warn('[socket] disconnected:', reason)

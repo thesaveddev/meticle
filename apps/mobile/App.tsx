@@ -5,17 +5,18 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
-import { isDomiciliaryOrganisation } from './src/utils/serviceType'
+import { isDomiciliaryOrganisation, isSupportedLivingOrganisation } from './src/utils/serviceType'
 import { canApproveOpenCalls, canClaimOpenCalls } from './src/utils/openCalls'
 import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
-import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, QueuedIncidentReport, VisitAction } from './src/types'
+import type { AuthSession, HomecareVisit, MobileUser, MyShift, OfflineVisitAction, QueuedIncidentReport, VisitAction } from './src/types'
 import { readSession, clearSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { flushIncidentQueue, getIncidentQueue } from './src/services/incidentQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
+import { notificationTarget, resolveTab } from './src/utils/notificationLinks'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { StaffNoticeGate } from './src/components/StaffNoticeGate'
@@ -35,6 +36,9 @@ import { OpenCallsScreen } from './src/screens/OpenCallsScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
 import { NotificationsScreen } from './src/screens/NotificationsScreen'
+import { HandoverScreen } from './src/screens/HandoverScreen'
+import { ShiftClockScreen } from './src/screens/ShiftClockScreen'
+import { RoomChecksScreen } from './src/screens/RoomChecksScreen'
 import { ManagerDashboard } from './src/screens/ManagerDashboard'
 import { ClientListScreen } from './src/screens/ClientListScreen'
 import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
@@ -129,6 +133,9 @@ type Screen =
   | { kind: 'swap'; mode?: 'swap' | 'transfer'; visitId?: string }
   | { kind: 'chat' }
   | { kind: 'notifications' }
+  | { kind: 'handover'; shiftId: string; shift?: MyShift }
+  | { kind: 'clock'; shiftId: string; shift?: MyShift }
+  | { kind: 'roomChecks' }
   | { kind: 'allVisits'; status?: string; staffName?: string; staffId?: string }
   | { kind: 'staffDirectory' }
   | { kind: 'timesheets' }
@@ -176,6 +183,9 @@ function AppInner() {
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
   const [unreadCount, setUnreadCount] = useState(0)
   const [chatUnreadCount, setChatUnreadCount] = useState(0)
+  // Bumped when a shift is clocked on or off, or its handover is written or
+  // acknowledged, so the Schedule tab reloads its badges when it comes back.
+  const [shiftRevision, setShiftRevision] = useState(0)
   // Which chat conversation the capture tour should open. Unset in every
   // normal launch, where the chat tab lands on the channel list.
   const [captureChannelId, setCaptureChannelId] = useState<string | undefined>(undefined)
@@ -184,6 +194,9 @@ function AppInner() {
   const tabs = isManager ? managerTabs : carerTabs
   // Gates the open-call marketplace, the Learn screen and the Settings row.
   const isDomiciliary = useMemo(() => isDomiciliaryOrganisation(session?.organization), [session?.organization])
+  // Supported living is where a shift is handed over rather than a call completed,
+  // so the Schedule tab shows the shift's handover state only for those providers.
+  const isSupportedLiving = useMemo(() => isSupportedLivingOrganisation(session?.organization), [session?.organization])
   // Open calls has two audiences and they must not overlap: a care worker picks
   // shifts up, a manager decides on the claims that produces. A manager of a
   // domiciliary agency used to be offered shifts of their own.
@@ -369,6 +382,39 @@ function AppInner() {
   // A tapped notification should take the carer to the thing it is about.
   // Previously a tap only cleared the chat badge, and a notification that
   // launched the app was ignored entirely.
+  //
+  // A supported-living notification carries the record path the server composed
+  // (`micaRecordPath`), which is what makes a handover-due or room-check-overdue
+  // message open something rather than being a dead end. `notificationTarget` decides
+  // what the phone can do with it: a tab, or the notifications screen itself when the
+  // record is a web-only page.
+  const openNotificationLink = useCallback((link: string | null | undefined) => {
+    if (!link) return
+    const target = notificationTarget(link)
+    // One shift's handover: the phone has that screen, so a handover-due message
+    // opens the record it is about rather than the week view it is filed under.
+    if (target.kind === 'handover') {
+      setScreenStack([{ kind: 'tabs' }, { kind: 'handover', shiftId: target.shiftId }])
+      return
+    }
+    // The room-check board: an overdue nudge names a room the worker is standing next
+    // to, and this is where they clear it.
+    if (target.kind === 'roomChecks') {
+      setScreenStack([{ kind: 'tabs' }, { kind: 'roomChecks' }])
+      return
+    }
+    const resolvedTab = resolveTab(target, tabs.map(t => t.key))
+    if (target.kind === 'tab' && resolvedTab) {
+      setTab(resolvedTab)
+      setScreenStack([{ kind: 'tabs' }])
+      return
+    }
+    // No native screen for this record: the message on the notifications screen is
+    // the part of it the phone can honestly show, so land there instead of dropping
+    // the tap. Already being on it is the same answer.
+    setScreenStack(prev => prev[prev.length - 1].kind === 'notifications' ? prev : [...prev, { kind: 'notifications' }])
+  }, [tabs])
+
   const openFromNotification = useCallback((data: Record<string, any> | null) => {
     if (!data) return
     const visitId = data.visitId as string | undefined
@@ -379,16 +425,32 @@ function AppInner() {
     if (data.type === 'chat' || data.channelId) {
       setTab('chat')
       setScreenStack([{ kind: 'tabs' }])
+      return
     }
-  }, [visits])
+    if (typeof data.link === 'string' && data.link) {
+      openNotificationLink(data.link)
+      return
+    }
+    // A notification about a record, with no link to resolve: the list is where its
+    // message is, so that is where the tap lands.
+    setScreenStack(prev => prev[prev.length - 1].kind === 'notifications' ? prev : [...prev, { kind: 'notifications' }])
+  }, [visits, openNotificationLink])
 
-  // A notification that launched the app is delivered once the session exists
-  // and the day's visits are loaded, otherwise the target visit is not known.
+  // A notification that launched the app is delivered once the session exists. A
+  // visit-shaped one also waits for the day's visits, because the visit it names is
+  // not known before then — but a record link does not depend on them, and waiting
+  // for a visit list that may be empty is how a cold start from a handover nudge used
+  // to be discarded.
   const launchHandled = useRef(false)
   useEffect(() => {
-    if (launchHandled.current || !session?.accessToken || visits.length === 0) return
-    launchHandled.current = true
-    getLaunchNotification().then(openFromNotification).catch(() => {})
+    if (launchHandled.current || !session?.accessToken) return
+    getLaunchNotification().then(data => {
+      if (!data) { launchHandled.current = true; return }
+      const visitId = data.visitId as string | undefined
+      if (visitId && visits.length === 0) return // try again when the visits arrive
+      launchHandled.current = true
+      openFromNotification(data)
+    }).catch(() => { launchHandled.current = true })
   }, [session?.accessToken, visits.length, openFromNotification])
 
 
@@ -397,6 +459,10 @@ function AppInner() {
     if (!session?.accessToken) return
     let disposed = false
     addNotificationListeners((type, _data) => {
+      // Any notification in the foreground means the bell has something new; a chat
+      // one also means the chat tab does. The badge count is refreshed from the
+      // server rather than incremented, so a burst of events cannot drift it.
+      getUnreadNotificationCount(session.accessToken).then(setUnreadCount).catch(() => {})
       if (type !== 'chat' || disposed) return
       hapticMedium()
       setChatUnreadCount(count => count + 1)
@@ -604,7 +670,13 @@ function AppInner() {
     case 'chat':
       return frame(<SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'notifications':
-      return frame(<SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack>)
+      return frame(<SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} onOpenLink={openNotificationLink} onUnreadChange={setUnreadCount} /></SwipeBack>)
+    case 'handover':
+      return frame(<SwipeBack onBack={goBack}><HandoverScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} /></SwipeBack>)
+    case 'clock':
+      return frame(<SwipeBack onBack={goBack}><ShiftClockScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} onHandover={(shiftId) => pushScreen({ kind: 'handover', shiftId })} /></SwipeBack>)
+    case 'roomChecks':
+      return frame(<SwipeBack onBack={goBack}><RoomChecksScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'allVisits':
       return frame(<SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
         if (visit) { popScreen(); pushScreen({ kind: 'visit', visit }) }
@@ -656,7 +728,7 @@ function AppInner() {
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
           {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} pendingIncidentReports={pendingIncidentReports} />}
-          {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
+          {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} isSupportedLiving={isSupportedLiving} refreshKey={shiftRevision} onHandover={(shift) => pushScreen({ kind: 'handover', shiftId: shift.id, shift })} onShift={(shift) => pushScreen({ kind: 'clock', shiftId: shift.id, shift })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 
           {/* Manager tabs */}

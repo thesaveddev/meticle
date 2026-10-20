@@ -375,7 +375,7 @@ export default function AgenciesPage() {
                   <TextField label="Email" value={editWorker.email || ''} onChange={e => setEditWorker({ ...editWorker, email: e.target.value })} fullWidth />
                 </Stack>
                 <Stack direction="row" spacing={2}>
-                  <TextField label="DBS Check Date" type="date" value={editWorker.dbs_check_date || ''} onChange={e => setEditWorker({ ...editWorker, dbs_check_date: e.target.value })} fullWidth InputLabelProps={{ shrink: true }} />
+                  <TextField label="DBS Certificate Date" type="date" value={editWorker.dbs_check_date || ''} onChange={e => setEditWorker({ ...editWorker, dbs_check_date: e.target.value })} fullWidth InputLabelProps={{ shrink: true }} />
                   <TextField label="DBS Expiry Date" type="date" value={editWorker.dbs_expiry_date || ''} onChange={e => setEditWorker({ ...editWorker, dbs_expiry_date: e.target.value })} fullWidth InputLabelProps={{ shrink: true }} />
                 </Stack>
                 <FormControl fullWidth size="small">

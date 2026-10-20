@@ -1,4 +1,4 @@
-import { isDomiciliaryOrganisation } from '../serviceType'
+import { isDomiciliaryOrganisation, isSupportedLivingOrganisation } from '../serviceType'
 
 describe('isDomiciliaryOrganisation', () => {
   it('accepts domiciliary and live-in organisations', () => {
@@ -31,5 +31,32 @@ describe('isDomiciliaryOrganisation', () => {
 
   it('ignores a non-string primary type rather than trusting it', () => {
     expect(isDomiciliaryOrganisation({ primary_service_type: 42, service_types: ['domiciliary'] })).toBe(true)
+  })
+})
+
+describe('isSupportedLivingOrganisation', () => {
+  // This is what decides whether the Schedule tab offers shift handovers. Getting it
+  // wrong in either direction is visible: a domiciliary carer gets an empty section,
+  // or a supported-living carer cannot reach the screen that records their shift.
+  it('accepts supported living from either the primary type or the list', () => {
+    expect(isSupportedLivingOrganisation({ primary_service_type: 'supported_living' })).toBe(true)
+    expect(isSupportedLivingOrganisation({ service_types: ['supported_living'] })).toBe(true)
+    expect(isSupportedLivingOrganisation({ service_types: ['domiciliary', 'supported_living'] })).toBe(true)
+  })
+
+  it('trusts the primary type over the list', () => {
+    expect(
+      isSupportedLivingOrganisation({ primary_service_type: 'domiciliary', service_types: ['supported_living'] })
+    ).toBe(false)
+    expect(
+      isSupportedLivingOrganisation({ primary_service_type: 'supported_living', service_types: ['domiciliary'] })
+    ).toBe(true)
+  })
+
+  it('treats a domiciliary or missing organisation as not supported living', () => {
+    expect(isSupportedLivingOrganisation({ primary_service_type: 'domiciliary' })).toBe(false)
+    expect(isSupportedLivingOrganisation({ service_types: [] })).toBe(false)
+    expect(isSupportedLivingOrganisation(undefined)).toBe(false)
+    expect(isSupportedLivingOrganisation(null)).toBe(false)
   })
 })

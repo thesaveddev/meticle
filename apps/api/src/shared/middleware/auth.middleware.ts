@@ -36,6 +36,30 @@ const getJwtSecret = (): string => {
 };
 
 /**
+ * The access token for a request, from the bearer header or the session cookie.
+ *
+ * There are two clients and one credential. The web app is issued an httpOnly
+ * `accessToken` cookie at sign-in and sends nothing else — that is the point of
+ * the cookie: script on the page cannot read the token, so an XSS bug cannot
+ * exfiltrate the session, and a same-origin request cannot forget to carry it.
+ * The mobile app and every script keep sending `Authorization: Bearer`.
+ *
+ * The header wins when both are present, deliberately: an explicitly presented
+ * credential should never be silently overridden by an ambient one. A request
+ * with neither is refused by the caller, not here.
+ */
+export function requestAccessToken(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (header) {
+    const [, token] = header.split(' ');
+    if (token) return token;
+  }
+
+  const cookie = req.cookies?.accessToken;
+  return typeof cookie === 'string' && cookie ? cookie : null;
+}
+
+/**
  * Set the session context on a pg client (typically the request-scoped client
  * from ALS). Must be called after the JWT is decoded and before any
  * tenant-scoped queries. Also used by the event outbox worker to run background
@@ -71,9 +95,8 @@ export async function setRlsSessionVars(
 }
 
 export const authenticateMfaSetup = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ statusCode: 401, message: 'No token provided' });
-  const token = authHeader.split(' ')[1];
+  const token = requestAccessToken(req);
+  if (!token) return res.status(401).json({ statusCode: 401, message: 'No token provided' });
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as AuthUser & { tokenType?: string; mfaChallenge?: boolean; mfaChallengePurpose?: string };
     const validSetupToken = decoded.tokenType === 'mfa-challenge' && decoded.mfaChallenge && decoded.mfaChallengePurpose === 'setup';
@@ -95,12 +118,11 @@ export const authenticateMfaSetup = async (req: Request, res: Response, next: Ne
 };
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
+  const token = requestAccessToken(req);
+  if (!token) {
     return res.status(401).json({ statusCode: 401, message: 'No token provided' });
   }
 
-  const token = authHeader.split(' ')[1];
   try {
     const blacklisted = await isTokenBlacklisted(token);
     if (blacklisted) {

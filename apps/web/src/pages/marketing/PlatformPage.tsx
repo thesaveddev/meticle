@@ -157,7 +157,7 @@ function IncidentMockup() {
 
 function ComplianceMockup() {
   const items = [
-    { label: 'DBS Checks', pct: 100, color: '#10B981' },
+    { label: 'DBS Tracking', pct: 100, color: '#10B981' },
     { label: 'Mandatory Training', pct: 87, color: '#F59E0B' },
     { label: 'Right to Work', pct: 95, color: '#10B981' },
     { label: 'Competency Assessments', pct: 68, color: '#EF4444' },

@@ -16,8 +16,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
 const EMPTY_FORM = () => ({ location_id: '', room_number: '', check_date: localToday(), status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' })
 
 function openFileInNewTab(url: string) {
-  const token = localStorage.getItem('accessToken')
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+  fetch(url).then(r => r.blob()).then(b => {
     window.open(URL.createObjectURL(b), '_blank', 'noopener')
   }).catch(() => {})
 }
@@ -37,10 +36,9 @@ export default function RoomChecksPage() {
 
   useEffect(() => {
     if (!view?.photo_url) { setPhotoBlob(null); return }
-    const token = localStorage.getItem('accessToken')
     let active = true
     let blobUrl = ''
-    fetch(view.photo_url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+    fetch(view.photo_url).then(r => r.blob()).then(b => {
       if (active) { blobUrl = URL.createObjectURL(b); setPhotoBlob(blobUrl) }
     }).catch(() => { if (active) setPhotoBlob(view.photo_url) })
     return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl) }

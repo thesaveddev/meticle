@@ -76,7 +76,12 @@ export class SurveysController {
       `<p style="margin:0 0 12px 0">You have been invited to share your feedback about the quality of care provided by <strong>${orgName}</strong>${personText}.</p>
        <p style="margin:0 0 12px 0">Your honest feedback helps us understand what we're doing well and where we can improve.</p>
        <p style="margin:0 0 12px 0;font-size:13px;color:${EMAIL_TEXT.muted}">This link expires in 7 days.</p>
-       <a href="${link}" style="display:inline-block;padding:12px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Share Your Feedback</a>`
+       <a href="${link}" style="display:inline-block;padding:12px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Share Your Feedback</a>`,
+      // The recipient may be a relative who never signed up for anything; a
+      // survey invite is exactly the message that needs a way out.
+      'notifications',
+      undefined,
+      'notifications',
     );
     // Notify sender
     await NotificationsController.createNotification(
@@ -235,7 +240,10 @@ export class SurveysController {
          <p style="margin:0 0 12px 0">You have been invited to complete the "<strong>${safeTemplateName}</strong>" engagement survey for <strong>${orgName}</strong>.</p>
          <p style="margin:0 0 12px 0">Your honest feedback helps us make ${orgName} a better place to work.</p>
          <p style="margin:0 0 12px 0;font-size:13px;color:${EMAIL_TEXT.muted}">This survey link expires in 7 days.</p>
-         <a href="${link}" style="display:inline-block;padding:12px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Complete Survey</a>`
+         <a href="${link}" style="display:inline-block;padding:12px 24px;background:${EMAIL_BRAND.primaryDeep};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Complete Survey</a>`,
+        'notifications',
+        undefined,
+        'notifications',
       ).catch(e => logger.error({ err: e }, 'Failed to queue survey email'));
       // Send push notification
       await NotificationsController.createNotification(

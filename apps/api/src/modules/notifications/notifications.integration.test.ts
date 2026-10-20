@@ -67,6 +67,70 @@ describe('Notifications', () => {
     expect(res.body.some((n: any) => n.title === 'For B only')).toBe(false)
   })
 
+  it('reaches an old notification through the page cursor, in a fixed order', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `notif-page-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const token = generateToken(user)
+    // More than one page, and created in a burst so several share a timestamp: the
+    // tie is exactly where an offset page slips and a keyset page does not.
+    for (let i = 0; i < 25; i++) {
+      await createNotification({ userId: user.id, title: `Page row ${i}` })
+    }
+
+    const seen: string[] = []
+    let cursor: { before: string; beforeId: string } | null = null
+    for (let page = 0; page < 5; page++) {
+      const res = await request(app)
+        .get('/notifications')
+        .query({ limit: 10, ...(cursor || {}) })
+        .set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+      expect(res.body.length).toBeLessThanOrEqual(10)
+      for (const row of res.body) seen.push(row.id)
+      if (res.body.length < 10) break
+      const last = res.body[res.body.length - 1]
+      cursor = { before: last.created_at, beforeId: last.id }
+    }
+
+    // Every row once, no repeats, and all 25 reached: the older ones are the ones a
+    // fixed limit of twenty used to make unreachable.
+    expect(new Set(seen).size).toBe(seen.length)
+    expect(seen.length).toBe(25)
+
+    const firstPage = await request(app)
+      .get('/notifications')
+      .set('Authorization', `Bearer ${token}`)
+    expect(firstPage.status).toBe(200)
+    expect(firstPage.body.length).toBe(20)
+  })
+
+  it('rejects half a page cursor rather than silently returning the newest page', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `notif-cursor-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const token = generateToken(user)
+    const last = await createNotification({ userId: user.id, title: 'Cursor anchor' })
+
+    const half = await request(app)
+      .get('/notifications')
+      .query({ before: new Date().toISOString() })
+      .set('Authorization', `Bearer ${token}`)
+    expect(half.status).toBe(400)
+
+    const badId = await request(app)
+      .get('/notifications')
+      .query({ before: new Date().toISOString(), beforeId: 'not-a-uuid' })
+      .set('Authorization', `Bearer ${token}`)
+    expect(badId.status).toBe(400)
+
+    // A well-formed cursor is accepted, even when it sits at the oldest row.
+    const ok = await request(app)
+      .get('/notifications')
+      .query({ before: last.created_at, beforeId: last.id })
+      .set('Authorization', `Bearer ${token}`)
+    expect(ok.status).toBe(200)
+    expect(Array.isArray(ok.body)).toBe(true)
+  })
+
   it('should list and update notification preferences', async () => {
     const org = await createOrg()
     const user = await createUser({ email: `notif4-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })

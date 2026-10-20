@@ -239,6 +239,44 @@ The Ireland spike is in the register rather than only in the readiness list beca
 
 **What is deliberately absent.** HIQA's framework has an empty `domains` array. The standards are published only as a PDF, hiqa.ie renders in JavaScript, and the theme list could not be extracted. Theme 1 is known to be "Person-centred Care and Support"; the remaining themes were not inferred from Northern Ireland or from what care regulation tends to look like. The gap is recorded in `verifiedAspects` and a test asserts it stays recorded. T2-30.
 
+### F24. A DBS certificate was being kept for three years and could be filed by a mock
+
+**Where:** `apps/api/src/modules/dbs/dbs.service.ts`, `dbs.types.ts`, migration 153,
+`apps/web/src/pages/compliance/CompliancePage.tsx`.
+
+**Was, in two halves.** A `clear` result inserted a `documents` row of type `DBS` with `status = 'approved'`
+and a three-year expiry — and the way to reach it was a mock provider answering `CLEAR` with a fabricated
+certificate number, which the flow above (§2) filed as evidence. So the record made two claims the rules do
+not support at once: that a check happened, and that certificate information may be kept for three years.
+
+**Problem.** The DBS model policy permits limited **audit metadata** — issue date, certificate type, role,
+certificate reference, recruitment decision — and says not to keep a photocopy, image or copy of the
+certificate contents; the usual retention period is **no longer than six months after the recruitment
+decision**. A derived three-year document is not a retention period anyone can defend, and it is
+indistinguishable in the UI from a certificate someone uploaded and an approver accepted.
+([handling DBS certificate information](https://www.gov.uk/government/publications/handling-of-dbs-certificate-information/handling-of-dbs-certificate-information),
+[employer guidance](https://www.gov.uk/guidance/dbs-check-requests-guidance-for-employers))
+
+**Fix.** Phase 0 of `docs/DBS_INTEGRATION_PLAN.md`, in the record rather than in prose:
+
+- the fabricated result is gone — `submit` and `poll` refuse with 503 unless a real partner is configured
+  (F24's first half is `dbs.providerGuard.test.ts`, which fails if a mock, a non-null default, a production
+  `setDbsProvider` call or an `INSERT INTO documents` returns);
+- a check result no longer becomes a `documents` row, so nothing on this path can be evidence;
+- migration 153 stores the permitted metadata and **only** it — reference, issue date, recruitment decision
+  with its date and who took it, renewal date, note — with a `purge_after` on every row that holds any of it;
+- the purge runs nightly and deletes the reference, the issue date and the note six months after the
+  recruitment decision, keeping the level, workforce, status, times, cost, decision and renewal marker — the
+  columns an inspector asks about — and stamps the deletion so the empty field is not read as data loss;
+- the deadline is never extended: a write whose date has passed is refused with the dates named, and the
+  compliance screen shows, per record, what is held, when it goes and what has already gone;
+- and the screen says **MeticleCare does not submit DBS checks yet**, in the API's own words, with the
+  buttons disabled rather than refusing after the fact.
+
+**Why it belongs in Class 1.** Both halves were checkable and checkable-wrong: a three-year retention claim
+against a documented six-month rule, and an approved document nobody had verified. The second is the more
+serious, and it is the same error class as F18's green tick — a status the system asserted on its own.
+
 ---
 
 ## Class 2: Unverifiable from the repository
@@ -275,6 +313,7 @@ These are the good ones. Listed so a future pass does not sand them down into co
 | `LOCATION_RECORDING_GUIDE.md` | Cross-checks its own claims against the code via assertions, so a claim cannot outlive the code that made it true. |
 | `ai.capabilities.ts` `FORBIDDEN_CLAIMS` | Machine-readable guard against a capability's marketing name returning. The same idea as the new prompt tests, and it is why the marketing sweep is a test rather than a review. |
 | `ai.boundary.test.ts` | Fails the build if any call site bypasses the redaction seam. |
+| `FeaturesPage` "Right to Work & DBS Reminders" card; `FeaturePage` "Right-to-work and DBS reminders" | True in a bounded sense, and the boundary now has code behind it. The product **tracks** DBS level, workforce, certificate reference, status and expiry, and alerts before documents expire. It does **not** run or submit a check. Since phase 0 of `docs/DBS_INTEGRATION_PLAN.md` (16 October 2026) it cannot pretend to: the mock provider is gone, `submit` and `poll` refuse with 503 unless a partner is configured, and a `clear` result no longer mints an approved document. The card's "Right to work checks" described documents a provider uploads, not a check we perform, and that wording was **changed on 16 October 2026** rather than left to watch: the card now reads "Right-to-work documents and DBS renewals tracked", the compliance page's DBS panel is titled "DBS Tracking" instead of "DBS Checks", and the document type is labelled "DBS Certificate" rather than "DBS Check" — across `FeaturesPage`, `FeaturePage`, `PlatformPage`, the marketing compliance page, the compliance and identity pages, the onboarding step, the agency worker form and the Learning Center. What stays is the DBS scheme's own vocabulary (level, workforce, certificate, Update Service) and the field names of facts recorded about a worker's own certificate; what is gone is the product describing itself as doing the checking. Since phase 3 (same day) the product also runs the **Update Service re-check** loop: a consent-led subscription on the staff record, status checks a manager records against it, a renewal marker and reminders when one falls due. The check itself is performed by the provider's staff on the Update Service; what we do is record it, schedule it and remind. Nothing in that workflow can submit an application or produce a certificate — asserted in `dbs.providerGuard.test.ts` — so "DBS checks" remains a description of our record, not of an action we take. |
 
 ---
 

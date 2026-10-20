@@ -338,7 +338,7 @@ export default function OnboardingFlow() {
                   { num: 1, title: 'Add your locations', desc: 'Go to Locations and add each supported living property. Set minimum staff levels for day, night and sleep-in shifts.', link: '/locations' },
                   { num: 2, title: 'Add the people you support', desc: 'Go to People → Add Person for each resident. Include support level, care plans, medication needs and GP details.', link: '/people' },
                   { num: 3, title: 'Set up staff schedules', desc: 'Go to Rota Planner and create shift patterns. Use the Shift Marketplace to let staff pick up extra shifts.', link: '/scheduling' },
-                  { num: 4, title: 'Configure compliance', desc: 'Go to Compliance → Training Matrix and set up required training modules. Upload DBS checks and right-to-work documents.', link: '/compliance' },
+                  { num: 4, title: 'Configure compliance', desc: 'Go to Compliance → Training Matrix and set up required training modules. Upload DBS certificates and right-to-work documents.', link: '/compliance' },
                   { num: 5, title: 'Invite your team', desc: 'Go to Staff Directory and invite managers and support workers. Assign roles and locations.', link: '/staff' },
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows staffing coverage, compliance scores, upcoming shifts, and incident alerts at a glance.', link: '/dashboard' },
                 ].map(item => (

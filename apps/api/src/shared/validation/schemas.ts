@@ -37,8 +37,13 @@ export const resetPasswordSchema = z.object({
     .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
 });
 
+// Optional in the body on purpose: the web app's refresh token is an httpOnly
+// cookie it never reads, so a required body field made renewal impossible for
+// the one client that depends on it. A request that carries neither is refused
+// by the controller with the same 401 as an invalid token, so nothing that used
+// to be rejected is now accepted without a credential.
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1),
+  refreshToken: z.string().min(1).optional(),
 });
 
 export const verifyEmailSchema = z.object({
@@ -498,6 +503,46 @@ export const createTemplateSchema = z.object({
   name: z.string().min(1),
   start_time: z.string().min(1),
   end_time: z.string().min(1),
+});
+
+// Shift attendance (blueprint §9.1). Every field is optional because the common
+// case is a worker pressing one button, and the offline fields are optional at
+// the edge and required by the offline route itself — `recordShiftOfflineAction`
+// refuses a queue entry with no action key, so the guarantee stays where it is
+// enforced rather than being restated here.
+const shiftAttendanceFields = {
+  note: z.string().trim().max(5000).optional(),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
+  accuracy_meters: z.number().min(0).max(10000).optional(),
+  recorded_at: z.string().datetime({ offset: true, message: 'Recorded time must be an ISO 8601 datetime string' }).optional(),
+  action_key: z.string().trim().min(8).max(120).optional(),
+};
+
+export const shiftClockOnSchema = z.object(shiftAttendanceFields);
+export const shiftClockOffSchema = z.object(shiftAttendanceFields);
+
+export const shiftHandoverSchema = z.object({
+  what_happened: z.string().trim().min(1, 'Say what happened during the shift').max(10000),
+  outstanding: z.string().trim().max(10000).nullish(),
+  who_is_aware: z.string().trim().max(5000).nullish(),
+  recorded_at: z.string().datetime({ offset: true, message: 'Recorded time must be an ISO 8601 datetime string' }).optional(),
+  action_key: z.string().trim().min(8).max(120).optional(),
+});
+
+export const shiftHandoverAcknowledgementSchema = z.object({
+  note: z.string().trim().max(2000).nullish(),
+});
+
+// The offline queue's route serves all three actions, so its payload has to
+// accept an attendance body and a handover body. The action key is required by
+// `recordShiftOfflineAction` rather than here — one place enforces it for every
+// action, which is what a contract shared by three callers needs.
+export const shiftOfflineActionSchema = z.object({
+  ...shiftAttendanceFields,
+  what_happened: z.string().trim().min(1, 'Say what happened during the shift').max(10000).optional(),
+  outstanding: z.string().trim().max(10000).nullish(),
+  who_is_aware: z.string().trim().max(5000).nullish(),
 });
 
 // === People ===

@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store'
-import type { AuthSession, OfflineVisitAction, QueuedIncidentReport } from '../types'
+import type { AuthSession, OfflineVisitAction, QueuedIncidentReport, QueuedShiftClockAction } from '../types'
 
 const SESSION_KEY = 'meticlecare.session'
 const QUEUE_KEY = 'meticlecare.visit-queue'
@@ -21,6 +21,96 @@ export async function writeSession(session: AuthSession) {
 
 export async function clearSession() {
   await SecureStore.deleteItemAsync(SESSION_KEY)
+}
+
+/**
+ * A handover the carer finished typing with no connection.
+ *
+ * The handover is the record that the responsibility for the people in the setting
+ * changed hands, and at the end of a night shift the connection is often the last
+ * thing to work. Refusing the write would leave the carer with nowhere to put the
+ * sentence they had just composed, so the draft is kept on the device and offered
+ * back to them; it is not sent in the background, because the wording is theirs and
+ * they should see it land.
+ */
+export interface HandoverDraft {
+  shiftId: string
+  whatHappened: string
+  outstanding: string
+  whoIsAware: string
+  savedAt: string
+}
+
+const HANDOVER_DRAFT_PREFIX = 'meticlecare.handover-draft.'
+
+const isHandoverDraft = (value: unknown, shiftId: string): value is HandoverDraft => {
+  if (!value || typeof value !== 'object') return false
+  const draft = value as Partial<HandoverDraft>
+  return draft.shiftId === shiftId
+    && typeof draft.whatHappened === 'string' && draft.whatHappened.length <= 10_000
+    && typeof draft.outstanding === 'string' && draft.outstanding.length <= 10_000
+    && typeof draft.whoIsAware === 'string' && draft.whoIsAware.length <= 5_000
+    && typeof draft.savedAt === 'string'
+}
+
+export async function readHandoverDraft(shiftId: string): Promise<HandoverDraft | null> {
+  try {
+    const value = await SecureStore.getItemAsync(`${HANDOVER_DRAFT_PREFIX}${shiftId}`)
+    if (!value || value.length > 30_000) return null
+    const parsed: unknown = JSON.parse(value)
+    return isHandoverDraft(parsed, shiftId) ? parsed : null
+  } catch { return null }
+}
+
+export async function writeHandoverDraft(draft: HandoverDraft): Promise<void> {
+  await SecureStore.setItemAsync(`${HANDOVER_DRAFT_PREFIX}${draft.shiftId}`, JSON.stringify(draft))
+}
+
+export async function clearHandoverDraft(shiftId: string): Promise<void> {
+  await SecureStore.deleteItemAsync(`${HANDOVER_DRAFT_PREFIX}${shiftId}`).catch(() => {})
+}
+
+/**
+ * A clock-on or clock-off that never reached the server.
+ *
+ * A support worker clocks on standing in a building with no signal as often as with
+ * one, and a clock-on that vanishes because the request never left the phone is worse
+ * than no button at all — the worker believes they are on duty and the record says
+ * nobody was. The queue keeps the action with the key it was created with, so the
+ * retry is the same action rather than a second one.
+ *
+ * The bound is small on purpose: these are one or two actions per shift, and a queue
+ * that could grow without limit is a way to lose the newest action behind stale ones.
+ */
+const SHIFT_CLOCK_QUEUE_KEY = 'meticlecare.shift-clock-queue'
+const MAX_SHIFT_CLOCK_QUEUE_ITEMS = 20
+
+const isQueuedShiftClockAction = (value: unknown): value is QueuedShiftClockAction => {
+  if (!value || typeof value !== 'object') return false
+  const item = value as Partial<QueuedShiftClockAction>
+  const payload = item.payload as QueuedShiftClockAction['payload'] | undefined
+  return typeof item.key === 'string' && item.key.length >= 8 && item.key.length <= 120
+    && typeof item.shiftId === 'string' && item.shiftId.length > 0
+    && (item.action === 'clock-on' || item.action === 'clock-off')
+    && !!payload && typeof payload === 'object'
+    && typeof payload.recorded_at === 'string' && !Number.isNaN(Date.parse(payload.recorded_at))
+    && typeof payload.action_key === 'string'
+    && (payload.note === undefined || payload.note === null || typeof payload.note === 'string')
+    && typeof item.createdAt === 'string' && !Number.isNaN(Date.parse(item.createdAt))
+}
+
+export async function readShiftClockQueue(): Promise<QueuedShiftClockAction[]> {
+  try {
+    const value = await SecureStore.getItemAsync(SHIFT_CLOCK_QUEUE_KEY)
+    if (!value || value.length > 20_000) return []
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed.filter(isQueuedShiftClockAction).slice(0, MAX_SHIFT_CLOCK_QUEUE_ITEMS) : []
+  } catch { return [] }
+}
+
+export async function writeShiftClockQueue(queue: QueuedShiftClockAction[]): Promise<void> {
+  const next = queue.filter(isQueuedShiftClockAction).slice(-MAX_SHIFT_CLOCK_QUEUE_ITEMS)
+  await SecureStore.setItemAsync(SHIFT_CLOCK_QUEUE_KEY, JSON.stringify(next))
 }
 
 export async function readQueue(): Promise<OfflineVisitAction[]> {

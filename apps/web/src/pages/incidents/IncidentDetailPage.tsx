@@ -37,8 +37,8 @@ function localDateParam(value: string) {
 }
 
 function openFileInNewTab(url: string) {
-  const token = localStorage.getItem('accessToken')
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+  // Same-origin request: the session cookie authenticates it.
+  fetch(url).then(r => r.blob()).then(b => {
     window.open(URL.createObjectURL(b), '_blank', 'noopener')
   }).catch(() => {})
 }

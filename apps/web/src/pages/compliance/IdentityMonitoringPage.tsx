@@ -186,7 +186,7 @@ export default function IdentityMonitoringPage() {
 
       <PageHeader
         title="DBS & Identity Monitoring"
-        subtitle="Track DBS checks and identity documents."
+        subtitle="Track DBS certificates, right-to-work documents and their expiry dates."
         actions={
           <>
             <Button variant="contained" startIcon={<UploadIcon />} onClick={() => setUploadOpen(true)}>Upload Document</Button>

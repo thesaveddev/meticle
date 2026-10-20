@@ -80,8 +80,13 @@ deployment; deployments carrying real care data must set
 ## 4. Access control
 
 **Authentication.** JWT access tokens with rotating single-use refresh tokens.
-Refresh tokens are held in `httpOnly`, `secure` (in production) cookies with
-`sameSite=lax`, so they are not readable from JavaScript.
+Both are issued as `httpOnly`, `secure` (in production) cookies with
+`sameSite=lax` — `accessToken` for 15 minutes, `refreshToken` for 7 days — and
+that pair *is* the web session: the API accepts the access cookie in place of an
+`Authorization: Bearer` header, which is what the mobile app and every scripted
+client still send (the header wins when both are present). No script on the page
+can read either token, and `sameSite=lax` is what stops another site making the
+browser send them; see the Cookie Policy for the full inventory.
 
 **Multi-factor.** Available and enforced per user. Progressive lockout applies:
 three failed MFA attempts trigger a one-hour block.

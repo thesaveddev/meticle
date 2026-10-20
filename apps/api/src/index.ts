@@ -37,6 +37,7 @@ import mfaRoutes from './modules/mfa/mfa.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
 import pushRoutes from './modules/notifications/push.routes';
+import emailUnsubscribeRoutes from './modules/notifications/email-unsubscribe.routes';
 import permissionRoutes from './modules/permissions/permissions.routes';
 import leaveRoutes from './modules/leave/leave.routes';
 import chatRoutes from './modules/chat/chat.routes';
@@ -237,6 +238,8 @@ app.use('/incidents', authenticate, requireCareOrganisation, incidentRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/notifications/push', pushRoutes);
+// Public: an unsubscribe link has to work without a session to be a real way out.
+app.use('/email', emailUnsubscribeRoutes);
 app.use('/permissions', permissionRoutes);
 app.use('/training', trainingRoutes);
 app.use('/competency', competencyRoutes);
@@ -305,6 +308,31 @@ app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
   res.status(dbOk ? 200 : 503).json({
     status: dbOk ? 'ok' : 'degraded',
     database: dbOk ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  });
+}));
+
+// Scheduled-job heartbeats, on the same unauthenticated footing as `/health/ready`
+// because the monitor that polls it (`monitor/health_check.py`) has no token. It
+// reports job names, timestamps and summaries only — platform operations metadata, never
+// a provider's data — and answers 200 even when a job is late, because a health endpoint
+// that fails for a stale nightly job would restart containers rather than tell anybody
+// about the job.
+app.get('/health/jobs', asyncHandler(async (_req: Request, res: Response) => {
+  const jobs = await readJobHeartbeats();
+  const stale = jobs.filter(job => job.stale);
+  res.json({
+    status: stale.length === 0 ? 'ok' : 'stale',
+    stale: stale.map(job => ({
+      job: job.job_name,
+      description: job.job_name in EXPECTED_JOB_CADENCE ? EXPECTED_JOB_CADENCE[job.job_name].description : null,
+      last_completed_at: job.last_completed_at,
+      last_success_at: job.last_success_at,
+      age_minutes: job.age_minutes,
+      max_age_minutes: job.max_age_minutes,
+      last_error: job.last_error,
+    })),
+    jobs,
     timestamp: new Date().toISOString(),
   });
 }));
@@ -574,6 +602,140 @@ const stockReorderTimer = setInterval(() => {
     .catch(err => logger.error(err, 'Stock reorder sweep check failed'));
 }, 5 * 60 * 1000);
 stockReorderTimer.unref();
+
+// DBS Update Service re-checks — remind managers when a status check falls due,
+// goes overdue, or a certificate renewal is still outstanding.
+//
+// Every six hours rather than every five minutes, because the thing being
+// measured is a calendar date: nothing here changes within a day except by
+// crossing midnight, and DBS does not push changes to employers at all. The
+// reminder ledger (dbs_update_service_reminders) is what makes even a frequent
+// tick safe — one notification per (subscription, kind, due date) — so the
+// cadence is about how quickly a provider is told, not about how often it can
+// be told.
+import { runUpdateServiceReminders } from './modules/dbs/dbs.updateService';
+const DBS_UPDATE_SERVICE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
+const dbsUpdateServiceTimer = setInterval(() => {
+  if (!databaseReady) return;
+  runUpdateServiceReminders()
+    .then(result => { if (result.notified > 0) logger.info(result, 'DBS update service reminders sent'); })
+    .catch(err => logger.error(err, 'DBS update service reminder check failed'));
+}, DBS_UPDATE_SERVICE_CHECK_INTERVAL);
+dbsUpdateServiceTimer.unref();
+
+// DBS certificate retention — the six-month rule, enforced by a job rather than
+// by a paragraph in a plan (docs/DBS_INTEGRATION_PLAN.md §5 and §6).
+//
+// Nightly, and date-keyed for the same reason the carer-location purge is: a
+// 24-hour `setInterval` drifts with restarts and will skip a day across a
+// deploy, and a period measured in months does not need to be more punctual
+// than the day. Hourly ticks then cost one indexed read.
+//
+// Only providers with a check genuinely past its date are visited, so an
+// organisation with nothing to purge runs nothing and logs nothing — the runs
+// that appear in the log are the ones worth reading.
+import { runScheduledDbsCertificatePurges } from './modules/dbs/dbs.certificateRetention';
+import { DBS_CERTIFICATE_RETENTION_JOB, surfaceStalledRetentionSweep } from './modules/dbs/dbs.certificateRetentionAlert';
+import { EXPECTED_JOB_CADENCE, readJobHeartbeats, readStaleJobs } from './shared/jobs/heartbeat';
+const DBS_RETENTION_CHECK_INTERVAL = 60 * 60 * 1000; // every hour
+let lastDbsRetentionDate = '';
+function runDbsRetentionCheck() {
+  if (!databaseReady) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (today === lastDbsRetentionDate) return;
+  lastDbsRetentionDate = today;
+  runScheduledDbsCertificatePurges()
+    .then(result => { if (result.purged > 0 || result.failed > 0) logger.info(result, 'DBS certificate retention check complete') })
+    .catch(err => logger.error(err, 'DBS certificate retention check failed'));
+}
+databaseReadyPromise.then(() => setTimeout(runDbsRetentionCheck, 25_000));
+setInterval(runDbsRetentionCheck, DBS_RETENTION_CHECK_INTERVAL);
+
+// The heartbeat check: is the retention job still running at all?
+//
+// The purge raises its warnings from inside its own run, so it cannot warn about its
+// own absence — a job that stopped is a job that says nothing, and certificate
+// information then sits in the database indefinitely while the provider believes a
+// nightly job is deleting it. So this reads the heartbeat, names the job in the log and
+// in `/health/jobs`, and — the part a manager sees — judges each provider's held
+// certificate information directly, so the over-retention alert is raised whether or not
+// a sweep was there to raise it.
+//
+// Hourly, and the first check waits ten minutes after boot so a normal startup's own
+// run has had its chance to stamp the heartbeat. A stale reading is logged once per
+// check rather than per request: this is a condition, not an event.
+const JOB_HEARTBEAT_CHECK_INTERVAL = 60 * 60 * 1000;
+async function checkJobHeartbeats() {
+  try {
+    const stale = await readStaleJobs();
+    for (const job of stale) {
+      logger.error(
+        { job: job.job_name, lastCompletedAt: job.last_completed_at, ageMinutes: job.age_minutes, maxAgeMinutes: job.max_age_minutes },
+        'Scheduled job has not completed a run inside its declared cadence',
+      );
+    }
+    if (stale.some(job => job.job_name === DBS_CERTIFICATE_RETENTION_JOB)) {
+      const surfaced = await surfaceStalledRetentionSweep();
+      if (surfaced.flagged > 0) {
+        logger.error(surfaced, 'Providers are holding DBS certificate information past retention with no purge running');
+      }
+    }
+  } catch (err) {
+    logger.error(err, 'Job heartbeat check failed');
+  }
+}
+databaseReadyPromise.then(() => setTimeout(() => { if (databaseReady) void checkJobHeartbeats(); }, 10 * 60 * 1000));
+const jobHeartbeatTimer = setInterval(() => { if (databaseReady) void checkJobHeartbeats(); }, JOB_HEARTBEAT_CHECK_INTERVAL);
+jobHeartbeatTimer.unref();
+
+// Handover due at shift end — the last open event type in the supported-living
+// blueprint's §9.9. A shift that ends with no handover recorded is a transfer of
+// responsibility that silently did not happen, and until now nothing told the worker
+// who owed one: the record existed (§9.2), but its absence was invisible unless a
+// manager happened to open the rota.
+//
+// Every fifteen minutes rather than nightly, because the nudge is only worth anything
+// while the worker can still remember the shift and the daily plan email has not long
+// gone out. A frequent tick is safe: `shifts.handover_due_notified_at` (migration 154)
+// makes it one nudge per shift however often this runs.
+import { runHandoverDueSweep } from './modules/scheduling/shiftHandoverDue';
+const HANDOVER_DUE_CHECK_INTERVAL = 15 * 60 * 1000; // every 15 minutes
+const handoverDueTimer = setInterval(() => {
+  if (!databaseReady) return;
+  runHandoverDueSweep()
+    .then(result => { if (result.published > 0) logger.info(result, 'Handover-due nudges raised') })
+    .catch(err => logger.error(err, 'Handover-due sweep failed'));
+}, HANDOVER_DUE_CHECK_INTERVAL);
+handoverDueTimer.unref();
+databaseReadyPromise.then(() => setTimeout(() => {
+  runHandoverDueSweep()
+    .then(result => { if (result.published > 0) logger.info(result, 'Handover-due nudges raised') })
+    .catch(err => logger.error(err, 'Handover-due sweep failed'));
+}, 40_000));
+
+// Room check overdue — blueprint §9.9's last event type. A room check is a daily
+// record of an occupied room's cleanliness and safety, and the gap the product could
+// not see was the *absence* of one: there is nothing in the table to be "due".
+//
+// Every thirty minutes, because the rule is time-of-day shaped: nothing is overdue
+// until the provider's own day passes 18:00, and once it has, the nudge is worth
+// having quickly. A frequent tick is safe — `room_check_nudges` (migration 155)
+// records what has been said, so a room is reported once a day however often this
+// runs, and nothing at all happens before the due hour.
+import { runRoomCheckOverdueSweep } from './modules/room-checks/roomCheckOverdue';
+const ROOM_CHECK_OVERDUE_INTERVAL = 30 * 60 * 1000; // every 30 minutes
+const roomCheckOverdueTimer = setInterval(() => {
+  if (!databaseReady) return;
+  runRoomCheckOverdueSweep()
+    .then(result => { if (result.published > 0) logger.info(result, 'Room-check-overdue nudges raised') })
+    .catch(err => logger.error(err, 'Room-check-overdue sweep failed'));
+}, ROOM_CHECK_OVERDUE_INTERVAL);
+roomCheckOverdueTimer.unref();
+databaseReadyPromise.then(() => setTimeout(() => {
+  runRoomCheckOverdueSweep()
+    .then(result => { if (result.published > 0) logger.info(result, 'Room-check-overdue nudges raised') })
+    .catch(err => logger.error(err, 'Room-check-overdue sweep failed'));
+}, 55_000));
 
 // Alert org admins about locations with no manager (every 6 hours, plus on location mutations)
 const LOCATION_COVERAGE_INTERVAL = 6 * 60 * 60 * 1000;

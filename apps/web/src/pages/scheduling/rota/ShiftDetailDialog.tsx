@@ -9,6 +9,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material'
 import { rotaHelpers } from './helpers'
+import ShiftAttendancePanel from './ShiftAttendancePanel'
 
 const { shiftVisual, isShiftPast } = rotaHelpers
 
@@ -19,6 +20,8 @@ interface ShiftDetailDialogProps {
   canEdit: boolean
   isReadOnly: boolean
   canClaim: boolean
+  /** Managers and admins may write a handover on a shift nobody was on. */
+  isManager: boolean
   currentStaffId: string | null
   canEditLocation: (locationId: string) => boolean
   assignedStaffIdsByDate: Map<string, Set<string>>
@@ -29,6 +32,8 @@ interface ShiftDetailDialogProps {
   onToggleCoverage: (shiftId: string, currentlyCovered: boolean) => void
   onClaimShift: (shiftId: string) => void
   onUnassign: (shiftId: string, staffId: string) => void
+  /** Attendance or a handover changed: the grid behind the dialog is stale. */
+  onAttendanceRecorded?: () => void
 }
 
 const fmtDate = (iso: string) => {
@@ -42,9 +47,9 @@ const fmtTime = (iso: string) => {
 }
 
 export default function ShiftDetailDialog({
-  shift, open, onClose, canEdit, isReadOnly, canClaim, currentStaffId,
+  shift, open, onClose, canEdit, isReadOnly, canClaim, isManager, currentStaffId,
   canEditLocation, assignedStaffIdsByDate, onEdit, onAssign, onSwap,
-  onDeleteShift, onToggleCoverage, onClaimShift, onUnassign,
+  onDeleteShift, onToggleCoverage, onClaimShift, onUnassign, onAttendanceRecorded,
 }: ShiftDetailDialogProps) {
   if (!shift) return null
   const isOpen = (shift.assignments?.length || 0) === 0
@@ -119,6 +124,16 @@ export default function ShiftDetailDialog({
               </Box>
             </>
           )}
+
+          {/* Attendance and handover live on the record's own view: this is the
+              dialog the rota deep link opens, so it is where a support worker
+              finds their clock button and where a handover is read. */}
+          <ShiftAttendancePanel
+            shiftId={shift.id}
+            isAssignedToMe={assignedToMe}
+            isManager={isManager}
+            onRecorded={onAttendanceRecorded}
+          />
 
           {shift.agency_id && (
             <>

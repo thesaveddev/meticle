@@ -110,6 +110,37 @@ export class DashboardRepository {
       [userId]
     );
 
+    // Who the expiring background checks belong to.
+    //
+    // The widget has always reported a count, and a count cannot be opened: the
+    // dashboard reminder had nowhere to send a manager except the compliance page. A
+    // reminder about a person's check is about that person's record, so the same read
+    // names the earliest expiring check per staff member (with the document's own id,
+    // which is what the record link needs). The filters are the count's filters
+    // character for character — a list that disagreed with the number above it is the
+    // kind of drift that makes both look wrong.
+    const dbsExpiringStaffResult = await query(
+      `SELECT * FROM (
+         SELECT DISTINCT ON (d.staff_id)
+                d.id AS document_id,
+                sp.user_id AS staff_user_id,
+                COALESCE(NULLIF(TRIM(sp.first_name || ' ' || sp.last_name), ''), u.email) AS staff_name,
+                d.type AS document_type,
+                d.expiry_date::text AS expires_on,
+                (d.expiry_date - CURRENT_DATE)::int AS days_until
+         FROM documents d
+         JOIN staff_profiles sp ON d.staff_id = sp.id
+         JOIN users u ON u.id = sp.user_id
+         JOIN organizations o ON o.id = u.organization_id
+         WHERE u.organization_id = $1 AND d.type = ANY(${VETTING_DOC_TYPES_SQL}) AND d.status = 'approved'
+           AND d.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+         ORDER BY d.staff_id, d.expiry_date ASC
+       ) sub
+       ORDER BY days_until ASC, staff_name ASC
+       LIMIT 5`,
+      [orgId],
+    );
+
     // Satisfaction average
     const satResult = await query(
       `SELECT ROUND(AVG(rating)::numeric, 1) as avg_rating, COUNT(*)::int as total
@@ -137,6 +168,7 @@ export class DashboardRepository {
 
     return {
       dbs_expiring_soon: dbsResult.rows[0]?.count ?? 0,
+      dbs_expiring_staff: dbsExpiringStaffResult.rows,
       training_expiring_soon: trainingResult.rows[0]?.count ?? 0,
       pending_leave_requests: leaveResult.rows[0]?.count ?? 0,
       unread_notifications: notifResult.rows[0]?.count ?? 0,

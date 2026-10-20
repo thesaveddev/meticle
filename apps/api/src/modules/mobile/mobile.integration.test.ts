@@ -159,6 +159,164 @@ describe('Mobile — check-in, roster, voice notes', () => {
     expect(Array.isArray(res.body)).toBe(true)
   })
 
+  it('lists the carer\'s own shifts with the handover state of each', async () => {
+    const org = await createOrg()
+    const location = await createLocation({ organizationId: org.id, name: 'Ash Grove' })
+    const worker = await createUser({ email: `mob-handover-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const staff = await createStaffProfile({ userId: worker.id, locationId: location.id })
+    const colleague = await createUser({ email: `mob-handover-colleague-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const colleagueStaff = await createStaffProfile({ userId: colleague.id, locationId: location.id })
+    const token = generateToken(worker)
+    const colleagueToken = generateToken(colleague)
+
+    // A shift that has ended: `/my-roster` cannot see it (it only looks forward),
+    // and it is exactly the shift whose handover is due.
+    const shift = await createShift({
+      locationId: location.id,
+      start_time: new Date(Date.now() - 8 * 60 * 60_000).toISOString(),
+      end_time: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
+      shift_type: 'day',
+      status: 'filled',
+    })
+    for (const member of [staff, colleagueStaff]) {
+      await migrateQuery(
+        `INSERT INTO shift_assignments (shift_id, staff_id, status) VALUES ($1,$2,'assigned')`,
+        [shift.id, member.id],
+      )
+    }
+    // Somebody else's shift, which must not appear in this carer's list.
+    const otherShift = await createShift({
+      locationId: location.id,
+      start_time: new Date(Date.now() - 8 * 60 * 60_000).toISOString(),
+      end_time: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
+      status: 'filled',
+    })
+
+    const before = await request(app)
+      .get('/mobile/my-shifts')
+      .set('Authorization', `Bearer ${token}`)
+    expect(before.status).toBe(200)
+    const mine = before.body.find((row: any) => row.id === shift.id)
+    expect(mine).toMatchObject({
+      location_name: 'Ash Grove',
+      shift_type: 'day',
+      handover_due: true,
+      handover: null,
+    })
+    expect(before.body.some((row: any) => row.id === otherShift.id)).toBe(false)
+
+    // The worker writes the handover, then the colleague's view is the one that has
+    // not acknowledged it — the two states the screen renders.
+    const written = await request(app)
+      .post(`/shifts/${shift.id}/handover`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ what_happened: 'Calm shift. Two residents out at day service.', outstanding: 'Review the fluid chart for room 4.' })
+    expect(written.status).toBe(201)
+
+    const colleagueView = await request(app)
+      .get('/mobile/my-shifts')
+      .set('Authorization', `Bearer ${colleagueToken}`)
+    const colleagueRow = colleagueView.body.find((row: any) => row.id === shift.id)
+    expect(colleagueRow.handover_due).toBe(false)
+    expect(colleagueRow.handover).toMatchObject({
+      version: 1,
+      acknowledgement_count: 0,
+      viewer_acknowledged: false,
+      viewer_is_author: false,
+    })
+
+    const acknowledged = await request(app)
+      .post(`/shifts/${shift.id}/handover/acknowledge`)
+      .set('Authorization', `Bearer ${colleagueToken}`)
+      .send({})
+    expect(acknowledged.status).toBe(201)
+
+    const afterAck = await request(app)
+      .get('/mobile/my-shifts')
+      .set('Authorization', `Bearer ${colleagueToken}`)
+    expect(afterAck.body.find((row: any) => row.id === shift.id).handover).toMatchObject({
+      acknowledgement_count: 1,
+      viewer_acknowledged: true,
+    })
+
+    // The author's own view still says they have not acknowledged it, because the
+    // server refuses that: the screen must not offer the button.
+    const authorView = await request(app)
+      .get('/mobile/my-shifts')
+      .set('Authorization', `Bearer ${token}`)
+    expect(authorView.body.find((row: any) => row.id === shift.id).handover).toMatchObject({
+      viewer_is_author: true,
+      viewer_acknowledged: false,
+    })
+  })
+
+  // The schedule list has to say which shift is still open, because the phone is where
+  // it is clocked on. These three states are the ones the row renders, and they are
+  // read from the same counted rule the attendance endpoint applies — an offset alone
+  // would call a worker who stepped out and came back "clocked off".
+  it('reports this carer\'s own attendance on each shift in the list', async () => {
+    const org = await createOrg()
+    const location = await createLocation({ organizationId: org.id, name: 'Ash Grove' })
+    const worker = await createUser({ email: `mob-clock-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    const staff = await createStaffProfile({ userId: worker.id, locationId: location.id })
+    const token = generateToken(worker)
+
+    const shift = await createShift({
+      locationId: location.id,
+      start_time: new Date(Date.now() - 60 * 60_000).toISOString(),
+      end_time: new Date(Date.now() + 5 * 60 * 60_000).toISOString(),
+      shift_type: 'day',
+      status: 'filled',
+    })
+    await migrateQuery(
+      `INSERT INTO shift_assignments (shift_id, staff_id, status) VALUES ($1,$2,'assigned')`,
+      [shift.id, staff.id],
+    )
+
+    const rowFor = async () => {
+      const res = await request(app).get('/mobile/my-shifts').set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+      return res.body.find((row: any) => row.id === shift.id)
+    }
+
+    expect(await rowFor()).toMatchObject({ clocked_on_at: null, clocked_off_at: null, on_duty: false })
+
+    const clockedOn = await request(app)
+      .post(`/shifts/${shift.id}/clock-on`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ note: 'Arrived to a quiet house' })
+    expect(clockedOn.status).toBe(201)
+
+    const during = await rowFor()
+    expect(during.on_duty).toBe(true)
+    expect(during.clocked_on_at).toBeTruthy()
+    // Nothing has been clocked off yet, so there is no end to report.
+    expect(during.clocked_off_at).toBeNull()
+
+    const clockedOff = await request(app)
+      .post(`/shifts/${shift.id}/clock-off`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+    expect(clockedOff.status).toBe(201)
+
+    const after = await rowFor()
+    expect(after.on_duty).toBe(false)
+    // Both ends stay legible: the shift was worked, and the row says so.
+    expect(after.clocked_off_at).toBeTruthy()
+    expect(new Date(after.clocked_off_at).getTime()).toBeGreaterThanOrEqual(new Date(after.clocked_on_at).getTime())
+  })
+
+  it('rejects a malformed window rather than guessing one', async () => {
+    const org = await createOrg()
+    const worker = await createUser({ email: `mob-window-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: worker.id })
+
+    const res = await request(app)
+      .get('/mobile/my-shifts?from=last-week')
+      .set('Authorization', `Bearer ${generateToken(worker)}`)
+    expect(res.status).toBe(400)
+  })
+
   it('should reject without auth (401)', async () => {
     const res = await request(app).get('/mobile/my-roster')
     expect(res.status).toBe(401)

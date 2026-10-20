@@ -158,8 +158,9 @@ export default function RegisterPage() {
 
       const storedUser = res.data.user
       storedUser.first_name = data.firstName
-      localStorage.setItem('accessToken', res.data.accessToken)
-      localStorage.setItem('refreshToken', res.data.refreshToken)
+      // Registration is a sign-in: the API set the session cookies on the
+      // response, so the browser is already authenticated for the onboarding
+      // step this navigates to. No token is kept.
       localStorage.setItem('user', JSON.stringify(storedUser))
 
       if (token) {

@@ -219,6 +219,163 @@ export interface TeamMember {
   role: string
 }
 
+/* ─── Supported living: shift handover ──────────────────────── */
+
+/**
+ * The supported-living shift handover, as the API returns it (`GET /shifts/:id/handover`).
+ *
+ * One current handover per shift, amended by keeping every version: `revisions` is
+ * newest first and carries the wording a colleague already read, so an amendment
+ * cannot quietly rewrite history. `viewer_*` are computed for the signed-in user —
+ * the server refuses an author's own acknowledgement, and the screen relies on
+ * `viewer_is_author` never offering the button rather than discovering the 400.
+ */
+export interface ShiftHandoverAcknowledgement {
+  id: string
+  user_id: string
+  staff_id: string | null
+  acknowledged_by_name: string
+  note: string | null
+  acknowledged_at: string
+}
+
+export interface ShiftHandover {
+  id: string
+  shift_id: string
+  author_id: string
+  author_name: string
+  what_happened: string
+  outstanding: string | null
+  who_is_aware: string | null
+  version: number
+  recorded_at: string
+  created_at: string
+  updated_at: string
+  acknowledgements: ShiftHandoverAcknowledgement[]
+}
+
+export interface ShiftHandoverRevision {
+  id: string
+  version: number
+  author_id: string
+  author_name: string
+  what_happened: string
+  outstanding: string | null
+  who_is_aware: string | null
+  source: 'online' | 'offline'
+  recorded_at: string
+  created_at: string
+}
+
+export interface ShiftHandoverView {
+  handover: ShiftHandover | null
+  revisions: ShiftHandoverRevision[]
+  viewer_acknowledged: boolean
+  viewer_is_author: boolean
+}
+
+/** One of the signed-in carer's own shifts, with its handover state. */
+export interface MyShift {
+  id: string
+  location_id: string
+  location_name: string
+  shift_type: string
+  status: string
+  start_time: string
+  end_time: string
+  actual_start_at: string | null
+  actual_end_at: string | null
+  /** The first time this carer clocked on, across every interval they worked. */
+  clocked_on_at?: string | null
+  /** The last time this carer clocked off. Null when they are still on duty. */
+  clocked_off_at?: string | null
+  /** Counted clock-ons exceed clock-offs, so this carer is on duty right now. */
+  on_duty?: boolean
+  /** The shift has ended and nobody has written its handover. */
+  handover_due: boolean
+  handover: {
+    id: string
+    version: number
+    author_name: string
+    recorded_at: string
+    what_happened: string
+    acknowledgement_count: number
+    viewer_acknowledged: boolean
+    viewer_is_author: boolean
+  } | null
+}
+
+/* ─── Supported living: shift attendance ────────────────────── */
+
+/**
+ * One of the people rostered on a shift, with their own duty state.
+ *
+ * `worked_minutes` counts closed intervals only: an unfinished interval is not
+ * evidence of hours worked, so an on-duty row carries the time they have already
+ * completed rather than a running total that would move under the reader.
+ */
+export interface RosteredShiftStaff {
+  staff_id: string
+  user_id: string
+  first_name: string
+  last_name: string
+  assignment_status: string
+  is_overtime: boolean
+  /** The row belonging to the signed-in user. */
+  is_me: boolean
+  clocked_on_at: string | null
+  clocked_off_at: string | null
+  worked_minutes: number
+  on_duty: boolean
+}
+
+/** An append-only attendance event: when somebody clocked on or off. */
+export interface ShiftAttendanceEvent {
+  id: string
+  shift_id: string
+  event: 'clock_on' | 'clock_off'
+  source: 'online' | 'offline'
+  staff_id: string | null
+  user_id: string
+  staff_name: string
+  note: string | null
+  recorded_at: string
+  created_at: string
+}
+
+/** `GET /shifts/:id/attendance` — who was rostered, who was on duty, and when. */
+export interface ShiftAttendance {
+  shift_id: string
+  location_id: string
+  location_name: string
+  status: string
+  shift_type: string
+  start_time: string
+  end_time: string
+  actual_start_at: string | null
+  actual_end_at: string | null
+  /** True when nobody on the shift has clocked on at all. */
+  unattended: boolean
+  rostered: RosteredShiftStaff[]
+  events: ShiftAttendanceEvent[]
+}
+
+/**
+ * A clock action that could not reach the server, kept on the phone.
+ *
+ * `action_key` is generated once, when the worker presses the button, and reused by
+ * every retry: the API treats it as unique, so the retry is the same clock-on rather
+ * than a second one. `recorded_at` is the moment they actually pressed it, because
+ * that is the evidence — the server's receipt time is kept separately.
+ */
+export interface QueuedShiftClockAction {
+  key: string
+  shiftId: string
+  action: 'clock-on' | 'clock-off'
+  payload: { note?: string | null; recorded_at: string; action_key: string }
+  createdAt: string
+}
+
 /* ─── Manager view ─────────────────────────────────────────── */
 export interface ManagerVisitSummary {
   total: number

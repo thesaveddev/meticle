@@ -51,6 +51,7 @@ function renderWorkspace(serviceModel: 'domiciliary' | 'supported_living' = 'dom
             <Route path="incidents" element={<MissionControlIncidentsView />} />
           </Route>
           <Route path="/homecare" element={<div>Homecare destination</div>} />
+          <Route path="/scheduling" element={<div>Rota destination</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -303,6 +304,75 @@ describe('MissionControlWorkspace', () => {
       renderCallsTab(new Error('network down'))
       expect(await screen.findByText('Could not load the visits.')).toBeInTheDocument()
       expect(screen.queryByRole('table', { name: TABLE_NAME })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('handover gaps on the supported-living Compliance tab', () => {
+    const gap = (overrides: Record<string, unknown>) => ({
+      shift_id: 'shift-a',
+      shift_type: 'day',
+      start_time: '2026-10-15T08:00:00Z',
+      end_time: '2026-10-15T16:00:00Z',
+      location_id: 'loc-1',
+      location_name: 'Ash Grove',
+      staff_notified: true,
+      hours_since_end: 20,
+      rostered: [{ user_id: 'u1', name: 'Nadia Khan' }],
+      ...overrides,
+    })
+
+    it('lists each shift that ended without a handover, who was on it and whether they were told', async () => {
+      overrideGet('/mission-control/handover-gaps', { data: {
+        window_days: 7,
+        grace_minutes: 30,
+        total: 2,
+        shifts: [
+          gap({ rostered: [{ user_id: 'u1', name: 'Nadia Khan' }, { user_id: 'u2', name: 'Tom Abara' }] }),
+          gap({ shift_id: 'shift-b', location_name: 'Birch Lodge', staff_notified: false, rostered: [{ user_id: 'u3', name: 'Alex Reed' }] }),
+        ],
+      } })
+      renderWorkspace('supported_living', '/mission-control/compliance')
+
+      const table = await screen.findByRole('table', { name: 'Shifts that ended without a handover' })
+      const rows = within(table.querySelector('tbody')!).getAllByRole('row')
+      expect(rows).toHaveLength(2)
+      expect(within(rows[0]).getByText('Ash Grove')).toBeInTheDocument()
+      expect(within(rows[0]).getByText('Nadia Khan, Tom Abara')).toBeInTheDocument()
+      expect(within(rows[0]).getByText('2 staff on the shift')).toBeInTheDocument()
+      expect(within(rows[0]).getByText('Staff notified')).toBeInTheDocument()
+      expect(within(rows[1]).getByText('Birch Lodge')).toBeInTheDocument()
+      expect(within(rows[1]).getByText('Not yet notified')).toBeInTheDocument()
+      expect(screen.getByText(/2 shifts ended without a handover in the last 7 days/)).toBeInTheDocument()
+      expect(screen.getByText(/Shifts that ended in the last 30 minutes are left out/)).toBeInTheDocument()
+    })
+
+    it('opens the shift on the rota when its row is selected', async () => {
+      overrideGet('/mission-control/handover-gaps', { data: {
+        window_days: 7, grace_minutes: 30, total: 1, shifts: [gap({})],
+      } })
+      renderWorkspace('supported_living', '/mission-control/compliance')
+
+      const table = await screen.findByRole('table', { name: 'Shifts that ended without a handover' })
+      const row = within(table.querySelector('tbody')!).getAllByRole('row')[0]
+      fireEvent.click(within(row).getByText('Ash Grove'))
+
+      expect(await screen.findByText('Rota destination')).toBeInTheDocument()
+    })
+
+    it('says so plainly when every shift has a handover', async () => {
+      overrideGet('/mission-control/handover-gaps', { data: { window_days: 7, grace_minutes: 30, total: 0, shifts: [] } })
+      renderWorkspace('supported_living', '/mission-control/compliance')
+
+      expect(await screen.findByText('Every shift in the last 7 days has a handover recorded.')).toBeInTheDocument()
+      expect(screen.queryByRole('table', { name: 'Shifts that ended without a handover' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the rest of the compliance view working when the gaps cannot be loaded', async () => {
+      overrideGet('/mission-control/handover-gaps', new Error('network down'))
+      renderWorkspace('supported_living', '/mission-control/compliance')
+
+      expect(await screen.findByText('Could not load the handover gaps.')).toBeInTheDocument()
+      expect(screen.getByText('Compliance records')).toBeInTheDocument()
     })
   })
 

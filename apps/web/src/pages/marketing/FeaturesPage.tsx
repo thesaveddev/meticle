@@ -196,7 +196,7 @@ const featureGroups = [
         id: 'dbs',
         category: 'Right to Work & DBS Reminders',
         materialIcon: <DbsMuiIcon sx={{ fontSize: 32 }} />,
-        description: 'Automated alerts before documents expire. Right to work checks and DBS renewal tracking.',
+        description: 'Automated alerts before documents expire. Right-to-work documents and DBS renewals tracked, with a reminder before each falls due.',
         items: [
           { title: 'Document Expiry Tracking', desc: 'Track passport, visa, DBS certificate, and other right-to-work documents with expiry dates.' },
           { title: 'Automated Reminders', desc: 'Email and push notifications 90, 60, and 30 days before document expiry. Escalation to managers if no action.' },

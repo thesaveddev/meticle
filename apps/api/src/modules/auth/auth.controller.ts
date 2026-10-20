@@ -13,6 +13,7 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
 import { blacklistToken, claimToken } from '../../shared/middleware/tokenBlacklist';
+import { requestAccessToken } from '../../shared/middleware/auth.middleware';
 import { logWarn, default as logger } from '../../shared/utils/logger';
 import { isDisposableEmail, isDisposableEmailByMx } from '../../shared/utils/disposableEmail';
 
@@ -34,6 +35,18 @@ function setTokenCookies(res: Response, accessToken: string, refreshToken: strin
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   });
+}
+
+/**
+ * End the cookie session. The options have to match the ones the cookie was
+ * written with (path above all), or the browser keeps the original and the
+ * sign-out does nothing but look like it worked.
+ */
+function clearTokenCookies(res: Response) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const options = { httpOnly: true, secure: isProd, sameSite: 'lax' as const, path: '/' };
+  res.clearCookie('accessToken', options);
+  res.clearCookie('refreshToken', options);
 }
 
 // Progressive MFA lockout: 3 failed attempts → 1hr block
@@ -248,6 +261,10 @@ export class AuthController {
     const isAdmin = userRole === UserRole.ORG_ADMIN;
     EmailService.sendWelcomeEmail(email, name, orgName, isAdmin).catch(logWarn('sendWelcomeEmail'));
 
+    // A registration that ends with the client holding a session needs the
+    // session: `/register` navigates straight on to onboarding or the dashboard.
+    setTokenCookies(res, accessToken, refreshToken);
+
     res.status(201).json({
       user: sanitizeUser(user),
       accessToken,
@@ -379,10 +396,25 @@ export class AuthController {
   }
 
   static async refresh(req: Request, res: Response) {
-    const validated = refreshSchema.parse(req.body);
+    // The refresh token arrives in the body from the mobile app and from every
+    // scripted client, and in the httpOnly cookie from the web app — which
+    // never holds the value in JavaScript at all, so a body-only refresh is a
+    // session the web could not renew once its 15-minute access cookie expired.
+    // The body wins when both are present, for the same reason the bearer
+    // header does in `authenticate`.
+    const parsed = refreshSchema.safeParse(req.body);
+    const fromCookie = req.cookies?.refreshToken;
+    const presented: string | undefined =
+      (parsed.success ? parsed.data.refreshToken : undefined) ??
+      (typeof fromCookie === 'string' && fromCookie ? fromCookie : undefined);
+
+    if (!presented) {
+      throw new AppError(401, 'Invalid or expired refresh token');
+    }
+
     let decoded: any;
     try {
-      decoded = verifyRefreshToken(validated.refreshToken);
+      decoded = verifyRefreshToken(presented);
     } catch {
       throw new AppError(401, 'Invalid or expired refresh token');
     }
@@ -394,7 +426,7 @@ export class AuthController {
 
     // Atomically claim the old refresh token to prevent concurrent replay.
     const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
-    if (!(await claimToken(validated.refreshToken, remaining))) {
+    if (!(await claimToken(presented, remaining))) {
       throw new AppError(401, 'Refresh token has already been used');
     }
 
@@ -608,6 +640,7 @@ export class AuthController {
 
         EmailService.sendWelcomeEmail(invitation.email, name, invitation.organization_name, false).catch(logWarn('sendWelcomeEmail'));
 
+        setTokenCookies(res, accessToken, refreshToken);
         res.status(200).json({
           user: sanitizeUser(existingUser),
           accessToken,
@@ -667,6 +700,7 @@ export class AuthController {
 
     EmailService.sendWelcomeEmail(invitation.email, name, invitation.organization_name, false).catch(logWarn('sendWelcomeEmail'));
 
+    setTokenCookies(res, accessToken, refreshToken);
     res.status(201).json({
       user: sanitizeUser(user),
       accessToken,
@@ -676,21 +710,26 @@ export class AuthController {
   }
 
   static async logout(req: Request, res: Response) {
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
+    // Revoke first, then clear, and clear even when the caller presented no
+    // credential at all. Sign-out is the one place where doing nothing is the
+    // unsafe answer: the web app's session is a pair of httpOnly cookies, so a
+    // sign-out that leaves them on the device leaves the next person holding
+    // the previous user's care records.
+    const token = requestAccessToken(req);
+    if (token) {
       const decoded = jwt.decode(token) as any;
       const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 15 * 60 * 1000;
       await blacklistToken(token, remaining);
-
-      // Also blacklist refresh token if provided in cookie
-      const refreshToken = req.cookies?.refreshToken;
-      if (refreshToken) {
-        const refreshDecoded = jwt.decode(refreshToken) as any;
-        const refreshRemaining = refreshDecoded?.exp ? Math.max(0, refreshDecoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
-        await blacklistToken(refreshToken, refreshRemaining);
-      }
     }
+
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      const refreshDecoded = jwt.decode(refreshToken) as any;
+      const refreshRemaining = refreshDecoded?.exp ? Math.max(0, refreshDecoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+      await blacklistToken(refreshToken, refreshRemaining);
+    }
+
+    clearTokenCookies(res);
     res.json({ message: 'Logged out successfully' });
   }
 
@@ -912,6 +951,10 @@ export class AuthController {
     const firstName = profile.first_name || user.email;
     await EmailService.sendMfaBackupCodesEmail(user.email, plain, firstName);
     await EmailService.sendMfaSetupCompleteEmail(user.email, firstName);
+
+    // Completing a forced MFA setup signs the user in, so it issues the session
+    // the same way login and verify-login do.
+    setTokenCookies(res, accessToken, refreshToken);
 
     res.json({
       message: 'MFA enabled successfully',

@@ -30,8 +30,8 @@ export default function MfaChallengePage() {
     setError('')
     try {
       const response = await api.post('/auth/mfa/verify-login', { mfaToken, token: token.trim() })
-      localStorage.setItem('accessToken', response.data.accessToken)
-      localStorage.setItem('refreshToken', response.data.refreshToken)
+      // Session cookies were issued with the response; the tokens themselves are
+      // deliberately not kept in the browser.
       localStorage.setItem('user', JSON.stringify(response.data.user))
       const role = response.data.user?.role
       if (role === 'SUPER_ADMIN') {

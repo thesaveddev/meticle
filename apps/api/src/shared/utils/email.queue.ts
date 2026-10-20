@@ -19,6 +19,12 @@ export interface EmailQueueOptions {
   relatedEntityType?: 'homecare_invoice';
   relatedEntityId?: string;
   createdBy?: string;
+  /**
+   * Extra RFC 5322 headers for this message — in practice the `List-Unsubscribe`
+   * pair a mail client needs for its own one-click button. Stored with the queued
+   * row so what was queued is exactly what is sent.
+   */
+  headers?: Record<string, string>;
 }
 
 export interface QueuedMail {
@@ -29,6 +35,8 @@ export interface QueuedMail {
   attachments?: { filename: string; content: string; contentType?: string }[] | null;
   dsn_requested?: boolean | null;
   dsn_id?: string | null;
+  /** `List-Unsubscribe` and friends, when the message carries them. */
+  headers?: Record<string, string> | null;
 }
 
 /**
@@ -69,6 +77,7 @@ export function buildMailOptions(mail: QueuedMail) {
     to: mail.to_email,
     subject: mail.subject,
     html: mail.html_body,
+    ...(mail.headers && Object.keys(mail.headers).length > 0 ? { headers: mail.headers } : {}),
     attachments,
     ...(mail.dsn_requested && mail.dsn_id ? {
       dsn: { id: mail.dsn_id, return: 'headers' as const, notify: ['success', 'failure', 'delay'] as const, recipient: mail.to_email },
@@ -124,13 +133,14 @@ export class EmailQueue {
       contentType: a.contentType || 'application/pdf',
     })) || [];
     const dsnId = options.requestDsn ? randomUUID() : null;
+    const headers = options.headers && Object.keys(options.headers).length > 0 ? JSON.stringify(options.headers) : null;
     const insert = (client: any) => client.query(
       `INSERT INTO email_queue
          (to_email, subject, html_body, from_email, attachments, dsn_id, dsn_requested,
-          organization_id, related_entity_type, related_entity_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+          organization_id, related_entity_type, related_entity_id, created_by, headers)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [to, subject, htmlBody, fromEmail || null, JSON.stringify(attachmentMeta), dsnId, Boolean(options.requestDsn),
-        options.organizationId || null, options.relatedEntityType || null, options.relatedEntityId || null, options.createdBy || null]
+        options.organizationId || null, options.relatedEntityType || null, options.relatedEntityId || null, options.createdBy || null, headers]
     );
 
     if (options.relatedEntityType === 'homecare_invoice' && options.organizationId && options.relatedEntityId && options.createdBy) {
@@ -157,10 +167,10 @@ export class EmailQueue {
     return query(
       `INSERT INTO email_queue
          (to_email, subject, html_body, from_email, attachments, dsn_id, dsn_requested,
-          organization_id, related_entity_type, related_entity_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+          organization_id, related_entity_type, related_entity_id, created_by, headers)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [to, subject, htmlBody, fromEmail || null, JSON.stringify(attachmentMeta), dsnId, Boolean(options.requestDsn),
-        options.organizationId || null, options.relatedEntityType || null, options.relatedEntityId || null, options.createdBy || null]
+        options.organizationId || null, options.relatedEntityType || null, options.relatedEntityId || null, options.createdBy || null, headers]
     );
   }
 
