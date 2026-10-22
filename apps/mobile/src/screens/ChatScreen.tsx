@@ -1084,7 +1084,7 @@ const listStyles = StyleSheet.create({
   fab: {
     position: 'absolute', right: 20, bottom: 24, width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#000000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
     elevation: 5,
   },
   cancelText: { fontSize: 16, fontFamily: FONT, fontWeight: '500' },
