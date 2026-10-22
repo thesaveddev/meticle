@@ -22,7 +22,9 @@ const SEVERITY_TONE: Record<string, 'success' | 'warning' | 'error' | 'purple'> 
   low: 'success', medium: 'warning', high: 'error', critical: 'purple',
 }
 const STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
-  reported: 'warning', investigating: 'info', resolved: 'success', closed: 'neutral',
+  draft: 'neutral', reported: 'warning', submitted: 'info', triaging: 'info',
+  investigating: 'info', actioning: 'info', verifying: 'info',
+  resolved: 'success', closed: 'neutral', reopened: 'warning',
 }
 
 export default function IncidentDirectoryPage() {
@@ -39,6 +41,8 @@ export default function IncidentDirectoryPage() {
   const [dateTo, setDateTo] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
+  const [formAnswers, setFormAnswers] = useState<Record<string, any>>({})
+  const [answersError, setAnswersError] = useState('')
   const [form, setForm] = useState({ title: '', description: '', category_id: '', incident_date: localToday(), incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -62,6 +66,53 @@ export default function IncidentDirectoryPage() {
     queryFn: () => api.get('/incidents/stats').then(r => r.data),
   })
 
+  // Published reporting form: the server re-validates everything on submit,
+  // so this renders the current fields flat and lets the engine decide the
+  // triage. If the form is unreachable the core report still files.
+  const { data: reportFormDef } = useQuery({
+    queryKey: ['incident-form-general'],
+    queryFn: () => api.get('/incident-forms/general').then(r => r.data),
+    enabled: addOpen,
+    retry: false,
+  })
+  const reportFields: any[] = Array.isArray(reportFormDef?.fields) ? reportFormDef.fields : []
+  const setAnswer = (key: string, value: any) => setFormAnswers(prev => ({ ...prev, [key]: value }))
+  const renderReportField = (f: any) => {
+    const value = formAnswers[f.field_key]
+    const label = `${f.label}${f.required ? ' *' : ''}`
+    const onText = (e: any) => setAnswer(f.field_key, e.target.value)
+    switch (f.type) {
+      case 'textarea':
+        return <TextField fullWidth label={label} helperText={f.help || undefined} multiline rows={3} value={value ?? ''} onChange={onText} />
+      case 'number':
+        return <TextField fullWidth label={label} helperText={f.help || undefined} type="number" value={value ?? ''} onChange={e => setAnswer(f.field_key, e.target.value === '' ? '' : Number(e.target.value))} />
+      case 'date':
+        return <TextField fullWidth label={label} helperText={f.help || undefined} type="date" InputLabelProps={{ shrink: true }} value={value ?? ''} onChange={onText} />
+      case 'datetime':
+        return <TextField fullWidth label={label} helperText={f.help || undefined} type="datetime-local" InputLabelProps={{ shrink: true }} value={value ?? ''} onChange={onText} />
+      case 'select':
+      case 'radio':
+        return (
+          <TextField fullWidth select label={label} helperText={f.help || undefined} value={value ?? ''} onChange={onText}>
+            {((Array.isArray(f.options) ? f.options : []) as any[]).map((o: any) => (
+              <MenuItem key={String(o)} value={o}>{String(o)}</MenuItem>
+            ))}
+          </TextField>
+        )
+      case 'boolean':
+        return (
+          <TextField fullWidth select label={label} helperText={f.help || undefined}
+            value={value === undefined || value === '' ? '' : value ? 'yes' : 'no'}
+            onChange={e => setAnswer(f.field_key, e.target.value === 'yes')}>
+            <MenuItem value="yes">Yes</MenuItem>
+            <MenuItem value="no">No</MenuItem>
+          </TextField>
+        )
+      default:
+        return <TextField fullWidth label={label} helperText={f.help || undefined} value={value ?? ''} onChange={onText} />
+    }
+  }
+
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/incidents', data),
     onSuccess: () => {
@@ -69,6 +120,8 @@ export default function IncidentDirectoryPage() {
       queryClient.invalidateQueries({ queryKey: ['incident-stats'] })
       setAddOpen(false)
       setForm({ title: '', description: '', category_id: '', incident_date: localToday(), incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
+      setFormAnswers({})
+      setAnswersError('')
     },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to create incident'),
   })
@@ -284,10 +337,17 @@ export default function IncidentDirectoryPage() {
 
       {/* Report Incident Dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(form) }}>
+        <Box component="form" onSubmit={(e: React.FormEvent) => {
+          e.preventDefault()
+          const missing = reportFields.filter((f: any) => f.required && (formAnswers[f.field_key] === undefined || formAnswers[f.field_key] === '' || formAnswers[f.field_key] === null))
+          if (missing.length > 0) { setAnswersError(`Please complete: ${missing.map((f: any) => f.label).join(', ')}`); return }
+          setAnswersError('')
+          createMutation.mutate({ ...form, form_key: 'general', form_answers: formAnswers })
+        }}>
           <DialogTitle sx={{ fontWeight: 600 }}>Report Incident</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {answersError && <Alert severity="error" sx={{ mb: 2 }}>{answersError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="What happened?" fullWidth required value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
@@ -335,6 +395,30 @@ export default function IncidentDirectoryPage() {
                   </Button>
                 )}
               </Stack>
+              {reportFields.length > 0 && (
+                <>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle2" fontWeight={600}>Report details</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    From the current reporting form — drives the severity assessment.
+                  </Typography>
+                  {(() => {
+                    let lastSection = ''
+                    return reportFields.map((f: any) => {
+                      const showSection = f.section && f.section !== lastSection
+                      if (f.section) lastSection = f.section
+                      return (
+                        <Box key={f.field_key} sx={{ mt: 1 }}>
+                          {showSection && (
+                            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>{f.section}</Typography>
+                          )}
+                          <Box sx={{ mt: 0.5 }}>{renderReportField(f)}</Box>
+                        </Box>
+                      )
+                    })
+                  })()}
+                </>
+              )}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>

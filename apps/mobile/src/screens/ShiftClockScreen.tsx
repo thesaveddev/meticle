@@ -60,6 +60,14 @@ interface Props {
   onChanged?: () => void
   /** Opens the shift's handover, which this screen summarises. */
   onHandover?: (shiftId: string) => void
+  /**
+   * Opens the incident report form. A concern raised mid-shift — a fall, a
+   * medication error, something that does not look right — should not wait
+   * for a computer, and the shift screen is where a support worker is when
+   * they see it (blueprint §9.5: the API has been open to reporters since
+   * October 2026; this is the screen-side way in for shift-based rotas).
+   */
+  onReportIncident?: () => void
 }
 
 function clock(value: string | null | undefined) {
@@ -89,7 +97,7 @@ export function workedLabel(minutes: number): string {
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
 }
 
-export function ShiftClockScreen({ session, shiftId, shift, onBack, onChanged, onHandover }: Props) {
+export function ShiftClockScreen({ session, shiftId, shift, onBack, onChanged, onHandover, onReportIncident }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const token = session.accessToken
@@ -460,6 +468,24 @@ export function ShiftClockScreen({ session, shiftId, shift, onBack, onChanged, o
             </View>
           ) : null}
         </View>
+
+        {/* A concern seen on shift should not wait for a computer. */}
+        {onReportIncident ? (
+          <View style={[s.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Text style={[s.sectionTitle, { color: c.ink, marginTop: 0 }]}>Safety</Text>
+            <Text style={[s.body, { color: c.muted }]}>
+              Seen a fall, a medication error or something that does not look right? File it now — it reaches the office as an incident report.
+            </Text>
+            <View style={s.action}>
+              <PrimaryButton
+                label="Report an incident"
+                tone="danger"
+                disabled={busy !== ''}
+                onPress={() => { hapticLight(); onReportIncident() }}
+              />
+            </View>
+          </View>
+        ) : null}
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>

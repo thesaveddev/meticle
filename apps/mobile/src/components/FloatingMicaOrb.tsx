@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { Animated, AppState, Image, Pressable, StyleSheet, Text, useWindowDimensions } from 'react-native'
+import { Animated, AppState, Pressable, StyleSheet, useWindowDimensions } from 'react-native'
 import Reanimated, {
   cancelAnimation,
   Easing,
@@ -10,24 +10,22 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
-import { elevation, FONT, mica, type MicaOrbState } from '../theme'
+import { elevation, mica, type MicaOrbState } from '../theme'
 import { useReducedMotion } from '../utils/useReducedMotion'
 import { hapticWarning, hapticMedium } from '../services/haptics'
+import { MicaGlow } from './MicaGlow'
+import { MicaOrbCore } from './MicaOrbCore'
 
 const BTN_SIZE = mica.orb.size
 const PADDING = mica.orb.sideInset
 const MIN_Y = mica.orb.minTop
 const DRAG_THRESHOLD = 12
-/** The drag handle is taller than the circle: the "Mica" label sits under it. */
+/** The touch target is taller than the circle: 18px of padding under it, which the drag bounds count as part of the box. */
 const ORB_BOX_HEIGHT = BTN_SIZE + 18
 
 export interface SosContact { label: string; phone: string }
 export type OnMicaPress = () => void
 export type OnSosPress = (contacts: SosContact[], managerPhone?: string) => void
-
-export const MICA_ORB_IMAGE = require('../../assets/mica/MICA_AI_Listening_Orb.png')
-export const MICA_IDLE_IMAGE = require('../../assets/mica/MeticleCare_Client_Overview_with_MICA_Idle.png')
 
 function clamp(val: number, min: number, max: number) {
   return Math.max(min, Math.min(max, val))
@@ -85,9 +83,10 @@ export function orbBounds({
  *
  * ## What it animates now, and where
  *
- * The orb had no motion at all: a static circle with a microphone glyph, while
- * the web orb breathed, pulsed and metered the room. It has all three states
- * now, driven by Reanimated shared values, so the motion runs on the UI thread
+ * The orb used to be a flat blue circle with a microphone glyph; it now draws
+ * the web orb's own core — the diagonal blue-to-mint gradient with bar eyes —
+ * under the same breath, glow and listening ring, driven by Reanimated shared
+ * values, so the motion runs on the UI thread
  * at the display's own rate and a JavaScript thread busy with a roster fetch or
  * an upload cannot stutter it:
  *
@@ -116,14 +115,12 @@ export function orbBounds({
  * maths — that was already how this component worked, and it is what the bounds
  * below are proved against.
  */
-export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], managerPhone, listeningImage, listening, state, bottomClearance }: {
+export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], managerPhone, state, bottomClearance }: {
   onMicaPress: OnMicaPress
   onSosPress?: OnSosPress
   sosContacts?: SosContact[]
   managerPhone?: string
-  listeningImage?: any
-  listening?: boolean
-  /** Explicit orb state. Omitted → derived from `listening` (idle/listening). */
+  /** Explicit orb state. Omitted → idle. */
   state?: MicaOrbState
   /**
    * Height of anything sharing the bottom edge — the tab bar, when there is
@@ -246,10 +243,7 @@ export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], man
     onMicaPress()
   }, [onMicaPress])
 
-  // `state` wins when given; otherwise the legacy `listening` flag maps onto the
-  // shared vocabulary, so every existing call site keeps its behaviour.
-  const orbState: MicaOrbState = state ?? (listening ? 'listening' : 'idle')
-  const showListeningImage = orbState === 'listening' && Boolean(listeningImage)
+  const orbState: MicaOrbState = state ?? 'idle'
 
   /*
    * Backgrounded apps get no frames, and an infinite animation nobody can see is
@@ -362,7 +356,11 @@ export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], man
         testID="mica-orb-glow"
         pointerEvents="none"
         style={[styles.glow, glowStyle]}
-      />
+      >
+        {/* The web orb's own radial halo, not a solid disc: teal fading to
+            transparent, so it reads as light rather than an edge. */}
+        <MicaGlow size={BTN_SIZE * 2.2} />
+      </Reanimated.View>
       {orbState === 'listening' && (
         <Reanimated.View
           testID="mica-orb-ripple"
@@ -379,16 +377,7 @@ export function FloatingMicaOrb({ onMicaPress, onSosPress, sosContacts = [], man
           accessibilityLabel={mica.a11y.orb}
           accessibilityRole="button"
         >
-          {showListeningImage ? (
-            <Image source={listeningImage} style={styles.image} resizeMode="contain" />
-          ) : orbState === 'error' ? (
-            <Ionicons name="alert-circle" size={22} color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="mic" size={22} color="#FFFFFF" />
-              <Text style={styles.label}>Mica</Text>
-            </>
-          )}
+          <MicaOrbCore size={BTN_SIZE} state={orbState} />
         </Pressable>
       </Reanimated.View>
     </Animated.View>
@@ -401,7 +390,6 @@ const styles = StyleSheet.create({
     width: BTN_SIZE,
     height: BTN_SIZE + 18,
     borderRadius: BTN_SIZE / 2,
-    backgroundColor: '#0164C8',
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation.md,
@@ -414,21 +402,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  // A halo behind the control, in the orb's own teal. Opacity and scale only —
-  // no shadow animation, which on Android is a per-frame re-raster.
+  // The halo sits centred on the orb circle: the web glow is 2.2× the orb and
+  // fades to transparent, so it is drawn by MicaGlow rather than a solid disc.
+  // Opacity and scale only — no shadow animation, which on Android is a
+  // per-frame re-raster.
   glow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 18,
-    borderRadius: BTN_SIZE / 2,
-    backgroundColor: '#03C6B1',
+    left: BTN_SIZE / 2 - (BTN_SIZE * 2.2) / 2,
+    top: BTN_SIZE / 2 - (BTN_SIZE * 2.2) / 2,
   },
   ripple: {
     position: 'absolute',
@@ -438,24 +419,15 @@ const styles = StyleSheet.create({
     height: BTN_SIZE + 12,
     borderRadius: (BTN_SIZE + 12) / 2,
     borderWidth: 2,
-    borderColor: '#03C6B1',
+    borderColor: mica.cyan,
   },
   pressed: {
-    backgroundColor: '#014FB5',
+    opacity: 0.8,
   },
-  // Error keeps Mica's blue and adds a danger ring: same control, different
-  // condition — not a second visual language for one state.
+  // Error keeps the gradient core and adds a danger ring: same control,
+  // different condition — not a second visual language for one state.
   error: {
     borderWidth: 2,
     borderColor: mica.errorRing,
-    backgroundColor: mica.surfaceStrong,
-  },
-  label: {
-    fontFamily: FONT,
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    marginTop: 1,
   },
 })

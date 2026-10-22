@@ -12,11 +12,12 @@ import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, MyShift, OfflineVisitAction, QueuedIncidentReport, VisitAction } from './src/types'
 import { readSession, clearSession } from './src/services/storage'
-import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
+import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, markChatDelivered, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { flushIncidentQueue, getIncidentQueue } from './src/services/incidentQueue'
 import { flushShiftClockActions, pendingShiftClockActions } from './src/services/shiftClockQueue'
-import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
+import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification, presentChatNotification } from './src/services/notifications'
+import { ensureChatLiveSocket, disconnectChatLive, subscribeChatLive, subscribeChatUnreadTotal, getOpenChatChannel, chatLiveChannelOf, type ChatLiveMessage } from './src/services/chatLive'
 import { notificationTarget, resolveTab } from './src/utils/notificationLinks'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
@@ -153,6 +154,17 @@ type Screen =
  * A dragged orb used to clamp 40px from the bottom of the window — inside this
  * bar — which parked a live control on top of the tabs.
  */
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function dateLabel() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
 const TAB_ROW_MIN_HEIGHT = 48
 const TAB_BAR_PADDING_BOTTOM = Platform.OS === 'ios' ? spacing.xs : spacing.md
 const TAB_BAR_HEIGHT = spacing.xs + TAB_ROW_MIN_HEIGHT + TAB_BAR_PADDING_BOTTOM + StyleSheet.hairlineWidth
@@ -429,6 +441,10 @@ function AppInner() {
       if (target) { setScreenStack([{ kind: 'tabs' }, { kind: 'visit', visit: target }]); return }
     }
     if (data.type === 'chat' || data.channelId) {
+      // A chat tap names the conversation, so it opens the thread rather than
+      // the list — the WhatsApp behaviour. ChatScreen opens any new
+      // initialChannelId it has not already shown.
+      if (typeof data.channelId === 'string' && data.channelId) setCaptureChannelId(data.channelId)
       setTab('chat')
       setScreenStack([{ kind: 'tabs' }])
       return
@@ -459,6 +475,52 @@ function AppInner() {
     }).catch(() => { launchHandled.current = true })
   }, [session?.accessToken, visits.length, openFromNotification])
 
+
+  // The app-wide live chat feed: one socket for the whole signed-in session,
+  // so messages land like WhatsApp — badge, banner and all — instead of
+  // waiting for the chat tab to be opened or a 30s poll to fire. The server
+  // fans every message out to each member's own sockets, so this hears every
+  // conversation with no per-channel joins.
+  useEffect(() => {
+    if (!session?.accessToken || !session?.user?.id) return
+    const token = session.accessToken
+    const myId = session.user.id
+    ensureChatLiveSocket(token)
+    const unsubscribe = subscribeChatLive((message: ChatLiveMessage) => {
+      // My own messages sync silently across my devices: no badge, no banner.
+      if (message.sender_id === myId) {
+        getChatUnread(token).then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0))).catch(() => {})
+        return
+      }
+      hapticMedium()
+      // Reconcile from the server rather than incrementing, so a burst of
+      // events cannot drift the badge.
+      getChatUnread(token).then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0))).catch(() => {
+        setChatUnreadCount(count => count + 1)
+      })
+      const channelId = chatLiveChannelOf(message)
+      // Delivered means this device received it — not that it was opened. Report
+      // it here, on the app-wide feed, so the sender's ticks advance even when
+      // the conversation is not on screen. The open conversation also reports,
+      // and the endpoint is idempotent, so hearing twice is harmless.
+      if (channelId && message.id) {
+        void markChatDelivered(token, channelId, [message.id]).catch(() => {})
+      }
+      // No banner for the conversation already on screen — it is already read.
+      if (!channelId || channelId === getOpenChatChannel()) return
+      const preview = message.message || message.content || (message.file_name ? `\u{1F4CE} ${message.file_name}` : 'Sent you a message')
+      void presentChatNotification({
+        title: message.sender_name || 'New message',
+        body: String(preview).slice(0, 120),
+        channelId,
+      })
+    })
+    // The server's exact total, pushed on every send and every read — this is
+    // what keeps the badge truthful without a GET per message. The reconcile
+    // above stays as the fallback for reconnects and missed pushes.
+    const unsubscribeTotal = subscribeChatUnreadTotal(setChatUnreadCount)
+    return () => { unsubscribe(); unsubscribeTotal() }
+  }, [session?.accessToken, session?.user?.id])
 
   // Keep push registration and chat notification handling tied to the authenticated session.
   useEffect(() => {
@@ -591,6 +653,7 @@ function AppInner() {
       }
     }
     await logout()
+    disconnectChatLive()
     setSession(null); setVisits([]); setQueue([]); setPendingIncidentReports([]); setScreenStack([{ kind: 'tabs' }])
   }
 
@@ -599,6 +662,7 @@ function AppInner() {
     if (!session?.accessToken) return
     await selfDeactivate(session.accessToken)
     await clearSession()
+    disconnectChatLive()
     setSession(null); setVisits([]); setQueue([]); setPendingIncidentReports([]); setScreenStack([{ kind: 'tabs' }])
   }, [session?.accessToken])
 
@@ -653,7 +717,10 @@ function AppInner() {
   const frame = (element: ReactNode) => gated(
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
-      <ScreenFrame backgroundColor={c.bg} contacts={sosContacts} onMicaPress={openMica} onSosPress={openSos}>{element}</ScreenFrame>
+      {/* The floating mic stays off the Mica screen: the full-screen orb is the
+          control there, and a second mic floating over it is a duplicate that
+          also covers the caption. Everywhere else it is the way in. */}
+      <ScreenFrame backgroundColor={c.bg} contacts={sosContacts} onMicaPress={currentScreen.kind === 'mica' ? undefined : openMica} onSosPress={openSos}>{element}</ScreenFrame>
     </>
   )
 
@@ -692,7 +759,7 @@ function AppInner() {
     case 'handover':
       return frame(<SwipeBack onBack={goBack}><HandoverScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} /></SwipeBack>)
     case 'clock':
-      return frame(<SwipeBack onBack={goBack}><ShiftClockScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} onHandover={(shiftId) => pushScreen({ kind: 'handover', shiftId })} /></SwipeBack>)
+      return frame(<SwipeBack onBack={goBack}><ShiftClockScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} onHandover={(shiftId) => pushScreen({ kind: 'handover', shiftId })} onReportIncident={() => pushScreen({ kind: 'incident' })} /></SwipeBack>)
     case 'roomChecks':
       return frame(<SwipeBack onBack={goBack}><RoomChecksScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'allVisits':
@@ -724,9 +791,30 @@ function AppInner() {
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
       <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right', 'bottom']}>
-        {/* Header with notification bell */}
-        <View style={[s.header, { backgroundColor: c.bg }]}>  
-          <View style={{ flex: 1 }} />
+        {/* Header: the day's greeting beside the notification bell, one row.
+            The greeting is the Today tab's own — other tabs keep the empty
+            slot, so the bell never moves. */}
+        <View style={[s.header, { backgroundColor: c.bg }]}>
+          {tab === 'today' && !isManager ? (
+            <View style={{ flex: 1 }}>
+              <Text style={[s.greetDate, { color: c.muted }]}>{dateLabel()}</Text>
+              <Text style={[s.greetName, { color: c.ink }]} numberOfLines={1}>
+                {greeting()}, {user.first_name || user.email.split('@')[0]}
+              </Text>
+            </View>
+          ) : tab === 'chat' ? (
+            // The chat title lives on the bell row rather than on a row of its
+            // own below it, so the conversation list starts immediately under
+            // one header. ChatScreen hides its duplicate title when embedded
+            // as this tab (it keeps its own header as a pushed screen).
+            <View style={{ flex: 1 }}>
+              <Text style={[s.greetName, { color: c.ink }]} numberOfLines={1}>
+                Messages
+              </Text>
+            </View>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
           {/* The badge tracks the server's unread count, so it is not cleared on
               open — marking notifications read is what brings it down. */}
           <Pressable
@@ -815,6 +903,8 @@ const s = StyleSheet.create({
   tabIndicator: { width: 20, height: 2, borderRadius: 1, marginTop: 3 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
+  greetDate: { fontFamily: FONT, fontSize: 12, fontWeight: '500' },
+  greetName: { fontFamily: FONT, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
   notifBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', position: 'relative', borderRadius: 20 },
   notifBadge: {
     position: 'absolute', top: 3, right: 2,

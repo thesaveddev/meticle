@@ -118,3 +118,38 @@ jest.mock('expo-speech', () => ({
   stop: jest.fn(async () => {}),
   isSpeakingAsync: jest.fn(async () => false),
 }))
+
+// expo-linear-gradient paints the orb's core; the gradient itself is pixels,
+// not behaviour, so tests render its children in a plain View.
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react')
+  const RN = require('react-native')
+  return {
+    __esModule: true,
+    LinearGradient: ({ children, ...props }: any) => React.createElement(RN.View, props, children),
+  }
+})
+
+// react-native-svg draws the orb's wave, glow and orbits — pixels, not
+// behaviour. Each element becomes a View that keeps its props (so a wave path
+// is still findable by testID) and renders its children.
+jest.mock('react-native-svg', () => {
+  const React = require('react')
+  const RN = require('react-native')
+  const el =
+    (name: string) =>
+    ({ children, ...props }: any) =>
+      React.createElement(RN.View, { ...props, 'data-svg': name }, children)
+  return {
+    __esModule: true,
+    default: el('Svg'),
+    Svg: el('Svg'),
+    Path: el('Path'),
+    Circle: el('Circle'),
+    Ellipse: el('Ellipse'),
+    Defs: el('Defs'),
+    RadialGradient: el('RadialGradient'),
+    LinearGradient: el('LinearGradient'),
+    Stop: el('Stop'),
+  }
+})

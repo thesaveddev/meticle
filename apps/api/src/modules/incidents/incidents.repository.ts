@@ -56,7 +56,7 @@ export class IncidentsRepository {
     // exposes them to the organisation's whole incident history.
     if (opts.reportedBy) { sql += ` AND i.reported_by = $${idx}`; params.push(opts.reportedBy); idx++; }
     if (opts.status === 'open') {
-      sql += ` AND i.status IN ('reported', 'investigating')`;
+      sql += ` AND i.status IN ('reported', 'submitted', 'triaging', 'investigating', 'actioning', 'verifying', 'reopened')`;
     } else if (opts.status) {
       sql += ` AND i.status = $${idx}`; params.push(opts.status); idx++;
     }
@@ -149,10 +149,47 @@ export class IncidentsRepository {
           );
           incident.visit_id = linkedVisit.rows[0].visit_id;
         }
+
+        // A follow-up report names the closed incident it continues. The
+        // target must be in this organisation; a retry reuses the first
+        // insert's lineage rather than re-validating it.
+        if (data.reopens_incident_id) {
+          const target = await client.query(
+            'SELECT id FROM incidents WHERE id = $1 AND organization_id = $2',
+            [data.reopens_incident_id, orgId]
+          );
+          if (!target.rows[0]) throw new AppError(404, 'Incident to reopen was not found');
+          const lined = await client.query(
+            'UPDATE incidents SET reopened_of = $1 WHERE id = $2 RETURNING reopened_of',
+            [data.reopens_incident_id, incident.id]
+          );
+          incident.reopened_of = lined.rows[0].reopened_of;
+        }
       }
 
       return incident;
     });
+  }
+
+  /** Names the report's form version and current severity head. Engines own history; this moves the pointer. */
+  static async setEngineLink(id: string, orgId: string, formVersionId: string | null, assessmentId: string | null) {
+    const result = await query(
+      `UPDATE incidents SET form_version_id = $1, current_severity_assessment_id = $2 WHERE id = $3 AND organization_id = $4 RETURNING *`,
+      [formVersionId, assessmentId, id, orgId]
+    );
+    return result.rows[0] || null;
+  }
+
+  /** Appends form answers (cleared fields already dropped by evaluate). */
+  static async saveAnswers(orgId: string, incidentId: string, formVersionId: string, userId: string, answers: Record<string, unknown>) {
+    for (const [fieldKey, value] of Object.entries(answers)) {
+      if (value === undefined) continue;
+      await query(
+        `INSERT INTO incident_answers (organization_id, incident_id, form_version_id, field_key, value, created_by)
+         VALUES ($1,$2,$3,$4,$5::jsonb,$6)`,
+        [orgId, incidentId, formVersionId, fieldKey, JSON.stringify(value ?? null), userId]
+      );
+    }
   }
 
   static async update(id: string, data: any, orgId?: string) {
@@ -182,6 +219,288 @@ export class IncidentsRepository {
       [id, orgId]
     );
     return result.rows[0] || null;
+  }
+
+  /**
+   * Lifecycle transition with the guard in the WHERE clause: the update only
+   * lands when the row is currently in one of the expected states, so two
+   * managers racing a submit/reopen cannot both win — the loser gets zero
+   * rows and the controller answers 409 instead of silently overwriting.
+   */
+  static async transitionStatus(id: string, orgId: string, to: string, from: string[]) {
+    const result = await query(
+      `UPDATE incidents SET status = $1 WHERE id = $2 AND organization_id = $3
+       AND status = ANY($4::text[]) RETURNING *`,
+      [to, id, orgId, from]
+    );
+    return result.rows[0] || null;
+  }
+
+  /** Follow-up report lineage: the new row continues a closed incident. */
+  static async setReopenedOf(id: string, orgId: string, reopenedOf: string) {
+    const target = await query(
+      'SELECT id FROM incidents WHERE id = $1 AND organization_id = $2',
+      [reopenedOf, orgId]
+    );
+    if (!target.rows[0]) throw new AppError(404, 'Incident to reopen was not found');
+    const result = await query(
+      'UPDATE incidents SET reopened_of = $1 WHERE id = $2 AND organization_id = $3 RETURNING *',
+      [reopenedOf, id, orgId]
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Duplicate candidates: same category, filed within 7 days either side,
+   * newest first. A heuristic, not a verdict — the manager decides via links.
+   */
+  static async findDuplicates(orgId: string, incidentId: string) {
+    const result = await query(
+      `SELECT i.id, i.title, i.status, i.severity, i.incident_date, i.location,
+              ic.name AS category_name
+       FROM incidents i
+       LEFT JOIN incident_categories ic ON ic.id = i.category_id
+       WHERE i.organization_id = $1 AND i.id != $2
+         AND i.category_id IS NOT DISTINCT FROM (SELECT category_id FROM incidents WHERE id = $2)
+         AND ABS(i.incident_date - (SELECT incident_date FROM incidents WHERE id = $2)) <= 7
+       ORDER BY i.incident_date DESC LIMIT 10`,
+      [orgId, incidentId]
+    );
+    return result.rows;
+  }
+
+  static async createLink(orgId: string, incidentId: string, linkedId: string, linkType: string, reason: string | undefined, userId: string) {
+    for (const id of [incidentId, linkedId]) {
+      const found = await query('SELECT id FROM incidents WHERE id = $1 AND organization_id = $2', [id, orgId]);
+      if (!found.rows[0]) throw new AppError(404, 'Linked incident was not found');
+    }
+    try {
+      const result = await query(
+        `INSERT INTO incident_links (organization_id, incident_id, linked_incident_id, link_type, reason, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [orgId, incidentId, linkedId, linkType, reason || null, userId]
+      );
+      return result.rows[0];
+    } catch (err: any) {
+      if (err?.code === '23505') throw new AppError(409, 'These incidents are already linked this way');
+      throw err;
+    }
+  }
+
+  static async getLinks(orgId: string, incidentId: string) {
+    const result = await query(
+      `SELECT l.*, i.title AS linked_title, i.status AS linked_status, i.severity AS linked_severity
+       FROM incident_links l
+       JOIN incidents i ON i.id = l.linked_incident_id
+       WHERE l.organization_id = $1 AND l.incident_id = $2
+       ORDER BY l.created_at DESC`,
+      [orgId, incidentId]
+    );
+    return result.rows;
+  }
+
+  static async deleteLink(orgId: string, linkId: string) {
+    const result = await query(
+      'DELETE FROM incident_links WHERE id = $1 AND organization_id = $2 RETURNING id',
+      [linkId, orgId]
+    );
+    return result.rows[0] || null;
+  }
+
+  // === Closeout (P3-P5) ===
+
+  /** At most one investigation per incident; a retry returns the open one. */
+  static async startInvestigation(orgId: string, incidentId: string, userId: string, leadId?: string, summary?: string) {
+    const existing = await query(
+      'SELECT * FROM incident_investigations WHERE organization_id = $1 AND incident_id = $2',
+      [orgId, incidentId]
+    );
+    if (existing.rows[0]) return { investigation: existing.rows[0], duplicate: true };
+    const result = await query(
+      `INSERT INTO incident_investigations (organization_id, incident_id, lead_id, summary, started_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [orgId, incidentId, leadId || null, summary || null, userId]
+    );
+    return { investigation: result.rows[0], duplicate: false };
+  }
+
+  static async getInvestigation(orgId: string, incidentId: string) {
+    const inv = (await query(
+      `SELECT inv.*, sp.first_name AS lead_first, sp.last_name AS lead_last
+       FROM incident_investigations inv
+       LEFT JOIN staff_profiles sp ON sp.user_id = inv.lead_id
+       WHERE inv.organization_id = $1 AND inv.incident_id = $2`,
+      [orgId, incidentId]
+    )).rows[0];
+    if (!inv) return null;
+    const notes = (await query(
+      `SELECT n.*, COALESCE(sp.first_name, u.email) AS author
+       FROM incident_investigation_notes n
+       LEFT JOIN users u ON u.id = n.created_by
+       LEFT JOIN staff_profiles sp ON sp.user_id = n.created_by
+       WHERE n.organization_id = $1 AND n.investigation_id = $2 ORDER BY n.created_at ASC`,
+      [orgId, inv.id]
+    )).rows;
+    return { ...inv, notes };
+  }
+
+  static async addInvestigationNote(orgId: string, investigationId: string, userId: string, note: string) {
+    const inv = (await query(
+      'SELECT * FROM incident_investigations WHERE id = $1 AND organization_id = $2',
+      [investigationId, orgId]
+    )).rows[0];
+    if (!inv) throw new AppError(404, 'Investigation not found');
+    if (inv.status !== 'open') throw new AppError(409, 'This investigation is complete; findings are immutable');
+    const result = await query(
+      `INSERT INTO incident_investigation_notes (organization_id, investigation_id, note, created_by)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [orgId, investigationId, note, userId]
+    );
+    return result.rows[0];
+  }
+
+  static async completeInvestigation(orgId: string, investigationId: string, userId: string, summary?: string) {
+    const result = await query(
+      `UPDATE incident_investigations SET status = 'complete', summary = COALESCE($3, summary),
+       completed_by = $4, completed_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND organization_id = $2 AND status = 'open' RETURNING *`,
+      [investigationId, orgId, summary || null, userId]
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Verification is the check after the doing: only a completed action can be
+   * verified, and the rating says whether the fix worked. Re-verification
+   * overwrites (the action row is working state) but every verification is
+   * audited, so the trail stays answerable.
+   */
+  static async verifyAction(orgId: string, actionId: string, userId: string, effectiveness: string, notes?: string) {
+    const action = (await query(
+      `SELECT ia.* FROM incident_actions ia JOIN incidents i ON i.id = ia.incident_id
+       WHERE ia.id = $1 AND i.organization_id = $2`,
+      [actionId, orgId]
+    )).rows[0];
+    if (!action) return null;
+    if (!action.completed_at) throw new AppError(409, 'Only a completed action can be verified');
+    const result = await query(
+      `UPDATE incident_actions SET verified_by = $2, verified_at = CURRENT_TIMESTAMP,
+       effectiveness = $3, effectiveness_notes = $4 WHERE id = $1 RETURNING *`,
+      [actionId, userId, effectiveness, notes || null]
+    );
+    return result.rows[0];
+  }
+
+  static async createReportingAssessment(orgId: string, incidentId: string, userId: string, data: { reportable: boolean; channel?: string; reference?: string; reported_at?: string }) {
+    const result = await query(
+      `INSERT INTO incident_reporting_assessments (organization_id, incident_id, reportable, channel, reference, reported_at, decided_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [orgId, incidentId, data.reportable, data.channel || 'CQC', data.reference || null, data.reported_at || null, userId]
+    );
+    return result.rows[0];
+  }
+
+  static async listReportingAssessments(orgId: string, incidentId: string) {
+    const result = await query(
+      `SELECT r.*, COALESCE(sp.first_name, u.email) AS decided_by_name
+       FROM incident_reporting_assessments r
+       LEFT JOIN users u ON u.id = r.decided_by
+       LEFT JOIN staff_profiles sp ON sp.user_id = r.decided_by
+       WHERE r.organization_id = $1 AND r.incident_id = $2 ORDER BY r.created_at DESC`,
+      [orgId, incidentId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Suggested (draft) actions. Re-running suggest converges: identical text
+   * for the same incident is one draft, never two, via the unique pair.
+   */
+  static async proposeSuggestions(orgId: string, incidentId: string, userId: string, suggestions: Array<{ action: string; dueInDays: number; ruleKey: string; source: string }>) {
+    for (const s of suggestions) {
+      await query(
+        `INSERT INTO incident_action_suggestions (organization_id, incident_id, action, due_date, source, rule_key, created_by)
+         VALUES ($1, $2, $3, CURRENT_DATE + ($4 || ' days')::interval, $5, $6, $7)
+         ON CONFLICT (incident_id, action) DO NOTHING`,
+        [orgId, incidentId, s.action.slice(0, 500), s.dueInDays, s.source, s.ruleKey, userId]
+      );
+    }
+    return IncidentsRepository.listSuggestions(orgId, incidentId);
+  }
+
+  static async listSuggestions(orgId: string, incidentId: string) {
+    const result = await query(
+      `SELECT s.*, COALESCE(sp.first_name, u.email) AS decided_by_name
+       FROM incident_action_suggestions s
+       LEFT JOIN users u ON u.id = s.decided_by
+       LEFT JOIN staff_profiles sp ON sp.user_id = s.decided_by
+       WHERE s.organization_id = $1 AND s.incident_id = $2 ORDER BY s.created_at ASC`,
+      [orgId, incidentId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * A draft becomes work only here. Approving inserts the real action and
+   * marks the draft; rejecting records the reason. Decided drafts are final.
+   */
+  static async decideSuggestion(orgId: string, suggestionId: string, userId: string, decision: 'approved' | 'rejected', reason?: string) {
+    const suggestion = (await query(
+      'SELECT * FROM incident_action_suggestions WHERE id = $1 AND organization_id = $2',
+      [suggestionId, orgId]
+    )).rows[0];
+    if (!suggestion) return null;
+    if (suggestion.status !== 'proposed') throw new AppError(409, 'This suggestion was already decided');
+    let action: unknown = null;
+    if (decision === 'approved') {
+      const created = await query(
+        `INSERT INTO incident_actions (incident_id, action, assigned_to, due_date)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [suggestion.incident_id, suggestion.action, suggestion.assigned_to, suggestion.due_date]
+      );
+      action = created.rows[0];
+    }
+    const updated = (await query(
+      `UPDATE incident_action_suggestions SET status = $1, decided_by = $2, decided_at = CURRENT_TIMESTAMP,
+       decision_reason = $3 WHERE id = $4 RETURNING *`,
+      [decision, userId, reason || null, suggestionId]
+    )).rows[0];
+    return { suggestion: updated, action };
+  }
+
+  /**
+   * Everything close checks, in one place so the endpoint and the UI read
+   * the same blockers: an open investigation, completed-but-unverified
+   * actions, and a missing external-reporting decision on a reportable
+   * incident. Open (incomplete) actions do not block — they survive closure
+   * and stay assigned.
+   */
+  static async closeBlockers(orgId: string, incidentId: string) {
+    const incident = (await query('SELECT * FROM incidents WHERE id = $1 AND organization_id = $2', [incidentId, orgId])).rows[0];
+    if (!incident) return null;
+    const openInv = (await query(
+      `SELECT id FROM incident_investigations WHERE organization_id = $1 AND incident_id = $2 AND status = 'open' LIMIT 1`,
+      [orgId, incidentId]
+    )).rows[0];
+    const unverified = (await query(
+      `SELECT COUNT(*)::int AS n FROM incident_actions
+       WHERE incident_id = $1 AND completed_at IS NOT NULL AND verified_at IS NULL`,
+      [incidentId]
+    )).rows[0].n as number;
+    const openActions = (await query(
+      `SELECT COUNT(*)::int AS n FROM incident_actions
+       WHERE incident_id = $1 AND completed_at IS NULL AND status != 'cancelled'`,
+      [incidentId]
+    )).rows[0].n as number;
+    const reporting = (await query(
+      'SELECT id FROM incident_reporting_assessments WHERE organization_id = $1 AND incident_id = $2 LIMIT 1',
+      [orgId, incidentId]
+    )).rows[0];
+    const blockers: string[] = [];
+    if (openInv) blockers.push('Investigation is still open');
+    if (unverified > 0) blockers.push(`${unverified} completed action${unverified > 1 ? 's are' : ' is'} not yet verified`);
+    if (incident.is_cqc_reportable && !reporting) blockers.push('CQC-reportable incident needs a reporting assessment');
+    return { incident, blockers, openActions: openActions as number };
   }
 
   static async getInvolvedResidents(incidentId: string) {

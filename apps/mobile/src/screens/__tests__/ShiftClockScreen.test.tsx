@@ -297,6 +297,23 @@ describe('ShiftClockScreen', () => {
     expect(onHandover).toHaveBeenCalledWith('shift-1')
   })
 
+  it('offers the incident report from the shift, where a support worker is when they see it', async () => {
+    const onReportIncident = jest.fn()
+    const { findByText } = renderScreen({ onReportIncident })
+
+    fireEvent.press(await findByText('Report an incident'))
+
+    expect(onReportIncident).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows no incident entry when the app did not wire one', async () => {
+    const { findByText, queryByText } = renderScreen()
+
+    // The screen still loads — the safety card is simply absent.
+    expect(await findByText('Shift handover')).toBeTruthy()
+    expect(queryByText('Report an incident')).toBeNull()
+  })
+
   it('loads the shift by id when it was opened from a notification', async () => {
     const { findByText } = renderScreen({ shift: undefined })
 

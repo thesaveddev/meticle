@@ -18,12 +18,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { PageHeader, StatusBadge, ConfirmDialog, EmptyRow, NAVY } from '../../components/ui'
+import IncidentWorkflowBoard from './IncidentWorkflowBoard'
+import IncidentLifecycleBoard from './IncidentLifecycleBoard'
+import IncidentCloseoutBoard from './IncidentCloseoutBoard'
+import IncidentSuggestedActions from './IncidentSuggestedActions'
 
 const SEVERITY_TONE: Record<string, 'success' | 'warning' | 'error' | 'purple'> = {
   low: 'success', medium: 'warning', high: 'error', critical: 'purple',
 }
 const STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
-  reported: 'warning', investigating: 'info', resolved: 'success', closed: 'neutral',
+  draft: 'neutral', reported: 'warning', submitted: 'info', triaging: 'info',
+  investigating: 'info', actioning: 'info', verifying: 'info',
+  resolved: 'success', closed: 'neutral', reopened: 'warning',
 }
 const ACTION_STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
   pending: 'warning', in_progress: 'info', completed: 'success', cancelled: 'neutral',
@@ -57,8 +63,13 @@ export default function IncidentDetailPage() {
   const [addResidentOpen, setAddResidentOpen] = useState(false)
   const [addActionOpen, setAddActionOpen] = useState(false)
   const [editActionOpen, setEditActionOpen] = useState(false)
+  const [verifyOpen, setVerifyOpen] = useState(false)
+  const [verifyActionId, setVerifyActionId] = useState<string | null>(null)
+  const [verifyForm, setVerifyForm] = useState({ effectiveness: 'effective', notes: '' })
   const [updateOpen, setUpdateOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [reopenOpen, setReopenOpen] = useState(false)
+  const [reopenReason, setReopenReason] = useState('')
   const [residentForm, setResidentForm] = useState({ person_id: '', involvement_type: 'affected', notes: '' })
   const [actionForm, setActionForm] = useState({ action: '', assigned_to: '', due_date: '' })
   const [editActionForm, setEditActionForm] = useState<any>({})
@@ -103,6 +114,20 @@ export default function IncidentDetailPage() {
     onSuccess: () => navigate('/incidents'),
   })
 
+  const submitMutation = useMutation({
+    mutationFn: () => api.post(`/incidents/${id}/submit`, {}),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); queryClient.invalidateQueries({ queryKey: ['incident-timeline', id] }) },
+  })
+
+  const reopenMutation = useMutation({
+    mutationFn: (reason: string) => api.post(`/incidents/${id}/reopen`, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', id] })
+      queryClient.invalidateQueries({ queryKey: ['incident-timeline', id] })
+      setReopenOpen(false); setReopenReason('')
+    },
+  })
+
   const addResidentMutation = useMutation({
     mutationFn: (data: any) => api.post(`/incidents/${id}/involved`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddResidentOpen(false); setResidentForm({ person_id: '', involvement_type: 'affected', notes: '' }) },
@@ -116,6 +141,11 @@ export default function IncidentDetailPage() {
   const addActionMutation = useMutation({
     mutationFn: (data: any) => api.post(`/incidents/${id}/actions`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddActionOpen(false); setActionForm({ action: '', assigned_to: '', due_date: '' }) },
+  })
+
+  const verifyActionMutation = useMutation({
+    mutationFn: ({ actionId, data }: { actionId: string; data: any }) => api.post(`/incidents/${id}/actions/${actionId}/verify`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setVerifyOpen(false); setVerifyActionId(null) },
   })
 
   const completeActionMutation = useMutation({
@@ -186,6 +216,18 @@ export default function IncidentDetailPage() {
         title={incident.title}
         actions={
           <Stack direction="row" spacing={1}>
+            {(incident.status === 'draft' || incident.status === 'reported') && (
+              <Button variant="contained" size="small" disabled={submitMutation.isPending}
+                onClick={() => submitMutation.mutate()}
+                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
+                {submitMutation.isPending ? 'Submitting…' : 'Submit for triage'}
+              </Button>
+            )}
+            {canTriage && (incident.status === 'closed' || incident.status === 'resolved') && (
+              <Button variant="outlined" size="small"
+                onClick={() => { setReopenReason(''); setReopenOpen(true) }}
+                sx={{ textTransform: 'none' }}>Reopen</Button>
+            )}
             {isOrgAdmin && (
               <Button variant="outlined" color="error" size="small" startIcon={<DeleteIcon />}
                 onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none' }}>Delete</Button>
@@ -198,6 +240,7 @@ export default function IncidentDetailPage() {
           </Stack>
         }
       />
+      {submitMutation.isError && <Alert severity="error" sx={{ mb: 2 }}>Submit failed — the incident may already have moved; refresh and retry.</Alert>}
 
       {/* Status chips */}
       <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
@@ -284,7 +327,9 @@ export default function IncidentDetailPage() {
         <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label={`Evidence${incidentAttachments.length ? ` (${incident.attachments.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Workflow" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Timeline" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Related" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {/* Tab: Overview */}
@@ -454,6 +499,7 @@ export default function IncidentDetailPage() {
       {/* Tab: Actions */}
       {tab === 2 && (
         <Box>
+          {id && <IncidentSuggestedActions incidentId={id} canTriage={canTriage} />}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={600}>Action Items</Typography>
             {canTriage && (
@@ -495,6 +541,11 @@ export default function IncidentDetailPage() {
                               Completed {new Date(a.completed_at).toLocaleDateString('en-GB')}
                             </Typography>
                           )}
+                          {a.verified_at ? (
+                            <StatusBadge label={`Verified: ${String(a.effectiveness || '').replace(/_/g, ' ') || 'checked'}`} tone={a.effectiveness === 'effective' ? 'success' : a.effectiveness === 'partial' ? 'warning' : 'error'} />
+                          ) : a.completed_at ? (
+                            <StatusBadge label="Unverified" tone="warning" />
+                          ) : null}
                         </Stack>
                       </Box>
                       <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 1 }}>
@@ -503,6 +554,12 @@ export default function IncidentDetailPage() {
                         </IconButton>}
                         {canTriage && !a.completed_at && a.status !== 'cancelled' && (
                           <IconButton size="small" title="Complete" color="success" onClick={() => completeActionMutation.mutate(a.id)}>
+                            <CheckIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                        {canTriage && a.completed_at && !a.verified_at && (
+                          <IconButton size="small" title="Verify effectiveness" color="primary"
+                            onClick={() => { setVerifyActionId(a.id); setVerifyForm({ effectiveness: 'effective', notes: '' }); setVerifyOpen(true) }}>
                             <CheckIcon fontSize="small" />
                           </IconButton>
                         )}
@@ -574,8 +631,21 @@ export default function IncidentDetailPage() {
         </Box>
       )}
 
+      {/* Tab: Workflow — severity head, tasks, history, then investigation + closeout */}
+      {tab === 4 && id && (
+        <Stack spacing={3}>
+          <IncidentWorkflowBoard incidentId={id} canTriage={canTriage} />
+          <IncidentCloseoutBoard incidentId={id} status={incident.status} canTriage={canTriage} />
+        </Stack>
+      )}
+
+      {/* Tab: Related — duplicate candidates and recorded links */}
+      {tab === 6 && id && (
+        <IncidentLifecycleBoard incidentId={id} canTriage={canTriage} />
+      )}
+
       {/* Tab: Timeline */}
-      {tab === 4 && (
+      {tab === 5 && (
         <Box>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
             <TimelineIcon sx={{ color: NAVY, fontSize: 20 }} />
@@ -632,10 +702,16 @@ export default function IncidentDetailPage() {
               <TextField label="Title" fullWidth required value={updateForm.title || ''} onChange={e => setUpdateForm({ ...updateForm, title: e.target.value })} />
               <Stack direction="row" spacing={1}>
                 <TextField select label="Status" fullWidth value={updateForm.status || 'reported'} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
+                  <MenuItem value="draft">Draft</MenuItem>
                   <MenuItem value="reported">Reported</MenuItem>
+                  <MenuItem value="submitted">Submitted</MenuItem>
+                  <MenuItem value="triaging">Triaging</MenuItem>
                   <MenuItem value="investigating">Investigating</MenuItem>
+                  <MenuItem value="actioning">Actioning</MenuItem>
+                  <MenuItem value="verifying">Verifying</MenuItem>
                   <MenuItem value="resolved">Resolved</MenuItem>
                   <MenuItem value="closed">Closed</MenuItem>
+                  <MenuItem value="reopened">Reopened</MenuItem>
                 </TextField>
                 <TextField select label="Severity" fullWidth value={updateForm.severity || 'medium'} onChange={e => setUpdateForm({ ...updateForm, severity: e.target.value })}>
                   <MenuItem value="low">Low</MenuItem>
@@ -769,6 +845,60 @@ export default function IncidentDetailPage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setEditActionOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Save Changes</Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* Reopen Dialog — a reopen without a reason is indistinguishable from a mistake */}
+      <Dialog open={reopenOpen} onClose={() => setReopenOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>Reopen incident</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Reopening restarts this investigation on the same record — history, actions and evidence stay intact.
+            </Typography>
+            <TextField label="Why is this being reopened? (required)" value={reopenReason}
+              onChange={e => setReopenReason(e.target.value)} fullWidth multiline minRows={2}
+              helperText="Recorded in the audit timeline with your name." />
+            {reopenMutation.isError && <Alert severity="error">Reopen failed — the incident may already have moved; refresh and retry.</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setReopenOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" disabled={!reopenReason.trim() || reopenMutation.isPending}
+            onClick={() => reopenMutation.mutate(reopenReason.trim())}
+            sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
+            {reopenMutation.isPending ? 'Reopening…' : 'Reopen incident'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Verify Action Dialog — the check after the doing */}
+      <Dialog open={verifyOpen} onClose={() => setVerifyOpen(false)} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (verifyActionId) verifyActionMutation.mutate({ actionId: verifyActionId, data: { effectiveness: verifyForm.effectiveness, ...(verifyForm.notes.trim() ? { notes: verifyForm.notes.trim() } : {}) } }) }}>
+          <DialogTitle sx={{ fontWeight: 600 }}>Verify Action</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Did the fix work? A completed action without verification blocks closure.
+              </Typography>
+              <TextField select label="Effectiveness" fullWidth value={verifyForm.effectiveness}
+                onChange={e => setVerifyForm({ ...verifyForm, effectiveness: e.target.value })}>
+                <MenuItem value="effective">Effective — fix worked</MenuItem>
+                <MenuItem value="partial">Partial — helped, more needed</MenuItem>
+                <MenuItem value="ineffective">Ineffective — did not work</MenuItem>
+              </TextField>
+              <TextField label="Verification notes (optional)" fullWidth multiline rows={2} value={verifyForm.notes}
+                onChange={e => setVerifyForm({ ...verifyForm, notes: e.target.value })} />
+              {verifyActionMutation.isError && <Alert severity="error">Verification failed — only a completed action can be verified; refresh and retry.</Alert>}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setVerifyOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={verifyActionMutation.isPending}
+              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
+              {verifyActionMutation.isPending ? <CircularProgress size={20} color="inherit" /> : 'Record verification'}
+            </Button>
           </DialogActions>
         </Box>
       </Dialog>

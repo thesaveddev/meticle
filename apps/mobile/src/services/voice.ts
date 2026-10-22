@@ -1,4 +1,3 @@
-import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition'
 import * as Speech from 'expo-speech'
 
 /**
@@ -38,6 +37,40 @@ interface Subscription {
 let subscriptions: Subscription[] = []
 let listening = false
 
+interface RecognitionModule {
+  isRecognitionAvailable?: () => unknown
+  requestPermissionsAsync?: () => Promise<{ granted?: unknown } | null | undefined>
+  start?: (options: unknown) => Promise<unknown>
+  stop?: () => Promise<unknown>
+  addListener?: (event: string, fn: (e: unknown) => void) => Subscription
+}
+
+let recognitionModule: RecognitionModule | null | undefined
+
+/**
+ * The recogniser is resolved lazily — never a static import. On a build
+ * without the native side (notably Expo Go) the require itself throws
+ * "Cannot find native module 'ExpoSpeechRecognition'" at import time, before
+ * any of the try/catch guards below could run. Requiring here keeps that
+ * throw inside a catch, so the worst case is a spoken "not available", never
+ * a red screen at bundle load.
+ */
+function getRecognitionModule(): RecognitionModule | null {
+  if (recognitionModule !== undefined) return recognitionModule
+  try {
+    const loaded = require('expo-speech-recognition') as {
+      ExpoSpeechRecognitionModule?: RecognitionModule
+    }
+    recognitionModule = loaded?.ExpoSpeechRecognitionModule ?? null
+  } catch {
+    recognitionModule = null
+  }
+  if (!recognitionModule || typeof recognitionModule !== 'object') {
+    recognitionModule = null
+  }
+  return recognitionModule
+}
+
 function clearSubscriptions() {
   for (const sub of subscriptions) {
     try { sub.remove() } catch { /* a half-torn-down recogniser owes nothing */ }
@@ -52,7 +85,7 @@ function clearSubscriptions() {
  */
 export async function isVoiceInputSupported(): Promise<boolean> {
   try {
-    return ExpoSpeechRecognitionModule.isRecognitionAvailable() === true
+    return getRecognitionModule()?.isRecognitionAvailable?.() === true
   } catch {
     return false
   }
@@ -61,7 +94,9 @@ export async function isVoiceInputSupported(): Promise<boolean> {
 /** Asks for microphone + speech-recognition permission. True when granted. */
 export async function requestVoicePermission(): Promise<boolean> {
   try {
-    const res = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+    const request = getRecognitionModule()?.requestPermissionsAsync
+    if (typeof request !== 'function') return false
+    const res = await request()
     return res?.granted === true
   } catch {
     return false
@@ -94,16 +129,17 @@ function transcriptOf(event: unknown): string {
  */
 export async function startListening(handlers: VoiceTranscriptHandlers): Promise<boolean> {
   if (listening) return false
-  const addListener = (ExpoSpeechRecognitionModule as unknown as {
-    addListener?: (event: string, fn: (e: unknown) => void) => Subscription
-  }).addListener
-  if (typeof addListener !== 'function') {
+  const recogniser = getRecognitionModule()
+  const addListener = recogniser?.addListener
+  const start = recogniser?.start
+  if (!recogniser || typeof addListener !== 'function' || typeof start !== 'function') {
     handlers.onSpeechError?.('Voice input is not available in this build.', true)
     return false
   }
+  const listen = addListener.bind(recogniser)
   try {
     subscriptions.push(
-      addListener.call(ExpoSpeechRecognitionModule, 'result', (event: unknown) => {
+      listen('result', (event: unknown) => {
         const text = transcriptOf(event).trim()
         const isFinal = (event as { isFinal?: unknown })?.isFinal === true
         if (isFinal) {
@@ -113,14 +149,14 @@ export async function startListening(handlers: VoiceTranscriptHandlers): Promise
           handlers.onPartial?.(text)
         }
       }),
-      addListener.call(ExpoSpeechRecognitionModule, 'volumechange', (event: unknown) => {
+      listen('volumechange', (event: unknown) => {
         handlers.onVolume?.(normaliseVolume((event as { value?: unknown })?.value))
       }),
-      addListener.call(ExpoSpeechRecognitionModule, 'nomatch', () => {
+      listen('nomatch', () => {
         listening = false
         handlers.onFinal?.('')
       }),
-      addListener.call(ExpoSpeechRecognitionModule, 'error', (event: unknown) => {
+      listen('error', (event: unknown) => {
         const code = (event as { error?: unknown })?.error
         // Silence and cancellation are normal ends to a sentence-length listen,
         // not failures: the screen answers both by listening again.
@@ -141,7 +177,7 @@ export async function startListening(handlers: VoiceTranscriptHandlers): Promise
         }
       }),
     )
-    await ExpoSpeechRecognitionModule.start({ lang: 'en-GB', interimResults: true, continuous: false })
+    await start({ lang: 'en-GB', interimResults: true, continuous: false })
     listening = true
     return true
   } catch {
@@ -157,7 +193,7 @@ export async function stopListening(): Promise<void> {
   clearSubscriptions()
   listening = false
   try {
-    await ExpoSpeechRecognitionModule.stop()
+    await getRecognitionModule()?.stop?.()
   } catch {
     // Already stopped, or never started: there is nothing to end.
   }

@@ -89,6 +89,37 @@ export class PolicyRepository {
     return result.rows.map((row) => row.category);
   }
 
+  /**
+   * Records that a person has read a policy. Re-reading refreshes the row
+   * rather than duplicating it: the question at inspection is "had they read
+   * the current version", and two rows for one person cannot answer it.
+   */
+  static async acknowledge(policyId: string, orgId: string, userId: string) {
+    const result = await query(
+      `INSERT INTO policy_acknowledgements (organization_id, policy_id, user_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (policy_id, user_id)
+       DO UPDATE SET acknowledged_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [orgId, policyId, userId]
+    );
+    return result.rows[0];
+  }
+
+  /** Who has acknowledged a policy, newest first, with names for the list. */
+  static async acknowledgements(policyId: string, orgId: string) {
+    const result = await query(
+      `SELECT a.*, u.email, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name
+       FROM policy_acknowledgements a
+       JOIN users u ON a.user_id = u.id
+       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       WHERE a.policy_id = $1 AND a.organization_id = $2
+       ORDER BY a.acknowledged_at DESC`,
+      [policyId, orgId]
+    );
+    return result.rows;
+  }
+
   static async ensureDefaults(orgId: string) {
     return transaction(async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [orgId]);

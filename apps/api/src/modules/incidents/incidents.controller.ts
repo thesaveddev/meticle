@@ -9,6 +9,21 @@ import { sendPushToUser } from '../notifications/push.service';
 import { logWarn } from '../../shared/utils/logger';
 import logger from '../../shared/utils/logger';
 import { query } from '../../shared/database';
+import { IncidentFormsRepository } from '../incident-forms/incident-forms.repository';
+import { evaluateForm } from '../incident-forms/incident-forms.evaluate';
+import { IncidentSeverityRepository } from '../incident-severity/incident-severity.repository';
+import { IncidentWorkflowRepository } from '../incident-workflow/incident-workflow.repository';
+import { suggestActions } from './incident-actions.suggest';
+
+/** Reporter's severity guess → engine harm input when no form answer says otherwise. */
+function mapSeverityToHarm(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'severe';
+    case 'high': return 'moderate';
+    case 'medium': return 'minor';
+    default: return 'none';
+  }
+}
 import { UserRole, micaRecordPath, type MicaRecordRef } from '@meticle/shared';
 
 export class IncidentsController {
@@ -160,7 +175,7 @@ export class IncidentsController {
   private static readonly REPORTER_FIELDS = [
     'title', 'description', 'witnesses', 'incident_date', 'incident_time', 'location',
     'severity', 'category_id', 'is_near_miss', 'is_confidential', 'client_submission_id',
-    'person_ids', 'visit_id',
+    'person_ids', 'visit_id', 'form_key', 'form_answers', 'reopens_incident_id',
   ] as const;
 
   static sanitiseForReporter(body: any): any {
@@ -218,8 +233,353 @@ export class IncidentsController {
       new_data: { title: incident.title, severity: incident.severity, is_near_miss: incident.is_near_miss, is_confidential: incident.is_confidential },
       ip_address: req.ip,
     }).catch(logWarn('audit incident create'));
-    await IncidentsController.notifyOnCreate(req, incident);
-    res.status(201).json(incident);
+    // P1a submit wiring: the report names its form version, the server
+    // re-validates (never trusts the client's evaluate), appends answers,
+    // assesses severity deterministically and starts the workflow. Each engine
+    // step is best-effort: a form/severity/workflow failure is logged and the
+    // incident still exists — an unassessed report beats a lost one.
+    let linked = incident;
+    try {
+      // Only run the form/severity/workflow engine when the report carries
+      // form data. Reports without it (older clients, existing tests) keep
+      // their submitted severity and skip assessment — running the engine on
+      // empty answers would downgrade every such report to a default level.
+      const hasFormPayload = (payload as { form_key?: unknown }).form_key !== undefined
+        || (payload as { form_answers?: unknown }).form_answers !== undefined;
+      if (!hasFormPayload) throw new Error('skip-engine-no-form-data');
+      const formKey = String((payload as { form_key?: unknown }).form_key ?? 'general');
+      const rawAnswers = ((payload as { form_answers?: unknown }).form_answers ?? {}) as Record<string, unknown>;
+      await IncidentFormsRepository.ensureStarter(orgId, userId).catch(() => {});
+      const form = await IncidentFormsRepository.getPublishedByKey(orgId, formKey).catch(() => null);
+      const versionId = form?.version?.id as string | undefined;
+      if (form && versionId) {
+        const fields = (form.fields ?? []) as Parameters<typeof evaluateForm>[0];
+        const evaluated = evaluateForm(fields, rawAnswers);
+        const kept: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(rawAnswers)) {
+          if (!evaluated.cleared.includes(k)) kept[k] = v;
+        }
+        await IncidentsRepository.saveAnswers(orgId, incident.id, versionId, userId, kept).catch(logWarn('incident answers'));
+        const categoryName = (incident as { category_name?: string }).category_name ?? (incident as { category_id?: string }).category_id;
+        const severityInputs = {
+          ...kept,
+          category: (kept.category as string | undefined) ?? categoryName ?? '',
+          harm_level: (kept.harm_level as string | undefined) ?? mapSeverityToHarm(String(incident.severity ?? 'medium')),
+          urgency: (kept.urgency as string | undefined) ?? 'routine',
+        };
+        const { assessment, result } = await IncidentSeverityRepository.assess(orgId, userId, incident.id, severityInputs as never);
+        publishDomainEvent({
+          organizationId: orgId, eventName: 'incident.severity_changed', aggregateType: 'incident',
+          aggregateId: incident.id, correlationId: incident.id,
+          payload: { level: result.level, provisional: result.provisional, assessment_id: assessment.id, automatic: true },
+        }).catch(logWarn('publish incident.severity_changed'));
+        await IncidentWorkflowRepository.start(orgId, userId, incident.id, result.level).catch(logWarn('incident workflow start'));
+        linked = (await IncidentsRepository.setEngineLink(incident.id, orgId, versionId, assessment.id).catch(() => null)) ?? incident;
+        // The assessed level is the triage truth; the reporter's guess stays in
+        // the audit trail (create log above) rather than on the directory.
+        if (result.level && result.level !== incident.severity) {
+          linked = (await IncidentsRepository.update(incident.id, { severity: result.level }, orgId).catch(() => null)) ?? linked;
+        }
+      }
+    } catch (err) {
+      if ((err as Error)?.message !== 'skip-engine-no-form-data') logWarn('incident engine wiring')(err);
+    }
+    await IncidentsController.notifyOnCreate(req, linked);
+    res.status(201).json(linked);
+  }
+
+  /** Severity history for the workflow board. Visibility-gated by the route. */
+  static async getAssessments(req: Request, res: Response) {
+    const oid = IncidentsController.getOrgId(req);
+    res.json(await IncidentSeverityRepository.history(oid, String(req.params.id)));
+  }
+
+  /** Workflow + tasks + events for the board. Visibility-gated by the route. */
+  static async getWorkflow(req: Request, res: Response) {
+    const found = await IncidentWorkflowRepository.getByIncident(IncidentsController.getOrgId(req), String(req.params.id));
+    if (!found) throw new AppError(404, 'Workflow not found');
+    res.json(found);
+  }
+
+  /**
+   * Submit a draft for triage. Idempotent: a retry after a successful submit
+   * returns the submitted row rather than erroring, so a double-press on a
+   * slow connection cannot wedge the report. A reporter may submit only
+   * their own draft; managers may submit any.
+   */
+  static async submit(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    const incident = await IncidentsController.requireVisibleIncident(req);
+    if (incident.status === 'submitted') {
+      res.json(incident);
+      return;
+    }
+    const moved = await IncidentsRepository.transitionStatus(incident.id, orgId, 'submitted', ['draft', 'reported']);
+    if (!moved) throw new AppError(409, `Only a draft can be submitted (current status: ${incident.status})`);
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.submitted', aggregateType: 'incident',
+      aggregateId: incident.id, correlationId: incident.id, payload: { id: incident.id },
+    }).catch(logWarn('publish incident.submitted'));
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'submit', entity_type: 'incident',
+      entity_id: incident.id, old_data: { status: incident.status }, new_data: { status: 'submitted' }, ip_address: req.ip,
+    }).catch(logWarn('audit incident submit'));
+    res.json(moved);
+  }
+
+  /**
+   * Reopen a closed or resolved incident when new facts emerge. The reason is
+   * required and recorded — a reopen without a reason is indistinguishable
+   * from a mistake. The same row continues (history preserved, open actions
+   * intact) and the workflow trail gets a reopen event.
+   */
+  static async reopen(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    const userId = IncidentsController.getUserId(req) || '';
+    const incident = await IncidentsController.requireVisibleIncident(req);
+    const reason = String((req.body as { reason?: unknown }).reason ?? '').trim();
+    const moved = await IncidentsRepository.transitionStatus(incident.id, orgId, 'reopened', ['closed', 'resolved']);
+    if (!moved) throw new AppError(409, `Only a closed or resolved incident can be reopened (current status: ${incident.status})`);
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.reopened', aggregateType: 'incident',
+      aggregateId: incident.id, correlationId: incident.id, payload: { id: incident.id, reason },
+    }).catch(logWarn('publish incident.reopened'));
+    AuditRepository.log({
+      user_id: userId || undefined, action: 'reopen', entity_type: 'incident',
+      entity_id: incident.id, old_data: { status: incident.status }, new_data: { status: 'reopened', reason }, ip_address: req.ip,
+    }).catch(logWarn('audit incident reopen'));
+    const wf = await IncidentWorkflowRepository.getByIncident(orgId, incident.id).catch(() => null);
+    if (wf) {
+      await query(
+        `INSERT INTO incident_workflow_events (organization_id, workflow_id, event, from_state, to_state, actor_id, reason)
+         VALUES ($1,$2,'reopened',$3,'reopened',$4,$5)`,
+        [orgId, (wf.workflow as { id: string }).id, incident.status, userId || null, reason]
+      ).catch(logWarn('workflow reopen event'));
+    }
+    res.json(moved);
+  }
+
+  /** Duplicate candidates for the merge review. Heuristic; manager decides. */
+  static async getDuplicates(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    res.json(await IncidentsRepository.findDuplicates(IncidentsController.getOrgId(req), String(req.params.id)));
+  }
+
+  static async createLink(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const { linked_incident_id, link_type, reason } = req.body as { linked_incident_id: string; link_type: string; reason?: string };
+    if (linked_incident_id === req.params.id) throw new AppError(400, 'An incident cannot be linked to itself');
+    const link = await IncidentsRepository.createLink(orgId, String(req.params.id), linked_incident_id, link_type, reason, IncidentsController.getUserId(req) || '');
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.linked', aggregateType: 'incident',
+      aggregateId: String(req.params.id), correlationId: String(req.params.id),
+      payload: { id: req.params.id, linked_incident_id, link_type },
+    }).catch(logWarn('publish incident.linked'));
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'link', entity_type: 'incident',
+      entity_id: String(req.params.id), new_data: { linked_incident_id, link_type, reason }, ip_address: req.ip,
+    }).catch(logWarn('audit incident link'));
+    res.status(201).json(link);
+  }
+
+  static async getLinks(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    res.json(await IncidentsRepository.getLinks(IncidentsController.getOrgId(req), String(req.params.id)));
+  }
+
+  /**
+   * Draft corrective actions (§13.5 step 7): rules propose from the
+   * incident's facts, the AI triage's recommendations join with provenance,
+   * and a manager approves each draft into real work. Re-running converges
+   * on the same drafts instead of multiplying them.
+   */
+  static async suggestActions(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    const userId = IncidentsController.getUserId(req) || '';
+    const incident = await IncidentsController.requireVisibleIncident(req);
+    const inv = await IncidentsRepository.getInvestigation(orgId, incident.id).catch(() => null);
+    const triage = (incident as { ai_triage?: { actions_recommended?: unknown } }).ai_triage;
+    const drafts = suggestActions({
+      category: (incident as { category_name?: string }).category_name ?? (incident as { category_id?: string }).category_id ?? '',
+      severity: incident.severity,
+      isCqcReportable: incident.is_cqc_reportable,
+      isNearMiss: incident.is_near_miss,
+      investigationSummary: (inv as { summary?: string } | null)?.summary,
+      aiRecommended: triage?.actions_recommended,
+    });
+    const suggestions = await IncidentsRepository.proposeSuggestions(orgId, incident.id, userId, drafts);
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.actions_suggested', aggregateType: 'incident',
+      aggregateId: incident.id, correlationId: incident.id, payload: { id: incident.id, count: suggestions.length },
+    }).catch(logWarn('publish incident.actions_suggested'));
+    AuditRepository.log({
+      user_id: userId || undefined, action: 'actions_suggest', entity_type: 'incident',
+      entity_id: incident.id, new_data: { count: suggestions.length }, ip_address: req.ip,
+    }).catch(logWarn('audit actions suggest'));
+    res.status(201).json(suggestions);
+  }
+
+  static async getSuggestions(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    res.json(await IncidentsRepository.listSuggestions(IncidentsController.getOrgId(req), String(req.params.id)));
+  }
+
+  static async decideSuggestion(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const { decision, reason } = req.body as { decision: 'approved' | 'rejected'; reason?: string };
+    const result = await IncidentsRepository.decideSuggestion(orgId, String(req.params.suggestionId), IncidentsController.getUserId(req) || '', decision, reason);
+    if (!result) throw new AppError(404, 'Suggestion not found');
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.suggestion_decided', aggregateType: 'incident',
+      aggregateId: String(req.params.id), correlationId: String(req.params.id),
+      payload: { id: req.params.id, decision, action_id: (result.action as { id?: string } | null)?.id || null },
+    }).catch(logWarn('publish incident.suggestion_decided'));
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: `suggestion_${decision}`, entity_type: 'incident',
+      entity_id: String(req.params.id), new_data: { suggestion_id: req.params.suggestionId, reason }, ip_address: req.ip,
+    }).catch(logWarn('audit suggestion decide'));
+    res.json(result);
+  }
+
+  static async deleteLink(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    const removed = await IncidentsRepository.deleteLink(IncidentsController.getOrgId(req), String(req.params.linkId));
+    if (!removed) throw new AppError(404, 'Link not found');
+    res.status(204).send();
+  }
+
+  // === Closeout (P3-P5): investigation, verification, reporting, close ===
+
+  static async startInvestigation(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    const incident = await IncidentsController.requireVisibleIncident(req);
+    const { lead_id, summary } = req.body as { lead_id?: string; summary?: string };
+    const { investigation, duplicate } = await IncidentsRepository.startInvestigation(orgId, incident.id, IncidentsController.getUserId(req) || '', lead_id, summary);
+    if (!duplicate) {
+      publishDomainEvent({
+        organizationId: orgId, eventName: 'incident.investigation_started', aggregateType: 'incident',
+        aggregateId: incident.id, correlationId: incident.id, payload: { id: incident.id, lead_id: lead_id || null },
+      }).catch(logWarn('publish incident.investigation_started'));
+      AuditRepository.log({
+        user_id: IncidentsController.getUserId(req), action: 'investigation_start', entity_type: 'incident',
+        entity_id: incident.id, new_data: { lead_id: lead_id || null }, ip_address: req.ip,
+      }).catch(logWarn('audit investigation start'));
+    }
+    res.status(duplicate ? 200 : 201).json(investigation);
+  }
+
+  static async getInvestigation(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    const found = await IncidentsRepository.getInvestigation(IncidentsController.getOrgId(req), String(req.params.id));
+    if (!found) throw new AppError(404, 'No investigation for this incident');
+    res.json(found);
+  }
+
+  static async addInvestigationNote(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const inv = await IncidentsRepository.getInvestigation(orgId, String(req.params.id));
+    if (!inv) throw new AppError(404, 'No investigation for this incident');
+    const { note } = req.body as { note: string };
+    const created = await IncidentsRepository.addInvestigationNote(orgId, inv.id, IncidentsController.getUserId(req) || '', note);
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'investigation_note', entity_type: 'incident',
+      entity_id: String(req.params.id), new_data: { investigation_id: inv.id }, ip_address: req.ip,
+    }).catch(logWarn('audit investigation note'));
+    res.status(201).json(created);
+  }
+
+  static async completeInvestigation(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const inv = await IncidentsRepository.getInvestigation(orgId, String(req.params.id));
+    if (!inv) throw new AppError(404, 'No investigation for this incident');
+    const { summary } = req.body as { summary?: string };
+    const done = await IncidentsRepository.completeInvestigation(orgId, inv.id, IncidentsController.getUserId(req) || '', summary);
+    if (!done) throw new AppError(409, 'This investigation is already complete');
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.investigation_completed', aggregateType: 'incident',
+      aggregateId: String(req.params.id), correlationId: String(req.params.id), payload: { id: req.params.id },
+    }).catch(logWarn('publish incident.investigation_completed'));
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'investigation_complete', entity_type: 'incident',
+      entity_id: String(req.params.id), ip_address: req.ip,
+    }).catch(logWarn('audit investigation complete'));
+    res.json(done);
+  }
+
+  static async verifyAction(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const { effectiveness, notes } = req.body as { effectiveness: string; notes?: string };
+    const updated = await IncidentsRepository.verifyAction(orgId, String(req.params.actionId), IncidentsController.getUserId(req) || '', effectiveness, notes);
+    if (!updated) throw new AppError(404, 'Action not found');
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'action_verify', entity_type: 'incident',
+      entity_id: String(req.params.id), new_data: { action_id: req.params.actionId, effectiveness, notes }, ip_address: req.ip,
+    }).catch(logWarn('audit action verify'));
+    res.json(updated);
+  }
+
+  static async createReportingAssessment(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    await IncidentsController.requireVisibleIncident(req);
+    const { reportable, channel, reference, reported_at } = req.body as { reportable: boolean; channel?: string; reference?: string; reported_at?: string };
+    const created = await IncidentsRepository.createReportingAssessment(orgId, String(req.params.id), IncidentsController.getUserId(req) || '', { reportable, channel, reference, reported_at });
+    AuditRepository.log({
+      user_id: IncidentsController.getUserId(req), action: 'reporting_assess', entity_type: 'incident',
+      entity_id: String(req.params.id), new_data: { reportable, channel, reference }, ip_address: req.ip,
+    }).catch(logWarn('audit reporting assess'));
+    res.status(201).json(created);
+  }
+
+  static async getReportingAssessments(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
+    res.json(await IncidentsRepository.listReportingAssessments(IncidentsController.getOrgId(req), String(req.params.id)));
+  }
+
+  /**
+   * Guarded closure. The 409 names every blocker — an open investigation,
+   * completed-but-unverified actions, a missing reporting decision on a
+   * CQC-reportable incident — so a manager knows exactly what stands in the
+   * way. Open (incomplete) actions survive closure and stay assigned.
+   */
+  static async close(req: Request, res: Response) {
+    const orgId = IncidentsController.getOrgId(req);
+    const userId = IncidentsController.getUserId(req) || '';
+    const incident = await IncidentsController.requireVisibleIncident(req);
+    if (incident.status === 'closed') {
+      res.json(incident);
+      return;
+    }
+    const checked = await IncidentsRepository.closeBlockers(orgId, incident.id);
+    if (!checked) throw new AppError(404, 'Incident not found');
+    if (checked.blockers.length > 0) throw new AppError(409, `Cannot close: ${checked.blockers.join('; ')}`);
+    const { summary } = req.body as { summary?: string };
+    const moved = await IncidentsRepository.transitionStatus(incident.id, orgId, 'closed',
+      ['reported', 'submitted', 'triaging', 'investigating', 'actioning', 'verifying', 'reopened', 'resolved']);
+    if (!moved) throw new AppError(409, `Only a triaged incident can be closed (current status: ${incident.status})`);
+    publishDomainEvent({
+      organizationId: orgId, eventName: 'incident.closed', aggregateType: 'incident',
+      aggregateId: incident.id, correlationId: incident.id,
+      payload: { id: incident.id, open_actions_carried: checked.openActions },
+    }).catch(logWarn('publish incident.closed'));
+    AuditRepository.log({
+      user_id: userId || undefined, action: 'close', entity_type: 'incident',
+      entity_id: incident.id, old_data: { status: incident.status },
+      new_data: { status: 'closed', summary: summary || undefined, open_actions_carried: checked.openActions }, ip_address: req.ip,
+    }).catch(logWarn('audit incident close'));
+    const wf = await IncidentWorkflowRepository.getByIncident(orgId, incident.id).catch(() => null);
+    if (wf) {
+      await query(
+        `INSERT INTO incident_workflow_events (organization_id, workflow_id, event, from_state, to_state, actor_id, reason)
+         VALUES ($1,$2,'closed',$3,'closed',$4,$5)`,
+        [orgId, (wf.workflow as { id: string }).id, incident.status, userId || null, (summary || '').slice(0, 500) || null]
+      ).catch(logWarn('workflow close event'));
+    }
+    res.json(moved);
   }
 
   static async update(req: Request, res: Response) {

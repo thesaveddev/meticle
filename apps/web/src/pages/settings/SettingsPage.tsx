@@ -1753,13 +1753,19 @@ export default function SettingsPage() {
       // is looking at — otherwise the UI shows OpenAI while the org saves
       // provider: null and every AI call fails its config gate.
       body.provider = aiConfig.provider || 'openai'
-      if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('â€¢â€¢')) {
+      // Masked keys from GET /ai/config ('••••••••abcd') must never be sent
+      // back: the server ignores values containing '••', but only when the
+      // guard actually matches the mask. (This line once held double-encoded
+      // bullets that matched nothing, so every save re-sent the mask.)
+      if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('••')) {
         body.apiKey = aiConfig.apiKey
       }
       if (aiConfig.model !== undefined) body.model = aiConfig.model
       if (aiConfig.enabledFeatures !== undefined) body.enabledFeatures = aiConfig.enabledFeatures
       if (aiConfig.ttsVoice !== undefined) body.ttsVoice = aiConfig.ttsVoice
-      if (aiConfig.monthlyBudgetCents !== undefined) body.monthlyBudgetCents = aiConfig.monthlyBudgetCents
+      // The API contract is monthlyCostCapGBP in pounds (validate() strips
+      // anything else, so a differently-named field silently never saves).
+      if (aiConfig.monthlyCostCapGBP !== undefined) body.monthlyCostCapGBP = aiConfig.monthlyCostCapGBP
       if (aiConfig.fallbackProvider !== undefined) body.fallbackProvider = aiConfig.fallbackProvider
       if (aiConfig.fallbackApiKey !== undefined && !aiConfig.fallbackApiKey.startsWith('••')) {
         body.fallbackApiKey = aiConfig.fallbackApiKey
@@ -1924,27 +1930,27 @@ export default function SettingsPage() {
                 type="number"
                 fullWidth
                 size="small"
-                value={aiConfig?.monthlyBudgetCents ? (aiConfig.monthlyBudgetCents / 100).toFixed(2) : ''}
+                value={aiConfig?.monthlyCostCapGBP ? Number(aiConfig.monthlyCostCapGBP).toFixed(2) : ''}
                 onChange={e => {
                   const pounds = parseFloat(e.target.value) || 0
-                  setAIConfig((p: any) => ({ ...p, monthlyBudgetCents: Math.round(pounds * 100) }))
+                  setAIConfig((p: any) => ({ ...p, monthlyCostCapGBP: pounds }))
                 }}
                 InputProps={{ inputProps: { min: 0, step: 0.01 } }}
                 helperText="Set to 0 for unlimited. AI features stop when budget is reached."
               />
-              {aiUsageStats && aiConfig?.monthlyBudgetCents > 0 && (
+              {aiUsageStats && aiConfig?.monthlyCostCapGBP > 0 && (
                 <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E3E9F0' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">Budget used this month</Typography>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                      £{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)} / £{(aiConfig.monthlyBudgetCents / 100).toFixed(2)}
+                      £{(aiUsageStats.monthlyCostGbp || 0).toFixed(2)} / £{Number(aiConfig.monthlyCostCapGBP).toFixed(2)}
                     </Typography>
                   </Box>
                   <Box sx={{ height: 6, bgcolor: '#E3E9F0', borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{
                       height: '100%',
-                      width: `${Math.min(100, ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) * 100)}%`,
-                      bgcolor: ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) > 0.8 ? '#EF4444' : '#10B981',
+                      width: `${Math.min(100, ((aiUsageStats.monthlyCostGbp || 0) / aiConfig.monthlyCostCapGBP) * 100)}%`,
+                      bgcolor: ((aiUsageStats.monthlyCostGbp || 0) / aiConfig.monthlyCostCapGBP) > 0.8 ? '#EF4444' : '#10B981',
                       borderRadius: 3,
                       transition: 'width 0.3s',
                     }} />
@@ -2110,10 +2116,10 @@ export default function SettingsPage() {
                   <Typography variant="body2">Features Used</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{aiUsageStats.features_used || 0}</Typography>
                 </Box>
-                {aiUsageStats.estimated_cost_cents !== undefined && (
+                {aiUsageStats.monthlyCostGbp !== undefined && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #E3E9F0', mt: 0.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Est. Cost</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0164C8' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Est. Cost (this month)</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0164C8' }}>£{(aiUsageStats.monthlyCostGbp || 0).toFixed(2)}</Typography>
                   </Box>
                 )}
               </Stack>

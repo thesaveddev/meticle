@@ -29,6 +29,9 @@ import notificationRoutes from '../modules/notifications/notifications.routes'
 import pushRoutes from '../modules/notifications/push.routes'
 import emailUnsubscribeRoutes from '../modules/notifications/email-unsubscribe.routes'
 import incidentRoutes from '../modules/incidents/incidents.routes'
+import incidentFormRoutes from '../modules/incident-forms/incident-forms.routes'
+import incidentSeverityRoutes from '../modules/incident-severity/incident-severity.routes'
+import incidentWorkflowRoutes from '../modules/incident-workflow/incident-workflow.routes'
 import trainingRoutes from '../modules/training/training.routes'
 import competencyRoutes from '../modules/competency/competency.routes'
 import cqcRoutes from '../modules/cqc/cqc.routes'
@@ -98,6 +101,9 @@ export function createTestApp(): Express {
   app.use('/insights', insightsRoutes)
   app.use('/people', authenticate, requireCareOrganisation, personRoutes)
   app.use('/incidents', authenticate, requireCareOrganisation, incidentRoutes)
+  app.use('/incident-forms', authenticate, requireCareOrganisation, incidentFormRoutes)
+  app.use('/incident-severity', authenticate, requireCareOrganisation, incidentSeverityRoutes)
+  app.use('/incident-workflow', authenticate, requireCareOrganisation, incidentWorkflowRoutes)
   app.use('/dashboard', dashboardRoutes)
   app.use('/notifications', notificationRoutes)
   app.use('/notifications/push', pushRoutes)

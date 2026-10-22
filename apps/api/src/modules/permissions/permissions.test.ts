@@ -7,13 +7,13 @@ const ALL_ROLES = ['ORG_ADMIN', 'MANAGER', 'CARE_WORKER', 'COMPLIANCE_OFFICER'];
 describe('Permissions module catalogue', () => {
   it('covers every navigation area with a label on the frontend matrix', () => {
     expect(MODULES).toEqual(expect.arrayContaining([
-      'dashboard', 'people', 'emedication', 'staff_directory', 'scheduling', 'marketplace',
+      'dashboard', 'people', 'emedication', 'nutrition', 'staff_directory', 'scheduling', 'marketplace',
       'agencies', 'leave', 'compliance', 'training', 'policies', 'incidents', 'reporting',
       'chat', 'tasks', 'appointments', 'expenses', 'homecare', 'call_scheduling',
       'mileage_travel', 'payroll_export', 'client_billing', 'room_checks', 'settings',
       'billing', 'learn',
     ]));
-    expect(MODULES).toHaveLength(26);
+    expect(MODULES).toHaveLength(27);
     expect(new Set(MODULES).size).toBe(MODULES.length);
   });
 

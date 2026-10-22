@@ -170,6 +170,29 @@ export function extractPersonNameFromUtterance(text: string): string | undefined
 }
 
 /**
+ * Could this utterance be a write the deterministic detectors miss?
+ *
+ * The regexes above catch "create a task" and "book an appointment", but a
+ * short spoken imperative — "book podiatry", "arrange a sight check",
+ * "sort out a GP review", "remind me to call the family" — names a kind of
+ * appointment or follow-up without pairing the trigger words. Those must not
+ * fall through to the care-note path and draft a note about nobody: they go
+ * to `/ai/mica/settle` first, and only a settled none continues as a note.
+ *
+ * Questions, destinations, confirmations and farewells are excluded up front:
+ * a hint word inside them ("review the rota") is not a write.
+ */
+const WEAK_WRITE_HINT =
+  /\b(book|books|booking|arrange|arranging|sort out|sorting out|schedule|scheduling|reschedule|remind me|reminds me|sight ?check|sight ?test|podiatry|optician|dentist|GP|clinic|review|check-?up|visit|task|reminder|to-?do|todo)\b/i
+
+export function looksLikePossibleWrite(text: string): boolean {
+  if (looksLikeQuestion(text) || looksLikeNavigationIntent(text) || looksLikeConfirmation(text) || isStopUtterance(text)) {
+    return false
+  }
+  return WEAK_WRITE_HINT.test(text)
+}
+
+/**
  * Did the server reject the care note because it could not place the person?
  * These are the only server strings the client reads — a failure the carer
  * can fix by speaking one word.

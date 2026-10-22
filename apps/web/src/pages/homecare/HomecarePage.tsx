@@ -3,6 +3,7 @@ import { Alert, Box, Chip, CircularProgress, Dialog, DialogActions, DialogConten
 import { ErrorOutline as ExceptionIcon, Feedback as FeedbackIcon, HomeWork as PackageIcon, ReceiptLong as PayrollIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { MICA_FAMILY_FEEDBACK_TAB } from '@meticle/shared'
 import PageContainer from '../../components/design/PageContainer'
 import EmptyState from '../../components/design/EmptyState'
 import AppButton from '../../components/design/AppButton'
@@ -29,15 +30,19 @@ const VISIT_SIZE = 8
 
 export default function HomecarePage() {
   const [params] = useSearchParams()
-  const [tab, setTab] = useState(0)
+  const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
+  const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
+  // A family-feedback notification or email lands here with `?tab=feedback`: open
+  // the feedback board rather than the visit board it would otherwise sit behind.
+  // Carers have no feedback tab, so the parameter is honoured for managers only —
+  // otherwise it would select a tab with nothing behind it.
+  const [tab, setTab] = useState(() => params.get('tab') === MICA_FAMILY_FEEDBACK_TAB && isManager ? 3 : 0)
   const [packageSearch, setPackageSearch] = useState('')
   const [packageStatus, setPackageStatus] = useState('all')
   const [packagePage, setPackagePage] = useState(0)
   const [message, setMessage] = useState('')
   const [newPackage, setNewPackage] = useState<any>(null)
   const [patternPkg, setPatternPkg] = useState<any>(null)
-  const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
-  const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
   const overdueOnly = params.get('overdue') === 'true'
   const selectedStatus = params.get('status') || ''
   const selectedAssignment = params.get('assignment') || ''

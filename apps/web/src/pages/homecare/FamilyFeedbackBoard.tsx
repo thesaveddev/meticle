@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert, Box, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
+import { MICA_RECORD_PARAMS } from '@meticle/shared'
 import AppButton from '../../components/design/AppButton'
 import EmptyState from '../../components/design/EmptyState'
 import api from '../../services/api'
@@ -22,17 +24,49 @@ const dateLabel = (value: string) => value ? new Date(value).toLocaleString('en-
 export default function FamilyFeedbackBoard() {
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<any | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // The one submission a notification or an email can name: `?feedback=<id>`, the
+  // row it is about. Held in the same read-only dialog a card click opens, so
+  // there is one way to read a submission rather than two.
+  const linkedFeedbackId = searchParams.get(MICA_RECORD_PARAMS['family-feedback'])
+  const openedLinkedFeedbackRef = useRef<string | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['family-feedback', page],
     queryFn: () => api.get('/family-feedback', { params: { limit: PAGE_SIZE, offset: page * PAGE_SIZE } }).then(r => r.data),
   })
 
+  const stats = data?.stats || {}
+  const rows: any[] = Array.isArray(data?.feedback) ? data.feedback : []
+
+  // Opens the submission a link names, once the page that holds it has loaded. A
+  // fresh submission is the newest row, so it is on the first page the board
+  // reads; a link to anything older resolves against nothing and opens nothing
+  // rather than a dialog full of blanks. Guarded by the id, so a refetch cannot
+  // re-open a dialog the manager has closed. This sits above the loading return
+  // on purpose: an effect behind an early return changes the hook count between
+  // the loading render and the loaded one.
+  useEffect(() => {
+    if (!linkedFeedbackId || openedLinkedFeedbackRef.current === linkedFeedbackId || isLoading) return
+    openedLinkedFeedbackRef.current = linkedFeedbackId
+    const row = rows.find((r: any) => r.id === linkedFeedbackId)
+    if (row) setSelected(row)
+  }, [linkedFeedbackId, rows, isLoading])
+
+  // Closing the reading also drops its link, so a reload cannot put the manager
+  // back into a dialog they just closed. Only `feedback` is dropped: any other
+  // parameter belongs to whatever sent them here.
+  const closeSelected = () => {
+    setSelected(null)
+    if (!linkedFeedbackId) return
+    const next = new URLSearchParams(searchParams)
+    next.delete(MICA_RECORD_PARAMS['family-feedback'])
+    setSearchParams(next, { replace: true })
+  }
+
   if (isLoading) return <Box className="homecare-loading"><CircularProgress /><Typography color="text.secondary">Loading family feedback…</Typography></Box>
   if (isError) return <Alert severity="error">Could not load family feedback. Please try again.</Alert>
 
-  const stats = data?.stats || {}
-  const rows: any[] = Array.isArray(data?.feedback) ? data.feedback : []
   const total = Number(stats.total_feedback || 0)
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const pageSafe = Math.min(page, pages - 1)
@@ -75,7 +109,7 @@ export default function FamilyFeedbackBoard() {
       </Stack>
     </Stack>}
 
-    <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="sm">
+    <Dialog open={Boolean(selected)} onClose={closeSelected} fullWidth maxWidth="sm">
       <DialogTitle>Family feedback · {selected ? `${selected.person_first_name} ${selected.person_last_name}` : ''}</DialogTitle>
       <DialogContent>
         {selected && <Stack spacing={1.5} sx={{ pt: 1 }}>
@@ -99,7 +133,7 @@ export default function FamilyFeedbackBoard() {
             : <Typography variant="body2" color="text.secondary">No written comment — ratings only.</Typography>}
         </Stack>}
       </DialogContent>
-      <DialogActions><AppButton variant="quiet" onClick={() => setSelected(null)}>Close</AppButton></DialogActions>
+      <DialogActions><AppButton variant="quiet" onClick={closeSelected}>Close</AppButton></DialogActions>
     </Dialog>
   </>
 }

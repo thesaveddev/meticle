@@ -40,7 +40,11 @@ router.get('/:staffId/skills', asyncHandler(StaffController.getSkills));
 router.post('/:staffId/skills', requireRole(UserRole.ORG_ADMIN), validate(addSkillSchema), asyncHandler(StaffController.addSkill));
 router.delete('/:staffId/skills/:skillId', requireRole(UserRole.ORG_ADMIN), asyncHandler(StaffController.deleteSkill));
 router.get('/:staffId/emergency-contacts', asyncHandler(StaffController.getEmergencyContacts));
-router.post('/:staffId/emergency-contacts', requireRole(UserRole.ORG_ADMIN), validate(addEmergencyContactSchema), asyncHandler(StaffController.addEmergencyContact));
-router.delete('/:staffId/emergency-contacts/:contactId', requireRole(UserRole.ORG_ADMIN), asyncHandler(StaffController.deleteEmergencyContact));
+// Writable by the person themselves as well as by an administrator: a support
+// worker who cannot maintain their own emergency contact phones the office
+// instead, and the office types what they heard. The owner-or-admin rule lives
+// in the controller (the route key is a staff-profile id, not a user id).
+router.post('/:staffId/emergency-contacts', validate(addEmergencyContactSchema), asyncHandler(StaffController.addEmergencyContact));
+router.delete('/:staffId/emergency-contacts/:contactId', asyncHandler(StaffController.deleteEmergencyContact));
 
 export default router;

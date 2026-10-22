@@ -567,7 +567,9 @@ export class AIController {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
     const config = await AIRepository.getConfig(orgId);
-    const sanitized = config ? { ...config, apiKey: config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '' } : null;
+    // Mask every secret on the way out: the Settings form binds GET straight
+    // back into its inputs, and an unmasked fallback key would sit in the DOM.
+    const sanitized = config ? { ...config, apiKey: config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '', fallbackApiKey: config.fallbackApiKey ? '••••••••' + config.fallbackApiKey.slice(-4) : '' } : null;
     res.json({ config: sanitized });
   }
 
@@ -960,7 +962,12 @@ export class AIController {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
     const stats = await AIRepository.getUsageStats(orgId);
-    res.json({ stats });
+    // The Settings budget bar needs this month's spend against this month's
+    // cap. checkBudget already computes both from the audit log with the same
+    // cost factor it enforces, so reuse it rather than a second query.
+    const config = await AIRepository.getConfig(orgId);
+    const budget = await AIRepository.checkBudget(orgId, config || { enabled: false, provider: 'openai', apiKey: '', model: '', enabledFeatures: [] });
+    res.json({ stats: { ...stats, monthlyTokens: budget.currentTokens, monthlyCostGbp: budget.currentCostGBP, monthlyTokenBudget: budget.budgetTokens, monthlyCostCapGbp: budget.costCapGBP } });
   }
 
   // Shift words the brief asks Mica to understand. The daily_notes table only
@@ -1944,7 +1951,19 @@ export class AIController {
       return res.status(402).json({ error: { message: `AI budget exceeded: ${budget.reason}` } });
     }
 
-    const provider = getProvider(config);
+    // Provider construction is the deployment's processor gate
+    // (assertApprovedProcessor): an unapproved processor or a production
+    // deploy without its transfer-basis acknowledgement throws here. Caught
+    // into a 400 with the real reason — an opaque 500 surfaces in Mica as
+    // "check AI settings" with no hint that the key is fine and the gate is
+    // what refused, which is exactly the loop that sends an admin back to
+    // Settings to re-enter a key that was never the problem.
+    let provider;
+    try {
+      provider = getProvider(config);
+    } catch (err: any) {
+      return res.status(400).json({ error: { message: err?.message || 'AI provider is not available for this deployment.' } });
+    }
     if (typeof (provider as any).chatWithTools !== 'function') {
       return res.status(400).json({ error: { message: 'Mica question answering requires an OpenAI provider (tool calling).' } });
     }

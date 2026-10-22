@@ -5,8 +5,7 @@ import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction, QueuedIncidentReport } from '../types'
 import { listRideShareRequests, respondRideShareRequest } from '../services/api'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconTwoPerson } from '../components/Icons'
-import { SyncRail } from '../components/SyncRail'
+import { IconCheck, IconClock, IconAlert, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { localDateTimeStart } from '../utils/dateRange'
@@ -14,17 +13,6 @@ import { isDomiciliaryOrganisation } from '../utils/serviceType'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
-
-function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
-}
-
-function dateLabel() {
-  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 interface TimelineVisit {
@@ -137,7 +125,7 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pendingClaimsCount = 0, onRefresh, refreshing, onSync, session, pendingIncidentReports = [] }: {
+export function TodayScreen({ user: _user, visits, queue: _queue, onVisit, onOpenCalls, pendingClaimsCount = 0, onRefresh, refreshing, onSync: _onSync, session, pendingIncidentReports: _pendingIncidentReports = [] }: {
   user: MobileUser
   visits: HomecareVisit[]
   queue: OfflineVisitAction[]
@@ -225,34 +213,6 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pending
         />
       }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.dateText, { color: c.muted }]}>{dateLabel()}</Text>
-          <Text style={[styles.userName, { color: c.ink }]}>
-            {greeting()}, {user.first_name || user.email.split('@')[0]}
-          </Text>
-          {allDone && (
-            <Text style={[styles.subtitle, { color: c.muted }]}>All calls completed for today. Great work!</Text>
-          )}
-          {!allDone && total > 0 && (
-            <Text style={[styles.subtitle, { color: c.muted }]}>{completed} of {total} calls completed</Text>
-          )}
-        </View>
-        <View style={styles.headerActions}>
-          {queue.length + pendingIncidentReports.length > 0 ? (
-            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface }]} accessibilityRole="button" accessibilityLabel={`${queue.length + pendingIncidentReports.length} items waiting to sync`}>
-              <IconOffline size={14} color={c.warning} />
-              <Text style={[styles.syncBadgeText, { color: c.warning }]}>{queue.length + pendingIncidentReports.length}</Text>
-            </Pressable>
-          ) : (
-            <View style={[styles.syncBadgeOk, { backgroundColor: c.surfaceAlt }]}>
-              <IconSyncSmall size={14} color={c.success} />
-            </View>
-          )}
-        </View>
-      </View>
-
       {/* Progress card */}
       {total > 0 && (
         <View style={[styles.progressCard, { backgroundColor: allDone ? c.successSurface : c.surface }]}>
@@ -310,11 +270,6 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pending
           ) : null}
           <Ionicons name="chevron-forward" size={18} color={c.muted} />
         </Pressable>
-      )}
-
-      {/* Anything the carer recorded offline that has not reached the server */}
-      {(queue.length > 0 || pendingIncidentReports.length > 0) && (
-        <SyncRail queue={queue} incidentReports={pendingIncidentReports} onSync={onSync} />
       )}
 
       {/* Section heading */}
@@ -497,12 +452,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.xl },
 
-  /* Header */
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xl },
-  dateText: { fontFamily: FONT, fontSize: 13, fontWeight: '500' },
-  userName: { fontFamily: FONT, fontSize: 26, fontWeight: '800', letterSpacing: -0.6, marginTop: 4 },
-  subtitle: { fontFamily: FONT, fontSize: 14, fontWeight: '400', marginTop: 4 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   openCallsCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, marginBottom: spacing.base,
@@ -515,16 +464,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
   openCallsBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
-  syncBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.sm, paddingVertical: 4,
-    borderRadius: radii.full,
-  },
-  syncBadgeText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' },
-  syncBadgeOk: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
 
   /* Progress card */
   progressCard: {

@@ -48,7 +48,9 @@ export type MicaRecordKind =
   | 'shift'
   | 'visit'
   | 'medication-chart'
-  | 'staff-compliance';
+  | 'staff-compliance'
+  /** One family's submitted ratings for a visit, read on the homecare page's feedback tab. */
+  | 'family-feedback';
 
 /** The kinds whose page reads a query parameter (`incident` is opened by its route). */
 export type MicaRecordParamKind = Exclude<MicaRecordKind, 'incident'>;
@@ -77,6 +79,7 @@ export const MICA_RECORD_PARAMS: Readonly<Record<MicaRecordParamKind, string>> =
   visit: 'visit',
   'medication-chart': 'personId',
   'staff-compliance': 'record',
+  'family-feedback': 'feedback',
 }
 
 /**
@@ -92,6 +95,12 @@ export const MICA_CARE_NOTE_TAB = 'daily-notes'
  * `StaffProfilePage` uses for its own compliance section.
  */
 export const MICA_STAFF_COMPLIANCE_TAB = 'compliance'
+
+/**
+ * The homecare tab submitted family feedback is read on: the same label
+ * `HomecarePage` matches against `?tab=` to open its feedback board.
+ */
+export const MICA_FAMILY_FEEDBACK_TAB = 'feedback'
 
 /** A record, with exactly the ids (and, for a week-scoped page, the date) it takes. */
 export type MicaRecordRef =
@@ -110,6 +119,8 @@ export type MicaRecordRef =
   | { kind: 'medication-chart'; id: string; personId: string; month: string }
   /** A staff member's compliance record, on that staff member's profile. */
   | { kind: 'staff-compliance'; id: string; staffId: string }
+  /** One submitted family-feedback row, opened as a dialog on the feedback tab. */
+  | { kind: 'family-feedback'; id: string }
 
 const encode = (value: string) => encodeURIComponent(value)
 
@@ -147,6 +158,11 @@ export function micaRecordPath(ref: MicaRecordRef): string {
       return `/emedication?${MICA_RECORD_PARAMS['medication-chart']}=${encode(ref.personId)}&month=${encode(ref.month)}`
     case 'staff-compliance':
       return `/staff/${encode(ref.staffId)}?tab=${MICA_STAFF_COMPLIANCE_TAB}&${MICA_RECORD_PARAMS['staff-compliance']}=${encode(ref.id)}`
+    case 'family-feedback':
+      // The tab first, then the record: the page opens the board from `tab` and
+      // the board opens the dialog from `feedback`, so a reader that only honours
+      // one half still lands somewhere useful rather than nowhere.
+      return `/homecare?tab=${MICA_FAMILY_FEEDBACK_TAB}&${MICA_RECORD_PARAMS['family-feedback']}=${encode(ref.id)}`
   }
 }
 

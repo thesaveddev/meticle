@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { micaRecordPath, micaRecordUrl } from '@meticle/shared';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { FamilyFeedbackRepository as Repo } from './familyFeedback.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
@@ -92,13 +93,18 @@ export class FamilyFeedbackController {
 
       const stars = '★'.repeat(record.overall_rating) + '☆'.repeat(5 - record.overall_rating);
       const personName = `${record.person_first_name || ''} ${record.person_last_name || ''}`.trim();
+      // The one place this feedback can be read back: the notification carries the
+      // in-app path and the email the absolute URL, both built by the shared
+      // contract so the board opens the same record the message is about.
+      const feedbackRef = { kind: 'family-feedback', id: record.id } as const;
 
       for (const mgr of managers.rows) {
         await NotificationsController.createNotification(
           mgr.id,
           `Family feedback received — ${personName}`,
           `${record.family_member_name} (${record.relationship || 'Family'}) rated the visit ${record.overall_rating}/5. ${record.feedback_text ? `"${record.feedback_text.substring(0, 100)}${record.feedback_text.length > 100 ? '...' : ''}"` : ''}`,
-          'compliance'
+          'compliance',
+          micaRecordPath(feedbackRef)
         ).catch(logWarn('feedbackNotification'));
 
         if (mgr.email) {
@@ -120,7 +126,7 @@ export class FamilyFeedbackController {
             </table>
             ${record.feedback_text ? `<p style="color:#374151;line-height:1.6;margin:16px 0;padding:12px;background:#F9FAFB;border-radius:8px;border-left:3px solid #00C9A7">"${record.feedback_text}"</p>` : ''}
             ${record.would_recommend !== null ? `<p style="margin:8px 0"><strong>Would recommend:</strong> ${record.would_recommend ? 'Yes ✓' : 'No'}</p>` : ''}
-            <p><a href="${process.env.FRONTEND_URL || ''}/people/${record.person_id}" style="display:inline-block;padding:10px 24px;background:#0164C8;color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`,
+            <p><a href="${micaRecordUrl(feedbackRef, process.env.FRONTEND_URL || '')}" style="display:inline-block;padding:10px 24px;background:#0164C8;color:#fff;text-decoration:none;border-radius:6px">View family feedback →</a></p>`,
             'notifications',
           ).catch(logWarn('feedbackEmail'));
         }

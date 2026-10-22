@@ -189,6 +189,39 @@ export function resetLaunchNotificationForTests() {
   launchNotification.reset()
 }
 
+/**
+ * Show an incoming chat message right now, the way WhatsApp does.
+ *
+ * Push covers the killed and backgrounded app; this covers the foregrounded
+ * one, where no push is in flight and the socket is the only thing that heard
+ * anything. The tap carries the channel, so it opens the conversation rather
+ * than the tab list. Never prompts for permission out of nowhere: if the carer
+ * has not granted it (asked at sign-in for push), there is silently no banner.
+ */
+export async function presentChatNotification({ title, body, channelId }: {
+  title: string
+  body: string
+  channelId: string
+}): Promise<string | null> {
+  try {
+    const N = await getNotifications()
+    if (!N) return null
+    const current = await N.getPermissionsAsync().catch(() => null)
+    if (current?.status !== 'granted') return null
+    return N.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { type: 'chat', channelId },
+        sound: true,
+      },
+      trigger: null, // immediate
+    })
+  } catch {
+    return null
+  }
+}
+
 /* ─── Missed / Overdue / Unassigned alerts ───────────────────── */
 
 export async function scheduleMissedCallAlert(visit: HomecareVisit) {

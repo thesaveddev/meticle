@@ -124,7 +124,7 @@ function DateControls({ date, today, onChange }: { date: string; today: string; 
  * matching route only, so exactly one tab is active and the styling follows
  * the URL rather than local state.
  */
-function MissionControlTabs({ search }: { search: string }) {
+function MissionControlTabs({ search, serviceModel }: { search: string; serviceModel: ServiceModel }) {
   return (
     <Box component="nav" aria-label="Mission Control sections" sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', mb: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
       {MISSION_CONTROL_TABS.map(tab => (
@@ -132,6 +132,9 @@ function MissionControlTabs({ search }: { search: string }) {
           key={tab.key}
           component={NavLink}
           to={{ pathname: `/mission-control/${tab.key}`, search }}
+          // "Calls" is domiciliary vocabulary (homecare visits). A supported-living
+          // organisation sees its rota here, so the tab says so. The route key
+          // stays `calls` so existing links and bookmarks keep working.
           sx={{
             textTransform: 'none', flexShrink: 0, px: 1.75, py: 1.1, borderRadius: 0,
             borderBottom: '3px solid transparent', color: 'text.secondary', fontWeight: 500,
@@ -139,7 +142,7 @@ function MissionControlTabs({ search }: { search: string }) {
             '&[aria-current="page"]': { color: METICLE_COLORS.primary, fontWeight: 700, borderBottomColor: METICLE_COLORS.primary, bgcolor: METICLE_COLORS.infoSoft },
             '&:focus-visible': { outline: '2px solid', outlineColor: METICLE_COLORS.primary, outlineOffset: 2 },
           }}
-        >{tab.label}</Button>
+        >{tab.key === 'calls' && serviceModel === 'supported_living' ? 'Rota' : tab.label}</Button>
       ))}
     </Box>
   )
@@ -227,7 +230,7 @@ export default function MissionControlLayout({ serviceModel }: { serviceModel: S
           </Box>
           <DateControls date={date} today={today} onChange={setDate} />
         </Stack>
-        <MissionControlTabs search={search} />
+        <MissionControlTabs search={search} serviceModel={serviceModel} />
         {loading && !data ? (
           <Stack spacing={1.5} role="status" aria-label="Loading Mission Control">
             <Skeleton variant="rounded" height={88} />

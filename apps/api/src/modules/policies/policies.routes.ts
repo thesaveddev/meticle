@@ -18,5 +18,9 @@ router.get('/:id', asyncHandler(PolicyController.getById));
 router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createPolicySchema), asyncHandler(PolicyController.create));
 router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updatePolicySchema), asyncHandler(PolicyController.update));
 router.delete('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(PolicyController.delete));
+// Reading history, not policy management: any authenticated staff member
+// acknowledges in their own name; the list is scoped in the controller.
+router.post('/:id/acknowledge', asyncHandler(PolicyController.acknowledge));
+router.get('/:id/acknowledgements', asyncHandler(PolicyController.acknowledgements));
 
 export default router;

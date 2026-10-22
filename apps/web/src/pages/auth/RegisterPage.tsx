@@ -189,17 +189,23 @@ export default function RegisterPage() {
 
   return (
     <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}>
-       <Box sx={{ 
-        flex: { xs: 0, md: 1 }, 
-        display: { xs: 'none', md: 'flex' }, 
+       <Box sx={{
+        flex: { xs: 0, md: 1 },
+        display: { xs: 'none', md: 'flex' },
         flexDirection: 'column',
-        bgcolor: 'background.paper',
+        bgcolor: 'var(--mc-background)',
         p: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRight: '1px solid', borderColor: 'divider'
+        borderRight: '1px solid', borderColor: 'divider',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <Box sx={{ maxWidth: '500px' }}>
+        {/* Same soft brand shapes as the sign-in page (AuthBrandPanel) — decorative only. */}
+        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 340, height: 340, left: -120, bottom: -60, bgcolor: 'var(--mc-info-soft)' }} />
+        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 220, height: 220, left: 140, bottom: 10, bgcolor: 'var(--mc-shape-cyan)', opacity: 0.85 }} />
+        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 150, height: 150, right: -40, bottom: 80, bgcolor: 'var(--mc-success-soft)' }} />
+        <Box sx={{ maxWidth: '500px', position: 'relative', zIndex: 1 }}>
           <Typography variant="h3" sx={{ fontWeight: 600, color: 'text.primary', mb: 3 }}>
             {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
           </Typography>

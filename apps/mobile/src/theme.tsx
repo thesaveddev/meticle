@@ -161,6 +161,13 @@ export const colors = lightColors
 export const mica = {
   blue: '#0164C8',
   surfaceStrong: '#014FB5',
+  /**
+   * The rest of the web orb's gradient and ring palette (`MicaOrb.tsx`
+   * COLORS): cyan runs the glow, the orbit dots and the waveform, sky draws
+   * the outer orbit. Kept literal here so the two orbs cannot drift apart.
+   */
+  cyan: '#03C6B1',
+  sky: '#6B8AFD',
   surface: '#EAF3FF',
   blueDark: '#0251B3',
   violet: '#8B7CF6',
@@ -207,6 +214,8 @@ export type MicaOrbState = (typeof mica.states)[number]
 export interface MicaColorSet {
   readonly blue: string
   readonly surfaceStrong: string
+  readonly cyan: string
+  readonly sky: string
   readonly surface: string
   readonly blueDark: string
   readonly violet: string

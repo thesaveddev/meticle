@@ -358,7 +358,7 @@ export function isPersonResolutionFailure(message: string): boolean {
 /** Consecutive silent ends a continuous session tolerates before giving up. */
 const SILENT_END_LIMIT = 3
 /** How long the room must be quiet before Mica decides the sentence is over. */
-const VAD_SILENCE_MS = 1200
+const VAD_SILENCE_MS = 800
 
 interface PendingClarification {
   kind: 'careNote' | 'action'
@@ -1318,8 +1318,11 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     rec.interimResults = true
     rec.lang = 'en-GB'
     rec.onresult = (e) => {
+      // e.results is cumulative for the whole turn: rebuilding from 0 keeps
+      // every segment. Slicing from e.resultIndex dropped earlier finals on
+      // multi-event turns, so a long sentence arrived as its last few words.
       let full = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) full += e.results[i][0].transcript
+      for (let i = 0; i < e.results.length; i++) full += e.results[i][0].transcript
       if (full) {
         setTranscript(full)
         silentEndsRef.current = 0
@@ -1339,7 +1342,12 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
       // stopListening clears the flag before stopping us: an intentional end
       // must not be restarted by the code below.
       if (!continuousRef.current) return
-      if (transcriptRef.current) {
+      // Trimmed: an interim result of only spaces is truthy but says nothing —
+      // sending it made sendToAi return early with no reply and no restart, so
+      // the session sat in `listening` with no recogniser running (no response,
+      // ever). An empty turn is a silent turn instead: listen again or give up.
+      const said = transcriptRef.current.trim()
+      if (said) {
         silentEndsRef.current = 0
         // The sentence is over: the recogniser has a final transcript and nothing
         // further is coming from this turn. Marked *before* dispatch, so the gap
@@ -1347,7 +1355,7 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
         // recogniser's — which is the distinction that tells you whether to look
         // at the routing table or at the speech API.
         timings.mark('speechDone')
-        sendToAiRef.current(transcriptRef.current)
+        sendToAiRef.current(said)
         return
       }
       // Nothing heard. The browser ends continuous recognition on its own after
@@ -1364,17 +1372,27 @@ export function useMica(options: { onNavigate?: (target: MicaNavigateTarget) => 
     // listening. Uses refs so the timer closure never reads stale state.
     let lastVoiceAt = Date.now()
     let hadVoice = false
+    let lastSeenLen = 0
     const vadTimer = window.setInterval(() => {
       if (!recognitionRef.current) {
         window.clearInterval(vadTimer)
         return
       }
-      if (transcriptRef.current) hadVoice = true
+      const said = transcriptRef.current
+      if (said.trim()) hadVoice = true
+      // Words still arriving count as voice even when the meter reads low (mic
+      // meter denied or unavailable, quiet mic): without this the sentence was
+      // cut VAD_SILENCE_MS after it began no matter how long the carer kept
+      // talking, because lastVoiceAt only ever moved on audio level.
+      if (said.length !== lastSeenLen) {
+        lastSeenLen = said.length
+        lastVoiceAt = Date.now()
+      }
+      if (audioLevelRef.current >= 0.06) lastVoiceAt = Date.now()
       if (hadVoice && Date.now() - lastVoiceAt > VAD_SILENCE_MS && audioLevelRef.current < 0.06) {
         window.clearInterval(vadTimer)
         rec.stop()
       }
-      if (audioLevelRef.current >= 0.06) lastVoiceAt = Date.now()
     }, 200)
     recognitionRef.current = rec
     rec.start()

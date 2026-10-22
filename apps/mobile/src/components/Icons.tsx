@@ -282,16 +282,6 @@ export function IconMapPin({ size = 20, color = '#0164C8' }: IconProps) {
   )
 }
 
-export function IconOffline({ size = 14, color = '#F59E0B' }: IconProps) {
-  const s = size / 14
-  return (
-    <View style={{ width: size, height: size }}>
-      <View style={{ width: 12 * s, height: 12 * s, borderRadius: 6 * s, borderWidth: 1.5 * s, borderColor: color, top: 1 * s, left: 1 * s, position: 'absolute' }} />
-      <View style={{ position: 'absolute', left: 4 * s, top: 6 * s, width: 6 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s }} />
-    </View>
-  )
-}
-
 /** Two-person icon — two overlapping circles representing two carers */
 export function IconTwoPerson({ size = 16, color = '#9A6700' }: IconProps) {
   const s = size / 16

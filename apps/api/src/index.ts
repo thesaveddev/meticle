@@ -32,6 +32,9 @@ import reportingRoutes from './modules/reporting/reporting.routes';
 import insightsRoutes from './modules/insights/insights.routes';
 import personRoutes from './modules/people/people.routes';
 import incidentRoutes from './modules/incidents/incidents.routes';
+import incidentFormRoutes from './modules/incident-forms/incident-forms.routes';
+import incidentSeverityRoutes from './modules/incident-severity/incident-severity.routes';
+import incidentWorkflowRoutes from './modules/incident-workflow/incident-workflow.routes';
 import invitationRoutes from './modules/organization/organization.routes';
 import mfaRoutes from './modules/mfa/mfa.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
@@ -135,6 +138,10 @@ process.on('uncaughtException', (err) => {
 })();
 
 const app = express();
+// One trusted hop: nginx (compose) terminates the edge and sets X-Forwarded-For.
+// Without this, req.ip is always the proxy's address — per-IP rate limits treat
+// every client as one, and audit logs record the proxy instead of the caller.
+app.set('trust proxy', 1);
 const httpsOptions = getHttpsOptions();
 const httpServer = httpsOptions ? createHttpsServer(httpsOptions, app) : createServer(app);
 const port = process.env.PORT || 3001;
@@ -235,6 +242,9 @@ app.use('/reporting', reportingRoutes);
 app.use('/insights', insightsRoutes);
 app.use('/people', authenticate, requireCareOrganisation, personRoutes);
 app.use('/incidents', authenticate, requireCareOrganisation, incidentRoutes);
+app.use('/incident-forms', authenticate, requireCareOrganisation, incidentFormRoutes);
+app.use('/incident-severity', authenticate, requireCareOrganisation, incidentSeverityRoutes);
+app.use('/incident-workflow', authenticate, requireCareOrganisation, incidentWorkflowRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/notifications/push', pushRoutes);

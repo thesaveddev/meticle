@@ -1219,7 +1219,7 @@ export async function acknowledgeShiftHandover(
 export interface MicaAskResponse {
   answer?: string
   sessionId?: string
-  navigate?: { path?: string; label?: string }
+  navigate?: { path?: string; label?: string; person?: { id: string; name: string } }
   /** A page waiting on the carer's yes, with the words that offered it. */
   offer?: { path?: string; label?: string; offer?: string }
 }
@@ -1228,12 +1228,17 @@ export async function askMica(
   token: string,
   question: string,
   sessionId?: string,
+  opts?: { personName?: string },
 ): Promise<MicaAskResponse> {
   return request<MicaAskResponse>('/ai/mica/ask', {
     method: 'POST',
     body: JSON.stringify({
       question,
       ...(sessionId ? { sessionId } : {}),
+      // Remembered context, as the web sends it: who the current note is
+      // about is what makes a follow-up ("and her mood?") land on the same
+      // person. Nothing waits on it.
+      ...(opts?.personName ? { personName: opts.personName } : {}),
     }),
   }, token)
 }
@@ -1294,6 +1299,27 @@ export async function confirmMicaAction(
       draft: draftEnvelope,
       ...(sessionId ? { sessionId } : {}),
     }),
+  }, token)
+}
+
+/**
+ * The LLM intent fallback for utterances the client's regexes miss — the same
+ * `/ai/mica/settle` the web's routing table was written for (`"book
+ * podiatry"`, `"arrange a sight check"`). Short spoken imperatives that name
+ * a kind of appointment or follow-up without pairing the trigger words the
+ * local detectors anchor on. Returns the write action plus extraction, or an
+ * explicit none: recognition-only, nothing here writes. A failure is bounded
+ * and silent — the caller falls through to the care-note path.
+ */
+export interface MicaSettleResponse {
+  intent?: ({ action: MicaWriteAction; utterance: string } & Record<string, unknown>) | null
+  action?: string
+}
+
+export async function settleMicaIntent(token: string, utterance: string): Promise<MicaSettleResponse> {
+  return request<MicaSettleResponse>('/ai/mica/settle', {
+    method: 'POST',
+    body: JSON.stringify({ utterance }),
   }, token)
 }
 

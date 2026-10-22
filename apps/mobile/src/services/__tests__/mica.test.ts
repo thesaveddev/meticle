@@ -14,7 +14,7 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: (...args: any[]) => mockDeleteItem(...args),
 }))
 
-import { approveVoiceNote, askMica, ApiError, confirmMicaAction, prepareMicaAction, requestVoiceNote } from '../api'
+import { approveVoiceNote, askMica, ApiError, confirmMicaAction, prepareMicaAction, requestVoiceNote, settleMicaIntent } from '../api'
 
 function jsonResponse(status: number, body: any) {
   return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body) } as any
@@ -56,6 +56,30 @@ describe('askMica', () => {
     await askMica('token-1', 'Hello')
 
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ question: 'Hello' })
+  })
+
+  it('carries the remembered person so follow-ups land on the same resident', async () => {
+    const fetchMock = global.fetch as jest.Mock
+    fetchMock.mockResolvedValue(jsonResponse(200, { answer: 'Her mood was good.', sessionId: 'session-2' }))
+
+    await askMica('token-1', 'and her mood?', 'session-1', { personName: 'Grace' })
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      question: 'and her mood?',
+      sessionId: 'session-1',
+      personName: 'Grace',
+    })
+  })
+
+  it('settles an ambiguous imperative to a write action or an explicit none', async () => {
+    const fetchMock = global.fetch as jest.Mock
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { intent: { action: 'CREATE_APPOINTMENT' }, action: 'CREATE_APPOINTMENT' }))
+
+    const res = await settleMicaIntent('token-1', 'book podiatry')
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/ai/mica/settle')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ utterance: 'book podiatry' })
+    expect(res.intent?.action).toBe('CREATE_APPOINTMENT')
   })
 
   it('prepares a write action with the utterance and voice source stamped on the input', async () => {

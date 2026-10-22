@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import Animated, {
   Easing,
   cancelAnimation,
@@ -9,10 +10,9 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated'
-import { Image } from 'react-native'
-import { useTheme, type MicaOrbState } from '../theme'
+import { mica, useTheme, type MicaOrbState } from '../theme'
 import { spacing } from '../theme'
-import { MICA_ORB_IMAGE, MICA_IDLE_IMAGE } from '../components/FloatingMicaOrb'
+import { MicaFace } from '../components/MicaFace'
 import { useReducedMotion } from '../utils/useReducedMotion'
 import type { AuthSession } from '../types'
 import {
@@ -22,6 +22,7 @@ import {
   confirmMicaAction,
   prepareMicaAction,
   requestVoiceNote,
+  settleMicaIntent,
   type MicaActionPrepareResponse,
   type MicaCareNoteResponse,
 } from '../services/api'
@@ -32,8 +33,17 @@ import {
   isStopUtterance,
   looksLikeConfirmation,
   looksLikeNavigationIntent,
+  looksLikePossibleWrite,
   looksLikeQuestion,
 } from '../services/micaRouting'
+import {
+  pickBackchannel,
+  pickThinkingCaption,
+  withAttitude,
+  type MicaLineKind,
+} from '../services/micaAttitude'
+import { readMicaPerson, writeMicaPerson } from '../services/storage'
+import { MicaGlow } from '../components/MicaGlow'
 import { localDate } from '../utils/localDay'
 import { notificationTarget } from '../utils/notificationLinks'
 import {
@@ -104,18 +114,27 @@ function offerIfNative(page: { path?: string; label?: string; offer?: string } |
 }
 const SAVE_QUESTION = 'Shall I save it?'
 const NOTE_SAVE_QUESTION = 'Say yes to save it, or no to drop it.'
+
+/**
+ * The message and severity of an API failure, mirroring the web's `apiFailure`.
+ * 402 (budget exceeded) and 403 (feature disabled) end the session: no sentence
+ * the carer says next changes either, so listening on would only invite the
+ * same failure again. 400 deliberately does not — the person-resolution errors
+ * share that status, and "multiple people match" is fixed by saying the name.
+ */
+function apiFailure(error: unknown, fallback: string): { message: string; fatal: boolean } {
+  const status = error instanceof ApiError ? error.status : undefined
+  return { message: error instanceof ApiError ? error.message : fallback, fatal: status === 402 || status === 403 }
+}
 /** Consecutive silent turns tolerated before the orb rests instead of re-listening. */
 const SILENT_LIMIT = 3
 
-function messageOf(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback
-}
 
 /**
  * Mica, orb-only: the whole screen is the orb reacting to the conversation.
  *
- * Nothing on screen apart from the orb and its one-line caption — no thread,
- * no composer, no cards. The carer taps, speaks, and Mica answers aloud; what
+ * Nothing on screen apart from the orb, its one-line caption and a close
+ * control — no thread, no composer, no cards. The carer taps, speaks, and Mica answers aloud; what
  * was heard is the caption while it is being heard, and then it is gone. This
  * is the same assistant as the web, not a poster for it: the same
  * `POST /ai/mica/ask` endpoint for questions, the same `/ai/mica/actions`
@@ -133,7 +152,7 @@ function messageOf(error: unknown, fallback: string): string {
  * Expo Go) and microphone permission. Without either, the orb says so aloud
  * and shows its error state instead of hanging on listening.
  */
-export function MicaHomeScreen({ session, onNavigate }: Props) {
+export function MicaHomeScreen({ session, onNavigate, onCloseSheet }: Props) {
   const { colors: c } = useTheme()
   const reducedMotion = useReducedMotion()
   const [orbState, setOrbState] = useState<MicaOrbState>('idle')
@@ -147,6 +166,27 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
   const silentRef = useRef(0)
   const mountedRef = useRef(true)
   const token = session?.accessToken || ''
+  const listenStartRef = useRef(0)
+  /**
+   * Who the current note is about: remembered context, as the web holds it.
+   * Filled from a name the carer spoke (or a destination the server resolved),
+   * it is what makes a follow-up ("and her mood?") land on the same person.
+   * Nothing waits on it.
+   */
+  const selectedPersonRef = useRef<{ id: string; name: string } | null>(null)
+
+  useEffect(() => {
+    readMicaPerson().then(person => {
+      if (person && mountedRef.current) {
+        selectedPersonRef.current = person
+      }
+    })
+  }, [])
+
+  const rememberPerson = useCallback((person: { id: string; name: string }) => {
+    selectedPersonRef.current = person
+    void writeMicaPerson(person)
+  }, [])
 
   const level = useSharedValue(0)
   const breathe = useSharedValue(1)
@@ -232,11 +272,14 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
   /* ─── Speaking ─── */
 
   /** Speaks a reply, then listens for the next turn unless the session ended. */
-  const say = useCallback((line: string, opts?: { thenListen?: boolean }) => {
+  const say = useCallback((line: string, opts?: { thenListen?: boolean; kind?: MicaLineKind }) => {
     if (!mountedRef.current) return
+    // Read-only answers sometimes gather the thought aloud first ("Mm, …");
+    // saves, offers, navigation, farewells and errors are spoken verbatim.
+    const spoken = withAttitude(line, opts?.kind ?? 'answer')
     setOrbState('responding')
-    setCaption(line)
-    speakReply(line, {
+    setCaption(spoken)
+    speakReply(spoken, {
       onDone: () => {
         if (!mountedRef.current) return
         if (opts?.thenListen === false) {
@@ -289,10 +332,19 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
     hapticLight()
     setOrbState('listening')
     setCaption('Listening…')
+    listenStartRef.current = Date.now()
     level.value = 0
     const started = await startListening({
       onPartial: text => {
-        if (mountedRef.current && text) setCaption(text)
+        if (!mountedRef.current || !text) return
+        // The orb nods along after several seconds of continuous speech — a
+        // caption-only murmur, never spoken and never dispatched: the turn
+        // still sends the recogniser's own final transcript.
+        if (Date.now() - listenStartRef.current > 5000 && Math.random() < 0.3) {
+          setCaption(`${text} — ${pickBackchannel()}`)
+        } else {
+          setCaption(text)
+        }
       },
       onFinal: text => {
         if (!mountedRef.current) return
@@ -341,44 +393,34 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
 
   const ask = useCallback(async (question: string) => {
     setOrbState('thinking')
-    setCaption('Thinking…')
+    setCaption(pickThinkingCaption())
     try {
-      const res = await askMica(token, question, sessionIdRef.current)
+      const res = await askMica(
+        token,
+        question,
+        sessionIdRef.current,
+        selectedPersonRef.current ? { personName: selectedPersonRef.current.name } : undefined,
+      )
       if (!mountedRef.current) return
       if (res.sessionId) sessionIdRef.current = res.sessionId
       offerRef.current = offerIfNative(res.offer)
       if (res.navigate?.path) {
         const label = res.navigate.label || 'that page'
         offerRef.current = null
+        if (res.navigate.person) rememberPerson(res.navigate.person)
         onNavigate(res.navigate.path)
-        say(res.answer || `Opening ${label}.`)
+        say(res.answer || `Opening ${label}.`, { kind: 'navigate' })
         return
       }
       const offered = offerRef.current
       const line = res.answer || 'I could not answer that. Try asking again.'
-      say(offered ? `${line} ${offered.question}` : line)
+      say(offered ? `${line} ${offered.question}` : line, { kind: offered ? 'offer' : 'answer' })
     } catch (err) {
-      if (mountedRef.current) fail(messageOf(err, 'Mica could not reach the AI service. Check AI settings.'))
-    }
-  }, [token, onNavigate, say, fail])
-
-  const sendAction = useCallback(async (
-    action: 'CREATE_TASK' | 'CREATE_APPOINTMENT',
-    utterance: string,
-    input: Record<string, unknown>,
-  ) => {
-    setOrbState('thinking')
-    setCaption('Preparing…')
-    try {
-      const data = await prepareMicaAction(token, action, utterance, input)
       if (!mountedRef.current) return
-      const err = data.error
-      if (err?.message) throw new ApiError(400, err.message)
-      handleActionResult(data, { action, utterance })
-    } catch (err) {
-      if (mountedRef.current) fail(messageOf(err, 'Mica could not prepare that. Check AI settings.'))
+      const failure = apiFailure(err, 'Mica could not reach the AI service. Check AI settings.')
+      fail(failure.message, { fatal: failure.fatal })
     }
-  }, [token])
+  }, [token, onNavigate, say, fail, rememberPerson])
 
   const handleActionResult = useCallback((data: MicaActionPrepareResponse, meta: { action: 'CREATE_TASK' | 'CREATE_APPOINTMENT'; utterance: string }) => {
     if (data.needClarification) {
@@ -389,7 +431,7 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         original: meta.utterance,
         action: meta.action,
       }
-      say(data.prompt || 'Who is that for?')
+      say(data.prompt || 'Who is that for?', { kind: 'approval' })
       return
     }
     const summary = data.summary || 'I could not prepare that. Check the screen for details.'
@@ -402,11 +444,31 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         envelope: { ...(data as unknown as Record<string, unknown>) },
       }
       offerRef.current = null
-      say(`${summary} ${SAVE_QUESTION}`)
+      say(`${summary} ${SAVE_QUESTION}`, { kind: 'approval' })
       return
     }
-    say(summary)
-  }, [])
+    say(summary, { kind: 'approval' })
+  }, [say])
+
+  const sendAction = useCallback(async (
+    action: 'CREATE_TASK' | 'CREATE_APPOINTMENT',
+    utterance: string,
+    input: Record<string, unknown>,
+  ) => {
+    setOrbState('thinking')
+    setCaption(pickThinkingCaption())
+    try {
+      const data = await prepareMicaAction(token, action, utterance, input)
+      if (!mountedRef.current) return
+      const err = data.error
+      if (err?.message) throw new ApiError(400, err.message)
+      handleActionResult(data, { action, utterance })
+    } catch (err) {
+      if (!mountedRef.current) return
+      const failure = apiFailure(err, 'Mica could not prepare that. Check AI settings.')
+      fail(failure.message, { fatal: failure.fatal })
+    }
+  }, [token, handleActionResult, fail])
 
   const saveDraft = useCallback(async () => {
     const current = draftRef.current
@@ -422,7 +484,7 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         const offered = offerIfNative(data.offer)
         offerRef.current = offered
         const done = current.action === 'CREATE_APPOINTMENT' ? 'Booked.' : 'Saved.'
-        say(offered ? `${done} ${offered.question}` : done)
+        say(offered ? `${done} ${offered.question}` : done, { kind: offered ? 'offer' : 'saved' })
         return
       }
       if (current.kind === 'note' && current.noteResult && current.notePersonId) {
@@ -438,14 +500,17 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         // a plain sentence rather than an offer.
         const offered = offerIfNative(data.offer)
         offerRef.current = offered
-        say(offered ? `Care note saved. ${offered.question}` : 'Care note saved.')
+        say(offered ? `Care note saved. ${offered.question}` : 'Care note saved.', { kind: offered ? 'offer' : 'saved' })
         return
       }
       throw new ApiError(400, 'That draft is no longer waiting. Say it again and I will prepare it fresh.')
     } catch (err) {
       // The draft is deliberately *not* dropped: a failure here is usually
-      // transient, and the next "yes" retries it.
-      if (mountedRef.current) fail(messageOf(err, 'Mica could not save that. Try again.'))
+      // transient, and the next "yes" retries it — unless the failure is
+      // fatal (402/403), which no retry can fix.
+      if (!mountedRef.current) return
+      const failure = apiFailure(err, 'Mica could not save that. Try again.')
+      fail(failure.message, { fatal: failure.fatal })
     }
   }, [token, say, fail])
 
@@ -453,18 +518,23 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
     if (!draftRef.current && !pendingRef.current) return
     draftRef.current = null
     pendingRef.current = null
-    say('Okay — I have dropped that.')
-  }, [])
+    say('Okay — I have dropped that.', { kind: 'approval' })
+  }, [say])
 
   const sendCareNote = useCallback(async (utterance: string, personName?: string, personId?: string) => {
     setOrbState('thinking')
-    setCaption('Drafting…')
+    setCaption(pickThinkingCaption())
     try {
+      const remembered = selectedPersonRef.current
       const data: MicaCareNoteResponse = await requestVoiceNote(token, utterance, {
         ...(personId ? { personId } : {}),
         ...(personName ? { personName } : {}),
+        // Who the current note is about, when the sentence names nobody: the
+        // person the last turn resolved, as the web falls back to it.
+        ...(!personId && !personName && remembered ? { personId: remembered.id } : {}),
         noteDate: localDate(),
       })
+      if (data?.person?.id && data.person.name) rememberPerson({ id: data.person.id, name: data.person.name })
       if (!mountedRef.current) return
       if (data.needClarification) {
         const question = data.question || 'Who is this note about?'
@@ -498,17 +568,17 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
       say(`${readBack} ${NOTE_SAVE_QUESTION}`)
     } catch (err) {
       if (!mountedRef.current) return
-      const message = messageOf(err, 'Mica could not reach the AI service. Check AI settings.')
+      const failure = apiFailure(err, 'Mica could not reach the AI service. Check AI settings.')
       // A note whose subject could not be placed is not a dead end: Mica asks
       // aloud, and the next sentence is the answer.
-      if (isPersonResolutionFailure(message)) {
-        pendingRef.current = { kind: 'careNote', question: message, candidates: [], original: utterance }
-        say(message)
+      if (!failure.fatal && isPersonResolutionFailure(failure.message)) {
+        pendingRef.current = { kind: 'careNote', question: failure.message, candidates: [], original: utterance }
+        say(failure.message, { kind: 'error' })
         return
       }
-      fail(message)
+      fail(failure.message, { fatal: failure.fatal })
     }
-  }, [token])
+  }, [token, say, fail, rememberPerson])
 
   const dispatch = useCallback(async (rawTranscript: string) => {
     const text = rawTranscript.trim()
@@ -520,7 +590,7 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         draftRef.current = null
         offerRef.current = null
         hapticLight()
-        say(FAREWELL, { thenListen: false })
+        say(FAREWELL, { thenListen: false, kind: 'farewell' })
         return
       }
 
@@ -557,7 +627,7 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         const target = offerRef.current
         offerRef.current = null
         onNavigate(target.path)
-        say(`Opening ${target.label}.`)
+        say(`Opening ${target.label}.`, { kind: 'navigate' })
         return
       }
 
@@ -572,16 +642,49 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
         return
       }
 
+      // The LLM fallback for short imperatives the regexes miss ("book
+      // podiatry"): a settled write drafts like the regex path, a settled
+      // none — or a settle that itself fails — falls through to the note.
+      if (looksLikePossibleWrite(text)) {
+        try {
+          const settled = await settleMicaIntent(token, text)
+          const settledAction = settled.intent?.action
+          if (settledAction === 'CREATE_TASK' || settledAction === 'CREATE_APPOINTMENT') {
+            const { action: _settledAction, utterance: _settledUtterance, ...prefill } = settled.intent as Record<string, unknown>
+            await sendAction(settledAction, text, prefill)
+            return
+          }
+        } catch {
+          // Bounded and silent: the care-note path is the safe default.
+        }
+      }
+
       await sendCareNote(text, extractPersonNameFromUtterance(text))
     } finally {
       busyRef.current = false
     }
-  }, [])
+  }, [ask, saveDraft, discardDraft, sendAction, sendCareNote, token])
+
+  const handleClose = useCallback(() => {
+    hapticLight()
+    onCloseSheet()
+  }, [onCloseSheet])
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
+      <Pressable
+        onPress={handleClose}
+        style={styles.close}
+        accessibilityRole="button"
+        accessibilityLabel="Close Mica"
+        hitSlop={8}
+      >
+        <Ionicons name="close" size={24} color={c.muted} />
+      </Pressable>
       <View style={styles.stage}>
-        <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
+        <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]}>
+          <MicaGlow size={ORB_SIZE + 48} />
+        </Animated.View>
         {orbState === 'listening' && (
           <Animated.View pointerEvents="none" style={[styles.ripple, rippleStyle]} />
         )}
@@ -600,12 +703,7 @@ export function MicaHomeScreen({ session, onNavigate }: Props) {
                     : 'Talk to Mica. Tap and speak.'
             }
           >
-            <Image
-              source={orbState === 'idle' ? MICA_IDLE_IMAGE : MICA_ORB_IMAGE}
-              style={styles.orb}
-              resizeMode="contain"
-              accessibilityIgnoresInvertColors
-            />
+            <MicaFace state={orbState} />
           </Pressable>
         </Animated.View>
         <Text
@@ -625,12 +723,11 @@ const ORB_SIZE = 208
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  // The web orb's own radial halo (MicaGlow), not a solid disc.
   glow: {
     position: 'absolute',
     width: ORB_SIZE + 48,
     height: ORB_SIZE + 48,
-    borderRadius: (ORB_SIZE + 48) / 2,
-    backgroundColor: '#03C6B1',
   },
   ripple: {
     position: 'absolute',
@@ -638,10 +735,19 @@ const styles = StyleSheet.create({
     height: ORB_SIZE + 24,
     borderRadius: (ORB_SIZE + 24) / 2,
     borderWidth: 2,
-    borderColor: '#03C6B1',
+    borderColor: mica.cyan,
   },
   orbPress: { borderRadius: ORB_SIZE / 2 },
-  orb: { width: ORB_SIZE, height: ORB_SIZE },
+  close: {
+    position: 'absolute',
+    top: spacing.base,
+    right: spacing.base,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
   caption: {
     marginTop: spacing.xl,
     fontSize: 16,

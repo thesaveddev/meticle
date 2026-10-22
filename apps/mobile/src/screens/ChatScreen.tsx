@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import * as Sharing from 'expo-sharing'
 import { connectChatSocket } from '../services/chatSocket'
+import { subscribeChatLive, setOpenChatChannel, chatLiveChannelOf } from '../services/chatLive'
 import { isCaptureMode } from '../capture/mode'
 import { CHART_PALETTE, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
@@ -176,16 +177,57 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
   useEffect(() => { loadChannels() }, [loadChannels])
 
   // The capture tour asks for a specific conversation rather than tapping into
-  // it, so the shot is the same thread every run.
-  const openedInitialChannel = useRef(false)
+  // it, so the shot is the same thread every run. Notification taps route the
+  // same way, so a channel id opens whenever it has not already been shown —
+  // backing out to the list re-arms it for the next tap.
+  const openedInitialChannel = useRef<string | null>(null)
   useEffect(() => {
-    if (!initialChannelId || openedInitialChannel.current) return
+    if (!initialChannelId || openedInitialChannel.current === initialChannelId) return
     const match = channels.find(channel => channel.id === initialChannelId)
     if (!match) return
-    openedInitialChannel.current = true
+    openedInitialChannel.current = initialChannelId
     setActiveChannel(match)
     setView('chat')
   }, [initialChannelId, channels])
+
+  // Tell the app-wide feed which conversation is on screen, so it can skip the
+  // banner for a message that is already being read.
+  useEffect(() => {
+    setOpenChatChannel(view === 'chat' ? activeChannel?.id ?? null : null)
+    return () => { setOpenChatChannel(null) }
+  }, [view, activeChannel])
+
+  // Live conversation list: the server fans every message out to each member's
+  // own sockets, so previews and unread badges update the moment a message
+  // lands instead of on the next 15s poll (which stays as the fallback).
+  const channelIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    channelIdsRef.current = new Set(channels.map(channel => channel.id))
+  }, [channels])
+  useEffect(() => {
+    if (!token || isCaptureMode()) return
+    return subscribeChatLive((message) => {
+      const channelId = chatLiveChannelOf(message)
+      if (!channelId) return
+      // A brand-new DM or group is not in the list yet — reload rather than
+      // rendering a row with no name.
+      if (!channelIdsRef.current.has(channelId)) { void loadChannels(); return }
+      const preview = message.message || message.content || (message.file_name ? `\u{1F4CE} ${message.file_name}` : '')
+      const at = message.created_at || new Date().toISOString()
+      setChannels(prev => prev.map(ch => {
+        if (ch.id !== channelId) return ch
+        const readingNow = view === 'chat' && activeChannel?.id === channelId
+        return {
+          ...ch,
+          last_message: preview || ch.last_message,
+          last_message_at: at,
+          unread_count: message.sender_id === currentUserId || readingNow
+            ? ch.unread_count
+            : (ch.unread_count || 0) + 1,
+        }
+      }))
+    })
+  }, [token, currentUserId, view, activeChannel, loadChannels])
   useEffect(() => {
     const interval = setInterval(loadChannels, 15000)
     return () => clearInterval(interval)
@@ -267,8 +309,20 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
     const onRead = (data: { channelId: string; userId: string; lastReadAt?: string }) => {
       if (data.channelId === activeChannel.id && data.userId !== currentUserId && data.lastReadAt) setOtherLastRead(data.lastReadAt)
     }
+    // Edits and deletes fan out to every member's sockets (not just this
+    // channel's room), so the open conversation updates without a reload.
+    const onUpdated = (incoming: ChatMessage & { channel_id?: string; content?: string }) => {
+      if (incoming.channel_id !== activeChannel.id && (incoming as { channel?: string }).channel !== activeChannel.id) return
+      setMessages(prev => prev.map(message => message.id === incoming.id ? { ...message, ...incoming, channel: activeChannel.id } : message))
+    }
+    const onDeleted = (data: { channelId: string; messageId: string }) => {
+      if (data.channelId !== activeChannel.id) return
+      setMessages(prev => prev.map(message => message.id === data.messageId ? { ...message, deleted: true, message: '' } : message))
+    }
     socket.on('connect', join)
     socket.on('chat:message', onMessage)
+    socket.on('chat:message_updated', onUpdated)
+    socket.on('chat:message_deleted', onDeleted)
     socket.on('chat:delivered', onDelivered)
     socket.on('chat:read', onRead)
     if (socket.connected) join()
@@ -278,6 +332,8 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
       socket.emit('chat:leave', activeChannel.id)
       socket.off('connect', join)
       socket.off('chat:message', onMessage)
+      socket.off('chat:message_updated', onUpdated)
+      socket.off('chat:message_deleted', onDeleted)
       socket.off('chat:delivered', onDelivered)
       socket.off('chat:read', onRead)
       socket.disconnect()
@@ -295,6 +351,7 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
 
   const backToList = () => {
     hapticLight()
+    openedInitialChannel.current = null
     setView('list')
     setActiveChannel(null)
     setMessages([])
@@ -753,14 +810,18 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
   // ─── List View ───────────────────────────────────────────
 
   if (view === 'list') {
+    // Embedded as the chat tab, the title lives on the app's bell row (see
+    // App.tsx), so this screen shows no duplicate header — just a compose
+    // button floating over the list, WhatsApp-style. Pushed as a screen, it
+    // keeps its own header with the back arrow.
+    const embedded = !onBack
     return (
     <View style={[listStyles.container, dyn(c).screen]}>
+        {!embedded ? (
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
-          {onBack ? (
-            <Pressable onPress={onBack} style={listStyles.headerBtn}>
-              <Ionicons name="arrow-back" size={22} color={c.primary} />
-            </Pressable>
-          ) : <View style={listStyles.headerBtn} />}
+          <Pressable onPress={onBack} style={listStyles.headerBtn}>
+            <Ionicons name="arrow-back" size={22} color={c.primary} />
+          </Pressable>
           <Text style={[listStyles.headerTitle, { color: c.ink }]}>Messages</Text>
           <Pressable onPress={openNewChat} style={listStyles.headerBtn}>
             <View style={[listStyles.composeBtn, { backgroundColor: c.primary }]}>
@@ -768,6 +829,7 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
             </View>
           </Pressable>
         </View>
+        ) : null}
 
         {loading ? (
           <View style={listStyles.centered}>
@@ -841,6 +903,17 @@ export function ChatScreen({ session, onBack, initialChannelId }: Props) {
             )}
           </View>
         </Modal>
+
+        {embedded ? (
+          <Pressable
+            onPress={openNewChat}
+            style={[listStyles.fab, { backgroundColor: c.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="New message"
+          >
+            <Ionicons name="pencil" size={22} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
 
         {renderContactModal()}
         {renderContextMenu()}
@@ -1006,6 +1079,14 @@ const listStyles = StyleSheet.create({
   },
   headerBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3, textAlign: 'center' },
+  // Compose action for the embedded tab list, where the header (and its
+  // compose button) is hidden in favour of the app's bell-row title.
+  fab: {
+    position: 'absolute', right: 20, bottom: 24, width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
   cancelText: { fontSize: 16, fontFamily: FONT, fontWeight: '500' },
   composeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   searchWrap: {

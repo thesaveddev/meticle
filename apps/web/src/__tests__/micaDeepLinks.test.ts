@@ -48,6 +48,7 @@ const REFS: Record<MicaRecordKind, MicaRecordRef> = {
   visit: { kind: 'visit', id: 'v1', date: '2026-10-12' },
   'medication-chart': { kind: 'medication-chart', id: 'm1', personId: 'p1', month: '2026-10' },
   'staff-compliance': { kind: 'staff-compliance', id: 'c1', staffId: 'u1' },
+  'family-feedback': { kind: 'family-feedback', id: 'f1' },
 }
 
 /**
@@ -69,6 +70,7 @@ const READERS: Record<MicaRecordKind, { page: string; param?: string }> = {
   visit: { page: 'src/pages/homecare/CallSchedulingPage.tsx', param: MICA_RECORD_PARAMS.visit },
   'medication-chart': { page: 'src/pages/emedication/EMedicationPage.tsx', param: MICA_RECORD_PARAMS['medication-chart'] },
   'staff-compliance': { page: 'src/pages/staff/StaffProfilePage.tsx', param: MICA_RECORD_PARAMS['staff-compliance'] },
+  'family-feedback': { page: 'src/pages/homecare/FamilyFeedbackBoard.tsx', param: MICA_RECORD_PARAMS['family-feedback'] },
 }
 
 describe('the record link contract', () => {
@@ -87,6 +89,7 @@ describe('the record link contract', () => {
     expect(micaRecordPath(REFS['staff-compliance'])).toBe(
       `/staff/u1?tab=${MICA_STAFF_COMPLIANCE_TAB}&record=c1`,
     )
+    expect(micaRecordPath(REFS['family-feedback'])).toBe('/homecare?tab=feedback&feedback=f1')
   })
 
   it('encodes what it puts in a path or a query string', () => {

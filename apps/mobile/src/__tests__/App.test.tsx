@@ -71,6 +71,8 @@ jest.mock('../services/storage', () => ({
   readSession: jest.fn(),
   writeSession: jest.fn(),
   clearSession: jest.fn(),
+  readMicaPerson: jest.fn(async () => null),
+  writeMicaPerson: jest.fn(async () => {}),
 }))
 jest.mock('../services/api', () => ({
   getCurrentUser: jest.fn(),
@@ -80,6 +82,7 @@ jest.mock('../services/api', () => ({
   createDisruption: jest.fn(async () => ({})),
   getUnreadNotificationCount: jest.fn(async () => 0),
   getChatUnread: jest.fn(async () => ({})),
+  markChatDelivered: jest.fn(async () => ({})),
   getManagerDashboard: jest.fn(async () => ({ visits: [], exceptions: [], staff: [], disruptions: [] })),
 }))
 jest.mock('../services/notifications', () => ({
@@ -87,9 +90,19 @@ jest.mock('../services/notifications', () => ({
   registerForPushNotifications: jest.fn(async () => null),
   addNotificationListeners: jest.fn(),
   removeNotificationListeners: jest.fn(),
+  presentChatNotification: jest.fn(async () => 'notif-1'),
   // The notification that launched the app. Null by default: a normal cold start is
   // not a notification tap, and the effect must do nothing in that case.
   getLaunchNotification: jest.fn(async () => null),
+}))
+jest.mock('../services/chatLive', () => ({
+  ensureChatLiveSocket: jest.fn(),
+  disconnectChatLive: jest.fn(),
+  subscribeChatLive: jest.fn(() => jest.fn()),
+  subscribeChatUnreadTotal: jest.fn(() => jest.fn()),
+  setOpenChatChannel: jest.fn(),
+  getOpenChatChannel: jest.fn(() => null),
+  chatLiveChannelOf: jest.fn((message: any) => message?.channel_id || message?.channel || null),
 }))
 jest.mock('../services/visitQueue', () => ({
   getQueue: jest.fn(async () => []),
@@ -325,6 +338,86 @@ describe('App badges and back stack', () => {
 
     expect(screen.queryByText('screen:notifications')).toBeNull()
     expect(screen.getByText('screen:today')).toBeTruthy()
+  })
+
+  it('puts the greeting and date on the bell row for a carer on today', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+
+    // One row: the day's greeting on the left, the bell on the right.
+    expect(screen.getByText(/Good (morning|afternoon|evening), Test/)).toBeTruthy()
+    expect(screen.getByLabelText('Notifications')).toBeTruthy()
+  })
+
+  it('leaves the greeting off every other tab and role', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+    fireEvent.press(tabNamed(screen, 'Schedule'))
+    expect(screen.queryByText(/Good (morning|afternoon|evening), Test/)).toBeNull()
+    expect(screen.getByLabelText('Notifications')).toBeTruthy()
+  })
+
+  it('puts the Messages title on the bell row for the chat tab', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+    fireEvent.press(tabNamed(screen, 'Chat'))
+    // One row: the title on the left, the bell on the right — no second
+    // header below it.
+    expect(screen.getByText('Messages')).toBeTruthy()
+    expect(screen.getByLabelText('Notifications')).toBeTruthy()
+  })
+
+  it('surfaces a live chat message with a banner and a refreshed badge', async () => {
+    const chatLive = require('../services/chatLive')
+    const notifications = require('../services/notifications')
+    const mockSubscribe = chatLive.subscribeChatLive as jest.Mock
+    const mockPresent = notifications.presentChatNotification as jest.Mock
+    mockGetChatUnread.mockResolvedValue({})
+
+    const { screen } = await mountApp('CARE_WORKER')
+    await screen.findByLabelText('Notifications')
+    expect(chatLive.ensureChatLiveSocket).toHaveBeenCalledWith('token-1')
+
+    const onMessage = mockSubscribe.mock.calls[0][0]
+    mockGetChatUnread.mockResolvedValue({ general: 1 })
+    await act(async () => {
+      onMessage({ id: 'm1', channel_id: 'chan-9', sender_id: 'other', sender_name: 'Amy Adams', message: 'Hello' })
+    })
+
+    expect(mockPresent).toHaveBeenCalledWith(expect.objectContaining({ channelId: 'chan-9' }))
+    expect(await screen.findByText('1')).toBeTruthy()
+  })
+
+  it('takes the server-pushed unread total as the badge without a reconcile fetch', async () => {
+    const chatLive = require('../services/chatLive')
+    const mockSubscribeTotal = chatLive.subscribeChatUnreadTotal as jest.Mock
+    mockGetChatUnread.mockResolvedValue({})
+
+    const { screen } = await mountApp('CARE_WORKER')
+    await screen.findByLabelText('Notifications')
+
+    const onTotal = mockSubscribeTotal.mock.calls[0][0]
+    const reconcileCalls = mockGetChatUnread.mock.calls.length
+    await act(async () => {
+      onTotal(4)
+    })
+
+    expect(await screen.findByText('4')).toBeTruthy()
+    // The push is the badge — no reconcile GET is spent on it.
+    expect(mockGetChatUnread.mock.calls.length).toBe(reconcileCalls)
+  })
+
+  it('hides the floating mic while the Mica orb is open and brings it back on close', async () => {
+    // The full-screen orb is the control on its own screen; a second mic
+    // floating over it would cover the caption and offer the same thing twice.
+    const { screen } = await mountApp('CARE_WORKER')
+
+    expect(screen.getByTestId('mica-float')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Mica assistant — tap to open. Press and hold for emergency options.'))
+    expect(await screen.findByText('Tap the orb and speak')).toBeTruthy()
+    expect(screen.queryByTestId('mica-float')).toBeNull()
+
+    fireEvent.press(screen.getByLabelText('Close Mica'))
+    expect(screen.getByText('screen:today')).toBeTruthy()
+    expect(screen.getByTestId('mica-float')).toBeTruthy()
   })
 })
 

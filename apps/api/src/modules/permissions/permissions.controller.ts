@@ -7,6 +7,7 @@ const MODULES = [
   'dashboard',
   'people',
   'emedication',
+  'nutrition',
   'staff_directory',
   'scheduling',
   'marketplace',
@@ -34,6 +35,7 @@ const MODULES = [
 
 const MODULE_SERVICE_TYPES: Record<string, string[]> = {
   emedication: ['supported_living', 'residential'],
+  nutrition: ['supported_living', 'residential'],
   scheduling: ['supported_living', 'residential'],
   agencies: ['supported_living', 'residential'],
   tasks: ['supported_living', 'residential'],
@@ -56,10 +58,10 @@ export function getAvailableModules(serviceTypes: string[], primaryServiceType?:
 }
 
 const ROLE_DEFAULTS: Record<string, Record<string, string>> = {
-  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
-  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
-  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', homecare: 'view', call_scheduling: 'view', mileage_travel: 'view', payroll_export: 'none', client_billing: 'none', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
-  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', homecare: 'none', call_scheduling: 'none', mileage_travel: 'none', payroll_export: 'none', client_billing: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
+  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', nutrition: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
+  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', nutrition: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
+  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', nutrition: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', homecare: 'view', call_scheduling: 'view', mileage_travel: 'view', payroll_export: 'none', client_billing: 'none', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
+  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', nutrition: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', homecare: 'none', call_scheduling: 'none', mileage_travel: 'none', payroll_export: 'none', client_billing: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
 };
 
 export class PermissionsController {

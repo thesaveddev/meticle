@@ -343,6 +343,37 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
     socket.on('chat:unread_total', (data: { count: number }) => {
       setChatUnreadCount(data.count)
     })
+    // WhatsApp-style delivery outside the chat page: the server fans every
+    // message out to each member's own sockets, so this fires on every page
+    // and the badge no longer waits for /chat to be opened. The chat page
+    // itself reports its own exact total through `chatUnreadUpdate`, which
+    // corrects this optimistic increment on the next render.
+    socket.on('chat:message', (msg: any) => {
+      if (!msg || msg.sender_id === rawUser.id) return
+      // Delivered means this device received it, not that it was opened — so the
+      // sender's ticks advance even when /chat is not on screen.
+      if (msg.channel_id && msg.id) {
+        api.post(`/chat/channels/${msg.channel_id}/delivered`, { messageIds: [msg.id] }).catch(() => {})
+      }
+      setChatUnreadCount(c => c + 1)
+      const preview = msg.content || msg.message || (msg.file_name ? `\u{1F4CE} ${msg.file_name}` : 'Sent you a message')
+      const sender = msg.sender_name || 'New message'
+      // Background tab: the OS-level banner. Foreground elsewhere in the app:
+      // an in-app note so a message never lands silently. Both stay quiet on
+      // /chat itself — the conversation already shows it.
+      const onChatPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/chat')
+      if (onChatPage) return
+      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        try {
+          new Notification(sender, {
+            body: String(preview).slice(0, 120),
+            icon: '/icons/icon-192.svg',
+          })
+        } catch { /* fallback */ }
+      } else if (!document.hidden) {
+        showSnackbar(`${sender}: ${String(preview).slice(0, 120)}`, 'info', 'New message')
+      }
+    })
 
     const handleChatUnread = (e: CustomEvent) => {
       setChatUnreadCount(e.detail.count)
@@ -354,6 +385,7 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
       clearInterval(unreadPoll)
       socket.off('notification')
       socket.off('unread_count')
+      socket.off('chat:message')
       disconnectSocket()
       window.removeEventListener('chatUnreadUpdate', handleChatUnread as EventListener)
     }

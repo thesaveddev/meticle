@@ -33,6 +33,15 @@ jest.mock('../../services/chatSocket', () => ({
   })),
 }))
 
+jest.mock('../../services/chatLive', () => ({
+  subscribeChatLive: jest.fn(() => jest.fn()),
+  setOpenChatChannel: jest.fn(),
+  getOpenChatChannel: jest.fn(() => null),
+  chatLiveChannelOf: jest.fn(() => null),
+  ensureChatLiveSocket: jest.fn(),
+  disconnectChatLive: jest.fn(),
+}))
+
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(async () => true),
   shareAsync: jest.fn(async () => undefined),
@@ -125,7 +134,7 @@ describe('ChatScreen status bar clearance', () => {
   // that both mounts do supply it.
   it('draws the channel list without applying a top inset of its own', async () => {
     const screen = render(<ChatScreen session={session} />)
-    await waitFor(() => expect(screen.getByText('Messages')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Amy Adams')).toBeTruthy())
 
     expect(screen.UNSAFE_queryAllByType(SafeAreaView)).toHaveLength(0)
   })
@@ -139,14 +148,25 @@ describe('ChatScreen status bar clearance', () => {
 })
 
 describe('ChatScreen header layout', () => {
+  // Pushed as a screen, the list keeps its own header with the back arrow.
   it('centres the list title between two equally sized header slots', async () => {
-    const screen = render(<ChatScreen session={session} />)
+    const screen = render(<ChatScreen session={session} onBack={() => {}} />)
     await waitFor(() => expect(screen.getByText('Messages')).toBeTruthy())
 
     expect(screen.getByText('Messages')).toHaveStyle({ flex: 1, textAlign: 'center' })
     for (const slot of headerSlots(screen, 'Messages')) {
       expect(slot).toMatchObject({ width: 44, height: 44, alignItems: 'center' })
     }
+  })
+
+  // Embedded as the chat tab, the title lives on the app's bell row, so the
+  // screen shows no duplicate header — just a compose button over the list.
+  it('hides its own title on the tab and floats the compose action', async () => {
+    const screen = render(<ChatScreen session={session} />)
+    await waitFor(() => expect(screen.getByText('Amy Adams')).toBeTruthy())
+
+    expect(screen.queryByText('Messages')).toBeNull()
+    expect(screen.getByLabelText('New message')).toBeTruthy()
   })
 
   // The conversation header is back arrow | name | overflow menu. The two

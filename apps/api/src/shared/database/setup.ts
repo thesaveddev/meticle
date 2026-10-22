@@ -3037,6 +3037,77 @@ const MIGRATION_159: Migration = {
   statements: [fs.readFileSync(path.join(__dirname, 'migrations', '159_family_visit_feedback.sql'), 'utf8')],
 };
 
+// Policy acknowledgement: the web policy library records no trace of who has
+// read what, which the mobile blueprint (§9.7) needs for inspection evidence.
+// 160 is that trace — one row per person per policy, refreshed on re-read.
+const MIGRATION_160: Migration = {
+  name: '160_policy_acknowledgements',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '160_policy_acknowledgements.sql'), 'utf8')],
+};
+
+// Incident form engine (P0-1): versioned dynamic reporting forms. Publishing
+// freezes an immutable snapshot so an old incident still reproduces after the
+// form changes; answers are append-only history. See the migration header.
+const MIGRATION_161: Migration = {
+  name: '161_incident_form_engine',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '161_incident_form_engine.sql'), 'utf8')],
+};
+
+// Incident severity engine (P0-2): versioned deterministic rules plus an
+// append-only assessment per incident (inputs hash, fired rules, score,
+// provisional flag). Overrides are rows with reasons, never edits.
+const MIGRATION_162: Migration = {
+  name: '162_incident_severity_engine',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '162_incident_severity_engine.sql'), 'utf8')],
+};
+
+// Incident workflow engine (P0-3): one workflow per incident, tasks with
+// owners/deadlines/acks, append-only transitions, escalation ledger for
+// unacknowledged work. Retries converge via idempotency keys.
+const MIGRATION_163: Migration = {
+  name: '163_incident_workflow_engine',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '163_incident_workflow_engine.sql'), 'utf8')],
+};
+
+// Incident submit wiring (P1a): the incident row names its form version and
+// its current severity assessment. Engines stay history-safe; this is the head.
+const MIGRATION_164: Migration = {
+  name: '164_incident_submit_link',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '164_incident_submit_link.sql'), 'utf8')],
+};
+
+// Incident lifecycle (submit/reopen/duplicates): expands the status values to
+// the states the workflow engine already uses, adds reopen lineage and the
+// manual incident_links table. Transitions are policed in code; see header.
+const MIGRATION_165: Migration = {
+  name: '165_incident_lifecycle',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '165_incident_lifecycle.sql'), 'utf8')],
+};
+
+// Incident closeout (P3-P5): investigations with append-only notes, action
+// verification + effectiveness, and external-reporting assessments. Close is
+// a guarded endpoint that reads these; see the migration header.
+const MIGRATION_166: Migration = {
+  name: '166_incident_closeout',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '166_incident_closeout.sql'), 'utf8')],
+};
+
+// AI-suggested corrective actions (blueprint §13.5 step 7): draft action
+// items proposed from the incident's facts, approved into real actions by a
+// manager. See the migration header.
+const MIGRATION_167: Migration = {
+  name: '167_incident_action_suggestions',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '167_incident_action_suggestions.sql'), 'utf8')],
+};
+
 async function isFreshDatabase(): Promise<boolean> {
   try {
     const result = await query(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_migrations') AS exists`);
@@ -3066,7 +3137,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062, MIGRATION_065, MIGRATION_066, MIGRATION_067, MIGRATION_068, MIGRATION_069, MIGRATION_070, MIGRATION_071, MIGRATION_072, MIGRATION_073, MIGRATION_074, MIGRATION_075, MIGRATION_076, MIGRATION_077, MIGRATION_078, MIGRATION_079, MIGRATION_080, MIGRATION_081, MIGRATION_082, MIGRATION_083, MIGRATION_084, MIGRATION_085, MIGRATION_086, MIGRATION_087, MIGRATION_089, MIGRATION_090, MIGRATION_091, MIGRATION_092, MIGRATION_093, MIGRATION_094, MIGRATION_095, MIGRATION_096, MIGRATION_097, MIGRATION_098, MIGRATION_099, MIGRATION_100, MIGRATION_101, MIGRATION_104, MIGRATION_105, MIGRATION_106, MIGRATION_107, MIGRATION_108, MIGRATION_109, MIGRATION_110, MIGRATION_111, MIGRATION_112, MIGRATION_113, MIGRATION_114, MIGRATION_115, MIGRATION_116, MIGRATION_117, MIGRATION_118, MIGRATION_119, MIGRATION_120, MIGRATION_121, MIGRATION_122, MIGRATION_123, MIGRATION_124, MIGRATION_125, MIGRATION_126, MIGRATION_127, MIGRATION_128, MIGRATION_129, MIGRATION_130, MIGRATION_131, MIGRATION_132, MIGRATION_133, MIGRATION_134, MIGRATION_135, MIGRATION_136, MIGRATION_137, MIGRATION_138, MIGRATION_139, MIGRATION_140, MIGRATION_141, MIGRATION_142, MIGRATION_143, MIGRATION_144, MIGRATION_145, MIGRATION_146, MIGRATION_147,MIGRATION_148, MIGRATION_149, MIGRATION_150, MIGRATION_151, MIGRATION_152, MIGRATION_153, MIGRATION_154, MIGRATION_155, MIGRATION_156, MIGRATION_157, MIGRATION_158, MIGRATION_159]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062, MIGRATION_065, MIGRATION_066, MIGRATION_067, MIGRATION_068, MIGRATION_069, MIGRATION_070, MIGRATION_071, MIGRATION_072, MIGRATION_073, MIGRATION_074, MIGRATION_075, MIGRATION_076, MIGRATION_077, MIGRATION_078, MIGRATION_079, MIGRATION_080, MIGRATION_081, MIGRATION_082, MIGRATION_083, MIGRATION_084, MIGRATION_085, MIGRATION_086, MIGRATION_087, MIGRATION_089, MIGRATION_090, MIGRATION_091, MIGRATION_092, MIGRATION_093, MIGRATION_094, MIGRATION_095, MIGRATION_096, MIGRATION_097, MIGRATION_098, MIGRATION_099, MIGRATION_100, MIGRATION_101, MIGRATION_104, MIGRATION_105, MIGRATION_106, MIGRATION_107, MIGRATION_108, MIGRATION_109, MIGRATION_110, MIGRATION_111, MIGRATION_112, MIGRATION_113, MIGRATION_114, MIGRATION_115, MIGRATION_116, MIGRATION_117, MIGRATION_118, MIGRATION_119, MIGRATION_120, MIGRATION_121, MIGRATION_122, MIGRATION_123, MIGRATION_124, MIGRATION_125, MIGRATION_126, MIGRATION_127, MIGRATION_128, MIGRATION_129, MIGRATION_130, MIGRATION_131, MIGRATION_132, MIGRATION_133, MIGRATION_134, MIGRATION_135, MIGRATION_136, MIGRATION_137, MIGRATION_138, MIGRATION_139, MIGRATION_140, MIGRATION_141, MIGRATION_142, MIGRATION_143, MIGRATION_144, MIGRATION_145, MIGRATION_146, MIGRATION_147,MIGRATION_148, MIGRATION_149, MIGRATION_150, MIGRATION_151, MIGRATION_152, MIGRATION_153, MIGRATION_154, MIGRATION_155, MIGRATION_156, MIGRATION_157, MIGRATION_158, MIGRATION_159, MIGRATION_160, MIGRATION_161, MIGRATION_162, MIGRATION_163, MIGRATION_164, MIGRATION_165, MIGRATION_166, MIGRATION_167]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

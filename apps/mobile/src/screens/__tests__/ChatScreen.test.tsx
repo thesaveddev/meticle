@@ -31,6 +31,15 @@ jest.mock('../../services/chatSocket', () => ({
     disconnect: jest.fn(),
   })),
 }))
+
+jest.mock('../../services/chatLive', () => ({
+  subscribeChatLive: jest.fn(() => jest.fn()),
+  setOpenChatChannel: jest.fn(),
+  getOpenChatChannel: jest.fn(() => null),
+  chatLiveChannelOf: jest.fn(() => null),
+  ensureChatLiveSocket: jest.fn(),
+  disconnectChatLive: jest.fn(),
+}))
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(async () => true),
   shareAsync: jest.fn(async () => undefined),
@@ -131,6 +140,25 @@ describe('ChatScreen composer', () => {
       expect(mockSendChatMessage).toHaveBeenCalledWith('token-1', 'chan-1', 'Hello team', undefined, undefined, undefined)
     )
     await waitFor(() => expect(screen.getByText('Hello team')).toBeTruthy())
+  })
+})
+
+describe('ChatScreen live list', () => {
+  it('applies an incoming live message to the preview and unread badge', async () => {
+    const chatLive = require('../../services/chatLive')
+    const mockSubscribe = chatLive.subscribeChatLive as jest.Mock
+    chatLive.chatLiveChannelOf.mockImplementation((msg: any) => msg?.channel_id || msg?.channel || null)
+
+    const screen = render(<ChatScreen session={session} />)
+    await waitFor(() => expect(screen.getByText('Morning!')).toBeTruthy())
+
+    const onMessage = mockSubscribe.mock.calls[mockSubscribe.mock.calls.length - 1][0]
+    await act(async () => {
+      onMessage({ id: 'm-live', channel_id: 'chan-1', sender_id: 'them', sender_name: 'Amy Adams', message: 'On my way', created_at: '2026-01-02T09:05:00.000Z' })
+    })
+
+    await waitFor(() => expect(screen.getByText('On my way')).toBeTruthy())
+    expect(screen.getByText('1')).toBeTruthy()
   })
 })
 

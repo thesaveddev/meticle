@@ -3,7 +3,7 @@ import { render, within } from '@testing-library/react-native'
 import { TodayScreen } from '../TodayScreen'
 import { IconAlert, IconCheck, IconClock } from '../../components/Icons'
 import { radii } from '../../theme'
-import type { HomecareVisit, MobileUser } from '../../types'
+import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../../types'
 
 const user: MobileUser = {
   id: 'user-1',
@@ -82,5 +82,49 @@ describe('TodayScreen timeline status pill', () => {
     const missed = pillFor('Missed')
     expect(within(missed).UNSAFE_queryByType(IconAlert)).not.toBeNull()
     expect(within(missed).UNSAFE_queryByType(IconClock)).toBeNull()
+  })
+})
+
+describe('TodayScreen header', () => {
+  it('carries no greeting of its own — the greeting sits beside the bell', () => {
+    const screen = renderToday([
+      makeVisit('v1', 'scheduled', FUTURE_START, FUTURE_END),
+    ])
+
+    expect(screen.queryByText(/Good (morning|afternoon|evening)/)).toBeNull()
+    expect(screen.getByText("Today's calls")).toBeTruthy()
+  })
+})
+
+describe('TodayScreen offline queue', () => {
+  it('shows no sync banner or badge when visit actions fail — the bell owns notifications', () => {
+    const queue: OfflineVisitAction[] = Array.from({ length: 6 }, (_, i) => ({
+      id: `qa-${i}`,
+      visitId: 'v1',
+      action: 'check-in',
+      payload: { latitude: 0, longitude: 0 },
+      createdAt: '2026-10-20T09:00:00.000Z',
+      state: 'failed',
+      error: 'Request failed',
+      permanent: true,
+    }))
+    const screen = render(
+      <TodayScreen
+        user={user}
+        visits={[makeVisit('v1', 'scheduled', FUTURE_START, FUTURE_END)]}
+        queue={queue}
+        onVisit={jest.fn()}
+        onRefresh={jest.fn()}
+        refreshing={false}
+        onSync={jest.fn()}
+      />
+    )
+
+    // The dashboard no longer carries its own copy of the queue: no banner under
+    // the greeting, and no sync badge beside it. Failures live in Settings'
+    // Offline sync row, and notifications live under the bell.
+    expect(screen.queryByText(/could not be saved/)).toBeNull()
+    expect(screen.queryByText(/waiting to sync/)).toBeNull()
+    expect(screen.queryByLabelText(/items waiting to sync/)).toBeNull()
   })
 })

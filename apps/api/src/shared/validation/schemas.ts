@@ -77,6 +77,14 @@ export const updateAIConfigSchema = z.object({
   enabledFeatures: z.array(z.string()).optional(),
   /** Mica's spoken voice — gpt-4o-mini-tts voice names. */
   ttsVoice: z.enum(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'sage', 'shimmer', 'verse']).optional(),
+  // Budget and fallback fields the controller already persists: without them
+  // in the schema, validate() strips them and the Settings toggles for cost
+  // caps and fallback providers silently never save.
+  monthlyTokenBudget: z.number().optional(),
+  monthlyCostCapGBP: z.number().optional(),
+  fallbackProvider: z.enum(['openai', 'anthropic']).optional(),
+  fallbackApiKey: z.string().optional(),
+  fallbackModel: z.string().optional(),
 });
 
 export const aiAnalysisRequestSchema = z.object({
@@ -769,7 +777,7 @@ export const updateAssessmentSchema = createAssessmentSchema.partial();
 
 // === Incidents ===
 export const INCIDENT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
-export const INCIDENT_STATUSES = ['reported', 'investigating', 'resolved', 'closed'] as const;
+export const INCIDENT_STATUSES = ['draft', 'reported', 'submitted', 'triaging', 'investigating', 'actioning', 'verifying', 'resolved', 'closed', 'reopened'] as const;
 
 export const createIncidentSchema = z.object({
   title: z.string().min(1),
@@ -793,12 +801,18 @@ export const createIncidentSchema = z.object({
   lessons_learned: z.string().optional(),
   cqc_reference: z.string().optional(),
   reported_to_cqc_at: z.string().optional(),
+  form_key: z.string().regex(/^[a-z0-9_]{1,64}$/).optional(),
+  form_answers: z.record(z.unknown()).optional(),
+  reopens_incident_id: z.string().uuid().optional(),
 });
 
 export const updateIncidentSchema = createIncidentSchema.partial().omit({
   client_submission_id: true,
   person_ids: true,
   visit_id: true,
+  form_key: true,
+  form_answers: true,
+  reopens_incident_id: true,
 });
 
 export const createIncidentCategorySchema = z.object({
@@ -821,6 +835,111 @@ export const createIncidentActionSchema = z.object({
   assigned_to: z.string().uuid().optional(),
   due_date: z.string().optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+});
+
+// === Incident lifecycle (submit / reopen / links) ===
+// Submit needs no body: a draft (or legacy reported row) moves to submitted.
+// Reopen needs a reason — it restarts a closed investigation, and the reason
+// is the audit trail of why.
+export const reopenIncidentSchema = z.object({
+  reason: z.string().trim().min(1).max(2000),
+});
+
+export const createIncidentLinkSchema = z.object({
+  linked_incident_id: z.string().uuid(),
+  link_type: z.enum(['duplicate', 'parent', 'related']),
+  reason: z.string().trim().max(2000).optional(),
+});
+
+// === Incident closeout (P3-P5): investigation, verification, reporting ===
+export const startInvestigationSchema = z.object({
+  lead_id: z.string().uuid().optional(),
+  summary: z.string().trim().max(5000).optional(),
+});
+
+export const investigationNoteSchema = z.object({
+  note: z.string().trim().min(1).max(5000),
+});
+
+export const completeInvestigationSchema = z.object({
+  summary: z.string().trim().max(5000).optional(),
+});
+
+export const verifyActionSchema = z.object({
+  effectiveness: z.enum(['effective', 'partial', 'ineffective']),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const reportingAssessmentSchema = z.object({
+  reportable: z.boolean(),
+  channel: z.string().trim().min(1).max(100).optional(),
+  reference: z.string().trim().max(200).optional(),
+  reported_at: z.string().optional(),
+});
+
+export const closeIncidentSchema = z.object({
+  summary: z.string().trim().max(5000).optional(),
+});
+
+// === AI-suggested actions (§13.5 step 7): drafts a manager approves ===
+export const decideSuggestionSchema = z.object({
+  decision: z.enum(['approved', 'rejected']),
+  reason: z.string().trim().max(2000).optional(),
+});
+
+// === Incident forms (P0-1 form engine) ===
+const incidentFormFieldSchema = z.object({
+  field_key: z.string().regex(/^[a-z0-9_]{1,64}$/),
+  label: z.string().min(1).max(200),
+  help: z.string().max(2000).optional(),
+  type: z.enum(['text', 'textarea', 'number', 'date', 'datetime', 'select', 'multiselect', 'boolean', 'radio', 'checkbox', 'repeating']).optional(),
+  section: z.string().max(200).optional(),
+  ordering: z.number().int().min(0).optional(),
+  required: z.boolean().optional(),
+  validation: z.record(z.unknown()).optional(),
+  options: z.array(z.unknown()).optional(),
+  defaults: z.unknown().optional(),
+  visibility: z.record(z.unknown()).optional(),
+  requiredness: z.record(z.unknown()).optional(),
+  readonly_conditions: z.record(z.unknown()).optional(),
+  repeating: z.record(z.unknown()).optional(),
+  hidden_policy: z.enum(['clear', 'preserve_inactive', 'retain_excluded']).optional(),
+  sensitivity: z.enum(['standard', 'restricted']).optional(),
+  analytics_mapping: z.string().max(200).optional(),
+  severity_deps: z.record(z.unknown()).optional(),
+});
+
+export const createIncidentFormSchema = z.object({
+  key: z.string().regex(/^[a-z0-9_]{1,64}$/),
+  name: z.string().min(1).max(200),
+  fields: z.array(incidentFormFieldSchema).min(1).max(200),
+});
+
+export const evaluateIncidentFormSchema = z.object({
+  form_version_id: z.string().uuid().optional(),
+  key: z.string().regex(/^[a-z0-9_]{1,64}$/).optional(),
+  answers: z.record(z.unknown()).optional(),
+}).refine(v => v.form_version_id || v.key, 'form_version_id or key is required');
+
+// === Incident severity (P0-2) ===
+export const assessSeveritySchema = z.object({
+  incident_id: z.string().uuid().optional(),
+  incidentId: z.string().uuid().optional(),
+  answers: z.record(z.unknown()).optional(),
+  inputs: z.record(z.unknown()).optional(),
+}).refine(v => v.incident_id || v.incidentId, 'incident_id is required');
+
+export const overrideSeveritySchema = z.object({
+  assessment_id: z.string().uuid(),
+  level: z.enum(['low', 'medium', 'high', 'critical']),
+  reason: z.string().min(1).max(2000),
+});
+
+// === Incident workflow (P0-3) ===
+export const startWorkflowSchema = z.object({
+  incident_id: z.string().uuid(),
+  severity_level: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  idempotency_key: z.string().max(200).optional(),
 });
 
 // === Leave ===

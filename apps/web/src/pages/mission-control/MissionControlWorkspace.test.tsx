@@ -169,6 +169,19 @@ describe('MissionControlWorkspace', () => {
     expect(activeTab().map(link => link.textContent)).toEqual(['Calls'])
   })
 
+  it("labels the calls tab 'Rota' for supported-living organisations", async () => {
+    renderWorkspace('supported_living', '/mission-control/calls')
+
+    // The rota is what this tab shows for supported living — domiciliary
+    // "calls" vocabulary must not leak into their navigation.
+    const nav = screen.getByRole('navigation', { name: 'Mission Control sections' })
+    const rotaLink = await within(nav).findByRole('link', { name: 'Rota' })
+    expect(rotaLink.getAttribute('href')).toContain('/mission-control/calls')
+    expect(within(nav).queryByRole('link', { name: 'Calls' })).toBeNull()
+    expect(activeTab().map(link => link.textContent)).toEqual(['Rota'])
+    expect(await screen.findByText("Today's rota")).toBeInTheDocument()
+  })
+
   it('shows the coverage target, shortfall and escalation on the Staffing workspace', async () => {
     renderWorkspace('supported_living', '/mission-control/staffing')
     expect(await screen.findByText('7-day minimum staffing coverage')).toBeInTheDocument()

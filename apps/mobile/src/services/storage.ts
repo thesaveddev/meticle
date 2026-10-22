@@ -113,6 +113,41 @@ export async function writeShiftClockQueue(queue: QueuedShiftClockAction[]): Pro
   await SecureStore.setItemAsync(SHIFT_CLOCK_QUEUE_KEY, JSON.stringify(next))
 }
 
+/**
+ * Who Mica's current note is about, remembered across sessions the way the
+ * web remembers it per tab. Filled from a name the carer spoke (or a
+ * destination the server resolved), it is what makes a follow-up ("and her
+ * mood?") land on the same person. Nothing waits on it.
+ */
+export interface MicaPersonMemory {
+  id: string
+  name: string
+}
+
+const MICA_PERSON_KEY = 'meticlecare.mica-person'
+
+export async function readMicaPerson(): Promise<MicaPersonMemory | null> {
+  try {
+    const value = await SecureStore.getItemAsync(MICA_PERSON_KEY)
+    if (!value) return null
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object') return null
+    const person = parsed as Partial<MicaPersonMemory>
+    return typeof person.id === 'string' && typeof person.name === 'string' ? { id: person.id, name: person.name } : null
+  } catch {
+    return null
+  }
+}
+
+export async function writeMicaPerson(person: MicaPersonMemory): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(MICA_PERSON_KEY, JSON.stringify(person))
+  } catch {
+    // Remembered context is a convenience, not the turn: a full store costs
+    // nothing to lose.
+  }
+}
+
 export async function readQueue(): Promise<OfflineVisitAction[]> {
   const value = await SecureStore.getItemAsync(QUEUE_KEY)
   if (!value) return []

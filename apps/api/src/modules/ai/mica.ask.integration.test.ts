@@ -238,6 +238,45 @@ describe('POST /ai/mica/ask', () => {
     expect(outbound.length).toBe(0)
   })
 
+  it('400s with the allowlist reason (not an opaque 500) when the processor gate refuses construction', async () => {
+    const org = await createOrg()
+    const admin = await createUser({
+      email: `micaask6-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
+      password: 'TestPass123!',
+      role: 'ORG_ADMIN',
+      organization_id: org.id,
+    })
+    await migrateQuery(
+      `UPDATE organizations SET ai_config = $1::jsonb WHERE id = $2`,
+      [JSON.stringify({
+        enabled: true,
+        provider: 'openai',
+        apiKey: 'sk-test-not-a-real-key',
+        model: 'gpt-4o-mini',
+        enabledFeatures: ['natural_language_assistant'],
+      }), org.id],
+    )
+    // The deployment approves every processor except the configured one, so
+    // the factory every call site shares refuses to build it. The question is
+    // deliberately one the deterministic path will not answer (a judgement,
+    // not a list), so the request genuinely reaches provider construction.
+    const previous = process.env.AI_APPROVED_PROCESSORS
+    process.env.AI_APPROVED_PROCESSORS = 'anthropic'
+    try {
+      const res = await request(app)
+        .post('/ai/mica/ask')
+        .set('Authorization', `Bearer ${generateToken(admin)}`)
+        .send({ question: "Summarise this month's incidents" })
+      expect(res.status).toBe(400)
+      expect(res.body.error.message).toContain('not in AI_APPROVED_PROCESSORS')
+      // Nothing reached the model: the refusal happened before any call.
+      expect(outbound.length).toBe(0)
+    } finally {
+      if (previous === undefined) delete process.env.AI_APPROVED_PROCESSORS
+      else process.env.AI_APPROVED_PROCESSORS = previous
+    }
+  })
+
   it('threads a follow-up through sessionId: "what about tomorrow?" sees the prior turn, and a foreign sessionId does not', async () => {
     const org = await createOrg()
     const admin = await createUser({

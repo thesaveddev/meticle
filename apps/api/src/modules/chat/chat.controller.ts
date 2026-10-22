@@ -27,6 +27,101 @@ async function requireChannelMember(organizationId: string, channelId: string, u
   if (!access.rows.length) throw new AppError(403, 'You are not a member of this channel');
 }
 
+/**
+ * Deliver a chat event to every member's live sockets, not just the sockets
+ * that joined this channel's room.
+ *
+ * The server joins every socket to its owner's `user:${userId}` room on
+ * connect, so fanning out to those rooms reaches a member's phone, their open
+ * tabs and their desktop at once — whether or not any of them called
+ * `chat:join` for this channel. The channel room stays in the set because the
+ * typing, delivered and read signals still live there.
+ *
+ * One chained emit, not one per room: Socket.IO delivers a multi-room emit to
+ * each socket once, so a socket sitting in both rooms gets a single copy. The
+ * chain is built defensively because the no-op stub used outside a socket
+ * context exposes `to()` without chaining — delivery is best-effort and must
+ * never fail the request.
+ */
+function emitChatEvent(event: string, channelId: string, memberUserIds: string[], payload: Record<string, unknown>): void {
+  try {
+    const io = safeIo() as unknown as { to: (room: string) => unknown };
+    let target: unknown = io.to(`channel:${channelId}`);
+    for (const memberId of memberUserIds) {
+      const next = target as { to?: (room: string) => unknown };
+      if (typeof next.to === 'function') target = next.to(`user:${memberId}`);
+    }
+    (target as { emit: (event: string, payload: unknown) => void }).emit(event, payload);
+  } catch {
+    // Best-effort: the row is already stored, and push covers the rest.
+  }
+}
+
+/**
+ * Exact unread totals for a set of users, in one query.
+ *
+ * Mirrors `getUnreadCounts` per user: messages not sent by the user, not
+ * deleted, newer than their per-channel read receipt. Members with nothing
+ * unread are absent from the GROUP BY, so they are pre-filled with 0 — the
+ * reader's own clients must be told "zero", not told nothing.
+ */
+async function unreadTotals(organizationId: string, memberIds: string[]): Promise<Record<string, number>> {
+  const totals: Record<string, number> = {};
+  for (const id of memberIds) totals[id] = 0;
+  try {
+    const result = await query(
+      `SELECT cm.user_id AS member_id, COUNT(m.id)::int AS total
+       FROM chat_members cm
+       JOIN chat_channels cc ON cc.id = cm.channel_id AND cc.organization_id = $1
+       JOIN org_chat_messages m ON m.organization_id = $1
+         AND m.channel = cm.channel_id
+         AND m.sender_id != cm.user_id
+         AND m.deleted = FALSE
+       LEFT JOIN org_chat_read_receipts rr ON rr.organization_id = $1
+         AND rr.user_id = cm.user_id
+         AND rr.channel = cm.channel_id
+       WHERE cm.user_id = ANY($2::uuid[])
+         AND m.created_at > COALESCE(rr.last_read_at, '1970-01-01'::timestamptz)
+       GROUP BY cm.user_id`,
+      [organizationId, memberIds]
+    );
+    for (const row of result.rows) totals[row.member_id] = Number(row.total) || 0;
+  } catch {
+    // Best-effort: the badge falls back to its reconcile poll.
+  }
+  return totals;
+}
+
+/**
+ * Push each user's exact total to their own sockets, so every badge — the tab
+ * that sent the message, the tabs that received it, the other devices — is
+ * exact without waiting for a poll or a reconcile GET. Best-effort like every
+ * other emit here: the row is already stored.
+ */
+function emitUnreadTotals(organizationId: string, memberIds: string[]): void {
+  void unreadTotals(organizationId, memberIds).then(totals => {
+    try {
+      const io = safeIo() as unknown as { to: (room: string) => { emit: (event: string, payload: unknown) => void } };
+      for (const [id, count] of Object.entries(totals)) {
+        io.to(`user:${id}`).emit('chat:unread_total', { count });
+      }
+    } catch {
+      // A badge that cannot be pushed is reconciled on the next poll.
+    }
+  }).catch(() => {});
+}
+
+/** Every member's id for a channel; an empty channel still notifies the caller. */
+async function channelMemberIds(channelId: string, fallbackId: string): Promise<string[]> {
+  try {
+    const result = await query('SELECT user_id FROM chat_members WHERE channel_id = $1', [channelId]);
+    const ids = result.rows.map((m: { user_id: string }) => m.user_id);
+    return ids.length > 0 ? ids : [fallbackId];
+  } catch {
+    return [fallbackId];
+  }
+}
+
 export class ChatController {
   static async uploadFile(req: Request, res: Response) {
     if (!req.file) throw new AppError(400, 'No file provided');
@@ -107,14 +202,23 @@ export class ChatController {
 
     // The client listens for chat:file_added to refresh the gallery and for
     // chat:message to show the attachment in the conversation, so emit both.
-    safeIo().to(`channel:${channelId}`).emit('chat:file_added', { channelId });
-    safeIo().to(`channel:${channelId}`).emit('chat:message', {
-      ...record,
-      message: '',
-      content: '',
-      channel_id: channelId,
-      sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
-    });
+    // Both fan out to every member's own sockets too (see `emitChatEvent`),
+    // so a member who never joined this channel's room still sees the
+    // attachment land.
+    const fileMembers = await channelMemberIds(channelId, uid);
+    emitChatEvent('chat:file_added', channelId, fileMembers, { channelId });
+    emitChatEvent(
+      'chat:message',
+      channelId,
+      fileMembers,
+      {
+        ...record,
+        message: '',
+        content: '',
+        channel_id: channelId,
+        sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
+      }
+    );
 
     res.status(201).json(record);
   }
@@ -143,8 +247,11 @@ export class ChatController {
        WHERE id = $1`,
       [fileId]
     );
-    safeIo().to(`channel:${channelId}`).emit('chat:file_added', { channelId });
-    safeIo().to(`channel:${channelId}`).emit('chat:message_deleted', { channelId, messageId: fileId });
+    // Fanned out like every other chat event, so a member who never joined
+    // this channel's room still sees the gallery and the conversation update.
+    const fileEventMembers = await channelMemberIds(channelId, uid);
+    emitChatEvent('chat:file_added', channelId, fileEventMembers, { channelId });
+    emitChatEvent('chat:message_deleted', channelId, fileEventMembers, { channelId, messageId: fileId });
     res.json({ deleted: true });
   }
 
@@ -395,7 +502,9 @@ export class ChatController {
         [oid, uid, channelId, messageIds]
       );
 
-      safeIo().to(`channel:${channelId}`).emit('chat:delivered', {
+      // Fanned out to every member's sockets (not just this channel's room)
+      // so the sender's ticks update on all of their devices at once.
+      emitChatEvent('chat:delivered', channelId, await channelMemberIds(channelId, uid), {
         channelId,
         userId: uid,
         messageIds,
@@ -471,6 +580,13 @@ export class ChatController {
       [oid, channel]
     ).catch(() => {});
 
+    // Every member's id, sender included: push goes to everyone but the
+    // sender, while the socket fan-out below includes the sender so their
+    // other devices sync silently (clients never badge their own messages).
+    const memberIds: string[] = await query('SELECT user_id FROM chat_members WHERE channel_id = $1', [channel])
+      .then(result => result.rows.map((m: { user_id: string }) => m.user_id))
+      .catch(() => []);
+
     // Send push notifications to other channel members
     try {
       const channelInfo = await query(
@@ -480,14 +596,10 @@ export class ChatController {
       const channelName = channelInfo.rows[0]?.name || 'Chat';
       const senderName = senderResult.rows[0]?.sender_name || 'Someone';
 
-      const members = await query(
-        'SELECT user_id FROM chat_members WHERE channel_id = $1 AND user_id != $2',
-        [channel, uid]
-      );
-
       const { sendPushNotification } = await import('../notifications/push.service');
-      for (const member of members.rows) {
-        sendPushNotification(member.user_id, {
+      for (const memberId of memberIds) {
+        if (memberId === uid) continue;
+        sendPushNotification(memberId, {
           title: channelName,
           body: `${senderName}: ${(messageText || file_name || 'shared a file').substring(0, 120)}`,
           data: { type: 'chat', channelId: channel },
@@ -498,15 +610,26 @@ export class ChatController {
       // Notification failure should not block the message send
     }
 
-    // Notify connected clients immediately; push delivery remains best effort.
-    safeIo().to(`channel:${channel}`).emit('chat:message', {
-      ...msg,
-      channel_id: channel,
-      content: msg.message,
-      message: msg.message,
-      sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
-      sender_email: senderResult.rows[0]?.sender_email || '',
-    });
+    // Notify connected clients immediately — the channel room plus every
+    // member's own sockets, so chat lands like WhatsApp instead of waiting for
+    // the channel to be opened. Push delivery remains best effort.
+    emitChatEvent(
+      'chat:message',
+      channel,
+      memberIds.length > 0 ? memberIds : [uid],
+      {
+        ...msg,
+        channel_id: channel,
+        content: msg.message,
+        message: msg.message,
+        sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
+        sender_email: senderResult.rows[0]?.sender_email || '',
+      }
+    );
+
+    // Exact badge counts for every member's sockets, including the sender's
+    // other devices (which drop to their own unchanged total, not to zero).
+    emitUnreadTotals(oid, memberIds.length > 0 ? memberIds : [uid]);
 
     res.status(201).json({
       ...msg,
@@ -537,6 +660,14 @@ export class ChatController {
       `UPDATE org_chat_messages SET message = $1, edited = TRUE, updated_at = NOW() WHERE id = $2 RETURNING *`,
       [message.trim(), id]
     );
+    // An edit is a live event too: without this, only the sender's device
+    // shows the new text until everyone else reopens the conversation.
+    emitChatEvent('chat:message_updated', existing.rows[0].channel, await channelMemberIds(existing.rows[0].channel, uid), {
+      ...result.rows[0],
+      channel_id: existing.rows[0].channel,
+      content: result.rows[0].message,
+      message: result.rows[0].message,
+    });
     res.json(result.rows[0]);
   }
 
@@ -557,6 +688,12 @@ export class ChatController {
       `UPDATE org_chat_messages SET deleted = TRUE, message = '', updated_at = NOW() WHERE id = $1`,
       [id]
     );
+    // A delete is a live event too: without this, only the sender's device
+    // hides the message until everyone else reopens the conversation.
+    emitChatEvent('chat:message_deleted', existing.rows[0].channel, await channelMemberIds(existing.rows[0].channel, uid), {
+      channelId: existing.rows[0].channel,
+      messageId: id,
+    });
     res.json({ deleted: true });
   }
 
@@ -774,11 +911,16 @@ export class ChatController {
       [oid, uid, readChannel]
     );
 
-    safeIo().to(`channel:${channelId}`).emit('chat:read', {
+    // Fanned out to every member's sockets so read ticks clear on all of the
+    // reader's devices and update on everyone else's, even without a join.
+    emitChatEvent('chat:read', channelId, await channelMemberIds(channelId, uid), {
       channelId,
       userId: uid,
       lastReadAt: new Date().toISOString(),
     });
+
+    // The reader's own badge (every device, every tab) is now exact.
+    emitUnreadTotals(oid, [uid]);
 
     res.json({ ok: true });
   }
@@ -823,6 +965,20 @@ export class ChatController {
        ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
       [messageId, uid, emoji.trim()]
     );
+    // A reaction is a live event too, with per-emoji counts. Each client keeps
+    // its own reacted_by_me flags and merges the counts in (see useChat).
+    const reactionCounts = await query(
+      `SELECT emoji, COUNT(*) AS count FROM org_chat_reactions WHERE message_id = $1 GROUP BY emoji`,
+      [messageId]
+    ).catch(() => ({ rows: [] as { emoji: string; count: string }[] }));
+    emitChatEvent('chat:reactions', channel, await channelMemberIds(channel, uid), {
+      channelId: channel,
+      messageId,
+      reactions: reactionCounts.rows.map((r: { emoji: string; count: string }) => ({
+        emoji: r.emoji,
+        count: Number(r.count),
+      })),
+    });
     res.json({ ok: true });
   }
 }

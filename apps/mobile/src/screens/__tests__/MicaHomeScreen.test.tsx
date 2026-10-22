@@ -28,6 +28,7 @@ const mockPrepare = jest.fn()
 const mockConfirm = jest.fn()
 const mockVoiceNote = jest.fn()
 const mockApproveNote = jest.fn()
+const mockSettle = jest.fn()
 jest.mock('../../services/api', () => {
   const actual = jest.requireActual('../../services/api')
   return {
@@ -37,6 +38,7 @@ jest.mock('../../services/api', () => {
     confirmMicaAction: (...args: any[]) => mockConfirm(...args),
     requestVoiceNote: (...args: any[]) => mockVoiceNote(...args),
     approveVoiceNote: (...args: any[]) => mockApproveNote(...args),
+    settleMicaIntent: (...args: any[]) => mockSettle(...args),
   }
 })
 
@@ -72,6 +74,8 @@ beforeEach(() => {
   mockConfirm.mockReset()
   mockVoiceNote.mockReset()
   mockApproveNote.mockReset()
+  mockSettle.mockReset()
+  mockSettle.mockResolvedValue({ intent: null, action: 'none' })
   mockStartListening.mockClear()
   mockSpeak.mockClear()
   captured = null
@@ -113,7 +117,7 @@ describe('MicaHomeScreen orb', () => {
     const ears = await openEars(screen)
 
     const spoken = await say(ears, 'who is on shift today')
-    expect(mockAskMica).toHaveBeenCalledWith('token-1', 'who is on shift today', undefined)
+    expect(mockAskMica).toHaveBeenCalledWith('token-1', 'who is on shift today', undefined, undefined)
     expect(spoken).toContain('Nia, Sam and Priya')
   })
 
@@ -129,8 +133,8 @@ describe('MicaHomeScreen orb', () => {
     await say(ears, 'who is on shift today')
     await say(ears, 'what about tomorrow')
 
-    expect(mockAskMica).toHaveBeenNthCalledWith(1, 'token-1', 'who is on shift today', undefined)
-    expect(mockAskMica).toHaveBeenNthCalledWith(2, 'token-1', 'what about tomorrow', 'session-9')
+    expect(mockAskMica).toHaveBeenNthCalledWith(1, 'token-1', 'who is on shift today', undefined, undefined)
+    expect(mockAskMica).toHaveBeenNthCalledWith(2, 'token-1', 'what about tomorrow', 'session-9', undefined)
   })
 
   it('opens the offered page when the carer says yes', async () => {
@@ -354,5 +358,95 @@ describe('MicaHomeScreen orb', () => {
       expect.objectContaining({ noteDate: expect.any(String) }),
     )
     expect(lastSpoken()).not.toContain('Goodbye')
+  })
+
+  it('settles a short imperative the regexes miss, then drafts and saves it', async () => {
+    // "book podiatry" names a kind of appointment without the trigger words,
+    // so the regex path stays silent and the LLM fallback decides.
+    mockSettle.mockResolvedValueOnce({
+      intent: { action: 'CREATE_APPOINTMENT', utterance: 'book podiatry', title: 'podiatry' },
+      action: 'CREATE_APPOINTMENT',
+    })
+    mockPrepare.mockResolvedValue({
+      draft: true,
+      action: 'CREATE_APPOINTMENT',
+      utterance: 'book podiatry',
+      output: { title: 'podiatry' },
+      summary: 'Appointment prepared: podiatry.',
+    })
+    mockConfirm.mockResolvedValue({ confirmed: true, sessionId: 'session-9' })
+    const screen = render(<MicaHomeScreen {...props} />)
+    const ears = await openEars(screen)
+
+    const spoken = await say(ears, 'book podiatry')
+    expect(mockSettle).toHaveBeenCalledWith('token-1', 'book podiatry')
+    expect(mockPrepare).toHaveBeenCalledWith('token-1', 'CREATE_APPOINTMENT', 'book podiatry', { title: 'podiatry' })
+    expect(spoken).toContain('Shall I save it?')
+
+    await say(ears, 'yes')
+    expect(lastSpoken()).toContain('Booked.')
+  })
+
+  it('falls through to the care note when settle declines', async () => {
+    mockSettle.mockResolvedValueOnce({ intent: null, action: 'none' })
+    mockVoiceNote.mockResolvedValue({
+      result: { daily_note: { content: 'Called the family.', shift: 'day', category: 'wellbeing' } },
+      person: { id: 'person-1', name: 'Grace' },
+      noteContext: { personId: 'person-1', shift: 'day', noteDate: '2026-10-20', source: 'voice' },
+    })
+    const screen = render(<MicaHomeScreen {...props} />)
+    const ears = await openEars(screen)
+
+    await say(ears, 'remind me to call the family')
+    expect(mockSettle).toHaveBeenCalledWith('token-1', 'remind me to call the family')
+    expect(mockPrepare).not.toHaveBeenCalled()
+    expect(mockVoiceNote).toHaveBeenCalled()
+    expect(lastSpoken()).toContain('yes to save it')
+  })
+
+  it('ends the session on a fatal refusal, but keeps listening on a transient one', async () => {
+    const { ApiError } = jest.requireActual('../../services/api')
+    const screen = render(<MicaHomeScreen {...props} />)
+    const ears = await openEars(screen)
+
+    // 403 (feature disabled): no sentence changes that, so the orb rests in
+    // its error state instead of inviting the same failure again.
+    mockAskMica.mockRejectedValueOnce(new ApiError(403, 'Enable the assistant feature first.'))
+    await say(ears, 'who is on shift today')
+    expect(screen.getByText('Enable the assistant feature first.')).toBeTruthy()
+    expect(screen.getByLabelText('Talk to Mica. Tap and speak.')).toBeTruthy()
+
+    // 500: transient, so the conversation stays open behind the apology.
+    mockAskMica.mockRejectedValueOnce(new ApiError(500, 'Something went wrong.'))
+    await say(ears, 'who is on shift today')
+    expect(screen.getByText('Something went wrong.')).toBeTruthy()
+    expect(screen.getByLabelText('Mica is speaking. Tap to interrupt.')).toBeTruthy()
+  })
+
+  it('remembers who the note was about for the next question', async () => {
+    mockVoiceNote.mockResolvedValue({
+      result: { daily_note: { content: 'Grace ate well.', shift: 'day', category: 'wellbeing' } },
+      person: { id: 'person-1', name: 'Grace' },
+      noteContext: { personId: 'person-1', shift: 'day', noteDate: '2026-10-20', source: 'voice' },
+    })
+    mockApproveNote.mockResolvedValue({ dailyNote: { id: 'note-1' } })
+    mockAskMica.mockResolvedValue({ answer: 'Her mood was good.', sessionId: 'session-9' })
+    const screen = render(<MicaHomeScreen {...props} />)
+    const ears = await openEars(screen)
+
+    await say(ears, 'Grace had a good lunch')
+    await say(ears, 'yes')
+    await say(ears, 'and her mood?')
+
+    expect(mockAskMica).toHaveBeenCalledWith('token-1', 'and her mood?', undefined, { personName: 'Grace' })
+  })
+
+  it('offers a way out — the close control leaves the screen', () => {
+    props.onCloseSheet.mockClear()
+    const screen = render(<MicaHomeScreen {...props} />)
+
+    fireEvent.press(screen.getByLabelText('Close Mica'))
+
+    expect(props.onCloseSheet).toHaveBeenCalledTimes(1)
   })
 })

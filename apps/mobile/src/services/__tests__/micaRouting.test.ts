@@ -13,6 +13,7 @@ import {
   isStopUtterance,
   looksLikeConfirmation,
   looksLikeNavigationIntent,
+  looksLikePossibleWrite,
   looksLikeQuestion,
 } from '../micaRouting'
 
@@ -108,6 +109,32 @@ describe('extractPersonNameFromUtterance', () => {
   it('refuses sentence-starter words as names', () => {
     expect(extractPersonNameFromUtterance('Today she ate well')).toBeUndefined()
     expect(extractPersonNameFromUtterance('just a quiet morning')).toBeUndefined()
+  })
+})
+
+describe('looksLikePossibleWrite', () => {
+  it('flags the short imperatives the regexes miss, for the settle fallback', () => {
+    for (const text of [
+      'book podiatry',
+      'arrange a sight check',
+      'sort out a GP review',
+      'remind me to call the family',
+    ]) {
+      expect(detectMicaActionIntent(text)).toBeNull()
+      expect(looksLikePossibleWrite(text)).toBe(true)
+    }
+  })
+
+  it('leaves questions, destinations, confirmations and farewells alone', () => {
+    expect(looksLikePossibleWrite('open the rota')).toBe(false)
+    expect(looksLikePossibleWrite('book an appointment for the podiatry clinic?')).toBe(false)
+    expect(looksLikePossibleWrite('yes')).toBe(false)
+    expect(looksLikePossibleWrite('bye')).toBe(false)
+  })
+
+  it('leaves ordinary care statements for the care-note path', () => {
+    expect(looksLikePossibleWrite('Grace had a good lunch')).toBe(false)
+    expect(looksLikePossibleWrite('close the incident')).toBe(false)
   })
 })
 

@@ -603,10 +603,30 @@ export class StaffController {
     res.json({ message: 'Skill deleted' });
   }
 
+  /**
+   * Emergency-contact rows belong to a staff profile, but the person they
+   * belong to signs in as a user — so "mine" is resolved through the
+   * profile link, the same way room checks attribute the signed-in worker.
+   * Administrators keep full write; anyone else may only write their own.
+   */
+  private static async ownStaffProfileId(userId: string): Promise<string | null> {
+    const result = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [userId]);
+    return result.rows[0]?.id || null;
+  }
+
+  private static async requireOwnContactOrAdmin(user: { userId: string; role: string }, staffId: string): Promise<void> {
+    if (user.role === UserRole.ORG_ADMIN) return;
+    const mine = await StaffController.ownStaffProfileId(user.userId);
+    if (!mine || mine !== staffId) {
+      throw new AppError(403, 'You can only manage your own emergency contacts');
+    }
+  }
+
   static async addEmergencyContact(req: Request, res: Response) {
     const user = req.user!;
     const { staffId } = req.params;
     await requireSameOrgForStaff(user, staffId);
+    await StaffController.requireOwnContactOrAdmin(user, staffId);
     const { name, relationship, phone } = req.body;
     // The repository returns the decrypted row itself rather than the pg result,
     // so it can hand back plaintext for an encrypted column.
@@ -627,10 +647,11 @@ export class StaffController {
     const { contactId } = req.params;
     // Verify contact's staff belongs to org
     const contactRows = await pool.query(
-      'SELECT sp.id FROM staff_emergency_contacts c JOIN staff_profiles sp ON c.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE c.id = $1 AND u.organization_id = $2',
+      'SELECT sp.id AS staff_id FROM emergency_contacts c JOIN staff_profiles sp ON c.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE c.id = $1 AND u.organization_id = $2',
       [contactId, user.organizationId]
     );
     if (contactRows.rows.length === 0) throw new AppError(404, 'Emergency contact not found');
+    await StaffController.requireOwnContactOrAdmin(user, contactRows.rows[0].staff_id);
     await StaffRepository.deleteEmergencyContact(contactId);
     res.json({ message: 'Emergency contact deleted' });
   }

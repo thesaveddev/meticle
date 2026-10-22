@@ -39,6 +39,7 @@ const REFS: Record<MicaRecordKind, MicaRecordRef> = {
   visit: { kind: 'visit', id: 'v1', date: '2026-10-12' },
   'medication-chart': { kind: 'medication-chart', id: 'm1', personId: 'p1', month: '2026-10' },
   'staff-compliance': { kind: 'staff-compliance', id: 'c1', staffId: 'u1' },
+  'family-feedback': { kind: 'family-feedback', id: 'f1' },
 }
 
 const recordsIn = (text: string) =>

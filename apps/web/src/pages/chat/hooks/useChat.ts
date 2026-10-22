@@ -250,6 +250,12 @@ export function useChat() {
     socket.on('presence:snapshot', handlePresenceSnapshot)
 
     const handleMessage = (msg: ChatMessage) => {
+      // Delivered on receipt — even for a background channel — so the sender sees
+      // double-tick without waiting for this channel to be opened. Read is still
+      // only reported for the open channel below.
+      if (msg.sender_id !== currentUserId && msg.channel_id && msg.id) {
+        api.post(`/chat/channels/${msg.channel_id}/delivered`, { messageIds: [msg.id] }).catch(() => {})
+      }
       setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
       setChannels(prev => prev.map(c =>
         c.id === msg.channel_id
@@ -313,8 +319,16 @@ export function useChat() {
       setMessages(prev => prev.filter(m => m.id !== data.messageId))
       if (activeChannel && data.channelId === activeChannel) loadChannels()
     }
+    // The server broadcasts per-emoji counts with no per-user flags (one
+    // payload for every member), so counts merge in while each client's own
+    // reacted_by_me flags are preserved rather than overwritten.
     const handleReactions = (data: { channelId: string; messageId: string; reactions: any[] }) => {
-      setMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, reactions: data.reactions } : m))
+      if (!Array.isArray(data?.reactions)) return
+      setMessages(prev => prev.map(m => {
+        if (m.id !== data.messageId) return m
+        const mine = new Map((m.reactions || []).map(r => [r.emoji, r.reacted_by_me]))
+        return { ...m, reactions: data.reactions.map(r => ({ ...r, reacted_by_me: mine.get(r.emoji) ?? false })) }
+      }))
     }
     socket.on('chat:message_updated', handleMessageUpdated)
     socket.on('chat:message_deleted', handleMessageDeleted)

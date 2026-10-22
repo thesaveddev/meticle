@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PolicyRepository } from './policies.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
+import { UserRole } from '@meticle/shared';
 
 export class PolicyController {
   static getOrgId(req: Request): string {
@@ -53,5 +54,33 @@ export class PolicyController {
     const orgId = PolicyController.getOrgId(req);
     const result = await PolicyRepository.seedStandardPolicies(orgId);
     res.json(result);
+  }
+
+  /**
+   * Any signed-in staff member may acknowledge a policy in their own name —
+   * that is the whole point (blueprint §9.7): the acknowledgement is
+   * attributed to the caller, never to a supplied user id.
+   */
+  static async acknowledge(req: Request, res: Response) {
+    const orgId = PolicyController.getOrgId(req);
+    const policy = await PolicyRepository.findById(req.params.id, orgId);
+    if (!policy) throw new AppError(404, 'Policy not found');
+    const ack = await PolicyRepository.acknowledge(req.params.id, orgId, req.user!.userId);
+    res.status(201).json(ack);
+  }
+
+  /**
+   * Managers read the whole list; anyone else reads only their own row, so a
+   * support worker can see what they have acknowledged without seeing the
+   * organisation's reading history.
+   */
+  static async acknowledgements(req: Request, res: Response) {
+    const orgId = PolicyController.getOrgId(req);
+    const policy = await PolicyRepository.findById(req.params.id, orgId);
+    if (!policy) throw new AppError(404, 'Policy not found');
+    const rows = await PolicyRepository.acknowledgements(req.params.id, orgId);
+    const role = req.user!.role;
+    if (role === UserRole.ORG_ADMIN || role === UserRole.MANAGER) return res.json(rows);
+    return res.json(rows.filter((row: any) => row.user_id === req.user!.userId));
   }
 }
