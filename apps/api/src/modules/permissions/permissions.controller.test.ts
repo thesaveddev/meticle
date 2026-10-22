@@ -35,6 +35,6 @@ describe('organisation module permissions', () => {
         }
       }
     }
-    expect(MODULES).toHaveLength(26);
+    expect(MODULES).toHaveLength(27);
   });
 });
