@@ -85,8 +85,7 @@ export default function RegisterPage() {
     setEmailVerified(false)
     setCodeSent(false)
     setCode('')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email])
+  }, [email, invitation])
 
   const passwordValid = RESET_PASSWORD_RULES.every(r => r.test(password))
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
