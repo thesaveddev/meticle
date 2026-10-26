@@ -90,7 +90,7 @@ describe('capture tour', () => {
       { kind: 'clientDetail', personId: CAPTURE_IDS.personEileen },
       { kind: 'incident', personId: CAPTURE_IDS.personEileen, visitId: CAPTURE_IDS.visitMorning },
       { kind: 'chatChannel', channelId: CAPTURE_IDS.channelCareTeam },
-      { kind: 'tab', tab: 'today' },
+      { kind: 'tab', tab: 'settings' },
     ])
   })
 
