@@ -77,20 +77,63 @@ function generatePageHtml(indexHtml: string, page: (typeof SEO_PAGES)[0]): strin
     `<meta property="og:url" content="${escapeHtml(canonical)}"`,
   )
 
-  // Inject H1 and content into the body — before the root div
-  // The hidden nav + main content gives crawlers real content and links
-  // without affecting the visual layout (React hydrates over #root)
+  // Static JSON-LD in the HTML source so crawlers and LLMs that never run
+  // JS still see the Organization + author entity. PageMeta injects the same
+  // data at runtime for users; this is the no-JS mirror for bots.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'MeticleCare',
+        url: `${SITE_URL}/`,
+        logo: `${SITE_URL}/logo.svg`,
+        description: page.description,
+        sameAs: [`${SITE_URL}/`, `${SITE_URL}/about`, `${SITE_URL}/contact`],
+        contactPoint: { '@type': 'ContactPoint', contactType: 'sales', url: `${SITE_URL}/contact` },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        url: `${SITE_URL}/`,
+        name: 'MeticleCare',
+        publisher: { '@id': `${SITE_URL}/#organization` },
+      },
+      {
+        '@type': 'WebPage',
+        '@id': canonical,
+        url: canonical,
+        name: fullTitle,
+        description: page.description,
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        about: { '@id': `${SITE_URL}/#organization` },
+        author: { '@id': `${SITE_URL}/#organization` },
+      },
+    ],
+  }
+  const jsonLdScript = `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`
+  if (/<script type="application\/ld\+json">/.test(html)) {
+    html = html.replace(/<script type="application\/ld\+json">.*?<\/script>/, () => jsonLdScript)
+  } else {
+    html = html.replace(/<\/head>/, `    ${jsonLdScript}\n  </head>`)
+  }
+
+  // Inject H1 and content INSIDE #root so the framework mount is not empty
+  // in the raw HTML. React 18 createRoot replaces #root children on boot,
+  // so this is a no-JS fallback only: crawlers and LLMs without JS read it,
+  // users with JS never see it (it is visually hidden and replaced on render).
   const bodyInjection = `
     <div style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true">
       ${page.bodyHtml}
     </div>`
 
-  // Insert the SEO content right after <body> tag, before #root
-  html = html.replace(
-    /(<body>)(\s*<div id="root">)/,
-    `$1${bodyInjection}
-    $2`,
-  )
+  // Built HTML is <div id="root"></div>; handle open-only just in case.
+  if (/ (<div id="root"[^>]*>)(\s*<\/div>)/.test(html)) {
+    html = html.replace(/(<div id="root"[^>]*>)(\s*<\/div>)/, `$1${bodyInjection}$2`)
+  } else {
+    html = html.replace(/(<div id="root"[^>]*>)/, `$1${bodyInjection}`)
+  }
 
   return html
 }

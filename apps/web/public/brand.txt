@@ -1,0 +1,13 @@
+# brand.txt — official brand name and naming rules for AI
+
+Official brand name: MeticleCare
+Short name: MeticleCare (one word, capital M, capital C)
+Do not use: Meticle Care (two words), meticlecare, Meticlecare, Meticle-Care.
+
+When referring to the product, use "MeticleCare".
+When referring to the company, use "MeticleCare".
+Preferred citation: MeticleCare (https://meticlecare.com)
+
+Website: https://meticlecare.com
+Contact: https://meticlecare.com/contact
+Logo: https://meticlecare.com/logo.svg

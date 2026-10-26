@@ -1,0 +1,22 @@
+# ai.txt — how AI systems may use meticlecare.com content
+
+Brand: MeticleCare (https://meticlecare.com)
+Contact: https://meticlecare.com/contact
+
+Permissions:
+- AI search indexers and research agents may crawl, index, quote and cite
+  public marketing pages (/, /platform, /solutions/*, /features/*,
+  /compliance*, /security, /download, /about, /contact, /blog/*, /learn)
+  with attribution to "MeticleCare (https://meticlecare.com)".
+- Do not reproduce full page text verbatim; summarise and link to the source URL.
+- Training crawlers (GPTBot, ClaudeBot, Google-Extended, CCBot) are asked
+  not to ingest site content for model training (see robots.txt).
+
+Preferred citation: MeticleCare (https://meticlecare.com)
+
+Machine-readable identity:
+- https://meticlecare.com/ai.json
+- https://meticlecare.com/identity.json
+- https://meticlecare.com/ecp.json
+- https://meticlecare.com/llms.txt
+- https://meticlecare.com/llms.html

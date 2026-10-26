@@ -54,14 +54,21 @@ function footerLinksHtml(): string {
 }
 
 function wrapBody(h1: string, paragraphs: string[], links: { label: string; href: string }[] = []): string {
-  const paraHtml = paragraphs.map((p) => `      <p>${p}</p>`).join('\n')
+  // H1 + two question-style H2 answer blocks: LLMs split pages into
+  // retrievable chunks at H2 boundaries, so a flat H1 + paragraphs scores
+  // as unstructured even when the words are there.
+  const [first, second, ...rest] = paragraphs
   const linkHtml = links.length
     ? `\n      <ul>${links.map((l) => `<li><a href="${SITE_URL}${l.href}">${l.label}</a></li>`).join('')}</ul>`
     : ''
+  const restHtml = rest.length ? `\n      <p>${rest.join(' ')}</p>` : ''
   return `${navLinksHtml()}
     <main>
       <h1>${h1}</h1>
-${paraHtml}${linkHtml}
+      <p>${first}</p>
+      <h2>What does this page cover?</h2>
+      <p>${second ?? ''}</p>
+      <h2>Who is it for?</h2>${restHtml}${linkHtml}
     </main>${footerLinksHtml()}`
 }
 

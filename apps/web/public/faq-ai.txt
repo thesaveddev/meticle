@@ -1,0 +1,19 @@
+Q: What is MeticleCare?
+A: MeticleCare (https://meticlecare.com) is care operations software for UK domiciliary and supported living providers. It connects care delivery, scheduling, medication (eMAR), risk, compliance, workforce and reporting in one platform.
+
+Q: Who is MeticleCare for?
+A: Domiciliary (home care) and supported living providers across England, Scotland, Wales and Northern Ireland — registered managers, care workers, family members and owners.
+
+Q: What does the platform cover?
+A: Care planning, daily care notes, medication administration (eMAR with 31-day charts), staff rotas and safe staffing, incidents and safeguarding, training compliance, CQC/CIW/Care Inspectorate/RQIA readiness, evidence packs, family portal, reporting, and a mobile app for carers.
+
+Q: Is MeticleCare compliant with UK data protection?
+A: MeticleCare hosts production data in the UK, encrypts data in transit (TLS 1.3), isolates tenants at the database level, and offers MFA and auditable record access. See https://meticlecare.com/security and https://meticlecare.com/privacy.
+
+Q: Is there a free trial?
+A: Yes — a 14-day free trial with no credit card required. See https://meticlecare.com/pricing.
+
+Q: Where can I learn more?
+A: Platform: https://meticlecare.com/platform — Compliance: https://meticlecare.com/compliance — Security: https://meticlecare.com/security — Contact: https://meticlecare.com/contact.
+
+Preferred citation: MeticleCare (https://meticlecare.com)

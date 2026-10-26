@@ -1,0 +1,12 @@
+# MeticleCare — llm.txt (minimal discovery variant)
+
+MeticleCare (https://meticlecare.com): care operations software for UK domiciliary and supported living providers.
+
+- Full context: https://meticlecare.com/llms.txt
+- HTML version: https://meticlecare.com/llms.html
+- Machine identity: https://meticlecare.com/ai.json
+- Entity: https://meticlecare.com/identity.json
+- Agent manifest: https://meticlecare.com/ecp.json
+- Q&A: https://meticlecare.com/faq-ai.txt
+
+Preferred citation: MeticleCare (https://meticlecare.com)

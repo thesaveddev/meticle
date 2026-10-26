@@ -1,0 +1,13 @@
+# developer-ai.txt — technical context for developer-focused AI
+
+MeticleCare (https://meticlecare.com) is a web + mobile platform for UK care operations.
+This site is a marketing site; there is no public developer API documented here.
+
+- Product overview: https://meticlecare.com/platform
+- Security model: https://meticlecare.com/security
+- Sitemap: https://meticlecare.com/sitemap.xml
+- Machine identity: https://meticlecare.com/ai.json
+- Entity: https://meticlecare.com/identity.json
+- Agent manifest: https://meticlecare.com/ecp.json
+
+For integration questions, contact https://meticlecare.com/contact.

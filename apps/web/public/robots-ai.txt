@@ -1,0 +1,38 @@
+# robots-ai.txt — AI-specific crawler rules (complements robots.txt)
+# Public marketing pages are open to AI search indexers and research agents.
+# Training crawlers are asked not to ingest site content.
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Gemini-Deep-Research
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+Sitemap: https://meticlecare.com/sitemap.xml
