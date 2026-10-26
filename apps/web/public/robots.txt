@@ -3,6 +3,22 @@ Allow: /
 Disallow: /login
 Disallow: /dashboard
 Disallow: /unauthorized
+Disallow: /app
+Disallow: /mission-control
+Disallow: /staff
+Disallow: /onboarding
+Disallow: /portal
+Disallow: /survey
+Disallow: /family-portal
+Disallow: /invoice
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /reset-success
+Disallow: /reset-expired
+Disallow: /reset-invalid
+Disallow: /verify-email
+Disallow: /mfa-challenge
+Disallow: /mfa-setup
 
 # AI search indexers and research agents — allowed for AI discovery/citation.
 User-agent: OAI-SearchBot

@@ -115,7 +115,21 @@ export default function SolutionsPage() {
 
   return (
     <MarketingLayout>
-      <PageMeta title={`${data.title} software`} description={data.desc} canonicalPath={`/solutions/${slug}`} />
+      <PageMeta
+        title={`${data.title} software`}
+        description={data.desc}
+        canonicalPath={`/solutions/${slug}`}
+        keywords={[`${data.title.toLowerCase()} software`, 'care management software', 'MeticleCare platform', 'UK care software']}
+        breadcrumbs={[{ name: 'Home', path: '/' }, { name: data.title, path: `/solutions/${slug}` }]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: `MeticleCare for ${data.title}`,
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web and mobile',
+          description: data.desc,
+        }}
+      />
 
       {/* ═══ HERO ═══ */}
       <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
