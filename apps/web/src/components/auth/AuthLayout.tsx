@@ -67,7 +67,12 @@ export default function AuthLayout({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          // safe center: short forms (login) stay vertically centred, but a
+          // tall form (signup) aligns to the top when it overflows instead of
+          // clipping its head above the scroll origin where gestures can
+          // never reach it. Plain `center` + overflow hides the top of the
+          // card on short viewports — the signup form's exact symptom.
+          justifyContent: 'safe center',
           px: { xs: 3, sm: 6, md: 8 },
           py: { xs: 3, md: 4 },
           position: 'relative',
@@ -76,6 +81,11 @@ export default function AuthLayout({
           // scrolls; this panel does, invisibly.
           overflowY: 'auto',
           maxHeight: '100%',
+          // Touch / gesture scrolling needs the native momentum path; without
+          // these the panel scrolls on desktop wheels only.
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+          touchAction: 'pan-y',
         }}
       >
         {/* Slim top bar: wordmark on mobile (brand panel is hidden there),

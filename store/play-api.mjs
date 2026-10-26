@@ -117,9 +117,9 @@ export class PlayApi {
     return this.#request('GET', `${this.edits(packageName)}/${editId}/listings`);
   }
 
-  /** `listings` (no language) carries the default title, short and full description. */
-  updateListing(packageName, editId, body) {
-    return this.#request('PUT', `${this.edits(packageName)}/${editId}/listings`, body);
+  /** Full update of one language's listing: PUT /listings/{language}. */
+  updateListing(packageName, editId, language, body) {
+    return this.#request('PUT', `${this.edits(packageName)}/${editId}/listings/${language}`, body);
   }
 
   patchListing(packageName, editId, language, body) {
@@ -127,27 +127,34 @@ export class PlayApi {
   }
 
   /**
-   * Two-step image upload. Play does not take the bytes on the edit endpoint:
-   * the POST returns a one-time upload URI, which then receives a raw PUT.
+   * Direct media upload. Image bytes go straight to the /upload/ URI in one
+   * POST — there is no two-step uploadUri dance for this endpoint.
    */
   async uploadImage(packageName, editId, language, imageType, bytes) {
-    const { uploadUri } = await this.#request(
-      'POST',
-      `${this.edits(packageName)}/${editId}/listings/${language}/${imageType}`,
-      {},
+    const url = `${API}/applications/${packageName}/edits/${editId}/listings/${language}/${imageType}`.replace(
+      '/androidpublisher/v3/',
+      '/upload/androidpublisher/v3/',
     );
-    if (!uploadUri) throw new Error('Play did not return an uploadUri for ' + imageType);
-
-    const res = await fetch(uploadUri, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/png' },
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'image/png',
+      },
       body: bytes,
     });
     const text = await res.text();
-    if (!res.ok) {
+    let parsed;
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
       throw new Error(`Image upload failed for ${imageType}: HTTP ${res.status} ${text.slice(0, 300)}`);
     }
-    return { image: JSON.parse(text).image };
+    if (!res.ok) {
+      const err = parsed?.error?.errors?.[0] ?? parsed?.error ?? {};
+      throw new Error(`Image upload failed for ${imageType}: HTTP ${res.status} ${err.message ?? text.slice(0, 300)}`);
+    }
+    return { image: parsed.image };
   }
 
   /**
@@ -159,5 +166,45 @@ export class PlayApi {
     return this.#request('POST', `${API}/applications/${packageName}/dataSafety`, {
       safetyLabels: csv,
     });
+  }
+
+  /**
+   * Upload an AAB. Bundle bytes go straight to the /upload/ URI in one POST,
+   * same pattern as uploadImage. Returns { versionCode, sha256, ... }.
+   */
+  async uploadBundle(packageName, editId, bytes) {
+    const url = `${API}/applications/${packageName}/edits/${editId}/bundles`.replace(
+      '/androidpublisher/v3/',
+      '/upload/androidpublisher/v3/',
+    );
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: bytes,
+    });
+    const text = await res.text();
+    let parsed;
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error(`Bundle upload failed: HTTP ${res.status} ${text.slice(0, 300)}`);
+    }
+    if (!res.ok) {
+      const err = parsed?.error?.errors?.[0] ?? parsed?.error ?? {};
+      throw new Error(`Bundle upload failed: HTTP ${res.status} ${err.message ?? text.slice(0, 300)}`);
+    }
+    return parsed;
+  }
+
+  /** Assign version codes to a track, e.g. internal as a draft. */
+  setTrack(packageName, editId, track, body) {
+    return this.#request('PUT', `${this.edits(packageName)}/${editId}/tracks/${track}`, body);
+  }
+
+  getTrack(packageName, editId, track) {
+    return this.#request('GET', `${this.edits(packageName)}/${editId}/tracks/${track}`);
   }
 }

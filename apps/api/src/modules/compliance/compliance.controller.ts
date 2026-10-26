@@ -67,6 +67,7 @@ async function findFileOrg(fileUrl: string): Promise<string | null> {
     `SELECT u.organization_id FROM competency_assessments ca JOIN staff_profiles sp ON ca.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE ca.evidence_url = $1 LIMIT 1`,
     `SELECT ch.organization_id FROM chat_messages chm JOIN chat_channels ch ON chm.channel_id = ch.id WHERE chm.file_url = $1 LIMIT 1`,
     `SELECT ch.organization_id FROM chat_files chf JOIN chat_channels ch ON chf.channel_id = ch.id WHERE chf.file_url = $1 LIMIT 1`,
+    `SELECT organization_id FROM org_documents WHERE file_url = $1 LIMIT 1`,
     `SELECT l.organization_id FROM location_certificates lc JOIN locations l ON lc.location_id = l.id WHERE lc.file_url = $1 LIMIT 1`,
     `SELECT su.organization_id FROM body_map_entries bme JOIN people su ON bme.person_id = su.id WHERE bme.image_url = $1 LIMIT 1`,
     `SELECT i.organization_id FROM incident_attachments ia JOIN incidents i ON ia.incident_id = i.id WHERE ia.file_url = $1 LIMIT 1`,

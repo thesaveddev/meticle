@@ -3,6 +3,11 @@ import pool, { transaction } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { EmailService } from '../../shared/utils/email.service';
 import { AuditRepository } from '../audit/audit.repository';
+import fs from 'fs';
+import path from 'path';
+import { uploadDir } from '../../shared/middleware/upload.middleware';
+
+const ORG_DOC_TYPES = new Set(['DPA', 'DPIA', 'ICO', 'INSURANCE', 'CONTRACT', 'POLICY', 'OTHER']);
 import { isDomiciliaryServiceTypes } from '../../shared/billing/domiciliaryPricing';
 import { classifyFailure } from '../../shared/utils/emailFailureClass';
 
@@ -608,6 +613,80 @@ export class PlatformAdminController {
         needsReading: failureBreakdown.filter(b => b.owner === 'unattributed').reduce((sum, b) => sum + b.count, 0),
       },
     });
+  }
+
+  static async listOrgDocuments(req: Request, res: Response) {
+    const { id } = req.params;
+    const org = await pool.query('SELECT id FROM organizations WHERE id = $1', [id]);
+    if (org.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const result = await pool.query(
+      `SELECT d.id, d.organization_id, d.doc_type, d.title, d.file_url, d.file_name,
+              d.mime_type, d.file_size_bytes, d.version, d.created_at,
+              u.email as uploaded_by_email
+       FROM org_documents d
+       LEFT JOIN users u ON d.uploaded_by = u.id
+       WHERE d.organization_id = $1
+       ORDER BY d.created_at DESC`,
+      [id]
+    );
+    res.json({ documents: result.rows });
+  }
+
+  static async uploadOrgDocument(req: Request, res: Response) {
+    const { id } = req.params;
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) throw new AppError(400, 'No file uploaded');
+    const org = await pool.query('SELECT id FROM organizations WHERE id = $1', [id]);
+    if (org.rows.length === 0) {
+      fs.unlink(file.path, () => {});
+      throw new AppError(404, 'Organization not found');
+    }
+    const docType = String(req.body.doc_type || 'OTHER').toUpperCase();
+    if (!ORG_DOC_TYPES.has(docType)) {
+      fs.unlink(file.path, () => {});
+      throw new AppError(400, 'doc_type must be one of DPA, DPIA, ICO, INSURANCE, CONTRACT, POLICY, OTHER');
+    }
+    const title = String(req.body.title || file.originalname).slice(0, 200);
+    if (!title.trim()) {
+      fs.unlink(file.path, () => {});
+      throw new AppError(400, 'A title is required');
+    }
+    const version = String(req.body.version || '1.0').slice(0, 20);
+    const result = await pool.query(
+      `INSERT INTO org_documents (organization_id, doc_type, title, file_url, file_name, mime_type, file_size_bytes, version, uploaded_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id, organization_id, doc_type, title, file_url, file_name, mime_type, file_size_bytes, version, created_at`,
+      [id, docType, title.trim(), '/files/private/' + file.filename, file.originalname, file.mimetype, file.size, version, req.user!.userId]
+    );
+    await AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'ORG_DOCUMENT_UPLOAD',
+      entity_type: 'organization',
+      entity_id: id,
+      new_data: { doc_type: docType, title: title.trim(), file: result.rows[0].file_url },
+      ip_address: req.ip,
+    });
+    res.status(201).json(result.rows[0]);
+  }
+
+  static async deleteOrgDocument(req: Request, res: Response) {
+    const { id, docId } = req.params;
+    const existing = await pool.query('SELECT file_url FROM org_documents WHERE id = $1 AND organization_id = $2', [docId, id]);
+    if (existing.rows.length === 0) throw new AppError(404, 'Document not found');
+    await pool.query('DELETE FROM org_documents WHERE id = $1', [docId]);
+    const filename = String(existing.rows[0].file_url).replace('/files/private/', '').replace('/files/', '');
+    const diskPath = path.join(uploadDir, filename);
+    const resolved = path.resolve(diskPath);
+    if (resolved.startsWith(path.resolve(uploadDir) + path.sep)) fs.unlink(resolved, () => {});
+    await AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'ORG_DOCUMENT_DELETE',
+      entity_type: 'organization',
+      entity_id: id,
+      new_data: { doc_id: docId },
+      ip_address: req.ip,
+    });
+    res.json({ message: 'Document deleted' });
   }
 
   static async retryFailedEmails(_req: Request, res: Response) {

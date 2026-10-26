@@ -17,7 +17,7 @@ describe('capture shot list', () => {
       'Client record — care plan, risks, medication, body map',
       'Report an incident',
       'Chat — the care team',
-      'Offline sync rail — actions waiting to send',
+      'Offline sync — actions waiting to send',
     ])
   })
 
@@ -51,9 +51,13 @@ describe('capture shot list', () => {
     }
   })
 
-  it('shows Today twice: once clean, and once with actions waiting to sync', () => {
+  it('shows Today clean, and Settings with actions waiting to sync', () => {
     const today = CAPTURE_SHOTS.filter(shot => shot.target.kind === 'tab' && shot.target.tab === 'today')
-    expect(today.map(shot => shot.scene)).toEqual(['default', 'offline-queue'])
+    expect(today.map(shot => shot.scene)).toEqual(['default'])
+    const offline = CAPTURE_SHOTS.find(shot => shot.id === '06-offline-sync')
+    expect(offline?.target.kind).toBe('tab')
+    if (offline?.target.kind === 'tab') expect(offline.target.tab).toBe('settings')
+    expect(offline?.scene).toBe('offline-queue')
   })
 
   it('puts the offline shot last, because it is the differentiator', () => {

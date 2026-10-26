@@ -112,7 +112,7 @@ try {
     }
   } else {
     // ------------------------------------------------------- write the edit
-    await api.updateListing(pkg, editId, {
+    await api.updateListing(pkg, editId, listing.pushable.defaultLanguage, {
       language: listing.pushable.defaultLanguage,
       title: desired.title,
       shortDescription: desired.shortDescription,

@@ -135,7 +135,7 @@ export default function LoginPage() {
         </Box>
       </Box>
 
-      <AuthFooterLine prompt="Don't have an account?" action="Get in touch" onAction={() => navigate('/register')} />
+      <AuthFooterLine prompt="Don't have an account?" action="Sign up" onAction={() => navigate('/signup')} />
     </AuthLayout>
   )
 }

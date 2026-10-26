@@ -405,14 +405,14 @@ a spam folder later.
 | Required | Why | Status |
 | --- | --- | --- |
 | Confirm no queued rows exist with a null `from_email` | The fallback path should be unreachable in practice | **Owner to confirm** |
-| Move the production `SMTP_USER` off the previous vendor's domain | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk. Decision taken 27 Sep 2026 to move it to a dedicated `app@meticlecare.com` mailbox, **after** the DKIM gate is verified. Gate passed 27 Sep 2026 (`dkim=pass` with `SMTP_USER` still on the old domain, confirming signing is per-domain). Procedure below | **Owner action — now unblocked** — see §7.8.1 |
+| Move the production `SMTP_USER` off the previous vendor's domain | The login was a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk. Gate passed 27 Sep 2026 (`dkim=pass` with `SMTP_USER` still on the old domain, confirming signing is per-domain). **Closed Oct 2026: production auth is now an on-domain `@meticlecare.com` mailbox, verified — the intent is satisfied and no dedicated `app@meticlecare.com` mailbox is needed.** See §7.8.1. | **Done** |
 
 > `DEPLOY_SMTP_FROM` is **not** one of these. It is the `From:` of GitHub Actions'
 > own deploy-failure alert (`notify-deploy.py` → `DEPLOY_ALERT_TO`) and has no
 > connection to the application's mail. An earlier draft of this table listed it
 > as the application's sender, which was wrong.
 
-### 7.8.1 Moving `SMTP_USER` to a dedicated mailbox
+### 7.8.1 `SMTP_USER` must be an on-domain mailbox — satisfied, no `app@` needed
 
 Agreed 27 September 2026, deliberately sequenced *after* the DKIM gate. The
 gate is read-only and cannot break anything; this swap can, and a wrong mailbox
@@ -433,6 +433,14 @@ The risk being retired is narrow and real: `***REMOVED***` is an
 identity on another company's domain. Nothing breaks while that domain is held,
 but if it is ever lapsed or reassigned, a string in this configuration starts
 describing someone else.
+
+**Closed Oct 2026 — do not create `app@meticlecare.com`.** Production `SMTP_USER`
+is now an on-domain `@meticlecare.com` mailbox. That satisfies the requirement: the
+auth identity is on the organisational domain, per-category `From`s are all aligned
+(`misalignedSenders()` empty, boot check clean), and DKIM/SPF pass per-domain, not
+per-mailbox. A sixth mailbox nothing sends from would add credential surface for no
+deliverability gain. The procedure below is retained as the pre-flight / rollback record
+for any future mailbox move.
 
 ```
 1. Create mailbox app@meticlecare.com on the MXRocket account; set its password.

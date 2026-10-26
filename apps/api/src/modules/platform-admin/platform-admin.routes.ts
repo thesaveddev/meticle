@@ -6,6 +6,7 @@ import { PlatformAdminController } from './platform-admin.controller';
 import { UserRole } from '@meticle/shared';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { updateDomiciliaryQuoteSchema } from '../../shared/validation/schemas';
+import { uploadWithScan } from '../../shared/middleware/upload.middleware';
 
 const router = Router();
 
@@ -21,6 +22,9 @@ router.get('/organizations/:id', asyncHandler(PlatformAdminController.getOrganiz
 router.patch('/organizations/:id/status', asyncHandler(PlatformAdminController.updateOrganizationStatus));
 router.patch('/organizations/:id/billing', asyncHandler(PlatformAdminController.updateOrgBilling));
 router.put('/organizations/:id/domiciliary-quote', validate(updateDomiciliaryQuoteSchema), asyncHandler(PlatformAdminController.updateDomiciliaryQuote));
+router.get('/organizations/:id/documents', asyncHandler(PlatformAdminController.listOrgDocuments));
+router.post('/organizations/:id/documents', ...uploadWithScan('file'), asyncHandler(PlatformAdminController.uploadOrgDocument));
+router.delete('/organizations/:id/documents/:docId', asyncHandler(PlatformAdminController.deleteOrgDocument));
 router.get('/users', asyncHandler(PlatformAdminController.listUsers));
 router.get('/trial-followups', asyncHandler(PlatformAdminController.listTrialFollowups));
 router.post('/trial-followups/:organizationId/email', asyncHandler(PlatformAdminController.sendTrialFollowupEmail));

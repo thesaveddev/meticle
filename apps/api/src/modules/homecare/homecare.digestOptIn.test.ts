@@ -147,9 +147,9 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // zone), and again on 150-157, and again on 158 (email opt-outs), and again on
     // 159 (family visit feedback), and again on 160 (policy acknowledgements),
     // and again on 161-167 (incident form/severity/workflow engines, submit
-    // link, lifecycle, closeout and action suggestions), which is the latest
-    // run registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_167\]\)/)
+    // link, lifecycle, closeout and action suggestions), and again on 168
+    // (per-organisation compliance files), which is the latest run registered.
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_168\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

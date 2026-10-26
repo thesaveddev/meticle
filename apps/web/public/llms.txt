@@ -1,0 +1,42 @@
+# MeticleCare
+
+> Care operations software for domiciliary and supported living providers across the UK.
+
+MeticleCare (https://meticlecare.com) is one connected platform for UK care operations:
+rostering and visits, care records, medication (eMAR), compliance and CQC readiness,
+workforce, family portal, reporting, and a mobile app for carers.
+
+## Key pages
+
+- [Platform](https://meticlecare.com/platform): what the platform covers end to end
+- [Solutions](https://meticlecare.com/solutions/domiciliary-care): domiciliary care
+- [Solutions](https://meticlecare.com/solutions/supported-living): supported living
+- [Compliance](https://meticlecare.com/compliance): compliance hub
+- [Compliance CQC](https://meticlecare.com/compliance/cqc): CQC readiness
+- [Features - Care management](https://meticlecare.com/features/care-management)
+- [Features - Medication](https://meticlecare.com/features/medication)
+- [Features - Workforce](https://meticlecare.com/features/workforce)
+- [Features - Scheduling](https://meticlecare.com/features/scheduling)
+- [Features - Risk management](https://meticlecare.com/features/risk-management)
+- [Features - Reporting](https://meticlecare.com/features/reporting)
+- [Features - Family portal](https://meticlecare.com/features/family-portal)
+- [Features - AI](https://meticlecare.com/features/ai)
+- [Security](https://meticlecare.com/security): encryption in transit, tenant isolation, MFA, audit
+- [Download](https://meticlecare.com/download): mobile app
+- [About](https://meticlecare.com/about)
+- [Contact](https://meticlecare.com/contact)
+- [Blog](https://meticlecare.com/blog)
+
+## Legal and trust
+
+- [Privacy](https://meticlecare.com/privacy)
+- [Terms](https://meticlecare.com/terms)
+- [Cookies](https://meticlecare.com/cookies)
+- [Delete account](https://meticlecare.com/delete-account): how to request account deletion
+
+## API and machine-readable context
+
+- [ai.json](https://meticlecare.com/ai.json): site identity and entry points for AI agents
+- [ecp.json](https://meticlecare.com/ecp.json): entity and content map for AI agents
+- [Sitemap](https://meticlecare.com/sitemap.xml): full URL list
+- [robots.txt](https://meticlecare.com/robots.txt): crawler policy (AI search and research crawlers allowed)

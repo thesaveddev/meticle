@@ -32,7 +32,12 @@
   },
   "submit": {
     "production": {
-      "ios": {},
+      "ios": {
+        "ascAppId": "6826686177",
+        "ascApiKeyId": "DBG7Q64UKV",
+        "ascApiKeyIssuerId": "e2b174a0-4b5b-4538-91d8-042bcb507515",
+        "ascApiKeyPath": "../../private/asc-key-DBG7Q64UKV.p8"
+      },
       "android": {
         "track": "internal",
         "releaseStatus": "draft"

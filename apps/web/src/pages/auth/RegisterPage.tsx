@@ -1,19 +1,23 @@
 import { usePageMeta } from '../../components/PageMeta'
-import { useState, useEffect } from 'react'
-import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material'
-import { useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { Box, Typography, Link, Checkbox, FormControlLabel, CircularProgress } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
-import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
-import BrandWordmark from '../../components/BrandWordmark'
+import AuthLayout from '../../components/auth/AuthLayout'
+import {
+  AuthHeader, AuthField, AuthInput, AuthPasswordInput,
+  AuthButton, AuthError, AuthFooterLine,
+} from '../../components/auth/AuthPrimitives'
+import PasswordRequirements, { RESET_PASSWORD_RULES } from '../../components/auth/PasswordRequirements'
 
-const PASSWORD_RULES = [
-  { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
-  { key: 'upper', label: 'One uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
-  { key: 'lower', label: 'One lowercase letter', test: (v: string) => /[a-z]/.test(v) },
-  { key: 'number', label: 'One number', test: (v: string) => /[0-9]/.test(v) },
-  { key: 'special', label: 'One special character', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+// Identical brand panel to /signup and /login: same four features, same shell,
+// so every auth entry point reads as one page.
+const REGISTER_FEATURES = [
+  { icon: 'notes' as const, title: 'Care records', description: 'Person-centred support.' },
+  { icon: 'medication' as const, title: 'Medication management', description: 'Safe, audited eMAR.' },
+  { icon: 'person' as const, title: 'People you support', description: 'One record per person.' },
+  { icon: 'schedule' as const, title: 'Staff scheduling', description: 'Right people, at the right time.' },
 ]
 
 function apiErrorMsg(err: any, fallback: string): string {
@@ -24,140 +28,143 @@ function apiErrorMsg(err: any, fallback: string): string {
   return fallback
 }
 
+/**
+ * /register on the shared auth shell (AuthLayout + AuthPrimitives), matching
+ * /login and /signup pixel-for-pixel: same card, same inputs, same buttons.
+ * Keeps its one job the other pages don't have — accepting an organisation
+ * invitation (?token): the email is prefilled and pre-verified, the heading
+ * names the organisation, and submit calls register-with-invitation.
+ */
 export default function RegisterPage() {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
   const [invitation, setInvitation] = useState<{ email: string; role: string; organizationName: string } | null>(null)
   const [invitationLoading, setInvitationLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+
+  const [codeSent, setCodeSent] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [code, setCode] = useState('')
+  const [sendingCode, setSendingCode] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
+  const [resendIn, setResendIn] = useState(0)
+
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
-  const password = watch('password', '')
-  const confirmPassword = watch('confirmPassword', '')
-  const email = watch('email', '')
-  const termsAccepted = watch('termsAccepted', false)
-  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword
-
-  // Email verification state
-  const [emailVerified, setEmailVerified] = useState(false)
-  const [codeSent, setCodeSent] = useState(false)
-  const [verificationCode, setVerificationCode] = useState('')
-  const [sendingCode, setSendingCode] = useState(false)
-  const [verifyingCode, setVerifyingCode] = useState(false)
-  const [codeCooldown, setCodeCooldown] = useState(0)
 
   useEffect(() => {
-    if (token) {
-      setInvitationLoading(true)
-      api.get(`/organizations/invitation/validate?token=${token}`)
-        .then((res) => {
-          setInvitation(res.data)
-          setValue('email', res.data.email)
-          setEmailVerified(true) // Invitations don't need email verification
-        })
-        .catch(() => setError('This invitation link is invalid or has expired.'))
-        .finally(() => setInvitationLoading(false))
-    }
-  }, [token, setValue])
+    if (!token) return
+    setInvitationLoading(true)
+    api.get(`/organizations/invitation/validate?token=${token}`)
+      .then((res) => {
+        setInvitation(res.data)
+        setEmail(res.data.email)
+        setEmailVerified(true) // Invitations don't need email verification
+      })
+      .catch(() => setError('This invitation link is invalid or has expired.'))
+      .finally(() => setInvitationLoading(false))
+  }, [token])
 
-  // Cooldown timer for code resend
   useEffect(() => {
-    if (codeCooldown <= 0) return
-    const timer = setTimeout(() => setCodeCooldown(codeCooldown - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [codeCooldown])
+    if (resendIn <= 0) return
+    const t = setTimeout(() => setResendIn(resendIn - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendIn])
 
-  // Reset verification when email changes
+  // Email changed → verification must be redone against the new address
+  // (invited emails are fixed, so this only applies to self-registration).
   useEffect(() => {
-    if (emailVerified && !invitation) {
-      setEmailVerified(false)
-      setCodeSent(false)
-      setVerificationCode('')
-    }
+    if (invitation) return
+    setEmailVerified(false)
+    setCodeSent(false)
+    setCode('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email])
 
+  const passwordValid = RESET_PASSWORD_RULES.every(r => r.test(password))
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const confirmTouched = confirm.length > 0
+  const passwordsMatch = password === confirm
+  const canCreate = passwordValid && confirmTouched && passwordsMatch
+    && (emailVerified || !!invitation) && firstName.trim() && emailValid && termsAccepted && !loading
+
   const handleSendCode = async () => {
-    if (!email || errors.email) return
+    if (!emailValid || invitation) return
     setSendingCode(true)
     setError('')
     try {
       // Waits out a per-IP rate limit rather than failing. A care home is one
       // office on one IP address, so a whole team pressing this button at once
-      // is the normal case during onboarding, not an edge case — and a few
-      // seconds' congestion should not look like a broken app to the person
-      // we are trying to onboard. Per-recipient limits still surface
-      // immediately, because no amount of waiting helps those.
+      // is the normal case during onboarding, not an edge case. Per-recipient
+      // limits still surface immediately, because no amount of waiting helps
+      // those.
       await withRateLimitRetry(() => api.post('/auth/send-email-code', { email: email.trim() }))
       setCodeSent(true)
-      setCodeCooldown(60)
+      setResendIn(60)
     } catch (err: any) {
       setError(err?.response?.status === 429
         ? rateLimitMessage(err, 'Too many verification codes requested. Please wait a few minutes and try again.')
-        : apiErrorMsg(err, 'Failed to send verification code'))
+        : apiErrorMsg(err, 'Failed to send the verification code.'))
     } finally {
       setSendingCode(false)
     }
   }
 
   const handleVerifyCode = async () => {
-    if (!verificationCode || verificationCode.length !== 6) return
+    if (code.trim().length !== 6) return
     setVerifyingCode(true)
     setError('')
     try {
-      await api.post('/auth/verify-email-code', { email: email.trim(), code: verificationCode.trim() })
+      await api.post('/auth/verify-email-code', { email: email.trim(), code: code.trim() })
       setEmailVerified(true)
     } catch (err: any) {
-      setError(apiErrorMsg(err, 'Invalid verification code'))
+      setError(apiErrorMsg(err, 'That code did not match. Check the email and try again.'))
     } finally {
       setVerifyingCode(false)
     }
   }
 
-  const onSubmit = async (data: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canCreate) {
+      if (password !== confirm) setError('Passwords do not match')
+      else if (!emailVerified && !invitation) setError('Please verify your email address before continuing')
+      else if (!termsAccepted) setError('You must agree to the Terms and Conditions to create an account')
+      return
+    }
     setLoading(true)
     setError('')
-    if (data.password !== data.confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
-    }
-    if (!emailVerified && !invitation) {
-      setError('Please verify your email address before continuing')
-      setLoading(false)
-      return
-    }
-    if (!data.termsAccepted) {
-      setError('You must agree to the Terms and Conditions to create an account')
-      setLoading(false)
-      return
-    }
-    const fullName = `${data.firstName} ${data.lastName}`.trim()
     try {
+      const name = `${firstName.trim()} ${lastName.trim()}`.trim()
       // Both branches sit behind the same per-IP registration limit, and an
       // invited staff member is the *most* likely person to hit it: they are
       // one of a dozen colleagues registering from the same office connection
       // in the same few minutes. Waits the limit out rather than failing.
-      let res;
-
+      let res
       if (token && invitation) {
         res = await withRateLimitRetry(() => api.post('/auth/register-with-invitation', {
           token,
-          name: fullName,
-          password: data.password,
+          name,
+          password,
         }))
       } else {
         res = await withRateLimitRetry(() => api.post('/auth/register', {
-          ...data,
-          name: fullName,
-          role: data.role || UserRole.ORG_ADMIN,
+          email: email.trim(),
+          password,
+          role: UserRole.ORG_ADMIN,
+          name,
         }))
       }
 
       const storedUser = res.data.user
-      storedUser.first_name = data.firstName
+      storedUser.first_name = firstName.trim()
       // Registration is a sign-in: the API set the session cookies on the
       // response, so the browser is already authenticated for the onboarding
       // step this navigates to. No token is kept.
@@ -177,329 +184,166 @@ export default function RegisterPage() {
     }
   }
 
-
   usePageMeta({ title: 'Create Account | Meticle Care', description: 'Create a MeticleCare account after your organisation has been invited or approved for access.', noindex: true })
+
+  const heading = invitation ? <>Join {invitation.organizationName}.</> : <>Care management,<br />without the complexity.</>
+  const supporting = invitation
+    ? `You've been invited to join ${invitation.organizationName} as ${invitation.role === 'MANAGER' ? 'a Manager' : 'a Staff Member'}. Set your password to get started.`
+    : 'Bring care records, people, medication, staffing and compliance together in one secure platform.'
+
   if (invitationLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-        <CircularProgress />
-      </Box>
+      <AuthLayout heading={heading} supporting={supporting} features={REGISTER_FEATURES}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }} role="status" aria-live="polite">
+          <CircularProgress />
+        </Box>
+      </AuthLayout>
     )
   }
 
   return (
-    <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}>
-       <Box sx={{
-        flex: { xs: 0, md: 1 },
-        display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column',
-        bgcolor: 'var(--mc-background)',
-        p: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRight: '1px solid', borderColor: 'divider',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Same soft brand shapes as the sign-in page (AuthBrandPanel) — decorative only. */}
-        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 340, height: 340, left: -120, bottom: -60, bgcolor: 'var(--mc-info-soft)' }} />
-        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 220, height: 220, left: 140, bottom: 10, bgcolor: 'var(--mc-shape-cyan)', opacity: 0.85 }} />
-        <Box aria-hidden sx={{ borderRadius: '50%', position: 'absolute', width: 150, height: 150, right: -40, bottom: 80, bgcolor: 'var(--mc-success-soft)' }} />
-        <Box sx={{ maxWidth: '500px', position: 'relative', zIndex: 1 }}>
-          <Typography variant="h3" sx={{ fontWeight: 600, color: 'text.primary', mb: 3 }}>
-            {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
-          </Typography>
-          {invitation ? (
-            <Typography sx={{ color: 'text.secondary', mb: 4, fontSize: '1.1rem' }}>
-              You've been invited to join <strong>{invitation.organizationName}</strong> as a{' '}
-              {invitation.role === 'MANAGER' ? 'Manager' : 'Staff Member'}. Create your account to get started.
-            </Typography>
-          ) : (
-            <Stack spacing={4} sx={{ mb: 6 }}>
-              {[
-                { t: 'Automated Compliance', d: 'Never miss a training or DBS renewal again.' },
-                { t: 'Smart Scheduling', d: 'Bring workforce and care operations into one view.' },
-                { t: 'Real-time Visibility', d: 'Audit your entire workforce in one click.' }
-              ].map((v, i) => (
-                <Stack key={i} direction="row" spacing={2}>
-                  <CheckIcon sx={{ color: '#10B981', mt: 0.5 }} />
-                  <Box>
-                    <Typography sx={{ fontWeight: 600, color: 'text.primary' }}>{v.t}</Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{v.d}</Typography>
+    <AuthLayout heading={heading} supporting={supporting} features={REGISTER_FEATURES}>
+      <AuthHeader
+        title={invitation ? 'Complete your registration' : 'Create your account'}
+        supporting={invitation ? 'Set your password to join your organization.' : 'Start managing care with MeticleCare.'}
+      />
+
+      {error && <AuthError message={error} onClose={() => setError('')} />}
+
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <AuthField label="First name" htmlFor="register-first">
+              <AuthInput id="register-first" value={firstName} onChange={setFirstName} autoComplete="given-name" placeholder="Jane" />
+            </AuthField>
+            <AuthField label="Last name" htmlFor="register-last">
+              <AuthInput id="register-last" value={lastName} onChange={setLastName} autoComplete="family-name" placeholder="Mason" required={false} />
+            </AuthField>
+          </Box>
+
+          <AuthField label="Work email" htmlFor="register-email">
+            <AuthInput
+              id="register-email"
+              value={email}
+              onChange={setEmail}
+              type="email"
+              placeholder="name@organization.com"
+              autoComplete="email"
+              disabled={!!invitation || emailVerified}
+              error={email.length > 3 && !emailValid}
+            />
+          </AuthField>
+
+          {/* Email verification — the backend refuses registration until the
+              address is verified, so this step sits in the form, not after it.
+              Invited emails arrive pre-verified via the token. */}
+          {!invitation && !emailVerified ? (
+            <Box
+              sx={{
+                border: '1px solid var(--mc-border)',
+                borderRadius: '12px',
+                p: 2,
+                bgcolor: 'var(--mc-surface-hover)',
+              }}
+            >
+              {!codeSent ? (
+                <>
+                  <Typography sx={{ fontSize: 13.5, color: 'var(--mc-text-secondary)', mb: 1.5 }}>
+                    Verify your work email to finish creating your account.
+                  </Typography>
+                  <AuthButton
+                    type="button"
+                    loading={sendingCode}
+                    loadingLabel="Sending code…"
+                    disabled={!emailValid}
+                    onClick={handleSendCode}
+                  >
+                    Send verification code
+                  </AuthButton>
+                </>
+              ) : (
+                <>
+                  <Typography sx={{ fontSize: 13.5, color: 'var(--mc-text-secondary)', mb: 1.5 }}>
+                    Enter the 6-digit code we sent to <strong>{email.trim()}</strong>.
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 1.5, alignItems: 'start' }}>
+                    <AuthInput
+                      id="register-code"
+                      value={code}
+                      onChange={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                    />
+                    <AuthButton type="button" loading={verifyingCode} loadingLabel="Verifying…" disabled={code.length !== 6} onClick={handleVerifyCode}>
+                      Verify
+                    </AuthButton>
                   </Box>
-                </Stack>
-              ))}
-            </Stack>
+                  <Typography sx={{ fontSize: 12.5, color: 'var(--mc-text-muted)', mt: 1.5 }}>
+                    {resendIn > 0
+                      ? `Resend available in 00:${String(resendIn).padStart(2, '0')}`
+                      : (
+                        <Link component="button" type="button" onClick={handleSendCode} underline="hover" sx={{ color: 'var(--mc-primary)', fontWeight: 600 }}>
+                          Resend email
+                        </Link>
+                      )}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          ) : (
+            <Box role="status" sx={{ bgcolor: 'var(--mc-success-soft)', border: '1px solid var(--mc-success-border)', borderRadius: '12px', px: 2, py: 1.5 }}>
+              <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'var(--mc-success-text)' }}>Email verified ✓</Typography>
+            </Box>
           )}
+
+          <AuthField label="Password" htmlFor="register-password">
+            <AuthPasswordInput id="register-password" value={password} onChange={setPassword} autoComplete="new-password" />
+            <PasswordRequirements password={password} />
+          </AuthField>
+
+          <AuthField label="Confirm password" htmlFor="register-confirm">
+            <AuthPasswordInput
+              id="register-confirm"
+              value={confirm}
+              onChange={setConfirm}
+              autoComplete="new-password"
+              error={confirmTouched && !passwordsMatch}
+              aria-describedby={confirmTouched && !passwordsMatch ? 'register-confirm-error' : undefined}
+            />
+            {confirmTouched && !passwordsMatch && (
+              <Typography id="register-confirm-error" role="alert" sx={{ fontSize: 12.5, color: 'var(--mc-danger, var(--mc-danger))', mt: 0.75 }}>
+                Passwords don't match.
+              </Typography>
+            )}
+          </AuthField>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={termsAccepted}
+                onChange={e => setTermsAccepted(e.target.checked)}
+                sx={{ color: 'var(--mc-border)', '&.Mui-checked': { color: 'var(--mc-primary)' } }}
+              />
+            }
+            label={
+              <Typography sx={{ fontSize: 13, color: 'var(--mc-text-secondary)' }}>
+                I agree to the{' '}
+                <Link href="/terms" underline="hover" sx={{ color: 'var(--mc-primary)', fontWeight: 500 }}>Terms of Service</Link>
+                {' '}and{' '}
+                <Link href="/privacy" underline="hover" sx={{ color: 'var(--mc-primary)', fontWeight: 500 }}>Privacy Policy</Link>.
+              </Typography>
+            }
+            sx={{ m: 0 }}
+          />
+
+          <AuthButton loading={loading} loadingLabel={invitation ? 'Joining…' : 'Creating account…'} disabled={!canCreate}>
+            {invitation ? 'Join organization →' : 'Create account →'}
+          </AuthButton>
         </Box>
       </Box>
 
-      <Box sx={{ flex: { xs: 1, md: 0.8 }, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', p: { xs: 2, md: 4 }, overflowY: 'auto', maxHeight: '100%' }}>
-        <Container maxWidth="xs" sx={{ mx: 'auto', my: { xs: 4, md: 5 } }}>
-          <Box sx={{ mb: 6 }}>
-            <BrandWordmark size={22} />
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
-              {invitation ? 'Complete Your Registration' : 'Create Your Account'}
-            </Typography>
-            <Typography sx={{ color: 'text.secondary' }}>
-              {invitation
-                ? 'Set your password to join your organization.'
-                : 'Create your account after your demo or invitation. Your team will guide the next steps.'}
-            </Typography>
-          </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={2.5}>
-              <Stack direction="row" spacing={1}>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>First Name</Typography>
-                  <TextField
-                    fullWidth
-                    placeholder="First name"
-                    {...register('firstName', { required: 'First name is required' })}
-                    error={!!errors.firstName}
-                    helperText={errors.firstName?.message as string}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Last Name</Typography>
-                  <TextField
-                    fullWidth
-                    placeholder="Last name"
-                    {...register('lastName', { required: 'Last name is required' })}
-                    error={!!errors.lastName}
-                    helperText={errors.lastName?.message as string}
-                  />
-                </Box>
-              </Stack>
-
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Work Email</Typography>
-                <TextField
-                  fullWidth
-                  placeholder="john@carehome.com"
-                  disabled={!!invitation || emailVerified}
-                  {...register('email', { 
-                    required: 'Email is required',
-                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' }
-                  })}
-                  error={!!errors.email}
-                  helperText={errors.email?.message as string}
-                  InputProps={{
-                    endAdornment: emailVerified && !invitation ? (
-                      <InputAdornment position="end">
-                        <VerifiedIcon sx={{ color: '#10B981' }} />
-                      </InputAdornment>
-                    ) : undefined
-                  }}
-                />
-              </Box>
-
-              {/* Email verification section */}
-              {!invitation && !emailVerified && (
-                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
-                  {!codeSent ? (
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={handleSendCode}
-                        disabled={sendingCode || !email || !!errors.email}
-                        sx={{ textTransform: 'none', borderColor: '#0164C8', color: '#0164C8', whiteSpace: 'nowrap' }}
-                      >
-                        {sendingCode ? <CircularProgress size={16} /> : 'Send Verification Code'}
-                      </Button>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        We'll send a 6-digit code to verify your email
-                      </Typography>
-                    </Stack>
-                  ) : (
-                    <Stack spacing={1.5}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <VerifiedIcon sx={{ color: '#0164C8', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                          Enter the 6-digit code sent to {email}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <TextField
-                          size="small"
-                          placeholder="000000"
-                          value={verificationCode}
-                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          sx={{ fontFamily: 'monospace', '& input': { fontFamily: 'monospace', letterSpacing: 4, textAlign: 'center' } }}
-                          inputProps={{ maxLength: 6 }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={handleVerifyCode}
-                          disabled={verifyingCode || verificationCode.length !== 6}
-                          sx={{ textTransform: 'none', bgcolor: '#0164C8', whiteSpace: 'nowrap' }}
-                        >
-                          {verifyingCode ? <CircularProgress size={16} color="inherit" /> : 'Verify'}
-                        </Button>
-                      </Stack>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Button
-                          size="small"
-                          onClick={handleSendCode}
-                          disabled={codeCooldown > 0 || sendingCode}
-                          sx={{ textTransform: 'none', fontSize: '0.75rem', p: 0, minWidth: 0 }}
-                        >
-                          {codeCooldown > 0 ? `Resend in ${codeCooldown}s` : 'Resend code'}
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  )}
-                </Box>
-              )}
-
-              {emailVerified && !invitation && (
-                <Alert severity="success" sx={{ borderRadius: 2, py: 0 }}>
-                  Email verified successfully
-                </Alert>
-              )}
-
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Create Password</Typography>
-                <TextField
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  {...register('password', { 
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'Minimum 8 characters' },
-                    validate: (v: string) => {
-                      if (!/[A-Z]/.test(v)) return 'Must contain an uppercase letter'
-                      if (!/[a-z]/.test(v)) return 'Must contain a lowercase letter'
-                      if (!/[0-9]/.test(v)) return 'Must contain a number'
-                      if (!/[^A-Za-z0-9]/.test(v)) return 'Must contain a special character'
-                      return true
-                    }
-                  })}
-                  error={!!errors.password}
-                  helperText={errors.password?.message as string}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Confirm Password</Typography>
-                <TextField
-                  fullWidth
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  {...register('confirmPassword', { 
-                    required: 'Please confirm your password',
-                  })}
-                  error={!!errors.confirmPassword || passwordsMismatch}
-                  helperText={errors.confirmPassword?.message as string || (passwordsMismatch ? 'Passwords do not match' : '')}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowConfirm(!showConfirm)} edge="end" size="small">
-                          {showConfirm ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Box>
-
-              {password && (
-                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary', mb: 1, display: 'block' }}>
-                    Password requirements:
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {PASSWORD_RULES.map((rule) => {
-                      const passed = rule.test(password)
-                      return (
-                        <Stack key={rule.key} direction="row" spacing={1} alignItems="center">
-                          <Typography sx={{ color: passed ? '#10B981' : '#5D6E85', fontSize: '0.75rem' }}>
-                            {passed ? '✓' : '○'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: passed ? '#10B981' : '#5D6E85', fontWeight: passed ? 600 : 400 }}>
-                            {rule.label}
-                          </Typography>
-                        </Stack>
-                      )
-                    })}
-                  </Stack>
-                </Box>
-              )}
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    {...register('termsAccepted')}
-                    sx={{ '&.Mui-checked': { color: '#0164C8' } }}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                    I agree to the{' '}
-                    <Link onClick={() => navigate('/terms')} sx={{ color: '#0164C8', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>
-                      Terms and Conditions
-                    </Link>{' '}
-                    and{' '}
-                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#0164C8', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>
-                      Privacy Policy
-                    </Link>
-                  </Typography>
-                }
-                sx={{ mt: 1 }}
-              />
-
-              <Button
-                fullWidth
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={loading || (!emailVerified && !invitation) || !termsAccepted}
-                sx={{ bgcolor: '#0164C8', py: 1.8, fontWeight: 600, fontSize: '1rem', textTransform: 'none', mt: 2 }}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Create account')}
-              </Button>
-
-              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#0164C8', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>Sign In</Link>
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-          
-           <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', justifyContent: 'center' }}>
-            <SecurityIcon sx={{ fontSize: 16 }} />
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>
-              By signing up, you agree to our{' '}
-              <Link onClick={() => navigate('/terms')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
-                Terms
-              </Link>{' '}
-              and{' '}
-              <Link onClick={() => navigate('/privacy')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
-                Privacy Policy
-              </Link>.
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
-    </Box>
+      <AuthFooterLine prompt="Already have an account?" action="Sign in" onAction={() => navigate('/login')} />
+    </AuthLayout>
   )
 }

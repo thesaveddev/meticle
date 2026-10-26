@@ -54,6 +54,8 @@ meticlecare-*.json
 *.p12
 *.keystore
 *.jks
+*.p8
+private/
 
 # Play Data safety CSV exports. `template.csv` is downloaded from the developer
 # account and `generated.csv` is derived from it; neither is source, and the

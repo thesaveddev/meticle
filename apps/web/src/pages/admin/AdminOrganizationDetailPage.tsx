@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
 } from '@mui/material'
 import { useParams } from 'react-router-dom'
-import { Edit as EditIcon } from '@mui/icons-material'
+import { Edit as EditIcon, OpenInNew as OpenInNewIcon, Delete as DeleteIcon, Upload as UploadIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import { localDate } from '../../utils/dateFormat'
 
@@ -29,6 +29,11 @@ export default function AdminOrganizationDetailPage() {
   const [billingForm, setBillingForm] = useState({ subscription_status: '', plan: '', trial_ends_at: '' })
   const [domiciliaryQuoteForm, setDomiciliaryQuoteForm] = useState({ monthly_price: '', vat_behavior: '' as '' | 'inclusive' | 'exclusive' })
   const [quoteSaving, setQuoteSaving] = useState(false)
+  const [orgDocs, setOrgDocs] = useState<any[]>([])
+  const [docsLoading, setDocsLoading] = useState(false)
+  const [docUploading, setDocUploading] = useState(false)
+  const [docForm, setDocForm] = useState({ doc_type: 'DPA', title: '', version: '1.0' })
+  const [docFile, setDocFile] = useState<File | null>(null)
 
   const loadOrg = async () => {
     try {
@@ -41,6 +46,50 @@ export default function AdminOrganizationDetailPage() {
   }
 
   useEffect(() => { if (id) loadOrg() }, [id])
+
+  const loadDocs = async () => {
+    if (!id) return
+    setDocsLoading(true)
+    try {
+      const res = await api.get(`/platform-admin/organizations/${id}/documents`)
+      setOrgDocs(res.data.documents || [])
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Failed to load compliance files')
+    } finally { setDocsLoading(false) }
+  }
+
+  useEffect(() => { if (id) loadDocs() }, [id])
+
+  const handleDocUpload = async () => {
+    if (!id || !docFile) { setMessage('Choose a file to upload.'); return }
+    if (!docForm.title.trim()) { setMessage('Give the document a title (e.g. Signed DPA v1.0).'); return }
+    setDocUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', docFile)
+      fd.append('doc_type', docForm.doc_type)
+      fd.append('title', docForm.title.trim())
+      fd.append('version', docForm.version || '1.0')
+      await api.post(`/platform-admin/organizations/${id}/documents`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setMessage('Compliance file stored against this organisation.')
+      setDocFile(null)
+      setDocForm({ doc_type: 'DPA', title: '', version: '1.0' })
+      await loadDocs()
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Failed to upload compliance file.')
+    } finally { setDocUploading(false) }
+  }
+
+  const handleDocDelete = async (docId: string) => {
+    if (!id) return
+    try {
+      await api.delete(`/platform-admin/organizations/${id}/documents/${docId}`)
+      setMessage('Compliance file deleted.')
+      await loadDocs()
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Failed to delete compliance file.')
+    }
+  }
 
   const handleDomiciliaryQuoteSave = async () => {
     const monthlyPrice = Number(domiciliaryQuoteForm.monthly_price)
@@ -211,6 +260,56 @@ export default function AdminOrganizationDetailPage() {
                     <TableCell>{user.mfa_enabled ? 'Yes' : 'No'}</TableCell>
                     <TableCell>
                       {new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+
+      <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Compliance files</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Signed DPA, DPIA acceptance, ICO certificate, insurance — kept under this organisation so an inspector or customer DDQ is one click, not an inbox search.
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+          <TextField size="small" select label="Type" value={docForm.doc_type}
+            onChange={e => setDocForm({ ...docForm, doc_type: e.target.value })} sx={{ minWidth: 160 }}>
+            <MenuItem value="DPA">DPA</MenuItem><MenuItem value="DPIA">DPIA</MenuItem>
+            <MenuItem value="ICO">ICO certificate</MenuItem><MenuItem value="INSURANCE">Insurance</MenuItem>
+            <MenuItem value="CONTRACT">Contract</MenuItem><MenuItem value="POLICY">Policy</MenuItem>
+            <MenuItem value="OTHER">Other</MenuItem>
+          </TextField>
+          <TextField size="small" label="Title" placeholder="Signed DPA v1.0" value={docForm.title}
+            onChange={e => setDocForm({ ...docForm, title: e.target.value })} sx={{ flex: 1 }} />
+          <TextField size="small" label="Version" value={docForm.version}
+            onChange={e => setDocForm({ ...docForm, version: e.target.value })} sx={{ maxWidth: 110 }} />
+          <Button size="small" variant="outlined" component="label" startIcon={<UploadIcon />}>
+            {docFile ? docFile.name : 'Choose file'}
+            <input hidden type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={e => setDocFile(e.target.files?.[0] || null)} />
+          </Button>
+          <Button size="small" variant="contained" onClick={handleDocUpload} disabled={docUploading || !docFile}>
+            {docUploading ? 'Storing…' : 'Store file'}
+          </Button>
+        </Stack>
+        {docsLoading ? <Typography color="text.secondary">Loading files…</Typography> : orgDocs.length === 0 ? (
+          <Typography color="#5D6E85" sx={{ textAlign: 'center', py: 3 }}>No compliance files stored for this organisation yet.</Typography>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead><TableRow><TableCell>Type</TableCell><TableCell>Title</TableCell><TableCell>Version</TableCell><TableCell>Stored</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
+              <TableBody>
+                {orgDocs.map((d: any) => (
+                  <TableRow key={d.id} hover sx={{ cursor: 'pointer' }} onClick={() => window.open(d.file_url, '_blank', 'noopener')}>
+                    <TableCell><Chip size="small" label={d.doc_type} variant="outlined" /></TableCell>
+                    <TableCell><Typography variant="body2" fontWeight={600}>{d.title}</Typography><Typography variant="caption" color="text.secondary">{d.file_name}</Typography></TableCell>
+                    <TableCell>{d.version}</TableCell>
+                    <TableCell>{d.created_at ? new Date(d.created_at).toLocaleDateString('en-GB') : '—'}</TableCell>
+                    <TableCell align="right" onClick={e => e.stopPropagation()}>
+                      <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => window.open(d.file_url, '_blank', 'noopener')}>Open</Button>
+                      <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDocDelete(d.id)}>Delete</Button>
                     </TableCell>
                   </TableRow>
                 ))}

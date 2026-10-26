@@ -136,10 +136,10 @@ export const CAPTURE_SHOTS: CaptureShot[] = [
   {
     index: 6,
     id: '06-offline-sync',
-    title: 'Offline sync rail — actions waiting to send',
+    title: 'Offline sync — actions waiting to send',
     storeCaption: 'No signal, no problem. Evidence is saved on the phone and syncs itself later.',
     scene: 'offline-queue',
-    target: { kind: 'tab', tab: 'today' },
+    target: { kind: 'tab', tab: 'settings' },
     dwellMs: SETTLE_MS,
   },
 ]

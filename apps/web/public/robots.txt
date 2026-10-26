@@ -4,4 +4,20 @@ Disallow: /login
 Disallow: /dashboard
 Disallow: /unauthorized
 
+# AI search indexers and research agents — allowed for AI discovery/citation.
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: Gemini-Deep-Research
+Allow: /
+User-agent: YouBot
+Allow: /
+
 Sitemap: https://meticlecare.com/sitemap.xml

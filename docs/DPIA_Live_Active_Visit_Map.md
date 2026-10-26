@@ -1,8 +1,8 @@
 # Data Protection Impact Assessment (DPIA)
 ## Live Active-Visit Map — MeticleCare
 
-**Document version:** 1.5  
-**Date:** 28 September 2026  
+**Document version:** 1.7  
+**Date:** 23 October 2026  
 **Author:** MeticleCare Engineering  
 **Review date:** 13 March 2027
 
@@ -16,6 +16,7 @@
 | 1.3 | 27 Sep 2026 | **The v1.1 retraction of the per-organisation kill switch is reversed, because the control now exists.** Version 1.0 claimed an organisation "can disable the live map feature per-location"; 1.1 retracted it as a control that did not exist. The control is now built — to 1.1's specification, not 1.0's wording — and §6 is restated as an implemented right, with a new §6.1 setting out exactly what "off" stops and the one thing it cannot preserve. Residual risk stays MEDIUM. |
 | 1.4 | 27 Sep 2026 | **§5.2 stops being an intention and becomes a control, and two claims in it are withdrawn.** Carers are now shown what is collected, in the app, at first launch, with the acknowledgement recorded server-side. In the course of writing the notice, §5.2 was found to contradict §2.2 of this same document on retention, in the direction that flattered us. Also: the kill switch shipped in 1.3 had a gap — the navigation sheet read position without honouring it. |
 | 1.5 | 28 Sep 2026 | **A carer can now decline, individually, and the refusal is honoured at the point of collection.** The notice in 1.4 told each worker what was collected and recorded that they had read it. It did not let them say no, which made "was told" the only thing evidenced and left §5.1 item 1-5 as the only route to a worker's objection. New §5.3. Two stale claims in this document are also corrected: §4.1 risk 3 and §5.1 both still said location was "documented in employment contracts and staff handbook", which §5.2 withdrew in 1.4, and §5.1 still said there was no per-organisation switch, which has been false since 1.3. Residual risk stays MEDIUM, restated per worker in §6.2. |
+| 1.7 | 23 Oct 2026 | **Launch readiness: nothing new is collected, and what blocks first use is named.** DPA now exists as a draft (`docs/DATA_PROCESSING_AGREEMENT.md` v0.1, pending solicitor review T0-8) so §10 no longer says none exists. Engineering work is complete through v1.6; remaining launch gates are owner actions outside this document — org-wide DPIA commission (T0-5), solicitor review of Terms/Privacy/DPA (T0-8), PI insurance (T0-7), and each provider's retention-period decision (§2.2). New §11 lists them so a reader can tell "ready" from "signed off". Residual risk stays MEDIUM. |
 | 1.6 | 29 Sep 2026 | **A retention mechanism exists, and the legal question in §2.2 is still not answered.** §2.2 escalated the retention period to the DPO and this document correctly refused to state one. What was missing was the machinery: a provider whose DPO came back with "90 days" had nowhere to record that and nothing that would ever act on it, so positions accumulated for as long as the care record lived. Migration `134` adds a per-organisation period, a nightly enforcement job, and a written receipt of every run. It deliberately ships **no default** — see new §2.3. Two claims about the product are also corrected here, both found by reading the code rather than this document: position was being written to a **third** store (`mobile_check_ins`, via a SecureVisit endpoint that honoured neither the switch nor the worker's decision), and the kill switch did not reach the **copy in the audit log**, which was built from the request body and so kept collecting after a provider had asked it to stop. The carer notice is v1.3, which said only "ask your employer" about retention and is now false in its implication. Residual risk stays MEDIUM. |
 
 **What changed in 1.5**
@@ -628,10 +629,11 @@ my workforce is being recorded?" is visible in the evidence panel and is often n
 | Engineering Lead | _[MeticleCare]_ | 13 September 2026 | Digital |
 
 **This document has not been through independent review.** It was written by engineers and
-signed by an engineering lead. The corrections in version 1.1 were made because the
+signed by an engineering lead. The corrections in versions 1.1–1.6 were made because the
 implementation was checked against the document, not because a data protection professional
 reviewed it. Before this is relied on to satisfy a customer due diligence questionnaire or
-an inspection, it needs a qualified reviewer. That review is readiness item T0-5.
+an inspection, it needs a qualified reviewer. That review is readiness item T0-5, and it
+remains the launch gate: engineering sign-off below is complete, DPO/org sign-off is not.
 
 ---
 
@@ -642,9 +644,26 @@ This DPIA covers the Live Active-Visit Map specifically. It should be read along
 - The organisation's overall Employee Monitoring Policy
 - The organisation's GPS and Location Data Policy (if separate)
 - The MeticleCare Privacy Policy
-- The MeticleCare Data Processing Agreement — **this does not exist yet.** Our Terms of Use
-  reference a DPA that has not been written (readiness item T0-9). Do not rely on it.
+- The MeticleCare Data Processing Agreement — **draft exists, not yet reviewed.** `docs/DATA_PROCESSING_AGREEMENT.md` v0.1 (23 Oct 2026) is pending solicitor review (readiness items T0-8/T0-9). Do not sign or send it to a customer until reviewed.
 
 ---
+
+## 11. Launch readiness — what "ready" means here
+
+**Engineering-complete (this document evidences):** kill switch with audit trail (§6/§6.1),
+carer notice with recorded acknowledgement (§5.2), per-worker decision honoured fail-closed
+(§5.3), three-store retention mechanism with per-org period and nightly receipts (§2.3),
+and the audit-log / SecureVisit collection fixes (§2.3, §7). No new collection is added
+for launch.
+
+**Owner actions before first production use (not engineering, still blocking):**
+
+| # | Gate | Tracker | Required before |
+|---|---|---|---|
+| 1 | Org-wide DPIA commissioned (this DPIA covers one feature only) | T0-5 | First customer due-diligence answer or inspection |
+| 2 | Solicitor review of Terms + Privacy + DPA draft | T0-8/T0-9 | Sending the DPA to any customer; relying on Terms indemnity |
+| 3 | PI insurance (ask about cyber liability) | T0-7 | First paid customer |
+| 4 | Each provider's retention-period decision recorded | §2.2 | Collecting beyond the provider's own policy; NULL means "not decided", nothing auto-deletes |
+| 5 | Workforce consultation / contracts / handbook (§5.1 items 1-5) | §5.1 | Enabling collection for that provider's workforce |
 
 *This document is a template and must be completed and signed by the data controller (the care organisation) before the Live Active-Visit Map is enabled in production. MeticleCare provides the technical implementation; the organisation is responsible for ensuring its own legal and policy obligations are met.*
