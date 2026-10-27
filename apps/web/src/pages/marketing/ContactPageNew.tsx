@@ -14,7 +14,7 @@ import PageMeta from '../../components/PageMeta'
 import api from '../../services/api'
 
 /* ─── Colours pinned from Figma frame 1.6 Contact (node 49:78) ───────
- * Page ground:  linear-gradient #EAF3FC → #F8FAFD (55%) → #FFFFFF
+ * Page ground:  linear-gradient #EAF3FC → #F4F9FC (55%) → #FFFFFF
  * Eyebrow pill: white, hairline #E3EAF1, dot #0164C8, text #2A3A50
  * Title:        #0C1B2E · lede: #51637A
  * Detail rows:  hairline #E3EAF1 · icon boxes white + hairline, icons #0164C8
@@ -32,7 +32,7 @@ import api from '../../services/api'
  * Focus:  1.5px #0164C8 border + rgba(1,100,200,.15) ring
  * Filled: default border, ink text
  * Error:  1px #B42318 border, #B42318 helper below the field,
- *         #FDECEC banner ("N field(s) need attention…")
+ *         #FEF0F0 banner ("N field(s) need attention…")
  * Disabled: #F4F9FC fill
  * Success: mint #D2FBF4 circle + #004E45 check, ink title, slate sub,
  *         #F4F9FC summary box (radius 12, hairline row dividers),
@@ -48,7 +48,7 @@ const INPUT_LINE = '#C9D5E2'
 const PALE_BLUE = '#EAF3FD'
 const DEEP_BLUE_TEXT = '#0152A6'
 const ERROR = '#B42318'
-const ERROR_BG = '#FDECEC'
+const ERROR_BG = '#FEF0F0'
 const MINT = '#D2FBF4'
 const TEAL_DEEP = '#004E45'
 const MIST_GROUND = '#F4F9FC'
@@ -90,7 +90,7 @@ function EyebrowPill() {
         display: 'inline-flex',
         alignItems: 'center',
         gap: '8px',
-        bgcolor: '#fff',
+        bgcolor: '#FFFFFF',
         border: `1px solid ${FAINT}`,
         borderRadius: '999px',
         px: '10px',
@@ -160,7 +160,7 @@ function Details() {
               height: 38,
               borderRadius: '10px',
               border: `1px solid ${FAINT}`,
-              bgcolor: '#fff',
+              bgcolor: '#FFFFFF',
               display: 'grid',
               placeItems: 'center',
               flexShrink: 0,
@@ -237,7 +237,7 @@ const inputSx = {
   height: 46,
   borderRadius: '10px',
   border: `1px solid ${INPUT_LINE}`,
-  bgcolor: '#fff',
+  bgcolor: '#FFFFFF',
   px: '14px',
   fontSize: '0.9375rem',
   color: INK,
@@ -312,7 +312,7 @@ function CheckboxRow({
             height: 20,
             borderRadius: '6px',
             border: `1.5px solid ${error ? ERROR : checked ? NAVY : INPUT_LINE}`,
-            bgcolor: checked ? NAVY : '#fff',
+            bgcolor: checked ? NAVY : '#FFFFFF',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
@@ -328,8 +328,8 @@ function CheckboxRow({
               sx={{
                 width: 10,
                 height: 6,
-                borderLeft: '2px solid #fff',
-                borderBottom: '2px solid #fff',
+                borderLeft: '2px solid #FFFFFF',
+                borderBottom: '2px solid #FFFFFF',
                 transform: 'rotate(-45deg) translateY(-1px)',
               }}
             />
@@ -501,7 +501,7 @@ export default function ContactPageNew() {
       <Box
         component="section"
         sx={{
-          background: 'linear-gradient(180deg, #EAF3FC 0%, #F8FAFD 55%, #FFFFFF 100%)',
+          background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)',
           pt: { xs: 4, md: 6 },
           pb: { xs: 10, md: 15 },
         }}
@@ -537,7 +537,7 @@ export default function ContactPageNew() {
             <Grid item xs={12} md={7}>
               <Box
                 sx={{
-                  bgcolor: '#fff',
+                  bgcolor: '#FFFFFF',
                   borderRadius: '20px',
                   border: `1px solid ${FAINT}`,
                   boxShadow: '0 24px 48px rgba(12,27,46,0.14)',
@@ -825,7 +825,7 @@ export default function ContactPageNew() {
                         sx={{
                           width: '100%',
                           bgcolor: NAVY,
-                          color: '#fff',
+                          color: '#FFFFFF',
                           fontWeight: 600,
                           fontSize: '0.95rem',
                           py: '14px',
@@ -834,7 +834,7 @@ export default function ContactPageNew() {
                           boxShadow:
                             '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)',
                           '&:hover': { bgcolor: '#0157AD' },
-                          '&:disabled': { bgcolor: NAVY, opacity: 0.7, color: '#fff' },
+                          '&:disabled': { bgcolor: NAVY, opacity: 0.7, color: '#FFFFFF' },
                         }}
                       >
                         {submitting ? 'Sending…' : 'Book a demo'}

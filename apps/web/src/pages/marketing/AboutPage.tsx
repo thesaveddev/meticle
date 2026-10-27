@@ -135,7 +135,7 @@ export default function AboutPage() {
         />
 
         {/* Mobile-only breadcrumb (About — Mobile 390) */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2.5, pt: 2, bgcolor: '#fff' }}>
+        <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2.5, pt: 2, bgcolor: '#FFFFFF' }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography
               component="button" type="button" onClick={() => nav('/')}
@@ -155,7 +155,7 @@ export default function AboutPage() {
           data-reveal-group
           sx={{
             position: 'relative', overflow: 'clip',
-            background: 'linear-gradient(180deg, #eaf3fc 0%, #f8fafd 55%, #ffffff 100%)',
+            background: 'linear-gradient(180deg, #eaf3fc 0%, #f4f9fc 55%, #ffffff 100%)',
             pt: { xs: 8, md: '128px' }, pb: { xs: 7, md: '96px' },
           }}
         >
@@ -387,7 +387,7 @@ export default function AboutPage() {
         </Box>
 
         {/* ═══ MISSION ═══ */}
-        <Box data-reveal-group sx={{ py: { xs: 8, md: '120px' }, bgcolor: '#fff' }}>
+        <Box data-reveal-group sx={{ py: { xs: 8, md: '120px' }, bgcolor: '#FFFFFF' }}>
           <Container maxWidth="lg">
             <Typography data-reveal sx={{ color: M.navy, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', mb: 3, display: 'block' }}>
               Our mission
@@ -432,7 +432,7 @@ export default function AboutPage() {
         </Box>
 
         {/* ═══ CTA ═══ */}
-        <Box data-reveal-group sx={{ py: { xs: 8, md: '96px' }, bgcolor: '#fff' }}>
+        <Box data-reveal-group sx={{ py: { xs: 8, md: '96px' }, bgcolor: '#FFFFFF' }}>
           <Container maxWidth="lg">
             <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center" justifyContent="space-between">
               <Grid item xs={12} md={7}>

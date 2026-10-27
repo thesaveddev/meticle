@@ -101,7 +101,7 @@ function ModuleItem({ item, go, selected }: { item: ModuleChild; go: (path: stri
 
 function PlatformPanel({ go, activePath }: { go: (path: string) => void; activePath: string }) {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden' }}>
       <Box sx={{ display: 'flex' }}>
         {/* Modules */}
         <Box sx={{ flex: '1 1 0', minWidth: 0, p: '20px 16px 16px' }}>
@@ -118,7 +118,7 @@ function PlatformPanel({ go, activePath }: { go: (path: string) => void; activeP
             type="button"
             onClick={() => go(complianceOverview.path)}
             sx={{
-              border: `1px solid ${M.faint}`, width: '100%', textAlign: 'left', bgcolor: '#fff', cursor: 'pointer',
+              border: `1px solid ${M.faint}`, width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
               p: '10px 12px', borderRadius: '10px', mb: '4px',
               transition: `background ${M.transition.fast}`,
@@ -146,7 +146,7 @@ function PlatformPanel({ go, activePath }: { go: (path: string) => void; activeP
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 p: '9px 12px', borderRadius: i === regulators.length - 1 ? '0 0 10px 10px' : 0,
                 transition: `background ${M.transition.fast}`,
-                '&:hover': { bgcolor: '#fff' },
+                '&:hover': { bgcolor: '#FFFFFF' },
                 '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: -2 },
               }}
             >
@@ -182,7 +182,7 @@ function PlatformPanel({ go, activePath }: { go: (path: string) => void; activeP
 
 function SolutionsPanel({ go, activePath }: { go: (path: string) => void; activePath: string }) {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden', display: 'flex' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden', display: 'flex' }}>
       <Box sx={{ flex: '1 1 0', minWidth: 0, p: '20px 16px 16px' }}>
         <MenuLabel>By service</MenuLabel>
         {solutionServices.map((s) => <ModuleItem key={s.path} item={s} go={go} selected={s.path !== '#' && (activePath === s.path || activePath.startsWith(s.path + '/'))} />)}
@@ -373,7 +373,7 @@ export default function Nav() {
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         sx={{ zIndex: 1300 }}
-        PaperProps={{ sx: { height: '100dvh', maxHeight: '100dvh', borderRadius: 0, bgcolor: '#fff' } }}
+        PaperProps={{ sx: { height: '100dvh', maxHeight: '100dvh', borderRadius: 0, bgcolor: '#FFFFFF' } }}
       >
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           {/* Header */}
@@ -415,7 +415,7 @@ export default function Nav() {
           </Box>
 
           {/* Actions */}
-          <Box sx={{ p: '16px 20px 28px', borderTop: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+          <Box sx={{ p: '16px 20px 28px', borderTop: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
             <Button
               fullWidth variant="contained"
               endIcon={<ArrowForward />}

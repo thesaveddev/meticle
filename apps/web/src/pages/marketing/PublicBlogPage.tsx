@@ -97,13 +97,13 @@ function BlogIndex() {
       <PageMeta title="Resources" description="Clear, evidence-led reading for domiciliary and supported living providers. No invented credentials, endorsements or customer claims." canonicalPath="/blog" />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F8FAFD 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 } }}>
           <Grid container spacing={4} alignItems="end" sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={8}>
               <Box
                 sx={{
-                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff',
+                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#FFFFFF',
                   border: `1px solid ${M.faint}`, borderRadius: '999px', px: 2, py: 0.75, mb: 3,
                 }}
               >
@@ -177,7 +177,7 @@ function BlogIndex() {
 
       {/* Featured */}
       {showFeatured && (
-        <Box sx={{ bgcolor: '#fff', py: { xs: 5, md: 7 } }}>
+        <Box sx={{ bgcolor: '#FFFFFF', py: { xs: 5, md: 7 } }}>
           <Container maxWidth="lg">
             <Grid container spacing={{ xs: 4, md: 7 }} alignItems="center">
               <Grid item xs={12} md={7}>
@@ -191,7 +191,7 @@ function BlogIndex() {
               </Grid>
               <Grid item xs={12} md={5}>
                 <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                  <Box component="span" sx={{ px: 1, py: '3px', borderRadius: '6px', bgcolor: M.dark, color: '#fff', fontSize: '0.68rem', fontWeight: 600 }}>
+                  <Box component="span" sx={{ px: 1, py: '3px', borderRadius: '6px', bgcolor: M.dark, color: '#FFFFFF', fontSize: '0.68rem', fontWeight: 600 }}>
                     Latest
                   </Box>
                   <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{featured.category}</Typography>
@@ -213,7 +213,7 @@ function BlogIndex() {
       )}
 
       {/* All articles */}
-      <Box sx={{ bgcolor: '#fff', pb: { xs: 7, md: 13 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', pb: { xs: 7, md: 13 } }}>
         <Container maxWidth="lg">
           <Box sx={{ borderTop: `1px solid ${M.faint}`, pt: 4, mb: 4 }}>
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: M.dark }}>More reading</Typography>
@@ -259,7 +259,7 @@ function BlogIndex() {
               <TextLink to="/learn">Open the Learning Center</TextLink>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, overflow: 'hidden' }}>
+              <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '16px', border: `1px solid ${M.faint}`, overflow: 'hidden' }}>
                 <Box sx={{ px: 3, py: 2 }}>
                   <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: M.dark }}>Who it’s for</Typography>
                 </Box>
@@ -282,7 +282,7 @@ function BlogIndex() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ bgcolor: '#fff', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
             <Grid item xs={12} md={7}>
@@ -312,7 +312,7 @@ function CtaButton() {
         variant="contained"
         endIcon={<ArrowForward />}
         onClick={() => nav('/contact')}
-        sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
       >
         Book a demo
       </Button>

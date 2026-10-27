@@ -58,7 +58,7 @@ const glanceRows = [
 
 function GlanceCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: '0 24px 48px rgba(12,27,46,0.14)', overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: '0 24px 48px rgba(12,27,46,0.14)', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, px: 3, py: 2.25, bgcolor: M.paper, borderBottom: `1px solid ${M.faint}` }}>
         <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: M.dark }}>At a glance</Typography>
         <Stack direction="row" spacing={2}>
@@ -158,13 +158,13 @@ export default function SecurityPage() {
       />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F8FAFD 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 10 } }}>
           <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
             <Grid item xs={12} md={5}>
               <Box
                 sx={{
-                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff',
+                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#FFFFFF',
                   border: `1px solid ${M.faint}`, borderRadius: '999px', px: 2, py: 0.75, mb: 3,
                 }}
               >
@@ -182,14 +182,14 @@ export default function SecurityPage() {
                   variant="contained"
                   endIcon={<ArrowForward />}
                   onClick={() => nav('/contact')}
-                  sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+                  sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
                 >
                   Ask about security
                 </Button>
                 <Button
                   variant="outlined"
                   onClick={() => nav('/compliance')}
-                  sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}
+                  sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
                 >
                   See compliance
                 </Button>
@@ -203,7 +203,7 @@ export default function SecurityPage() {
       </Box>
 
       {/* Security controls */}
-      <Box sx={{ bgcolor: '#fff', py: { xs: 8, md: 12 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} sx={{ mb: { xs: 5, md: 7 } }}>
             <Grid item xs={12} md={7}>
@@ -272,7 +272,7 @@ export default function SecurityPage() {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: { xs: 5, md: 7 }, bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: '14px', px: 3, py: 2.5, display: 'flex', gap: 1.75, alignItems: 'flex-start' }}>
+          <Box sx={{ mt: { xs: 5, md: 7 }, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: '14px', px: 3, py: 2.5, display: 'flex', gap: 1.75, alignItems: 'flex-start' }}>
             <Info sx={{ fontSize: 20, color: M.slate, flexShrink: 0, mt: 0.25 }} />
             <Typography sx={{ fontSize: '0.9rem', color: '#2A3A50', lineHeight: 1.65 }}>
               We do not claim certifications or regulatory approvals that have not been independently verified. If you have specific security requirements, ask the team about the controls and processing arrangements relevant to your service.
@@ -282,7 +282,7 @@ export default function SecurityPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ bgcolor: '#fff', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
             <Grid item xs={12} md={8}>
@@ -298,7 +298,7 @@ export default function SecurityPage() {
                 variant="contained"
                 endIcon={<ArrowForward />}
                 onClick={() => nav('/contact')}
-                sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+                sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
               >
                 Ask about security
               </Button>

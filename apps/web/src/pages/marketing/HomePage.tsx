@@ -77,7 +77,7 @@ const callBoardRows = [
 const statusStyle: Record<string, { color: string; bgcolor: string }> = {
   teal: { color: '#004e45', bgcolor: '#d2fbf4' },
   blue: { color: M.navy, bgcolor: '#E8F1FD' },
-  red: { color: '#b42318', bgcolor: '#fdecec' },
+  red: { color: '#b42318', bgcolor: '#fef0f0' },
   grey: { color: M.slate, bgcolor: M.faint },
 }
 
@@ -240,7 +240,7 @@ export default function HomePage() {
                     pl: 0.75, pr: 2, py: 0.5, mb: 3.5, boxShadow: M.shadow.xs,
                   }}
                 >
-                  <Box sx={{ bgcolor: M.navy, color: '#fff', fontSize: '0.72rem', fontWeight: 800, borderRadius: M.r.full, px: 1.25, py: 0.5, letterSpacing: '0.04em' }}>
+                  <Box sx={{ bgcolor: M.navy, color: '#FFFFFF', fontSize: '0.72rem', fontWeight: 800, borderRadius: M.r.full, px: 1.25, py: 0.5, letterSpacing: '0.04em' }}>
                     UK
                   </Box>
                   <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: M.navy }}>
@@ -507,7 +507,7 @@ export default function HomePage() {
                           placeholder now reads Support worker, not Carer). */}
                       <Box sx={{
                         position: 'absolute', top: 16, left: 16,
-                        bgcolor: 'rgba(12,27,46,0.72)', color: '#fff',
+                        bgcolor: 'rgba(12,27,46,0.72)', color: '#FFFFFF',
                         fontSize: '0.72rem', fontWeight: 600, borderRadius: '6px', px: 1.25, py: 0.625,
                       }}>
                         {s.tag}
@@ -563,14 +563,14 @@ export default function HomePage() {
         </Box>
 
         {/* ═══ AI INTELLIGENCE (dark) ═══ */}
-        <Box data-reveal-group sx={{ py: { xs: 8, md: '104px' }, bgcolor: M.ink, color: '#fff' }}>
+        <Box data-reveal-group sx={{ py: { xs: 8, md: '104px' }, bgcolor: M.ink, color: '#FFFFFF' }}>
           <Container maxWidth="lg">
             <Grid container spacing={{ xs: 4, md: 10 }} sx={{ mb: { xs: 4, md: 6 } }}>
               <Grid item xs={12} md={6}>
                 <Typography data-reveal sx={{ color: M.sky, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', mb: 2, display: 'block' }}>
                   MeticleCare intelligence
                 </Typography>
-                <Typography data-reveal component="h2" sx={{ ...M.h1, color: '#fff' }}>
+                <Typography data-reveal component="h2" sx={{ ...M.h1, color: '#FFFFFF' }}>
                   AI that works with your care team.
                 </Typography>
               </Grid>
@@ -584,7 +584,7 @@ export default function HomePage() {
               {aiRows.map((f, i) => (
                 <Grid key={f.title} container data-reveal data-reveal-delay={`${i * 0.05}`} sx={{ py: 2.75, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                   <Grid item xs={12} md={5}>
-                    <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '1rem' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#FFFFFF', fontSize: '1rem' }}>
                       <Box component="span" sx={{ color: M.sky, mr: 1.5, fontSize: '0.85rem' }}>{f.n}</Box>
                       {f.title}
                     </Typography>

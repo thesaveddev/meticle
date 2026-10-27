@@ -699,8 +699,8 @@ once — the first declaration wins at runtime.
 | Redirect routes (no page to review) | 7 |
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
-| Page-tree modules the router does not reach | 3 |
-| audited / updated / tested | 19 / 123 / 34 |
+| Page-tree modules the router does not reach | 2 |
+| audited / updated / tested | 19 / 112 / 34 |
 | Fully signed off (all three) | 13 |
 | Gaps (any of the three missing) | 110 |
 
@@ -711,16 +711,16 @@ once — the first declaration wins at runtime.
 
 | Route | Page module | audited | updated | tested |
 |---|---|---|---|---|
-| `/` | `pages/marketing/HomePage.tsx` | no | yes | no |
+| `/` | `pages/marketing/HomePage.tsx` | no | no | no |
 | `/*` | `pages/errors/NotFoundPage.tsx` | no | yes | no |
-| `/about` | `pages/marketing/AboutPage.tsx` | no | yes | no |
+| `/about` | `pages/marketing/AboutPage.tsx` | no | no | no |
 | `/agencies` | `pages/agencies/AgenciesPage.tsx` | no | yes | no |
 | `/app` | `pages/marketing/DownloadPageNew.tsx` | no | yes | no |
 | `/appointments` | `pages/appointments/AppointmentsPage.tsx` | no | yes | yes |
 | `/availability` | `pages/homecare/AvailabilityPage.tsx` | no | yes | yes |
 | `/billing` | `pages/billing/BillingPage.tsx` | no | yes | no |
-| `/blog` | `pages/marketing/PublicBlogPage.tsx` | no | yes | no |
-| `/blog/:slug` | `pages/marketing/PublicBlogPage.tsx` | no | yes | no |
+| `/blog` | `pages/marketing/PublicBlogPage.tsx` | no | no | no |
+| `/blog/:slug` | `pages/marketing/PublicBlogPage.tsx` | no | no | no |
 | `/call-assignment` | `pages/homecare/CallAssignmentBoard.tsx` | no | yes | yes |
 | `/call-scheduling` | `pages/homecare/WeeklyCallPlanner.tsx` | no | yes | yes |
 | `/call-scheduling/day` | `pages/homecare/CallSchedulingPage.tsx` | no | yes | yes |
@@ -728,9 +728,9 @@ once — the first declaration wins at runtime.
 | `/chat` | `pages/chat/ChatPage.tsx` | no | yes | no |
 | `/client-billing` | `pages/homecare/ClientBillingPage.tsx` | no | yes | no |
 | `/compliance` † | `pages/compliance/CompliancePage.tsx` | yes | yes | yes |
-| `/compliance` † | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
+| `/compliance` † | `pages/marketing/CompliancePage.tsx` | yes | no | no |
 | `/compliance-badges` | `pages/marketing/ComplianceBadgesPage.tsx` | no | yes | no |
-| `/compliance/:slug` | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
+| `/compliance/:slug` | `pages/marketing/CompliancePage.tsx` | yes | no | no |
 | `/compliance/competency` | `pages/compliance/CompetencyAssessmentsPage.tsx` | yes | yes | no |
 | `/compliance/dspt` | `pages/dspt/DSPTPage.tsx` | no | yes | no |
 | `/compliance/engagement` | `pages/compliance/StaffEngagementPage.tsx` | no | yes | no |
@@ -742,7 +742,7 @@ once — the first declaration wins at runtime.
 | `/compliance/satisfaction` | `pages/compliance/SatisfactionSurveysPage.tsx` | no | yes | no |
 | `/compliance/supervisions` | `pages/compliance/SupervisionsPage.tsx` | no | yes | no |
 | `/compliance/training` | `pages/training/TrainingMatrixPage.tsx` | yes | yes | no |
-| `/contact` | `pages/marketing/ContactPageNew.tsx` | no | yes | no |
+| `/contact` | `pages/marketing/ContactPageNew.tsx` | no | no | no |
 | `/cookies` | `pages/legal/CookiePolicyPage.tsx` | no | yes | no |
 | `/dashboard` | `pages/dashboard/DashboardPage.tsx` | no | yes | no |
 | `/delete-account` | `pages/legal/AccountDeletionPage.tsx` | no | yes | no |
@@ -753,7 +753,7 @@ once — the first declaration wins at runtime.
 | `/family-portal/:token` | `pages/FamilyPortalPage.tsx` | no | yes | no |
 | `/family-portal/feedback/:token` | `pages/FamilyFeedbackPage.tsx` | no | yes | no |
 | `/features` | `pages/marketing/FeaturesPage.tsx` | no | yes | no |
-| `/features/:slug` | `pages/marketing/FeaturePage.tsx` | no | yes | no |
+| `/features/:slug` | `pages/marketing/FeaturePage.tsx` | no | no | no |
 | `/forgot-password` | `pages/auth/ForgotPasswordPage.tsx` | no | yes | no |
 | `/homecare` | `pages/homecare/HomecarePage.tsx` | no | yes | yes |
 | `/how-it-works` | `pages/marketing/HowItWorksPage.tsx` | no | yes | no |
@@ -796,7 +796,7 @@ once — the first declaration wins at runtime.
 | `/payroll-timesheets` | `pages/homecare/PayrollExportPage.tsx` | no | yes | yes |
 | `/people` | `pages/people/PersonDirectoryPage.tsx` | no | yes | no |
 | `/people/:id` | `pages/people/PersonProfilePage.tsx` | yes | yes | yes |
-| `/platform` | `pages/marketing/PlatformPage.tsx` | no | yes | no |
+| `/platform` | `pages/marketing/PlatformPage.tsx` | no | no | no |
 | `/platform-admin` | `pages/admin/PlatformAdminPage.tsx` | no | yes | no |
 | `/platform-admin/email-queue` | `pages/admin/EmailQueueDashboard.tsx` | no | yes | yes |
 | `/platform-admin/organizations/:id` | `pages/admin/AdminOrganizationDetailPage.tsx` | no | yes | no |
@@ -818,11 +818,11 @@ once — the first declaration wins at runtime.
 | `/schedule` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
 | `/scheduling` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
 | `/scheduling/overtime-claims` | `pages/scheduling/OvertimeClaimsPage.tsx` | no | yes | yes |
-| `/security` | `pages/marketing/SecurityPage.tsx` | no | yes | no |
+| `/security` | `pages/marketing/SecurityPage.tsx` | no | no | no |
 | `/settings` | `pages/settings/SettingsPage.tsx` | no | yes | no |
 | `/shift-marketplace` | `pages/shift-marketplace/ShiftMarketplacePage.tsx` | no | yes | no |
 | `/signup` | `pages/auth/SignupPage.tsx` | no | yes | no |
-| `/solutions/:slug` | `pages/marketing/SolutionsPage.tsx` | no | yes | no |
+| `/solutions/:slug` | `pages/marketing/SolutionsPage.tsx` | no | no | no |
 | `/staff` | `pages/staff/StaffDirectoryPage.tsx` | yes | yes | no |
 | `/staff/:userId` | `pages/staff/StaffProfilePage.tsx` | yes | yes | yes |
 | `/survey/engagement/:token` | `pages/SurveyFormPage.tsx` | no | yes | no |
@@ -844,6 +844,5 @@ by nothing in the application: dead code, or a page whose route was removed.
 
 - `pages/LandingPage.tsx`
 - `pages/marketing/BlogPage.tsx`
-- `pages/marketing/ContactPage.tsx`
 
 <!-- END generated route tracker -->

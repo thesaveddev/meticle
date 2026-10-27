@@ -20,7 +20,7 @@ function Eyebrow({ children, center }: { children: React.ReactNode; center?: boo
 
 function EyebrowPill({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.625, boxShadow: M.shadow.sm, mb: 3 }}>
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.625, boxShadow: M.shadow.sm, mb: 3 }}>
       <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: M.navy, flexShrink: 0 }} />
       <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: M.dark }}>{children}</Typography>
     </Box>
@@ -29,7 +29,7 @@ function EyebrowPill({ children }: { children: React.ReactNode }) {
 
 function ContextBanner() {
   return (
-    <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
+    <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
       <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: M.paper, border: `1px solid ${M.faint}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <InfoOutlined sx={{ color: M.slate, fontSize: 20 }} />
       </Box>
@@ -257,7 +257,7 @@ function NationGuidance() {
   const [tab, setTab] = useState(regulators[0].slug)
   const active = regulators.find((r) => r.slug === tab) || regulators[0]
   return (
-    <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+    <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
       <Container maxWidth="lg">
         <Grid container spacing={{ xs: 3, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
           <Grid item xs={12} md={6}>
@@ -277,7 +277,7 @@ function NationGuidance() {
             {regulators.map((r) => {
               const open = r.slug === tab
               return (
-                <Box key={r.slug} sx={{ border: `1px solid ${M.faint}`, borderRadius: M.r.md, bgcolor: '#fff', overflow: 'hidden' }}>
+                <Box key={r.slug} sx={{ border: `1px solid ${M.faint}`, borderRadius: M.r.md, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
                   <Box
                     component="button"
                     type="button"
@@ -301,7 +301,7 @@ function NationGuidance() {
             })}
           </Stack>
         ) : (
-          <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, overflow: 'hidden' }}>
             <Box role="tablist" aria-label="Nations" sx={{ display: 'flex', borderBottom: `1px solid ${M.faint}` }}>
               {regulators.map((r) => {
                 const selected = r.slug === tab
@@ -385,8 +385,8 @@ export function ComplianceOverviewPage() {
                 Requirements differ across England, Scotland, Wales and Northern Ireland. The platform helps your team maintain the continuous, evidence-rich record that inspection-ready services require — without claiming equivalence between UK regulatory frameworks.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore the platform</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore the platform</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -396,7 +396,7 @@ export function ComplianceOverviewPage() {
               <Grid item xs={12} sm={6} md={3} key={r.slug}>
                 <Box component="a" href={`/compliance/${r.slug}`} sx={{
                   display: 'flex', flexDirection: 'column', textDecoration: 'none', color: 'inherit',
-                  p: 2.5, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, bgcolor: '#fff',
+                  p: 2.5, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF',
                   height: '100%', minHeight: 168,
                   transition: 'all 0.2s',
                   '&:hover': { borderColor: r.color, boxShadow: M.shadow.md },
@@ -431,7 +431,7 @@ export function ComplianceOverviewPage() {
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg }}>
+              <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Inspection readiness</Typography>
                   <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>From your records</Typography>
@@ -470,7 +470,7 @@ export function ComplianceOverviewPage() {
       </Box>
 
       {/* Continuous Record */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
@@ -512,7 +512,7 @@ export function ComplianceOverviewPage() {
             {evidenceAreas.map((e) => (
               <Grid item xs={12} sm={6} md={4} key={e.title}>
                 <Box sx={{
-                  p: 3.5, bgcolor: '#fff', borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
+                  p: 3.5, bgcolor: '#FFFFFF', borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
                   transition: 'all 0.25s', '&:hover': { borderColor: M.navy, boxShadow: M.shadow.md },
                 }}>
                   <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.paper, border: `1px solid ${M.faint}`, display: 'grid', placeItems: 'center', mb: 2.5 }}>
@@ -536,7 +536,7 @@ export function ComplianceOverviewPage() {
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 5, md: 7 } }}>
             <Grid item xs={12} md={6}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.teal, mb: 1.5 }}>The evidence chain</Typography>
-              <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>
+              <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: 700, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
                 From care delivery to inspection evidence.
               </Typography>
             </Grid>
@@ -563,13 +563,13 @@ export function ComplianceOverviewPage() {
                     <Box sx={{
                       width: 40, height: 40, borderRadius: '50%',
                       bgcolor: i === 5 ? M.teal : '#2A3A50',
-                      color: '#fff', position: 'relative', zIndex: 1,
+                      color: '#FFFFFF', position: 'relative', zIndex: 1,
                       display: 'grid', placeItems: 'center',
                       fontWeight: 700, fontSize: '0.9rem', flexShrink: 0,
                       mb: { xs: 0, md: 2 },
                     }}>{i + 1}</Box>
                     <Box>
-                      <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>{item.step}</Typography>
+                      <Typography sx={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.95rem' }}>{item.step}</Typography>
                       <Typography sx={{ fontSize: '0.82rem', color: '#B7C4D6', mt: 0.5, lineHeight: 1.55 }}>{item.detail}</Typography>
                     </Box>
                   </Stack>
@@ -581,9 +581,9 @@ export function ComplianceOverviewPage() {
       </Box>
 
       {/* Disclaimer + CTA */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
-          <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
+          <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
             <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: M.paper, border: `1px solid ${M.faint}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               <InfoOutlined sx={{ color: M.slate, fontSize: 20 }} />
             </Box>
@@ -602,7 +602,7 @@ export function ComplianceOverviewPage() {
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
                 <AssureRow />
               </Grid>
             </Grid>
@@ -621,7 +621,7 @@ function RegulatorEvidence({ r }: { r: (typeof regulators)[number] }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   return (
-    <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+    <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
       <Container maxWidth="lg">
         <Box sx={{ mb: { xs: 4, md: 6 } }}>
           <EyebrowPill>Evidence categories</EyebrowPill>
@@ -653,7 +653,7 @@ function RegulatorEvidence({ r }: { r: (typeof regulators)[number] }) {
               return (
                 <Grid item xs={12} sm={6} md={4} key={e.title}>
                   <Box sx={{
-                    p: 3.5, bgcolor: '#fff', borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
+                    p: 3.5, bgcolor: '#FFFFFF', borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
                     transition: 'all 0.25s', '&:hover': { borderColor: M.navy, boxShadow: M.shadow.md },
                   }}>
                     <Box sx={{ color: M.navy, mb: 2.5, display: 'flex' }}>
@@ -722,15 +722,15 @@ export function RegulatorPage() {
                 {r.desc}
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>See all UK regulators</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>See all UK regulators</Button>
               </Stack>
               <AssureRow />
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+              <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 2.5, borderBottom: `1px solid ${M.faint}` }}>
-                  <Box sx={{ width: 56, height: 56, borderRadius: r.tileRadius || M.r.md, bgcolor: M.navy, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>{r.tileText}</Box>
+                  <Box sx={{ width: 56, height: 56, borderRadius: r.tileRadius || M.r.md, bgcolor: M.navy, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>{r.tileText}</Box>
                   <Box>
                     <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>{r.nation}</Typography>
                     <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: M.dark }}>{r.name}</Typography>
@@ -780,7 +780,7 @@ export function RegulatorPage() {
           </Grid>
           <Grid container spacing={{ xs: 3, md: 4 }}>
             <Grid item xs={12} md={6}>
-              <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, p: { xs: 2.5, md: 3.5 }, height: '100%' }}>
+              <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, p: { xs: 2.5, md: 3.5 }, height: '100%' }}>
                 <Typography sx={{ fontWeight: 700, color: M.dark, fontSize: '1rem', pb: 2, borderBottom: `1px solid ${M.faint}` }}>Key considerations</Typography>
                 <Stack>
                   {guidancePoints(r).map((g, i, arr) => (
@@ -796,7 +796,7 @@ export function RegulatorPage() {
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, p: { xs: 2.5, md: 3.5 }, height: '100%' }}>
+              <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, p: { xs: 2.5, md: 3.5 }, height: '100%' }}>
                 <Typography sx={{ fontWeight: 700, color: M.dark, fontSize: '1rem', pb: 2, borderBottom: `1px solid ${M.faint}` }}>Evidence focus</Typography>
                 <Stack>
                   {r.evidenceFocus.map((ef, i) => (
@@ -816,7 +816,7 @@ export function RegulatorPage() {
       <RegulatorEvidence r={r} />
 
       {/* Context + other nations + CTA */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <ContextBanner />
           <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: 700, letterSpacing: '-0.02em', color: M.dark, mt: { xs: 6, md: 8 }, mb: 3 }}>
@@ -828,7 +828,7 @@ export function RegulatorPage() {
                 <Box component="a" href={`/compliance/${o.slug}`} sx={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
                   textDecoration: 'none', color: 'inherit', p: 2.5,
-                  borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff',
+                  borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF',
                   transition: 'all 0.2s',
                   '&:hover': { borderColor: o.color, boxShadow: M.shadow.md },
                 }}>
@@ -851,7 +851,7 @@ export function RegulatorPage() {
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
                 <AssureRow />
               </Grid>
             </Grid>

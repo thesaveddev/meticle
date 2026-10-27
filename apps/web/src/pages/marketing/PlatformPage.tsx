@@ -20,7 +20,7 @@ import PageMeta from '../../components/PageMeta'
  * Data-flow chips: bg rgba(3,198,177,.12), text #7BE3D6
  * Chips: MAR/England blue #EAF3FD·#0164C8 · Given teal #D2FBF4·#004E45
  *   Due amber #FFF3DC·#8A5300 · Pending grey #F4F9FC·#51637A
- *   Unassigned red #FDECEC·#B42318 · Scheduled grey · 3 active amber
+ *   Unassigned red #FEF0F0·#B42318 · Scheduled grey · 3 active amber
  */
 
 /* ─── Shared bits ─────────────────────────────────────────────────── */
@@ -41,14 +41,14 @@ function CtaButtons({ secondary, secondaryTo }: { secondary: string; secondaryTo
         variant="contained"
         endIcon={<ArrowForward />}
         onClick={() => nav('/contact')}
-        sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
       >
         Book a demo
       </Button>
       <Button
         variant="outlined"
         onClick={() => nav(secondaryTo)}
-        sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}
+        sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
       >
         {secondary}
       </Button>
@@ -74,7 +74,7 @@ const reassuranceIcons = { clock: <AccessTime sx={{ fontSize: 16, color: M.tealD
 /** White UI card used for every module visual (radius 14, hairline, soft shadow). */
 function UiCard({ header, children, bodyless = false }: { header: React.ReactNode; children: React.ReactNode; bodyless?: boolean }) {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '14px', border: `1px solid ${M.faint}`, boxShadow: '0 8px 24px rgba(12,27,46,0.06), 0 1px 2px rgba(12,27,46,0.04)', overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '14px', border: `1px solid ${M.faint}`, boxShadow: '0 8px 24px rgba(12,27,46,0.06), 0 1px 2px rgba(12,27,46,0.04)', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 2, borderBottom: `1px solid ${M.faint}` }}>
         {header}
       </Box>
@@ -171,14 +171,14 @@ function StaffCard() {
     <UiCard header={<><CardTitle>Staff compliance</CardTitle><CardMeta>3 of 42 shown</CardMeta></>} bodyless>
       {rows.map((r) => (
         <Stack key={r.name} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#F4F9FC', flexShrink: 0 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'notice.muted.bg', flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.name}</Typography>
             <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.role}</Typography>
           </Box>
           <Box sx={{ width: 120 }}>
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark, textAlign: 'right', mb: 0.5 }}>{r.pct}%</Typography>
-            <Box sx={{ height: 6, borderRadius: 1, bgcolor: '#F4F9FC', overflow: 'hidden' }}>
+            <Box sx={{ height: 6, borderRadius: 1, bgcolor: 'notice.muted.bg', overflow: 'hidden' }}>
               <Box sx={{ width: `${(r.pct / 100) * 120}px`, maxWidth: '100%', height: '100%', borderRadius: 1, bgcolor: r.color }} />
             </Box>
           </Box>
@@ -192,11 +192,11 @@ function ScheduleCard() {
   const rows = [
     { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', chip: <Chip label="Completed" bg="#D2FBF4" color="#004E45" /> },
     { time: '10:30', client: 'John D.', carer: 'James K.', chip: <Chip label="En route" bg="#EAF3FD" color="#0164C8" /> },
-    { time: '11:00', client: 'Patricia L.', carer: null, chip: <Chip label="Unassigned" bg="#FDECEC" color="#B42318" /> },
+    { time: '11:00', client: 'Patricia L.', carer: null, chip: <Chip label="Unassigned" bg="#FEF0F0" color="#B42318" /> },
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', chip: <Chip label="Scheduled" bg="#F4F9FC" color="#51637A" /> },
   ]
   return (
-    <UiCard header={<><CardTitle>Call schedule</CardTitle><Chip label="1 unassigned" bg="#FDECEC" color="#B42318" /></>} bodyless>
+    <UiCard header={<><CardTitle>Call schedule</CardTitle><Chip label="1 unassigned" bg="#FEF0F0" color="#B42318" /></>} bodyless>
       {rows.map((r) => (
         <Stack key={r.time} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
           <Typography sx={{ fontSize: '0.78rem', color: M.slate, minWidth: 44 }}>{r.time}</Typography>
@@ -252,7 +252,7 @@ function ComplianceCard() {
             <Typography sx={{ fontSize: '0.78rem', color: M.dark }}>{r.label}</Typography>
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: r.color }}>{r.pct}%</Typography>
           </Stack>
-          <Box sx={{ height: 6, borderRadius: 1, bgcolor: '#F4F9FC', overflow: 'hidden' }}>
+          <Box sx={{ height: 6, borderRadius: 1, bgcolor: 'notice.muted.bg', overflow: 'hidden' }}>
             <Box sx={{ width: `${r.pct}%`, height: '100%', borderRadius: 1, bgcolor: r.color }} />
           </Box>
         </Box>
@@ -300,7 +300,7 @@ function FamilyCard() {
         </Typography>
       </Box>
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2 }}>
-        <Box sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: '#F4F9FC', textAlign: 'center', flexShrink: 0 }}>
+        <Box sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'notice.muted.bg', textAlign: 'center', flexShrink: 0 }}>
           <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: M.slate, letterSpacing: '0.04em' }}>WED</Typography>
           <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>10:00</Typography>
         </Box>
@@ -462,13 +462,13 @@ export default function PlatformPage() {
       />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F8FAFD 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 8 } }}>
           <Grid container spacing={{ xs: 4, md: 6 }}>
             <Grid item xs={12} md={7}>
               <Box
                 sx={{
-                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff',
+                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#FFFFFF',
                   border: `1px solid ${M.faint}`, borderRadius: '999px', px: 2, py: 0.75, mb: 3,
                 }}
               >
@@ -563,7 +563,7 @@ export default function PlatformPage() {
       </Box>
 
       {/* Modules */}
-      <Box sx={{ bgcolor: '#fff', py: { xs: 5, md: 5 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', py: { xs: 5, md: 5 } }}>
         <Container maxWidth="lg">
           {modules.map((m, i) => (
             <Box
@@ -617,7 +617,7 @@ export default function PlatformPage() {
           <Grid container spacing={{ xs: 5, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
               <Eyebrow color={M.teal}>Connected architecture</Eyebrow>
-              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: '#fff', mb: 2.5 }}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: '#FFFFFF', mb: 2.5 }}>
                 Not a collection of modules. One connected system.
               </Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.95rem', lineHeight: 1.7, mb: 2 }}>
@@ -647,7 +647,7 @@ export default function PlatformPage() {
                       '&:last-child': { borderBottom: 'none' },
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', flexShrink: 0 }}>{row.record}</Typography>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>{row.record}</Typography>
                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
                       {row.links.map((l) => (
                         <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(3,198,177,0.12)', color: '#7BE3D6', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -664,7 +664,7 @@ export default function PlatformPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ bgcolor: '#fff', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
             <Grid item xs={12} md={7}>

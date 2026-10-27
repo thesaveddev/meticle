@@ -36,7 +36,7 @@ type FeatureData = {
 
 function EyebrowPill({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.625, boxShadow: M.shadow.sm, mb: 3 }}>
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.625, boxShadow: M.shadow.sm, mb: 3 }}>
       <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: M.navy, flexShrink: 0 }} />
       <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: M.dark }}>{children}</Typography>
     </Box>
@@ -95,7 +95,7 @@ function CareRecordsCard() {
     { initials: 'RH', name: 'Robert Hughes', badge: 'Body map update', bg: '#F4F9FC', badgeBg: '#EDF1F6', badgeColor: M.slate, avBg: '#E3E9F0', avColor: M.slate },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care records</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Linked to person record</Typography>
@@ -123,7 +123,7 @@ function PersonRecordCard() {
     { title: 'Medication', sub: 'MAR linked', badge: 'Linked', bg: '#EAF3FF', color: M.navy },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Person record</Typography>
         <Badge label="Linked" bg="#EAFBF5" color="#087A55" />
@@ -151,7 +151,7 @@ function PersonRecordCard() {
 /* Step 02 card: Daily note */
 function DailyNoteCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Daily note · Margaret W.</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Mobile</Typography>
@@ -188,7 +188,7 @@ function ObservationsCard() {
     { title: 'Body map', sub: 'Left forearm', badge: '1 new mark', bg: '#FFF7E6', color: '#9A6700' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Observations</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Last 30 days</Typography>
@@ -404,7 +404,7 @@ function MedicationRecordCard() {
     { time: '14:00', name: 'Paracetamol', dose: '500mg', badge: 'Pending', bg: '#EDF1F6', color: M.slate },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Medication record</Typography>
         <Badge label="MAR" bg="#EAF3FF" color={M.navy} />
@@ -430,7 +430,7 @@ function MarChartCard() {
     { name: 'Omeprazole', time: '12:00', cells: ['given', 'given', 'missed', 'given', 'given', 'given', 'given', 'given', 'missed', 'given'] },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>MAR · Margaret W.</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Oct 1–10</Typography>
@@ -463,7 +463,7 @@ function MarChartCard() {
 
 function ExceptionCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Exception · Omeprazole 20mg</Typography>
         <Badge label="Refused" bg="#FEF0F0" color="#B42318" />
@@ -504,7 +504,7 @@ function PermissionsCard() {
     { role: 'Family portal', scope: 'Not shared by default', badge: 'Hidden', bg: '#EDF1F6', color: M.slate },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Medication permissions</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>By role</Typography>
@@ -531,7 +531,7 @@ function InsightsHeroCard() {
     { label: 'Satisfaction', value: '4.6/5', trend: '+0.2', bg: '#EAFBF5', color: '#087A55' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Operational insights</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Today</Typography>
@@ -539,7 +539,7 @@ function InsightsHeroCard() {
       <Grid container spacing={1.5}>
         {metrics.map((m) => (
           <Grid item xs={4} key={m.label}>
-            <Box sx={{ p: 1.75, bgcolor: '#fff', borderRadius: '12px', border: `1px solid ${M.faint}` }}>
+            <Box sx={{ p: 1.75, bgcolor: '#FFFFFF', borderRadius: '12px', border: `1px solid ${M.faint}` }}>
               <Typography sx={{ fontSize: '2rem', fontWeight: 700, color: M.dark, lineHeight: 1.1 }}>{m.value}</Typography>
               <Typography sx={{ fontSize: '0.75rem', color: M.slate, mt: 0.5 }}>{m.label}</Typography>
               <Box sx={{ display: 'inline-block', mt: 1 }}><Badge label={m.trend} bg={m.bg} color={m.color} /></Box>
@@ -554,12 +554,12 @@ function InsightsHeroCard() {
 function AreaBarsCard() {
   const areas = [
     { name: 'North', pct: 96, bar: '#10B981' },
-    { name: 'South', pct: 91, bar: '#3B82F6' },
-    { name: 'East', pct: 88, bar: '#3B82F6' },
+    { name: 'South', pct: 91, bar: M.navy },
+    { name: 'East', pct: 88, bar: M.navy },
     { name: 'West', pct: 79, bar: '#D9A441' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Call completion by area</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>This week</Typography>
@@ -589,7 +589,7 @@ function StaffingQualityCard() {
     { area: 'West', staffing: '82%', missed: '4', missedHot: true },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Staffing vs care quality</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>By area</Typography>
@@ -615,7 +615,7 @@ function ExportsCard() {
     { title: 'Board report', sub: 'October', badge: 'Generating', bg: '#EAF3FF', color: M.navy },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Exports</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Evidence</Typography>
@@ -630,8 +630,8 @@ function ExportsCard() {
         </Stack>
       ))}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
-        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Export</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Schedule</Button>
+        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Export</Button>
+        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Schedule</Button>
       </Stack>
     </Box>
   )
@@ -642,11 +642,11 @@ function ExportsCard() {
 function RiskHeroCard() {
   const rows = [
     { title: 'Fall risk — high', sub: 'Linked to care plan', badge: 'Assessed', bg: '#FFF7E6', color: '#9A6700', bar: '#F59E0B' },
-    { title: 'Medication allergy — penicillin', sub: 'Linked to MAR', badge: 'Recorded', bg: '#EAF3FF', color: M.navy, bar: '#3B82F6' },
+    { title: 'Medication allergy — penicillin', sub: 'Linked to MAR', badge: 'Recorded', bg: '#EAF3FF', color: M.navy, bar: M.navy },
     { title: 'Safeguarding — resolved', sub: 'Follow-up complete', badge: 'Closed', bg: '#EAFBF5', color: '#087A55', bar: '#10B981' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Risk assessments</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Margaret W.</Typography>
@@ -672,7 +672,7 @@ function RiskListCard() {
     { title: 'Choking — low', sub: 'Owner Sarah M. · review Feb', badge: 'Current', bg: '#EAFBF5', color: '#087A55' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Risk assessments · Margaret W.</Typography>
         <Badge label="3 active" bg="#EDF1F6" color={M.slate} />
@@ -699,7 +699,7 @@ function LinkedRecordsCard() {
     { title: 'Body map', sub: 'Left forearm bruise', badge: 'Linked', bg: '#EAF3FF', color: M.navy },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       {rows.map((r) => (
         <Stack key={r.title} direction="row" spacing={1.5} alignItems="center" justifyContent="space-between" sx={{ py: 1.5, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 0 } }}>
           <Box>
@@ -720,7 +720,7 @@ function FollowUpCard() {
     { title: 'Escalated to manager', sub: '8 Nov · reviewed', badge: 'History', bg: '#EDF1F6', color: M.slate },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Follow-up actions</Typography>
         <Badge label="1 overdue" bg="#FEF0F0" color="#B42318" />
@@ -748,7 +748,7 @@ function CallScheduleCard() {
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', carerRed: false, badge: 'Scheduled', bg: '#EDF1F6', color: M.slate },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Call schedule</Typography>
         <Badge label="1 unassigned" bg="#FEF0F0" color="#B42318" />
@@ -775,7 +775,7 @@ function RotaGridCard() {
     { name: 'Priya S.', blocks: [{ from: 0, to: 1, color: '#BFD9F5' }, { from: 3, to: 4, color: '#BFD9F5' }] },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Rota — Tue 14 Oct</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>North area</Typography>
@@ -804,7 +804,7 @@ function RotaGridCard() {
 
 function OpenCallsCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Open calls</Typography>
         <Badge label="2 open" bg="#EAF3FF" color={M.navy} />
@@ -837,7 +837,7 @@ function ProposedChangesCard() {
     { title: 'Saturday morning', sub: '1 visit uncovered', badge: 'Gap', bg: '#FFF7E6', color: '#9A6700' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Proposed changes</Typography>
         <Badge label="3 changes" bg="#FFF7E6" color="#9A6700" />
@@ -852,8 +852,8 @@ function ProposedChangesCard() {
         </Stack>
       ))}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
-        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve &amp; publish</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Review</Button>
+        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve &amp; publish</Button>
+        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Review</Button>
       </Stack>
     </Box>
   )
@@ -868,7 +868,7 @@ function StaffComplianceCard() {
     { initials: 'PS', name: 'Priya S.', role: 'Care Worker', badge: '72% compliant', bg: '#FFF7E6', badgeBg: '#FFF7E6', color: '#9A6700', avBg: '#FCEFC7', avColor: '#9A6700' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Staff compliance</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>3 of 42 shown</Typography>
@@ -895,7 +895,7 @@ function StaffProfileCard() {
     { title: 'Medication competency', badge: 'Signed off', bg: '#EAFBF5', color: '#087A55' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
         <Avatar initials="PS" bg="#DCE9F7" color={M.navy} />
         <Box>
@@ -926,7 +926,7 @@ function TrainingMatrixCard() {
   ]
   const dot = (s: string) => (s === 'current' ? '#10B981' : s === 'expiring' ? '#F59E0B' : '#EF4444')
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Training matrix</Typography>
         <Badge label="3 expiring in 30 days" bg="#FFF7E6" color="#9A6700" />
@@ -974,7 +974,7 @@ function AvailabilityCard() {
         ? { bgcolor: '#FFF7E6', border: '1px dashed #F59E0B', color: '#9A6700' }
         : { bgcolor: '#EDF1F6', border: '1px solid transparent', color: M.slate }
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Availability · w/c 10 Nov</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Sarah M.</Typography>
@@ -992,8 +992,8 @@ function AvailabilityCard() {
       </Stack>
       <Typography sx={{ fontSize: '0.8125rem', color: M.slate, mb: 1.5 }}>Coverage impact: 2 shifts to fill</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Send shifts to marketplace</Button>
+        <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve</Button>
+        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Send shifts to marketplace</Button>
       </Stack>
     </Box>
   )
@@ -1032,7 +1032,7 @@ function MedicationPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Medication (eMAR)</Typography>
             </Box>
           </Stack>
@@ -1055,8 +1055,8 @@ function MedicationPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1067,7 +1067,7 @@ function MedicationPage() {
         </Container>
       </Box>
       {/* Capabilities */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1085,7 +1085,7 @@ function MedicationPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1095,7 +1095,7 @@ function MedicationPage() {
         </Container>
       </Box>
       {/* Steps */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1125,7 +1125,7 @@ function MedicationPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1138,12 +1138,12 @@ function MedicationPage() {
         </Container>
       </Box>
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See medication records your team can trust in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1183,7 +1183,7 @@ function ReportingPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Reporting</Typography>
             </Box>
           </Stack>
@@ -1205,8 +1205,8 @@ function ReportingPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1216,7 +1216,7 @@ function ReportingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1234,7 +1234,7 @@ function ReportingPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1243,7 +1243,7 @@ function ReportingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1272,7 +1272,7 @@ function ReportingPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1284,12 +1284,12 @@ function ReportingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See what needs attention in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1329,7 +1329,7 @@ function RiskPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Risk &amp; Incidents</Typography>
             </Box>
           </Stack>
@@ -1351,8 +1351,8 @@ function RiskPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1362,7 +1362,7 @@ function RiskPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1380,7 +1380,7 @@ function RiskPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1389,7 +1389,7 @@ function RiskPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1418,7 +1418,7 @@ function RiskPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1430,12 +1430,12 @@ function RiskPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See how to identify, record, review and act in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1475,7 +1475,7 @@ function SchedulingPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Scheduling</Typography>
             </Box>
           </Stack>
@@ -1497,8 +1497,8 @@ function SchedulingPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1508,7 +1508,7 @@ function SchedulingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1526,7 +1526,7 @@ function SchedulingPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1535,7 +1535,7 @@ function SchedulingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1564,7 +1564,7 @@ function SchedulingPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1576,12 +1576,12 @@ function SchedulingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See how to build rotas around real constraints in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1621,7 +1621,7 @@ function WorkforcePage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Workforce</Typography>
             </Box>
           </Stack>
@@ -1643,8 +1643,8 @@ function WorkforcePage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1654,7 +1654,7 @@ function WorkforcePage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1672,7 +1672,7 @@ function WorkforcePage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1681,7 +1681,7 @@ function WorkforcePage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1710,7 +1710,7 @@ function WorkforcePage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1722,12 +1722,12 @@ function WorkforcePage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See how to manage the people who deliver care in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1768,7 +1768,7 @@ function CareManagementPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Care Management</Typography>
             </Box>
           </Stack>
@@ -1791,8 +1791,8 @@ function CareManagementPage() {
                 <Typography component="span" sx={{ color: M.slate }}>Registered managers, coordinators and care workers</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1803,7 +1803,7 @@ function CareManagementPage() {
         </Container>
       </Box>
       {/* Capabilities */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -1821,7 +1821,7 @@ function CareManagementPage() {
           <Grid container spacing={2}>
             {capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -1831,7 +1831,7 @@ function CareManagementPage() {
         </Container>
       </Box>
       {/* Steps */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -1861,7 +1861,7 @@ function CareManagementPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -1874,12 +1874,12 @@ function CareManagementPage() {
         </Container>
       </Box>
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See care management that follows the person in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -1891,7 +1891,7 @@ function CareManagementPage() {
 
 function FamilyHeroCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Family view</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Margaret W.</Typography>
@@ -1906,7 +1906,7 @@ function FamilyHeroCard() {
         </Typography>
       </Box>
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ py: 1 }}>
-        <Box sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: '#F4F9FC', textAlign: 'center', flexShrink: 0 }}>
+        <Box sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'notice.muted.bg', textAlign: 'center', flexShrink: 0 }}>
           <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: M.slate, letterSpacing: '0.04em' }}>THU</Typography>
           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.dark }}>10:00</Typography>
         </Box>
@@ -1929,7 +1929,7 @@ function AccessControlCard() {
     { name: 'Care updates', sub: 'Visit summaries and messages', badge: 'Shared', bg: '#EAF3FF', color: M.navy },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Authorised access</Typography>
         <Badge label="Service-controlled" bg="#EDF1F6" color={M.slate} />
@@ -1957,7 +1957,7 @@ function FamilyUpdatesCard() {
     { title: 'Message from the care team', sub: 'Medication time moved to 12:30', badge: 'Shared', bg: '#EAF3FF', color: M.navy },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care information</Typography>
         <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>This week</Typography>
@@ -1977,12 +1977,12 @@ function FamilyUpdatesCard() {
 
 function FeedbackChannelCard() {
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Feedback and communication</Typography>
         <Badge label="Two-way" bg="#D2FBF4" color={M.tealDeep} />
       </Stack>
-      <Box sx={{ bgcolor: '#F4F9FC', borderRadius: '12px', px: 1.75, py: 1.5, mb: 1.5 }}>
+      <Box sx={{ bgcolor: 'notice.muted.bg', borderRadius: '12px', px: 1.75, py: 1.5, mb: 1.5 }}>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: M.slate, mb: 0.5 }}>Emma W. · Yesterday</Typography>
         <Typography sx={{ fontSize: '0.875rem', color: M.dark, lineHeight: 1.6 }}>Thank you — the visit summaries really help us plan around Mum&apos;s week.</Typography>
       </Box>
@@ -2027,7 +2027,7 @@ function FamilyPortalPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Family Portal</Typography>
             </Box>
           </Stack>
@@ -2049,8 +2049,8 @@ function FamilyPortalPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -2060,7 +2060,7 @@ function FamilyPortalPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -2078,7 +2078,7 @@ function FamilyPortalPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -2087,7 +2087,7 @@ function FamilyPortalPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -2116,7 +2116,7 @@ function FamilyPortalPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -2128,12 +2128,12 @@ function FamilyPortalPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             Keep families connected to care in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
@@ -2150,7 +2150,7 @@ function AIHeroCard() {
     { label: 'Incident follow-ups (3)', sub: 'linked' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, overflow: 'hidden' }}>
       <Box sx={{ p: { xs: 2.5, md: 3 } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care summary · last 14 days</Typography>
@@ -2184,13 +2184,13 @@ function CareSummaryCard() {
     { text: '1 fall reported — action owner assigned', sub: 'Incidents · linked' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care summary</Typography>
         <Stack direction="row" spacing={0.75}>
           {['7', '14', '30'].map((p) => (
             <Box key={p} sx={{ px: 1.25, py: 0.375, borderRadius: 999, bgcolor: p === '14' ? M.navy : '#EDF1F6' }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: p === '14' ? '#fff' : M.slate }}>{p}d</Typography>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: p === '14' ? '#FFFFFF' : M.slate }}>{p}d</Typography>
             </Box>
           ))}
         </Stack>
@@ -2217,7 +2217,7 @@ function ChangeSummaryCard() {
     { record: 'MAR exceptions', first: '0', second: '2' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Record changes · Oct</Typography>
         <Badge label="Date-bound query" bg="#EAF3FF" color={M.navy} />
@@ -2246,12 +2246,12 @@ function CopilotCard() {
     { title: '3 open actions', sub: 'From incident follow-ups' },
   ]
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Compliance copilot</Typography>
         <Badge label="Review required" bg="#EDF1F6" color={M.slate} />
       </Stack>
-      <Box sx={{ bgcolor: '#F4F9FC', borderRadius: '12px', px: 1.75, py: 1.25, mb: 1.5 }}>
+      <Box sx={{ bgcolor: 'notice.muted.bg', borderRadius: '12px', px: 1.75, py: 1.25, mb: 1.5 }}>
         <Typography sx={{ fontSize: '0.8125rem', color: M.dark }}>What needs attention before inspection?</Typography>
       </Box>
       {answers.map((a) => (
@@ -2300,7 +2300,7 @@ function AIPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
+            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
               <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>AI Intelligence</Typography>
             </Box>
           </Stack>
@@ -2322,8 +2322,8 @@ function AIPage() {
                 <Typography component="span" sx={{ color: M.slate }}>{d.audience}</Typography>
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -2333,7 +2333,7 @@ function AIPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
@@ -2351,7 +2351,7 @@ function AIPage() {
           <Grid container spacing={2}>
             {d.capabilities.map((cap) => (
               <Grid item xs={12} sm={6} md={2.4} key={cap}>
-                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+                <Box sx={{ height: '100%', p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
                   <Check sx={{ color: M.navy, fontSize: 20, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: M.dark, lineHeight: 1.4 }}>{cap}</Typography>
                 </Box>
@@ -2360,7 +2360,7 @@ function AIPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#fff' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Stack spacing={{ xs: 8, md: 10 }}>
             {steps.map((s, i) => (
@@ -2376,7 +2376,7 @@ function AIPage() {
               </Grid>
             ))}
           </Stack>
-          <Box sx={{ mt: { xs: 6, md: 8 }, p: { xs: 2.5, md: 3 }, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#fff' }}>
+          <Box sx={{ mt: { xs: 6, md: 8 }, p: { xs: 2.5, md: 3 }, borderRadius: M.r.md, border: `1px solid ${M.faint}`, bgcolor: '#FFFFFF' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark, mb: 1 }}>{d.detailSections[3].heading}</Typography>
             <Typography sx={{ color: M.slate, lineHeight: 1.75, fontSize: '0.9375rem' }}>{d.detailSections[3].body}</Typography>
           </Box>
@@ -2393,7 +2393,7 @@ function AIPage() {
           <Grid container spacing={2}>
             {worksWith.map((w) => (
               <Grid item xs={12} md={4} key={w.path}>
-                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#fff', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
+                <Box component="button" type="button" onClick={() => nav(w.path)} sx={{ width: '100%', textAlign: 'left', bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, p: 2.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, transition: `border-color ${M.transition.fast}`, '&:hover': { borderColor: M.navy }, '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 } }}>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.dark, mb: 0.5 }}>{w.name}</Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{w.desc}</Typography>
@@ -2405,12 +2405,12 @@ function AIPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#fff', textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
             See assistive, auditable AI in your operation.
           </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
         </Container>
       </Box>
