@@ -63,18 +63,21 @@ function MenuLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ModuleItem({ item, go }: { item: ModuleChild; go: (path: string) => void }) {
+function ModuleItem({ item, go, selected }: { item: ModuleChild; go: (path: string) => void; selected?: boolean }) {
   return (
     <Box
       component="button"
       type="button"
       onClick={() => go(item.path)}
+      aria-current={selected ? 'true' : undefined}
       sx={{
-        border: 0, width: '100%', textAlign: 'left', bgcolor: 'transparent', cursor: 'pointer',
+        border: `1px solid ${selected ? '#D9E6F5' : 'transparent'}`,
+        width: '100%', textAlign: 'left',
+        bgcolor: selected ? M.paper : 'transparent', cursor: 'pointer',
         display: 'flex', alignItems: 'flex-start', gap: '12px',
         p: '10px 12px', borderRadius: '10px',
-        transition: `background ${M.transition.fast}`,
-        '&:hover': { bgcolor: M.paper },
+        transition: `background ${M.transition.fast}, border-color ${M.transition.fast}`,
+        '&:hover': { bgcolor: M.paper, borderColor: '#D9E6F5' },
         '&:hover .mi-title': { color: M.navy },
         '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
       }}
@@ -83,7 +86,7 @@ function ModuleItem({ item, go }: { item: ModuleChild; go: (path: string) => voi
         <FIcon name={item.icon} size={18} />
       </Box>
       <Box sx={{ minWidth: 0 }}>
-        <Typography className="mi-title" sx={{ fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.25, color: M.dark }}>
+        <Typography className="mi-title" sx={{ fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.25, color: selected ? M.navy : M.dark }}>
           {item.name}
         </Typography>
         <Typography sx={{ fontSize: '0.8125rem', lineHeight: 1.4, color: M.slate, mt: '2px' }}>
@@ -96,7 +99,7 @@ function ModuleItem({ item, go }: { item: ModuleChild; go: (path: string) => voi
 
 /* ─── Desktop panels ────────────────────────────────────────────── */
 
-function PlatformPanel({ go }: { go: (path: string) => void }) {
+function PlatformPanel({ go, activePath }: { go: (path: string) => void; activePath: string }) {
   return (
     <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden' }}>
       <Box sx={{ display: 'flex' }}>
@@ -104,7 +107,7 @@ function PlatformPanel({ go }: { go: (path: string) => void }) {
         <Box sx={{ flex: '1 1 0', minWidth: 0, p: '20px 16px 16px' }}>
           <MenuLabel>Modules</MenuLabel>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '2px 4px' }}>
-            {platformModules.map((m) => <ModuleItem key={m.path} item={m} go={go} />)}
+            {platformModules.map((m) => <ModuleItem key={m.path} item={m} go={go} selected={m.path !== '#' && (activePath === m.path || activePath.startsWith(m.path + '/'))} />)}
           </Box>
         </Box>
         {/* Compliance */}
@@ -177,12 +180,12 @@ function PlatformPanel({ go }: { go: (path: string) => void }) {
   )
 }
 
-function SolutionsPanel({ go }: { go: (path: string) => void }) {
+function SolutionsPanel({ go, activePath }: { go: (path: string) => void; activePath: string }) {
   return (
     <Box sx={{ bgcolor: '#fff', borderRadius: '16px', border: `1px solid ${M.faint}`, boxShadow: panelShadow, overflow: 'hidden', display: 'flex' }}>
       <Box sx={{ flex: '1 1 0', minWidth: 0, p: '20px 16px 16px' }}>
         <MenuLabel>By service</MenuLabel>
-        {solutionServices.map((s) => <ModuleItem key={s.path} item={s} go={go} />)}
+        {solutionServices.map((s) => <ModuleItem key={s.path} item={s} go={go} selected={s.path !== '#' && (activePath === s.path || activePath.startsWith(s.path + '/'))} />)}
         <Box sx={{ borderBottom: `1px solid ${M.faint}`, mx: '12px', my: '8px' }} />
         <MenuLabel>For carers</MenuLabel>
         {solutionCarers.map((s) => <ModuleItem key={s.path} item={s} go={go} />)}
@@ -259,7 +262,7 @@ export default function Nav() {
         transition: `opacity ${M.transition.fast}, visibility ${M.transition.fast}, transform ${M.transition.smooth}`,
       }}
     >
-      {name === 'Platform' ? <PlatformPanel go={go} /> : <SolutionsPanel go={go} />}
+      {name === 'Platform' ? <PlatformPanel go={go} activePath={loc.pathname} /> : <SolutionsPanel go={go} activePath={loc.pathname} />}
     </Box>
   )
 

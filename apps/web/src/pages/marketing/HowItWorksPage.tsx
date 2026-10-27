@@ -12,20 +12,16 @@ import PageMeta from '../../components/PageMeta'
 import {
   ShieldIcon, ManagerIcon, CareWorkerIcon,
 } from '../../components/marketing/icons'
-import { P } from '../../styles/tokens'
-import { NOTICE_COLORS } from '../../theme/noticeTokens'
+import { M } from '../../styles/marketing-tokens'
 
-// Brand colours resolve to the shared design tokens (styles/tokens.ts) so this
-// page cannot drift from the app palette.
-const INK = P.navy
-const INK_DARK = P.navyMid
-const NAVY = P.primary
-const EMERALD = P.green
-// The success foreground on a mint fill (theme/noticeTokens.ts).
-const EMERALD_DEEP = NOTICE_COLORS.success.fg
-const BONE = P.warm
-const MIST = P.slate
-const HAIRLINE = P.hairline
+// Shared marketing tokens so this page cannot drift from the site palette.
+const INK = M.ink
+const INK_DARK = M.navy
+const NAVY = M.navy
+const EMERALD = M.teal
+const BONE = M.paper
+const MIST = M.slate
+const HAIRLINE = M.faint
 
 type StepPanel = { label: string; val: string }
 
@@ -142,7 +138,7 @@ export default function HowItWorksPage() {
             <Box
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: M.card, border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, mb: 3,
               }}
             >
@@ -175,7 +171,7 @@ export default function HowItWorksPage() {
             component="section"
             sx={{
               py: { xs: 8, md: 11 },
-              bgcolor: idx % 2 === 0 ? '#FFFFFF' : BONE,
+              bgcolor: idx % 2 === 0 ? M.card : BONE,
               borderBottom: `1px solid ${HAIRLINE}`,
             }}
           >
@@ -235,8 +231,8 @@ export default function HowItWorksPage() {
                       p: { xs: 3.5, md: 5 },
                       border: `1px solid ${HAIRLINE}`,
                       borderRadius: 3,
-                      bgcolor: 'background.paper',
-                      boxShadow: '0 24px 60px -32px rgba(20,32,45,0.18)',
+                      bgcolor: M.card,
+                      boxShadow: M.shadow.lg,
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
@@ -275,7 +271,7 @@ export default function HowItWorksPage() {
       })}
 
       {/* ILLUSTRATED WHAT-HAPPENS-NEXT — the timeline-card.svg with our caption */}
-      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}` }}>
+      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: M.card, borderBottom: `1px solid ${HAIRLINE}` }}>
         <Container maxWidth="lg">
           <Stack spacing={2} sx={{ maxWidth: 760, mb: { xs: 5, md: 7 } }}>
             <Typography
@@ -324,7 +320,7 @@ export default function HowItWorksPage() {
                 <Box
                   sx={{
                     height: '100%',
-                    bgcolor: 'background.paper',
+                    bgcolor: M.card,
                     border: `1px solid ${HAIRLINE}`,
                     borderRadius: 3,
                     p: { xs: 3, md: 4 },
@@ -374,7 +370,7 @@ export default function HowItWorksPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/contact')}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
+                bgcolor: M.teal, color: M.ink, '&:hover': { bgcolor: M.tealDark },
                 fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

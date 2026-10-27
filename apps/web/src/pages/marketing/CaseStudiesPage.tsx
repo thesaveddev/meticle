@@ -3,14 +3,14 @@ import { ArrowForward, CheckCircle, Insights, Tune } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
-import { P } from '../../styles/tokens'
+import { M } from '../../styles/marketing-tokens'
 
-const INK = '#0C1B2E'
-const NAVY = '#0164C8'
-const EMERALD = '#10B981'
-const BONE = '#F4F9FC'
-const MIST = '#51637A'
-const HAIRLINE = '#E3E9F0'
+const INK = M.ink
+const NAVY = M.navy
+const EMERALD = M.teal
+const BONE = M.paper
+const MIST = M.slate
+const HAIRLINE = M.faint
 
 const pilotAreas = [
   { icon: <Tune sx={{ color: NAVY }} />, title: 'Operational visibility', body: 'Agree the measures that matter to your service: visit completion, staffing pressure, outstanding actions and reporting time.' },
@@ -36,13 +36,13 @@ export default function CaseStudiesPage() {
           </Typography>
         </Container>
       </Box>
-      <Box component="section" sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
+      <Box component="section" sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Grid container spacing={3}>
             {pilotAreas.map((area) => (
               <Grid item xs={12} md={4} key={area.title}>
                 <Box sx={{ height: '100%', p: { xs: 3, md: 3.5 }, border: `1px solid ${HAIRLINE}`, borderRadius: 2.5, bgcolor: BONE }}>
-                  <Box sx={{ width: 42, height: 42, borderRadius: 1.5, bgcolor: '#FFFFFF', display: 'grid', placeItems: 'center', mb: 3 }}>{area.icon}</Box>
+                  <Box sx={{ width: 42, height: 42, borderRadius: 1.5, bgcolor: M.card, display: 'grid', placeItems: 'center', mb: 3 }}>{area.icon}</Box>
                   <Typography variant="h2" sx={{ color: INK, fontSize: '1.25rem', fontWeight: 600, mb: 1.5 }}>{area.title}</Typography>
                   <Typography sx={{ color: MIST, lineHeight: 1.7 }}>{area.body}</Typography>
                 </Box>
@@ -51,7 +51,7 @@ export default function CaseStudiesPage() {
           </Grid>
         </Container>
       </Box>
-      <Box component="section" sx={{ py: { xs: 8, md: 11 }, bgcolor: '#FFFFFF', borderTop: `1px solid ${HAIRLINE}` }}>
+      <Box component="section" sx={{ py: { xs: 8, md: 11 }, bgcolor: M.card, borderTop: `1px solid ${HAIRLINE}` }}>
         <Container maxWidth="md">
           <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'none', mb: 2 }}>What a pilot includes</Typography>
           <Stack spacing={2}>
@@ -64,11 +64,11 @@ export default function CaseStudiesPage() {
           </Stack>
         </Container>
       </Box>
-      <Box component="section" sx={{ py: { xs: 10, md: 14 }, bgcolor: NAVY, color: '#FFFFFF', textAlign: 'center' }}>
+      <Box component="section" sx={{ py: { xs: 10, md: 14 }, bgcolor: NAVY, color: M.card, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 2 }}>Build the evidence with us.</Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '1.1rem', lineHeight: 1.7, mb: 4 }}>Tell us how your service runs and we will show you what a focused evaluation could look like.</Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => navigate('/contact')} sx={{ bgcolor: EMERALD, color: P.navy, fontWeight: 600, px: 4, py: 1.5, textTransform: 'none', '&:hover': { bgcolor: '#34D399' } }}>Talk to our team</Button>
+          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => navigate('/contact')} sx={{ bgcolor: EMERALD, color: M.ink, fontWeight: 600, px: 4, py: 1.5, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Talk to our team</Button>
         </Container>
       </Box>
     </MarketingLayout>

@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowForward as ArrowIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
+import { M } from '../../styles/marketing-tokens'
 import { EXTERNAL_BRAND } from '../../styles/tokens'
 
-const INK = '#0C1B2E'
-const NAVY = '#0164C8'
-const EMERALD = '#10B981'
-const MIST = '#51637A'
-const HAIRLINE = '#E3E9F0'
+const INK = M.ink
+const NAVY = M.navy
+const EMERALD = M.teal
+const MIST = M.slate
+const HAIRLINE = M.faint
 
 interface Badge {
   name: string
@@ -244,7 +245,7 @@ export default function ComplianceBadgesPage() {
       </Box>
 
       {/* Badge Overview Grid */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'background.paper' }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 6, justifyContent: 'center' }}>
             {badges.map((b) => (
@@ -286,11 +287,10 @@ export default function ComplianceBadgesPage() {
                     alignItems={{ md: 'center' }}
                     sx={{ px: { xs: 3, md: 4 }, py: 3, bgcolor: badge.color + '06', borderBottom: `1px solid ${HAIRLINE}` }}
                   >
-                    <Box sx={{ height: 56, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                      {badge.logo
+                    <Box sx={{ height: 56, display: 'flex', alignItems: 'center', flexShrink: 0 }}>                        {badge.logo
                         ? <img src={badge.logo} alt={badge.name} style={{ height: '100%', width: 'auto' }} />
                         : <Box sx={{ height: 56, width: 56, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: badge.color }}>
-                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF' }}>{badge.acronym}</Typography>
+                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 600, color: M.card }}>{badge.acronym}</Typography>
                           </Box>}
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -390,7 +390,7 @@ export default function ComplianceBadgesPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'notice.subtle.bg' }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: M.paper }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
           <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.4rem' }, fontWeight: 600, color: INK, mb: 2 }}>
             Ready to simplify compliance?
