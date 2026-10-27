@@ -1,345 +1,448 @@
-import { Box, Button, Container, Grid, Stack, Typography, Chip } from '@mui/material'
+import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Check, Groups, Medication, People, CalendarMonth,
-  Warning, Insights, FamilyRestroom, Shield,
-  Description, LocationOn, AccessTime, Person, CheckCircle,
+  ArrowForward, Check, AccessTime, Groups, ChevronRight,
+  AutoAwesome, Link as LinkIcon, NotificationsNone,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-/* ─── Shared ─────────────────────────────────────────── */
+/* ─── Colours pinned from Figma frame 1.3 (node 73:5797) ──────────────
+ * Module tags + links + step 01:      #0164C8 (blue)
+ * Section label (Connected arch):     #03C6B1 (teal)
+ * Index numbers / step 02–04:         #51637A (slate)
+ * Titles / step titles / values:      #0C1B2E (navy)
+ * Capability text:                    #2A3A50 (ink)
+ * Hairlines:                          #E3EAF1 · top rules: #C9D5E2
+ * Muted arrows:                       #8A9AAE
+ * Reassurance icons:                  #004E45 (teal-deep)
+ * Data-flow chips: bg rgba(3,198,177,.12), text #7BE3D6
+ * Chips: MAR/England blue #EAF3FD·#0164C8 · Given teal #D2FBF4·#004E45
+ *   Due amber #FFF3DC·#8A5300 · Pending grey #F4F9FC·#51637A
+ *   Unassigned red #FDECEC·#B42318 · Scheduled grey · 3 active amber
+ */
 
-function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
+/* ─── Shared bits ─────────────────────────────────────────────────── */
+
+function Eyebrow({ children, color = M.navy }: { children: React.ReactNode; color?: string }) {
   return (
-    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', color, mb: 1.5 }}>
+      {children}
+    </Typography>
+  )
+}
+
+function CtaButtons({ secondary, secondaryTo }: { secondary: string; secondaryTo: string }) {
+  const nav = useNavigate()
+  return (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2.5 }}>
+      <Button
+        variant="contained"
+        endIcon={<ArrowForward />}
+        onClick={() => nav('/contact')}
+        sx={{ bgcolor: M.navy, color: '#fff', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+      >
+        Book a demo
+      </Button>
+      <Button
+        variant="outlined"
+        onClick={() => nav(secondaryTo)}
+        sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#fff', '&:hover': { borderColor: M.navy } }}
+      >
+        {secondary}
+      </Button>
+    </Stack>
+  )
+}
+
+function Reassurance({ items }: { items: { icon: React.ReactNode; text: string }[] }) {
+  return (
+    <Stack direction="row" spacing={2.5} flexWrap="wrap" useFlexGap>
+      {items.map((r) => (
+        <Stack key={r.text} direction="row" alignItems="center" spacing={0.75}>
+          {r.icon}
+          <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{r.text}</Typography>
+        </Stack>
+      ))}
+    </Stack>
+  )
+}
+
+const reassuranceIcons = { clock: <AccessTime sx={{ fontSize: 16, color: M.tealDeep }} />, check: <Check sx={{ fontSize: 16, color: M.tealDeep }} /> }
+
+/** White UI card used for every module visual (radius 14, hairline, soft shadow). */
+function UiCard({ header, children, bodyless = false }: { header: React.ReactNode; children: React.ReactNode; bodyless?: boolean }) {
+  return (
+    <Box sx={{ bgcolor: '#fff', borderRadius: '14px', border: `1px solid ${M.faint}`, boxShadow: '0 8px 24px rgba(12,27,46,0.06), 0 1px 2px rgba(12,27,46,0.04)', overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 2, borderBottom: `1px solid ${M.faint}` }}>
+        {header}
+      </Box>
+      <Box sx={bodyless ? undefined : { px: 2.5, py: 2.5 }}>{children}</Box>
     </Box>
   )
 }
 
-/* ─── Module Mockup Components ──────────────────────────── */
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.dark }}>{children}</Typography>
+}
 
-function DashboardMockup() {
+function CardMeta({ children }: { children: React.ReactNode }) {
+  return <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>{children}</Typography>
+}
+
+function Chip({ label, bg, color }: { label: string; bg: string; color: string }) {
   return (
-    <Box sx={{ p: 2.5, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid #E3E9F0' }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#112539' }}>Today's Coverage</Typography>
-        <Chip label="92%" size="small" sx={{ bgcolor: '#EAFBF5', color: '#087A55', fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+    <Box component="span" sx={{ display: 'inline-block', px: 1, py: '3px', borderRadius: '6px', bgcolor: bg, color, fontSize: '0.68rem', fontWeight: 600, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+      {label}
+    </Box>
+  )
+}
+
+/* ─── Module UI cards (sample data verbatim from the Figma frames) ─── */
+
+function CoverageCard() {
+  const stats = [
+    { label: 'Completed', value: '12', dot: '#03C6B1' },
+    { label: 'In progress', value: '3', dot: '#0164C8' },
+    { label: 'Upcoming', value: '5', dot: '#C9D5E2' },
+    { label: 'Missed', value: '1', dot: '#B42318' },
+  ]
+  return (
+    <UiCard header={<><CardTitle>Today&apos;s coverage</CardTitle><CardMeta>Tue 14 Oct</CardMeta></>}>
+      <Stack direction="row" alignItems="baseline" spacing={1.5} sx={{ px: 2.5, pt: 2.5 }}>
+        <Typography sx={{ fontSize: '1.9rem', fontWeight: 600, color: M.dark, lineHeight: 1 }}>92%</Typography>
+        <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>of visits on track</Typography>
       </Stack>
-      <Box sx={{ height: 6, bgcolor: '#E3E9F0', borderRadius: 3, mb: 2, overflow: 'hidden' }}>
-        <Box sx={{ width: '92%', height: '100%', bgcolor: '#10B981', borderRadius: 3 }} />
+      <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', mx: 2.5, mt: 1.5, mb: 2.5 }}>
+        <Box sx={{ flex: 263, bgcolor: '#03C6B1' }} />
+        <Box sx={{ flex: 66, bgcolor: '#0164C8' }} />
+        <Box sx={{ flex: 110, bgcolor: '#C9D5E2' }} />
+        <Box sx={{ flex: 22, bgcolor: '#B42318' }} />
       </Box>
-      <Grid container spacing={1.5}>
-        {[
-          { label: 'Completed', value: '12', color: '#10B981' },
-          { label: 'In Progress', value: '3', color: '#0164C8' },
-          { label: 'Upcoming', value: '5', color: '#51637A' },
-          { label: 'Missed', value: '1', color: '#EF4444' },
-        ].map(s => (
-          <Grid item xs={6} key={s.label}>
-            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #F7FAFE' }}>
-              <Typography sx={{ fontSize: '1.1rem', fontWeight: 600, color: s.color }}>{s.value}</Typography>
-              <Typography sx={{ fontSize: '0.65rem', color: '#5D6E85' }}>{s.label}</Typography>
-            </Box>
+      <Grid container sx={{ px: 2.5, pb: 2.5 }}>
+        {stats.map((s, i) => (
+          <Grid item xs={3} key={s.label} sx={i > 0 ? { borderLeft: `1px solid ${M.faint}`, pl: 2 } : undefined}>
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.5 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: s.dot, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '0.68rem', color: M.slate }}>{s.label}</Typography>
+            </Stack>
+            <Typography sx={{ fontSize: '1.15rem', fontWeight: 600, color: M.dark }}>{s.value}</Typography>
           </Grid>
         ))}
       </Grid>
-    </Box>
+    </UiCard>
   )
 }
 
-function EMARMockup() {
-  const meds = [
-    { name: 'Metformin 500mg', time: '08:00', status: 'given', color: '#10B981' },
-    { name: 'Amlodipine 5mg', time: '08:00', status: 'given', color: '#10B981' },
-    { name: 'Omeprazole 20mg', time: '12:00', status: 'due', color: '#F59E0B' },
-    { name: 'Paracetamol 500mg', time: '14:00', status: 'pending', color: '#5D6E85' },
+function MedicationCard() {
+  const rows = [
+    { name: 'Metformin', dose: '500mg', time: '08:00', chip: <Chip label="Given" bg="#D2FBF4" color="#004E45" /> },
+    { name: 'Amlodipine', dose: '5mg', time: '08:00', chip: <Chip label="Given" bg="#D2FBF4" color="#004E45" /> },
+    { name: 'Omeprazole', dose: '20mg', time: '12:00', chip: <Chip label="Due" bg="#FFF3DC" color="#8A5300" /> },
+    { name: 'Paracetamol', dose: '500mg', time: '14:00', chip: <Chip label="Pending" bg="#F4F9FC" color="#51637A" /> },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FFF7E6', borderRadius: 2, border: '1px solid #FFF7E6' }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#9A6700' }}>Medication Record</Typography>
-        <Chip label="MAR" size="small" sx={{ bgcolor: '#FFF7E6', color: '#9A6700', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
-      </Stack>
-      {meds.map((m, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < meds.length - 1 ? '1px solid #FFF7E6' : 'none' }}>
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: m.color, flexShrink: 0 }} />
+    <UiCard
+      header={<><CardTitle>Medication record</CardTitle><Chip label="MAR" bg="#EAF3FD" color="#0164C8" /></>}
+      bodyless
+    >
+      {rows.map((r) => (
+        <Stack key={r.name} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A6700' }}>{m.name}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#9A6700' }}>{m.time}</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.name}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.dose}</Typography>
           </Box>
-          <Chip label={m.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: m.color + '20', color: m.color, fontWeight: 600 }} />
+          <Typography sx={{ fontSize: '0.78rem', color: M.slate }}>{r.time}</Typography>
+          {r.chip}
         </Stack>
       ))}
-    </Box>
+    </UiCard>
   )
 }
 
-function WorkforceMockup() {
-  const staff = [
-    { name: 'Sarah M.', role: 'Senior Carer', compliance: 98, color: '#10B981' },
-    { name: 'James K.', role: 'Care Worker', compliance: 85, color: '#F59E0B' },
-    { name: 'Priya S.', role: 'Care Worker', compliance: 72, color: '#EF4444' },
+function StaffCard() {
+  const rows = [
+    { name: 'Sarah M.', role: 'Senior Carer', pct: 98, color: '#03C6B1' },
+    { name: 'James K.', role: 'Care Worker', pct: 85, color: '#0164C8' },
+    { name: 'Priya S.', role: 'Care Worker', pct: 72, color: '#8A5300' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
-      {staff.map((s, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #EAF3FF' : 'none' }}>
-          <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Person sx={{ fontSize: 14, color: s.color }} />
-          </Box>
+    <UiCard header={<><CardTitle>Staff compliance</CardTitle><CardMeta>3 of 42 shown</CardMeta></>} bodyless>
+      {rows.map((r) => (
+        <Stack key={r.name} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
+          <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#F4F9FC', flexShrink: 0 }} />
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: M.tealDeep }}>{s.name}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: M.tealDeep }}>{s.role}</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.name}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.role}</Typography>
           </Box>
-          <Box sx={{ width: 50, height: 4, bgcolor: '#EAF3FF', borderRadius: 2, overflow: 'hidden' }}>
-            <Box sx={{ width: `${s.compliance}%`, height: '100%', bgcolor: s.color, borderRadius: 2 }} />
-          </Box>
-          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: s.color, minWidth: 30, textAlign: 'right' }}>{s.compliance}%</Typography>
-        </Stack>
-      ))}
-    </Box>
-  )
-}
-
-function ScheduleMockup() {
-  const calls = [
-    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', status: 'completed', color: '#10B981' },
-    { time: '10:30', client: 'John D.', carer: 'James K.', status: 'en route', color: '#8B7CF6' },
-    { time: '11:00', client: 'Patricia L.', carer: null, status: 'unassigned', color: '#F59E0B' },
-    { time: '13:00', client: 'Robert H.', carer: 'Priya S.', status: 'scheduled', color: '#5D6E85' },
-  ]
-  return (
-    <Box sx={{ p: 2.5, bgcolor: '#EAFBF5', borderRadius: 2, border: '1px solid #EAFBF5' }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Call Schedule</Typography>
-      {calls.map((c, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #EAFBF5' : 'none' }}>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55', minWidth: 40 }}>{c.time}</Typography>
-          <Box sx={{ width: 3, height: 24, bgcolor: c.color, borderRadius: 1, flexShrink: 0 }} />
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#087A55' }}>{c.client}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#087A55' }}>{c.carer || 'No carer assigned'}</Typography>
-          </Box>
-          <Chip label={c.status} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
-        </Stack>
-      ))}
-    </Box>
-  )
-}
-
-function IncidentMockup() {
-  const incidents = [
-    { title: 'Fall risk assessment overdue', severity: 'high', status: 'open', color: '#EF4444' },
-    { title: 'Medication error reported', severity: 'critical', status: 'investigating', color: '#EF4444' },
-    { title: 'Safeguarding concern logged', severity: 'high', status: 'escalated', color: '#F59E0B' },
-  ]
-  return (
-    <Box sx={{ p: 2.5, bgcolor: '#FEF0F0', borderRadius: 2, border: '1px solid #FEF0F0' }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#B42318' }}>Open Incidents</Typography>
-        <Chip label="3 active" size="small" sx={{ bgcolor: '#FEF0F0', color: '#B42318', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
-      </Stack>
-      {incidents.map((inc, i) => (
-        <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < incidents.length - 1 ? '1px solid #FEF0F0' : 'none' }}>
-          <Warning sx={{ fontSize: 14, color: inc.color, flexShrink: 0 }} />
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#B42318' }}>{inc.title}</Typography>
-            <Typography sx={{ fontSize: '0.55rem', color: '#B42318' }}>{inc.severity} · {inc.status}</Typography>
+          <Box sx={{ width: 120 }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark, textAlign: 'right', mb: 0.5 }}>{r.pct}%</Typography>
+            <Box sx={{ height: 6, borderRadius: 1, bgcolor: '#F4F9FC', overflow: 'hidden' }}>
+              <Box sx={{ width: `${(r.pct / 100) * 120}px`, maxWidth: '100%', height: '100%', borderRadius: 1, bgcolor: r.color }} />
+            </Box>
           </Box>
         </Stack>
       ))}
-    </Box>
+    </UiCard>
   )
 }
 
-function ComplianceMockup() {
-  const items = [
-    { label: 'DBS Tracking', pct: 100, color: '#10B981' },
-    { label: 'Mandatory Training', pct: 87, color: '#F59E0B' },
-    { label: 'Right to Work', pct: 95, color: '#10B981' },
-    { label: 'Competency Assessments', pct: 68, color: '#EF4444' },
+function ScheduleCard() {
+  const rows = [
+    { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', chip: <Chip label="Completed" bg="#D2FBF4" color="#004E45" /> },
+    { time: '10:30', client: 'John D.', carer: 'James K.', chip: <Chip label="En route" bg="#EAF3FD" color="#0164C8" /> },
+    { time: '11:00', client: 'Patricia L.', carer: null, chip: <Chip label="Unassigned" bg="#FDECEC" color="#B42318" /> },
+    { time: '13:00', client: 'Robert H.', carer: 'Priya S.', chip: <Chip label="Scheduled" bg="#F4F9FC" color="#51637A" /> },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
-      {items.map((item, i) => (
-        <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #EAF3FF' : 'none' }}>
-          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.tealDeep }}>{item.label}</Typography>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: item.color }}>{item.pct}%</Typography>
+    <UiCard header={<><CardTitle>Call schedule</CardTitle><Chip label="1 unassigned" bg="#FDECEC" color="#B42318" /></>} bodyless>
+      {rows.map((r) => (
+        <Stack key={r.time} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
+          <Typography sx={{ fontSize: '0.78rem', color: M.slate, minWidth: 44 }}>{r.time}</Typography>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.client}</Typography>
+            {r.carer ? (
+              <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.carer}</Typography>
+            ) : (
+              <Typography sx={{ fontSize: '0.72rem', color: '#B42318' }}>No carer assigned</Typography>
+            )}
+          </Box>
+          {r.chip}
+        </Stack>
+      ))}
+    </UiCard>
+  )
+}
+
+function RiskCard() {
+  const rows = [
+    { title: 'Fall risk assessment overdue', sub: 'High severity · Open', bar: '#8A5300' },
+    { title: 'Medication error reported', sub: 'Critical severity · Investigating', bar: '#B42318' },
+    { title: 'Safeguarding concern logged', sub: 'High severity · Escalated', bar: '#8A5300' },
+  ]
+  return (
+    <UiCard header={<><CardTitle>Open incidents</CardTitle><Chip label="3 active" bg="#FFF3DC" color="#8A5300" /></>} bodyless>
+      {rows.map((r) => (
+        <Stack key={r.title} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
+          <Box sx={{ width: 3, height: 36, borderRadius: 1, bgcolor: r.bar, flexShrink: 0 }} />
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.title}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.sub}</Typography>
+          </Box>
+          <ChevronRight sx={{ fontSize: 16, color: '#8A9AAE' }} />
+        </Stack>
+      ))}
+    </UiCard>
+  )
+}
+
+function ComplianceCard() {
+  const rows = [
+    { label: 'DBS tracking', pct: 100, color: '#004E45' },
+    { label: 'Mandatory training', pct: 87, color: '#0164C8' },
+    { label: 'Right to work', pct: 95, color: '#004E45' },
+    { label: 'Competency assessments', pct: 68, color: '#8A5300' },
+  ]
+  return (
+    <UiCard header={<><CardTitle>Compliance dashboard</CardTitle><Chip label="England · CQC" bg="#EAF3FD" color="#0164C8" /></>}>
+      {rows.map((r) => (
+        <Box key={r.label} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.78rem', color: M.dark }}>{r.label}</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: r.color }}>{r.pct}%</Typography>
           </Stack>
-          <Box sx={{ height: 4, bgcolor: '#EAF3FF', borderRadius: 2, overflow: 'hidden' }}>
-            <Box sx={{ width: `${item.pct}%`, height: '100%', bgcolor: item.color, borderRadius: 2 }} />
+          <Box sx={{ height: 6, borderRadius: 1, bgcolor: '#F4F9FC', overflow: 'hidden' }}>
+            <Box sx={{ width: `${r.pct}%`, height: '100%', borderRadius: 1, bgcolor: r.color }} />
           </Box>
         </Box>
       ))}
-    </Box>
+    </UiCard>
   )
 }
 
-function ReportingMockup() {
-  const metrics = [
-    { label: 'Calls completed today', value: '47', trend: '+12%', color: '#10B981' },
-    { label: 'Average response time', value: '23min', trend: '-8%', color: '#0164C8' },
-    { label: 'Client satisfaction', value: '4.6/5', trend: '+0.2', color: 'M.tealDeep' },
+function ReportingCard() {
+  const cols = [
+    { label: 'Calls completed', value: '47', delta: '+12%' },
+    { label: 'Average response time', value: '23 min', delta: '−8%' },
+    { label: 'Client satisfaction', value: '4.6/5', delta: '+0.2' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#EAF3FF', borderRadius: 2, border: '1px solid #EAF3FF' }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#004085', mb: 1.5 }}>Operational Insights</Typography>
-      <Grid container spacing={1.5}>
-        {metrics.map((m, i) => (
-          <Grid item xs={4} key={i}>
-            <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #EAF3FF' }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: m.color }}>{m.value}</Typography>
-              <Typography sx={{ fontSize: '0.55rem', color: '#004085' }}>{m.label}</Typography>
-              <Typography sx={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 600, mt: 0.5 }}>{m.trend}</Typography>
-            </Box>
+    <UiCard header={<><CardTitle>Operational insights</CardTitle><CardMeta>Today</CardMeta></>} bodyless>
+      <Grid container sx={{ py: 2.5 }}>
+        {cols.map((c, i) => (
+          <Grid item xs={4} key={c.label} sx={{ px: 2.5, ...(i > 0 ? { borderLeft: `1px solid ${M.faint}` } : {}) }}>
+            <Typography sx={{ fontSize: '0.72rem', color: M.slate, mb: 1 }}>{c.label}</Typography>
+            <Stack direction="row" alignItems="baseline" spacing={0.75}>
+              <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: M.dark }}>{c.value}</Typography>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#004E45' }}>{c.delta}</Typography>
+            </Stack>
           </Grid>
         ))}
       </Grid>
-    </Box>
+    </UiCard>
   )
 }
 
-function FamilyPortalMockup() {
+function FamilyCard() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#E9FDF9', borderRadius: 2, border: '1px solid #D2FBF4' }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#087A55', mb: 1.5 }}>Family View</Typography>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #D2FBF4', mb: 1.5 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <CheckCircle sx={{ fontSize: 14, color: '#10B981' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Visit completed today</Typography>
+    <UiCard
+      header={<><CardTitle>Family view</CardTitle><CardMeta>Margaret W.</CardMeta></>}
+      bodyless
+    >
+      <Box sx={{ px: 2.5, py: 2.25, borderBottom: `1px solid ${M.faint}` }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#03C6B1', flexShrink: 0 }} />
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>Visit completed today</Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.6rem', color: '#51637A', mt: 0.5 }}>Margaret had a good morning. All tasks completed. Mood was positive.</Typography>
+        <Typography sx={{ fontSize: '0.8rem', color: '#2A3A50', lineHeight: 1.6 }}>
+          Margaret had a good morning. All tasks completed. Mood was positive.
+        </Typography>
       </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #D2FBF4' }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <AccessTime sx={{ fontSize: 14, color: '#F59E0B' }} />
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#087A55' }}>Next visit tomorrow</Typography>
-        </Stack>
-        <Typography sx={{ fontSize: '0.6rem', color: '#51637A', mt: 0.5 }}>Scheduled for 10:00 AM with Sarah M.</Typography>
-      </Box>
-    </Box>
-  )
-}
-
-function AIMockup() {
-  return (
-    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-        <Insights sx={{ fontSize: 14, color: 'M.tealDeep' }} />
-        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: M.tealDeep }}>AI Intelligence</Typography>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2 }}>
+        <Box sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: '#F4F9FC', textAlign: 'center', flexShrink: 0 }}>
+          <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: M.slate, letterSpacing: '0.04em' }}>WED</Typography>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>10:00</Typography>
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>Next visit tomorrow</Typography>
+          <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>Scheduled for 10:00 AM with Sarah M.</Typography>
+        </Box>
       </Stack>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid ' + M.tealMuted, mb: 1 }}>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.tealDeep, mb: 0.5 }}>Care Summary</Typography>
-        <Typography sx={{ fontSize: '0.6rem', color: M.slate, lineHeight: 1.5 }}>Margaret's care needs have increased over the past week. Consider reviewing her support plan and increasing visit frequency.</Typography>
-      </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid ' + M.tealMuted }}>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.tealDeep, mb: 0.5 }}>Risk Signal</Typography>
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Warning sx={{ fontSize: 12, color: '#F59E0B' }} />
-          <Typography sx={{ fontSize: '0.6rem', color: M.slate }}>3 missed calls this week — pattern detected</Typography>
-        </Stack>
-      </Box>
-    </Box>
+    </UiCard>
   )
 }
 
-const mockups: Record<string, React.ReactNode> = {
-  'Care Delivery': <DashboardMockup />,
-  'Medication (eMAR)': <EMARMockup />,
-  'Workforce Management': <WorkforceMockup />,
-  'Scheduling & Rota': <ScheduleMockup />,
-  'Risk & Incidents': <IncidentMockup />,
-  'Compliance & Evidence': <ComplianceMockup />,
-  'Reporting & Intelligence': <ReportingMockup />,
-  'Family Portal': <FamilyPortalMockup />,
-  'AI Intelligence': <AIMockup />,
+function AiCard() {
+  return (
+    <UiCard
+      header={<><CardTitle>AI intelligence</CardTitle><Chip label="Assistive · review required" bg="#F4F9FC" color="#51637A" /></>}
+      bodyless
+    >
+      <Box sx={{ px: 2.5, pt: 2.25, pb: 2 }}>
+        <Typography sx={{ fontSize: '0.72rem', color: M.slate, mb: 1 }}>Care summary · last 7 days</Typography>
+        <Typography sx={{ fontSize: '0.8rem', color: M.dark, lineHeight: 1.6, mb: 1.5 }}>
+          Margaret&apos;s care needs have increased over the past week. Consider reviewing her support plan and increasing visit frequency.
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          {[<AutoAwesome key="a" />, <LinkIcon key="l" />, <NotificationsNone key="n" />].map((icon, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'center', px: 1.25, py: 0.5, borderRadius: '6px', border: `1px solid ${M.faint}`, color: M.slate }}>
+              <Box sx={{ display: 'flex', '& svg': { fontSize: 14 } }}>{icon}</Box>
+            </Box>
+          ))}
+        </Stack>
+      </Box>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2, bgcolor: '#FFF3DC' }}>
+        <Box sx={{ width: 3, height: 32, borderRadius: 1, bgcolor: '#8A5300', flexShrink: 0 }} />
+        <Box>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#8A5300' }}>Risk signal</Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: M.dark }}>3 missed calls this week — pattern detected</Typography>
+        </Box>
+      </Stack>
+    </UiCard>
+  )
 }
 
-/* ─── Full-width immersive modules ──────────────────── */
+/* ─── Page data (copy verbatim from Figma 1.3) ─────────────────────── */
 
-const modules = [
+const indexCells = [
+  { no: '01', title: 'Care Delivery', sub: 'Plans, notes, reviews, body maps', anchor: 'care-delivery' },
+  { no: '02', title: 'Medication (eMAR)', sub: 'MAR, stock and exceptions', anchor: 'medication' },
+  { no: '03', title: 'Workforce', sub: 'Staff, training, competency', anchor: 'workforce' },
+  { no: '04', title: 'Scheduling & Rota', sub: 'Visits, shifts, open calls', anchor: 'scheduling' },
+  { no: '05', title: 'Risk & Incidents', sub: 'Assessments and follow-up', anchor: 'risk' },
+  { no: '06', title: 'Compliance & Evidence', sub: 'Readiness, every day', anchor: 'compliance' },
+  { no: '07', title: 'Reporting & Intelligence', sub: 'Dashboards and insight', anchor: 'reporting' },
+  { no: '08', title: 'Family Portal', sub: 'Authorised family access', anchor: 'family-portal' },
+  { no: '09', title: 'AI Intelligence', sub: 'Assistive, auditable AI', anchor: 'ai' },
+]
+
+const steps = [
+  { no: '01', title: 'Record', desc: 'Care notes, medication records, risk assessments and incidents are captured at the point of care — on web or mobile.' },
+  { no: '02', title: 'Connect', desc: 'Every record links back to the person, the care plan, the staff member and the visit — creating an auditable chain.' },
+  { no: '03', title: 'Review', desc: 'Managers see the operational picture: missed calls, overdue training, open incidents, compliance gaps — in one view.' },
+  { no: '04', title: 'Act', desc: 'Assign follow-up actions, approve changes, generate reports and prepare evidence — with full change history.' },
+]
+
+interface Module {
+  anchor: string
+  tag: string
+  title: string
+  desc: string
+  features: string[]
+  link: string
+  linkLabel: string
+  card: React.ReactNode
+}
+
+const modules: Module[] = [
   {
-    icon: Groups, title: 'Care Delivery', color: 'M.navy',
+    anchor: 'care-delivery', tag: 'Module 01', title: 'Care Delivery',
     desc: 'Keep care plans, daily notes, reviews, body maps, appointments and health observations in one accessible record — always linked to the person.',
     features: ['Person-centred support plans', 'Daily care notes and handover context', 'Body mapping and linked observations', 'Reviews, goals and health checks', 'Mobile access at the point of care'],
-    tone: 'light' as const,
-    link: '/features/care-management',
+    link: '/features/care-management', linkLabel: 'Learn more about care delivery', card: <CoverageCard />,
   },
   {
-    icon: Medication, title: 'Medication (eMAR)', color: '#F59E0B',
+    anchor: 'medication', tag: 'Module 02', title: 'Medication (eMAR)',
     desc: 'Manage medication workflows where your service provides medication support — with clear permissions, administration records and an audit trail.',
     features: ['31-day medication administration records', 'Stock control and controlled-drug workflows', 'Exception recording and follow-up', 'Role-based access to medication data', 'Mobile reference and recording for field teams'],
-    tone: 'warm' as const,
-    link: '/features/medication',
+    link: '/features/medication', linkLabel: 'Learn more about medication', card: <MedicationCard />,
   },
   {
-    icon: People, title: 'Workforce Management', color: 'M.teal',
+    anchor: 'workforce', tag: 'Module 03', title: 'Workforce Management',
     desc: 'Connect staff information, training, competency, availability and work allocation into one operational view.',
     features: ['Staff directory and detailed profiles', 'Training and competency tracking', 'Availability, leave and approval workflows', 'Right-to-work and DBS reminders', 'Connected workforce reporting'],
-    tone: 'light' as const,
-    link: '/features/workforce',
+    link: '/features/workforce', linkLabel: 'Learn more about workforce management', card: <StaffCard />,
   },
   {
-    icon: CalendarMonth, title: 'Scheduling & Rota', color: '#10B981',
+    anchor: 'scheduling', tag: 'Module 04', title: 'Scheduling & Rota',
     desc: 'Plan visits and shifts using availability, staffing and operational constraints — with human review before anything is published.',
     features: ['Rota and visit planning', 'Availability and leave awareness', 'Open-call marketplace for unfilled shifts', 'Conflict and coverage detection', 'Manager approval before publishing'],
-    tone: 'warm' as const,
-    link: '/features/scheduling',
+    link: '/features/scheduling', linkLabel: 'Learn more about scheduling & rota', card: <ScheduleCard />,
   },
   {
-    icon: Warning, title: 'Risk & Incidents', color: '#EF4444',
+    anchor: 'risk', tag: 'Module 05', title: 'Risk & Incidents',
     desc: 'Keep risk information visible, record incidents with follow-through and maintain the review history your governance requires.',
     features: ['Risk assessment records and review dates', 'Incident recording with severity context', 'Actions, owners and due dates', 'Escalation and follow-up history', 'Linked care-plan context'],
-    tone: 'light' as const,
-    link: '/features/risk-management',
+    link: '/features/risk-management', linkLabel: 'Learn more about risk & incidents', card: <RiskCard />,
   },
   {
-    icon: Shield, title: 'Compliance & Evidence', color: 'M.tealDeep',
+    anchor: 'compliance', tag: 'Module 06', title: 'Compliance & Evidence',
     desc: 'Make inspection readiness part of everyday work — not a once-a-year scramble for evidence.',
     features: ['Training and competency matrices', 'Evidence packs and audit logs', 'Compliance dashboards by nation', 'Identity and right-to-work monitoring', 'Policy and procedure management'],
-    tone: 'warm' as const,
-    link: '/compliance',
+    link: '/compliance', linkLabel: 'Learn more about compliance & evidence', card: <ComplianceCard />,
   },
   {
-    icon: Insights, title: 'Reporting & Intelligence', color: '#0187BA',
+    anchor: 'reporting', tag: 'Module 07', title: 'Reporting & Intelligence',
     desc: 'Turn the records your team already keeps into operational reports, evidence and AI-assisted insight.',
     features: ['Operational dashboards and drill-downs', 'Care and workforce reporting', 'Homecare call and visit analytics', 'AI-assisted briefings and summaries', 'Exportable evidence workflows'],
-    tone: 'light' as const,
-    link: '/features/reporting',
+    link: '/features/reporting', linkLabel: 'Learn more about reporting & intelligence', card: <ReportingCard />,
   },
   {
-    icon: FamilyRestroom, title: 'Family Portal', color: '#03C6B1',
+    anchor: 'family-portal', tag: 'Module 08', title: 'Family Portal',
     desc: 'Give authorised relatives a respectful, focused view of the information your service chooses to share.',
     features: ['Authorised portal access with secure links', 'Relevant care information and updates', 'Communication and feedback channels', 'Appointment and visit context', 'Access controlled entirely by the service'],
-    tone: 'warm' as const,
-    link: '/features/family-portal',
+    link: '/features/family-portal', linkLabel: 'Learn more about family portal', card: <FamilyCard />,
   },
   {
-    icon: Insights, title: 'AI Intelligence', color: 'M.tealDeep',
+    anchor: 'ai', tag: 'Module 09', title: 'AI Intelligence',
     desc: 'AI assistance designed to reduce administration and surface patterns — with human judgement, permissions and auditability at the centre.',
-    features: ['AI-assisted care summaries', 'Record change summaries', 'Risk signals with source traceability', 'Compliance copilot and operational activity review', 'Natural-language data assistant'],
-    tone: 'light' as const,
-    link: '/features/ai',
+    features: ['AI-assisted care summaries', 'Record change summaries', 'Risk signals with source traceability', 'Compliance copilot and activity review', 'Natural-language data assistant'],
+    link: '/features/ai', linkLabel: 'Learn more about ai intelligence', card: <AiCard />,
   },
 ]
 
-const workflows = [
-  { step: '01', title: 'Record', desc: 'Care notes, medication records, risk assessments and incidents are captured at the point of care — on web or mobile.' },
-  { step: '02', title: 'Connect', desc: 'Every record links back to the person, the care plan, the staff member and the visit — creating an auditable chain.' },
-  { step: '03', title: 'Review', desc: 'Managers see the operational picture: missed calls, overdue training, open incidents, compliance gaps — all in one view.' },
-  { step: '04', title: 'Act', desc: 'Assign follow-up actions, approve changes, generate reports and prepare evidence — with full change history.' },
+const dataFlows = [
+  { record: 'Care note', links: ['Person record', 'Care plan', 'Visit', 'Staff member'] },
+  { record: 'Incident', links: ['Care plan', 'Risk assessment', 'Actions', 'Follow-up'] },
+  { record: 'Medication', links: ['Person record', 'MAR', 'Exceptions', 'Audit log'] },
+  { record: 'Training', links: ['Staff profile', 'Competency', 'Compliance status'] },
+  { record: 'Visit', links: ['Schedule', 'Carer', 'Client', 'Area', 'Timesheet'] },
 ]
 
-/* ─── Page ──────────────────────────────────────────── */
+/* ─── Page ─────────────────────────────────────────────────────── */
 
 export default function PlatformPage() {
-  const nav = useNavigate()
-
   return (
     <MarketingLayout>
       <PageMeta
@@ -359,58 +462,99 @@ export default function PlatformPage() {
       />
 
       {/* Hero */}
-      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <SectionLabel>MeticleCare Platform</SectionLabel>
-              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
+      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F8FAFD 55%, #FFFFFF 100%)' }}>
+        <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 8 } }}>
+          <Grid container spacing={{ xs: 4, md: 6 }}>
+            <Grid item xs={12} md={7}>
+              <Box
+                sx={{
+                  display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#fff',
+                  border: `1px solid ${M.faint}`, borderRadius: '999px', px: 2, py: 0.75, mb: 3,
+                }}
+              >
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: M.navy }} />
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.dark }}>MeticleCare platform</Typography>
+              </Box>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, color: M.dark }}>
                 One platform. Every part of care operations.
               </Typography>
-              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, maxWidth: 520, mb: 4 }}>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.7, mb: 3.5, pt: { md: 5 } }}>
                 A shared operational layer for domiciliary and supported living teams. Capabilities are shaped by organisation type and enabled workflows — so every team sees what matters to them.
               </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/solutions/domiciliary-care')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Domiciliary care</Button>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ borderRadius: M.r.lg, overflow: 'hidden', border: `1px solid ${M.subtle}`, boxShadow: M.shadow.xl, bgcolor: M.card }}>
-                <Box sx={{ px: 2, py: 1, borderBottom: `1px solid ${M.faint}`, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#EF4444' }} />
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#F59E0B' }} />
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#10B981' }} />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.muted, ml: 1 }}>MeticleCare</Typography>
-                </Box>
-                <Box component="img" src="/meticle_dashboard_hero.jpg" alt="MeticleCare platform dashboard" sx={{ display: 'block', width: '100%', height: 'auto' }} />
-              </Box>
+              <CtaButtons secondary="See it for domiciliary care" secondaryTo="/solutions/domiciliary-care" />
+              <Reassurance
+                items={[
+                  { icon: reassuranceIcons.clock, text: '30-minute scoping call' },
+                  { icon: reassuranceIcons.check, text: '14-day free trial' },
+                ]}
+              />
             </Grid>
           </Grid>
+
+          {/* Module index: one connected box, hairline dividers, no cell radii */}
+          <Box
+            sx={{
+              mt: { xs: 5, md: 7 }, border: `1px solid ${M.faint}`, borderRadius: '16px',
+              overflow: 'hidden', bgcolor: 'transparent',
+            }}
+          >
+            <Grid container>
+              {indexCells.map((c, i) => {
+                const first = i === 0
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={c.no}>
+                    <Box
+                      component="a"
+                      href={`#${c.anchor}`}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 2, px: 3, py: '22px',
+                        textDecoration: 'none', height: '100%',
+                        bgcolor: first ? M.paper : 'transparent',
+                        borderBottom: i < 6 ? `1px solid ${M.faint}` : { xs: `1px solid ${M.faint}`, md: 'none' },
+                        borderRight: { md: (i % 3 !== 2) ? `1px solid ${M.faint}` : 'none', xs: 'none' },
+                        '&:hover': { bgcolor: M.paper },
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '0.8rem', color: M.slate, minWidth: 20 }}>{c.no}</Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', color: M.dark }}>{c.title}</Typography>
+                        <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{c.sub}</Typography>
+                      </Box>
+                      <ArrowForward sx={{ fontSize: 16, color: first ? M.navy : '#8A9AAE' }} />
+                    </Box>
+                  </Grid>
+                )
+              })}
+            </Grid>
+          </Box>
         </Container>
       </Box>
 
       {/* How it works */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
+      <Box sx={{ bgcolor: M.paper, py: { xs: 8, md: 13 } }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <SectionLabel>How it works</SectionLabel>
-            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
-              From recording to insight in four steps.
-            </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 560, mx: 'auto' }}>
-              Information flows from the point of care through to management oversight and compliance evidence.
-            </Typography>
-          </Box>
-          <Grid container spacing={3}>
-            {workflows.map((w) => (
-              <Grid item xs={12} sm={6} md={3} key={w.step}>
-                <Box sx={{ p: 3, bgcolor: M.paper, borderRadius: M.r.lg, height: '100%', border: `1px solid ${M.faint}` }}>
-                  <Typography sx={{ fontSize: '2.5rem', fontWeight: 600, color: M.teal, opacity: 0.3, mb: 1 }}>{w.step}</Typography>
-                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem', mb: 1 }}>{w.title}</Typography>
-                  <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{w.desc}</Typography>
+          <Grid container spacing={4} sx={{ mb: { xs: 5, md: 7 } }}>
+            <Grid item xs={12} md={7}>
+              <Eyebrow>How it works</Eyebrow>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.navy }}>
+                From recording to insight in four steps.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.7, pt: { md: 4 } }}>
+                Information flows from the point of care through to management oversight and compliance evidence.
+              </Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={{ xs: 3, md: 4 }}>
+            {steps.map((s, i) => (
+              <Grid item xs={12} sm={6} md={3} key={s.no}>
+                <Box sx={{ borderTop: `2px solid ${i === 0 ? M.navy : '#C9D5E2'}`, pt: 3 }}>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: i === 0 ? M.navy : M.slate, mb: 1 }}>{s.no}</Typography>
+                  <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: M.dark, mb: 1 }}>{s.title}</Typography>
+                  <Typography sx={{ fontSize: '0.88rem', color: M.slate, lineHeight: 1.65 }}>{s.desc}</Typography>
                 </Box>
               </Grid>
             ))}
@@ -418,84 +562,100 @@ export default function PlatformPage() {
         </Container>
       </Box>
 
-      {/* Full-width immersive modules */}
-      {modules.map((m, i) => {
-        const bg = m.tone === 'warm' ? M.paper : M.card
-        const isReversed = i % 2 !== 0
-        return (
-          <Box key={m.title} sx={{ py: { xs: 8, md: 12 }, bgcolor: bg, borderBottom: `1px solid ${M.faint}` }}>
-            <Container maxWidth="lg">
-              <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center" direction={isReversed ? 'row-reverse' : 'row'}>
+      {/* Modules */}
+      <Box sx={{ bgcolor: '#fff', py: { xs: 5, md: 5 } }}>
+        <Container maxWidth="lg">
+          {modules.map((m, i) => (
+            <Box
+              key={m.anchor}
+              id={m.anchor}
+              sx={{
+                scrollMarginTop: 96, py: { xs: 5, md: 7 },
+                borderTop: i > 0 ? `1px solid ${M.faint}` : 'none',
+              }}
+            >
+              <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" direction={i % 2 === 1 ? 'row-reverse' : 'row'}>
                 <Grid item xs={12} md={5}>
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                    <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: `${m.color}12`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                      <m.icon sx={{ color: m.color, fontSize: 24 }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: m.color, textTransform: 'none', letterSpacing: '0.08em' }}>Module {String(i + 1).padStart(2, '0')}</Typography>
-                      <Typography sx={{ fontWeight: 600, fontSize: '1.2rem' }}>{m.title}</Typography>
-                    </Box>
-                  </Stack>
-                  <Typography sx={{ color: M.slate, lineHeight: 1.65, fontSize: '0.95rem', mb: 3 }}>{m.desc}</Typography>
-                  <Stack spacing={1} sx={{ mb: 3 }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.06em', color: M.navy, mb: 1.5 }}>{m.tag}</Typography>
+                  <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, color: M.dark, mb: 2 }}>
+                    {m.title}
+                  </Typography>
+                  <Typography sx={{ color: M.slate, fontSize: '0.95rem', lineHeight: 1.7, mb: 3 }}>
+                    {m.desc}
+                  </Typography>
+                  <Box sx={{ mb: 3 }}>
                     {m.features.map((f) => (
-                      <Stack key={f} direction="row" spacing={1.5} alignItems="center">
-                        <Check sx={{ color: m.color, fontSize: 16 }} />
-                        <Typography sx={{ fontWeight: 500, fontSize: '0.88rem' }}>{f}</Typography>
+                      <Stack key={f} direction="row" alignItems="center" spacing={1.5} sx={{ py: '11px', borderBottom: `1px solid ${M.faint}` }}>
+                        <Check sx={{ fontSize: 16, color: M.navy, flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: '0.9rem', color: '#2A3A50' }}>{f}</Typography>
                       </Stack>
                     ))}
-                  </Stack>
-                  <Button component="a" href={m.link} endIcon={<ArrowForward />} sx={{ color: m.color, fontWeight: 600, px: 0, textTransform: 'none', fontSize: '0.88rem' }}>
-                    Learn more
-                  </Button>
+                  </Box>
+                  <Box
+                    component="a"
+                    href={m.link}
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, color: M.navy, fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    {m.linkLabel}
+                    <ArrowForward sx={{ fontSize: 16 }} />
+                  </Box>
                 </Grid>
                 <Grid item xs={12} md={7}>
-                  <Box sx={{
-                    transform: 'perspective(1000px) rotateY(-2deg) rotateX(1deg)',
-                    transition: 'transform 0.3s',
-                    '&:hover': { transform: 'perspective(1000px) rotateY(0deg) rotateX(0deg)' },
-                  }}>
-                    {mockups[m.title]}
+                  <Box sx={{ bgcolor: M.paper, borderRadius: '20px', p: { xs: 3, md: 6 } }}>
+                    {m.card}
                   </Box>
                 </Grid>
               </Grid>
-            </Container>
-          </Box>
-        )
-      })}
+            </Box>
+          ))}
+        </Container>
+      </Box>
 
-      {/* Architecture */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
+      {/* Connected architecture */}
+      <Box sx={{ bgcolor: M.dark, py: { xs: 8, md: 14 } }}>
         <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
+          <Grid container spacing={{ xs: 5, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <SectionLabel>Connected architecture</SectionLabel>
-              <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
+              <Eyebrow color={M.teal}>Connected architecture</Eyebrow>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: '#fff', mb: 2.5 }}>
                 Not a collection of modules. One connected system.
               </Typography>
-              <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.95rem', lineHeight: 1.7, mb: 2 }}>
                 When a care note is written, it links to the person, the care plan, the visit and the staff member. When an incident is recorded, it connects to the care plan, the risk assessment and any follow-up actions.
               </Typography>
-              <Typography sx={{ color: M.slate, lineHeight: 1.7 }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.95rem', lineHeight: 1.7 }}>
                 Managers never have to cross-reference multiple systems. The information they need is already connected.
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Box sx={{ p: 4, bgcolor: M.card, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-                <Typography sx={{ fontWeight: 600, mb: 2 }}>Data flow</Typography>
-                {[
-                  { from: 'Care note', to: 'Person record + Care plan + Visit + Staff member', icon: Description },
-                  { from: 'Incident', to: 'Care plan + Risk assessment + Actions + Follow-up', icon: Warning },
-                  { from: 'Medication', to: 'Person record + MAR + Exceptions + Audit log', icon: Medication },
-                  { from: 'Training', to: 'Staff profile + Competency + Compliance status', icon: People },
-                  { from: 'Visit', to: 'Schedule + Carer + Client + Area + Timesheet', icon: LocationOn },
-                ].map((row, i) => (
-                  <Stack key={row.from} direction="row" spacing={2} alignItems="center" sx={{ py: 1.5, borderBottom: i < 4 ? `1px solid ${M.faint}` : 'none' }}>
-                    <row.icon sx={{ color: M.teal, fontSize: 18 }} />
-                    <Typography sx={{ fontWeight: 600, minWidth: 100, fontSize: '0.88rem' }}>{row.from}</Typography>
-                    <ArrowForward sx={{ color: M.subtle, fontSize: 16 }} />
-                    <Typography sx={{ color: M.slate, fontSize: '0.85rem' }}>{row.to}</Typography>
-                  </Stack>
+              <Box sx={{ border: '1px solid rgba(255,255,255,0.28)', borderRadius: '16px', overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    display: 'flex', justifyContent: 'space-between', px: 3, py: 1.75,
+                    bgcolor: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.16)',
+                  }}
+                >
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Record</Typography>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Automatically linked to</Typography>
+                </Box>
+                {dataFlows.map((row) => (
+                  <Box
+                    key={row.record}
+                    sx={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 3,
+                      px: 3, py: 2, borderBottom: '1px solid rgba(255,255,255,0.16)',
+                      '&:last-child': { borderBottom: 'none' },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', flexShrink: 0 }}>{row.record}</Typography>
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+                      {row.links.map((l) => (
+                        <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(3,198,177,0.12)', color: '#7BE3D6', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {l}
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
                 ))}
               </Box>
             </Grid>
@@ -504,15 +664,28 @@ export default function PlatformPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
-            See how the pieces connect.
-          </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
-            The product is built around the person, the service and the working day.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+      <Box sx={{ bgcolor: '#fff', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.dark, mb: 1.5 }}>
+                See how the pieces connect.
+              </Typography>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.7 }}>
+                The product is built around the person, the service and the working day. We&apos;ll walk you through it with your own workflows in mind.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <CtaButtons secondary="Ask us a question" secondaryTo="/contact" />
+              <Reassurance
+                items={[
+                  { icon: reassuranceIcons.clock, text: '30-minute scoping call' },
+                  { icon: reassuranceIcons.check, text: '14-day free trial' },
+                  { icon: <Groups sx={{ fontSize: 16, color: M.tealDeep }} />, text: 'Named point of contact' },
+                ]}
+              />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>

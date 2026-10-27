@@ -164,8 +164,15 @@ export default function DownloadPageNew() {
       <PageMeta title="MeticleCare mobile app" description="MeticleCare's React Native mobile app gives care teams a field-ready experience alongside the web application. Store links will be published when the apps are available." canonicalPath="/download" />
 
       {/* ═══ HERO ═══ */}
-      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
+      <Box sx={{ pt: { xs: 6, md: 10 }, pb: { xs: 10, md: 16 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+            <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: '0.8rem', p: 0, fontFamily: M.font, '&:hover': { textDecoration: 'underline' } }}>
+              Solutions
+            </Typography>
+            <Typography sx={{ color: M.subtle, fontSize: '0.8rem' }}>/</Typography>
+            <Typography sx={{ color: M.ink, fontSize: '0.8rem', fontWeight: 600 }}>Mobile App</Typography>
+          </Stack>
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <SectionLabel>Mobile app</SectionLabel>
@@ -175,7 +182,7 @@ export default function DownloadPageNew() {
               <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 4 }}>
                 Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. The app is built with React Native; App Store and Google Play links will be added once the releases are published.
               </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
                 {appStoreUrl ? (
                   <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
                 ) : (
@@ -187,6 +194,9 @@ export default function DownloadPageNew() {
                   <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 600 }}>Google Play link pending</Button>
                 )}
               </Stack>
+              <Typography sx={{ color: M.muted, fontSize: '0.8rem' }}>
+                Built with React Native. Store links will be added once the releases are published.
+              </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
@@ -205,15 +215,19 @@ export default function DownloadPageNew() {
       {/* ═══ FEATURES GRID ═══ */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <SectionLabel>What you can do</SectionLabel>
-            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
-              The full field experience.
-            </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 560, mx: 'auto' }}>
-              Everything care teams need for the work in front of them — without carrying a laptop or calling the office.
-            </Typography>
-          </Box>
+          <Grid container spacing={{ xs: 3, md: 10 }} sx={{ mb: { xs: 5, md: 6 } }}>
+            <Grid item xs={12} md={6}>
+              <SectionLabel>What you can do</SectionLabel>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing }}>
+                The full field experience.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'flex-end' }}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight }}>
+                Everything care teams need for the work in front of them — without carrying a laptop or calling the office.
+              </Typography>
+            </Grid>
+          </Grid>
           <Grid container spacing={2.5}>
             {features.map((f) => (
               <Grid item xs={12} sm={6} md={4} key={f.title}>
@@ -236,68 +250,88 @@ export default function DownloadPageNew() {
       {/* ═══ CHAT SCREEN + TWO AUDIENCES ═══ */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
+          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <SectionLabel>For managers</SectionLabel>
+              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
+                Oversight from anywhere.
+              </Typography>
+              <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
+                Managers can view the dashboard, approve leave, check call statuses, review incidents and monitor team performance — all from their phone.
+              </Typography>
+              <Stack spacing={1.5}>
+                {managerFeatures.map((item) => (
+                  <Stack key={item} direction="row" spacing={1.5} alignItems="center">
+                    <Check sx={{ color: M.navy, fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Grid>
             <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
               <PhoneFrame label="Team chat">
                 <ChatScreen />
               </PhoneFrame>
             </Grid>
-            <Grid item xs={12} md={8}>
-              <Grid container spacing={4}>
-                <Grid item xs={12} sm={6}>
-                  <SectionLabel>For managers</SectionLabel>
-                  <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
-                    Oversight from anywhere.
-                  </Typography>
-                  <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
-                    Managers can view the dashboard, approve leave, check call statuses, review incidents and monitor team performance — all from their phone.
-                  </Typography>
-                  <Stack spacing={1.5}>
-                    {managerFeatures.map((item) => (
-                      <Stack key={item} direction="row" spacing={1.5} alignItems="center">
-                        <Check sx={{ color: M.teal, fontSize: 18 }} />
-                        <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
-                      </Stack>
-                    ))}
+            <Grid item xs={12} md={4}>
+              <SectionLabel>For carers</SectionLabel>
+              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
+                Everything you need in the field.
+              </Typography>
+              <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
+                Carers see their schedule, access client information, record care notes, check in and out of visits, report disruptions and communicate with the team.
+              </Typography>
+              <Stack spacing={1.5}>
+                {carerFeatures.map((item) => (
+                  <Stack key={item} direction="row" spacing={1.5} alignItems="center">
+                    <Check sx={{ color: M.navy, fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
                   </Stack>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <SectionLabel>For carers</SectionLabel>
-                  <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
-                    Everything you need in the field.
-                  </Typography>
-                  <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
-                    Carers see their schedule, access client information, record care notes, check in and out of visits, report disruptions and communicate with the team.
-                  </Typography>
-                  <Stack spacing={1.5}>
-                    {carerFeatures.map((item) => (
-                      <Stack key={item} direction="row" spacing={1.5} alignItems="center">
-                        <Check sx={{ color: M.teal, fontSize: 18 }} />
-                        <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                </Grid>
-              </Grid>
+                ))}
+              </Stack>
             </Grid>
           </Grid>
         </Container>
       </Box>
 
+      {/* ═══ PHOTOGRAPHY PLACEHOLDER ═══ */}
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
+        <Container maxWidth="lg">
+          <Box sx={{
+            borderRadius: M.r.xl, border: `1px dashed ${M.subtle}`, bgcolor: M.faint,
+            minHeight: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4,
+          }}>
+            <Typography sx={{ color: M.slate, fontSize: '0.9rem' }}>
+              Photography placeholder — care team using the mobile app in the field.
+            </Typography>
+          </Box>
+        </Container>
+      </Box>
+
       {/* ═══ CTA ═══ */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
-            Ready to get started?
-          </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4 }}>
-            Download the app or talk to the team about your care operation.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
-            {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
-            {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
-          </Stack>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
+        <Container maxWidth="lg">
+          <Box sx={{ bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}`, px: { xs: 3, md: 6 }, py: { xs: 6, md: 8 }, textAlign: 'center' }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.ink, mb: 2 }}>
+              Ready to get started?
+            </Typography>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, mb: 4 }}>
+              Download the app or talk to the team about your care operation.
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.navyMid } }}>Book a demo</Button>
+              {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
+              {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} justifyContent="center" sx={{ mt: 3 }}>
+              {['30-minute scoping call', '14-day free trial', 'Named point of contact'].map((t) => (
+                <Stack key={t} direction="row" spacing={1} alignItems="center" justifyContent="center">
+                  <Check sx={{ color: M.navy, fontSize: 16 }} />
+                  <Typography sx={{ color: M.slate, fontSize: '0.82rem', fontWeight: 500 }}>{t}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </Box>
         </Container>
       </Box>
     </MarketingLayout>
