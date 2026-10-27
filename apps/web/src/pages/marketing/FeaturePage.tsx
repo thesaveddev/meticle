@@ -89,10 +89,10 @@ function StepNo({ n }: { n: string }) {
 /* Hero card: Care records (Figma 32:44 hero right) */
 function CareRecordsCard() {
   const rows = [
-    { initials: 'MW', name: 'Margaret Wilson', badge: 'Support plan review', bg: '#EAF3FF', badgeBg: '#EAF3FF', badgeColor: M.navy, avBg: '#DCE9F7', avColor: M.navy },
-    { initials: 'JD', name: 'John Davies', badge: 'Daily note', bg: '#EAFBF5', badgeBg: '#EAFBF5', badgeColor: '#087A55', avBg: '#D2F3E3', avColor: '#087A55' },
-    { initials: 'PL', name: 'Patricia Lewis', badge: 'Health observation', bg: '#FFF7E6', badgeBg: '#FFF7E6', badgeColor: '#9A6700', avBg: '#FCEFC7', avColor: '#9A6700' },
-    { initials: 'RH', name: 'Robert Hughes', badge: 'Body map update', bg: '#F4F9FC', badgeBg: '#EDF1F6', badgeColor: M.slate, avBg: '#E3E9F0', avColor: M.slate },
+    { initials: 'MW', name: 'Margaret Wilson', badge: 'Support plan review', bg: '#EAF3FF', badgeBg: '#EAF3FF', badgeColor: M.navy, avBg: M.avBlue, avColor: M.navy },
+    { initials: 'JD', name: 'John Davies', badge: 'Daily note', bg: '#EAFBF5', badgeBg: '#EAFBF5', badgeColor: '#087A55', avBg: M.avGreen, avColor: '#087A55' },
+    { initials: 'PL', name: 'Patricia Lewis', badge: 'Health observation', bg: '#FFF7E6', badgeBg: '#FFF7E6', badgeColor: '#9A6700', avBg: M.avAmber, avColor: '#9A6700' },
+    { initials: 'RH', name: 'Robert Hughes', badge: 'Body map update', bg: '#F4F9FC', badgeBg: M.inset, badgeColor: M.slate, avBg: '#E3E9F0', avColor: M.slate },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
@@ -129,7 +129,7 @@ function PersonRecordCard() {
         <Badge label="Linked" bg="#EAFBF5" color="#087A55" />
       </Stack>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 1.5, borderBottom: `1px solid ${M.faint}` }}>
-        <Avatar initials="MW" bg="#DCE9F7" color={M.navy} />
+        <Avatar initials="MW" bg={M.avBlue} color={M.navy} />
         <Box>
           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: M.dark }}>Margaret Wilson</Typography>
           <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Supported living · Riverside</Typography>
@@ -401,7 +401,7 @@ function MedicationRecordCard() {
     { time: '08:00', name: 'Metformin', dose: '500mg', badge: 'Given', bg: '#EAFBF5', color: '#087A55' },
     { time: '08:00', name: 'Amlodipine', dose: '5mg', badge: 'Given', bg: '#EAFBF5', color: '#087A55' },
     { time: '12:00', name: 'Omeprazole', dose: '20mg', badge: 'Due', bg: '#FFF7E6', color: '#9A6700' },
-    { time: '14:00', name: 'Paracetamol', dose: '500mg', badge: 'Pending', bg: '#EDF1F6', color: M.slate },
+    { time: '14:00', name: 'Paracetamol', dose: '500mg', badge: 'Pending', bg: M.inset, color: M.slate },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
@@ -500,8 +500,8 @@ function PermissionsCard() {
   const rows = [
     { role: 'Medication lead', scope: 'Administer · stock · audit', badge: 'Full', bg: '#EAFBF5', color: '#087A55' },
     { role: 'Care worker (trained)', scope: 'Administer and record', badge: 'Administer', bg: '#EAF3FF', color: M.navy },
-    { role: 'Care worker (not trained)', scope: 'No medication access', badge: 'None', bg: '#EDF1F6', color: M.slate },
-    { role: 'Family portal', scope: 'Not shared by default', badge: 'Hidden', bg: '#EDF1F6', color: M.slate },
+    { role: 'Care worker (not trained)', scope: 'No medication access', badge: 'None', bg: M.inset, color: M.slate },
+    { role: 'Family portal', scope: 'Not shared by default', badge: 'Hidden', bg: M.inset, color: M.slate },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
@@ -556,7 +556,7 @@ function AreaBarsCard() {
     { name: 'North', pct: 96, bar: '#10B981' },
     { name: 'South', pct: 91, bar: M.navy },
     { name: 'East', pct: 88, bar: M.navy },
-    { name: 'West', pct: 79, bar: '#D9A441' },
+    { name: 'West', pct: 79, bar: M.barAmber },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
@@ -570,7 +570,7 @@ function AreaBarsCard() {
             <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: M.dark }}>{a.name}</Typography>
             <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: M.dark }}>{a.pct}%</Typography>
           </Stack>
-          <Box sx={{ height: 8, bgcolor: '#EDF1F6', borderRadius: 999, overflow: 'hidden' }}>
+          <Box sx={{ height: 8, bgcolor: M.inset, borderRadius: 999, overflow: 'hidden' }}>
             <Box sx={{ width: `${a.pct}%`, height: '100%', bgcolor: a.bar, borderRadius: 999 }} />
           </Box>
         </Box>
@@ -631,7 +631,7 @@ function ExportsCard() {
       ))}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
         <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Export</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Schedule</Button>
+        <Button variant="outlined" sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Schedule</Button>
       </Stack>
     </Box>
   )
@@ -675,7 +675,7 @@ function RiskListCard() {
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Risk assessments · Margaret W.</Typography>
-        <Badge label="3 active" bg="#EDF1F6" color={M.slate} />
+        <Badge label="3 active" bg={M.inset} color={M.slate} />
       </Stack>
       {rows.map((r) => (
         <Stack key={r.title} direction="row" spacing={1.5} alignItems="center" justifyContent="space-between" sx={{ py: 1.5, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 0 } }}>
@@ -717,7 +717,7 @@ function FollowUpCard() {
   const rows = [
     { title: 'Update mobility plan', sub: 'Owner Sarah M. · due 12 Nov', badge: 'Overdue', bg: '#FEF0F0', color: '#B42318' },
     { title: 'Physiotherapy referral', sub: 'Owner James K. · done 8 Nov', badge: 'Done', bg: '#EAFBF5', color: '#087A55' },
-    { title: 'Escalated to manager', sub: '8 Nov · reviewed', badge: 'History', bg: '#EDF1F6', color: M.slate },
+    { title: 'Escalated to manager', sub: '8 Nov · reviewed', badge: 'History', bg: M.inset, color: M.slate },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
@@ -745,7 +745,7 @@ function CallScheduleCard() {
     { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', carerRed: false, badge: 'Completed', bg: '#EAFBF5', color: '#087A55' },
     { time: '10:30', client: 'John D.', carer: 'James K.', carerRed: false, badge: 'En route', bg: '#EAF3FF', color: M.navy },
     { time: '11:00', client: 'Patricia L.', carer: 'No carer assigned', carerRed: true, badge: 'Unassigned', bg: '#FEF0F0', color: '#B42318' },
-    { time: '13:00', client: 'Robert H.', carer: 'Priya S.', carerRed: false, badge: 'Scheduled', bg: '#EDF1F6', color: M.slate },
+    { time: '13:00', client: 'Robert H.', carer: 'Priya S.', carerRed: false, badge: 'Scheduled', bg: M.inset, color: M.slate },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
@@ -770,9 +770,9 @@ function CallScheduleCard() {
 function RotaGridCard() {
   const cols = ['08:00', '11:00', '14:00', '17:00']
   const shifts: { name: string; blocks: { from: number; to: number; color: string }[] }[] = [
-    { name: 'Sarah M.', blocks: [{ from: 0, to: 2, color: '#BFD9F5' }] },
-    { name: 'James K.', blocks: [{ from: 1, to: 2, color: '#BFD9F5' }, { from: 2, to: 4, color: '#F5C97B' }] },
-    { name: 'Priya S.', blocks: [{ from: 0, to: 1, color: '#BFD9F5' }, { from: 3, to: 4, color: '#BFD9F5' }] },
+    { name: 'Sarah M.', blocks: [{ from: 0, to: 2, color: M.blockBlue }] },
+    { name: 'James K.', blocks: [{ from: 1, to: 2, color: M.blockBlue }, { from: 2, to: 4, color: M.barSand }] },
+    { name: 'Priya S.', blocks: [{ from: 0, to: 1, color: M.blockBlue }, { from: 3, to: 4, color: M.blockBlue }] },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
@@ -790,7 +790,7 @@ function RotaGridCard() {
           ...[0, 1, 2, 3].map((col) => {
             const b = s.blocks.find((x) => col >= x.from && col < x.to)
             return (
-              <Box key={`${s.name}-${col}`} sx={{ height: 26, borderRadius: '6px', bgcolor: b ? b.color : '#F1F4F8' }} />
+              <Box key={`${s.name}-${col}`} sx={{ height: 26, borderRadius: '6px', bgcolor: b ? b.color : M.inset }} />
             )
           }),
         ])}
@@ -821,7 +821,7 @@ function OpenCallsCard() {
           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: M.dark }}>15:30 — Robert H.</Typography>
           <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>30 min · North area</Typography>
         </Box>
-        <Badge label="Open" bg="#EDF1F6" color={M.slate} />
+        <Badge label="Open" bg={M.inset} color={M.slate} />
       </Stack>
       <Box sx={{ mt: 1, bgcolor: '#EAF3FF', borderRadius: '10px', px: 1.75, py: 1.25 }}>
         <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>● Manager approval required before publishing</Typography>
@@ -853,7 +853,7 @@ function ProposedChangesCard() {
       ))}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
         <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve &amp; publish</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Review</Button>
+        <Button variant="outlined" sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Review</Button>
       </Stack>
     </Box>
   )
@@ -864,8 +864,8 @@ function ProposedChangesCard() {
 function StaffComplianceCard() {
   const rows = [
     { initials: 'SM', name: 'Sarah M.', role: 'Senior Carer', badge: '98% compliant', bg: '#D2FBF4', badgeBg: '#D2FBF4', color: M.tealDeep, avBg: '#D2FBF4', avColor: M.tealDeep },
-    { initials: 'JK', name: 'James K.', role: 'Care Worker', badge: '85% compliant', bg: '#EAF3FF', badgeBg: '#EAF3FF', color: M.navy, avBg: '#DCE9F7', avColor: M.navy },
-    { initials: 'PS', name: 'Priya S.', role: 'Care Worker', badge: '72% compliant', bg: '#FFF7E6', badgeBg: '#FFF7E6', color: '#9A6700', avBg: '#FCEFC7', avColor: '#9A6700' },
+    { initials: 'JK', name: 'James K.', role: 'Care Worker', badge: '85% compliant', bg: '#EAF3FF', badgeBg: '#EAF3FF', color: M.navy, avBg: M.avBlue, avColor: M.navy },
+    { initials: 'PS', name: 'Priya S.', role: 'Care Worker', badge: '72% compliant', bg: '#FFF7E6', badgeBg: '#FFF7E6', color: '#9A6700', avBg: M.avAmber, avColor: '#9A6700' },
   ]
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
@@ -897,7 +897,7 @@ function StaffProfileCard() {
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-        <Avatar initials="PS" bg="#DCE9F7" color={M.navy} />
+        <Avatar initials="PS" bg={M.avBlue} color={M.navy} />
         <Box>
           <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Priya S.</Typography>
           <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>Care Worker · Staff profile</Typography>
@@ -972,7 +972,7 @@ function AvailabilityCard() {
       ? { bgcolor: '#D2FBF4', border: '1px solid transparent', color: M.tealDeep }
       : state === 'leave'
         ? { bgcolor: '#FFF7E6', border: '1px dashed #F59E0B', color: '#9A6700' }
-        : { bgcolor: '#EDF1F6', border: '1px solid transparent', color: M.slate }
+        : { bgcolor: M.inset, border: '1px solid transparent', color: M.slate }
   return (
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
@@ -993,7 +993,7 @@ function AvailabilityCard() {
       <Typography sx={{ fontSize: '0.8125rem', color: M.slate, mb: 1.5 }}>Coverage impact: 2 shifts to fill</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
         <Button variant="contained" sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Approve</Button>
-        <Button variant="outlined" sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Send shifts to marketplace</Button>
+        <Button variant="outlined" sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3, py: 1, borderRadius: M.r.md, textTransform: 'none', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Send shifts to marketplace</Button>
       </Stack>
     </Box>
   )
@@ -1027,7 +1027,7 @@ function MedicationPage() {
         ]}
       />
       {/* Breadcrumb */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1039,7 +1039,7 @@ function MedicationPage() {
         </Container>
       </Box>
       {/* Hero */}
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1056,7 +1056,7 @@ function MedicationPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1178,7 +1178,7 @@ function ReportingPage() {
           { name: 'Reporting', path: '/features/reporting' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1189,7 +1189,7 @@ function ReportingPage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1206,7 +1206,7 @@ function ReportingPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1324,7 +1324,7 @@ function RiskPage() {
           { name: 'Risk & Incidents', path: '/features/risk-management' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1335,7 +1335,7 @@ function RiskPage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1352,7 +1352,7 @@ function RiskPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1470,7 +1470,7 @@ function SchedulingPage() {
           { name: 'Scheduling', path: '/features/scheduling' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1481,7 +1481,7 @@ function SchedulingPage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1498,7 +1498,7 @@ function SchedulingPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1616,7 +1616,7 @@ function WorkforcePage() {
           { name: 'Workforce', path: '/features/workforce' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1627,7 +1627,7 @@ function WorkforcePage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1644,7 +1644,7 @@ function WorkforcePage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1763,7 +1763,7 @@ function CareManagementPage() {
         ]}
       />
       {/* Breadcrumb */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -1775,7 +1775,7 @@ function CareManagementPage() {
         </Container>
       </Box>
       {/* Hero */}
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -1792,7 +1792,7 @@ function CareManagementPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -1932,7 +1932,7 @@ function AccessControlCard() {
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Authorised access</Typography>
-        <Badge label="Service-controlled" bg="#EDF1F6" color={M.slate} />
+        <Badge label="Service-controlled" bg={M.inset} color={M.slate} />
       </Stack>
       {rows.map((r) => (
         <Stack key={r.name} direction="row" spacing={1.5} alignItems="center" justifyContent="space-between" sx={{ py: 1.5, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 0 } }}>
@@ -2022,7 +2022,7 @@ function FamilyPortalPage() {
           { name: 'Family Portal', path: '/features/family-portal' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -2033,7 +2033,7 @@ function FamilyPortalPage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -2050,7 +2050,7 @@ function FamilyPortalPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -2154,7 +2154,7 @@ function AIHeroCard() {
       <Box sx={{ p: { xs: 2.5, md: 3 } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care summary · last 14 days</Typography>
-          <Badge label="Assistive · review required" bg="#EDF1F6" color={M.slate} />
+          <Badge label="Assistive · review required" bg={M.inset} color={M.slate} />
         </Stack>
         <Typography sx={{ fontSize: '0.875rem', color: M.dark, lineHeight: 1.65, mb: 2 }}>
           Margaret&apos;s mobility needs increased over the past two weeks. Consider reviewing her support plan and fall-risk assessment.
@@ -2189,7 +2189,7 @@ function CareSummaryCard() {
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Care summary</Typography>
         <Stack direction="row" spacing={0.75}>
           {['7', '14', '30'].map((p) => (
-            <Box key={p} sx={{ px: 1.25, py: 0.375, borderRadius: 999, bgcolor: p === '14' ? M.navy : '#EDF1F6' }}>
+            <Box key={p} sx={{ px: 1.25, py: 0.375, borderRadius: 999, bgcolor: p === '14' ? M.navy : M.inset }}>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: p === '14' ? '#FFFFFF' : M.slate }}>{p}d</Typography>
             </Box>
           ))}
@@ -2249,7 +2249,7 @@ function CopilotCard() {
     <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, p: { xs: 2.5, md: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: M.dark }}>Compliance copilot</Typography>
-        <Badge label="Review required" bg="#EDF1F6" color={M.slate} />
+        <Badge label="Review required" bg={M.inset} color={M.slate} />
       </Stack>
       <Box sx={{ bgcolor: 'notice.muted.bg', borderRadius: '12px', px: 1.75, py: 1.25, mb: 1.5 }}>
         <Typography sx={{ fontSize: '0.8125rem', color: M.dark }}>What needs attention before inspection?</Typography>
@@ -2295,7 +2295,7 @@ function AIPage() {
           { name: 'AI Intelligence', path: '/features/ai' },
         ]}
       />
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -2306,7 +2306,7 @@ function AIPage() {
           </Stack>
         </Container>
       </Box>
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -2323,7 +2323,7 @@ function AIPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore all modules</Button>
               </Stack>
               <AssureRow />
             </Grid>

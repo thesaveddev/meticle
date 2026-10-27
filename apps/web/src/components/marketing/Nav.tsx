@@ -71,13 +71,13 @@ function ModuleItem({ item, go, selected }: { item: ModuleChild; go: (path: stri
       onClick={() => go(item.path)}
       aria-current={selected ? 'true' : undefined}
       sx={{
-        border: `1px solid ${selected ? '#D9E6F5' : 'transparent'}`,
+        border: `1px solid ${selected ? M.selBorder : 'transparent'}`,
         width: '100%', textAlign: 'left',
         bgcolor: selected ? M.paper : 'transparent', cursor: 'pointer',
         display: 'flex', alignItems: 'flex-start', gap: '12px',
         p: '10px 12px', borderRadius: '10px',
         transition: `background ${M.transition.fast}, border-color ${M.transition.fast}`,
-        '&:hover': { bgcolor: M.paper, borderColor: '#D9E6F5' },
+        '&:hover': { bgcolor: M.paper, borderColor: M.selBorder },
         '&:hover .mi-title': { color: M.navy },
         '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
       }}
@@ -194,7 +194,7 @@ function SolutionsPanel({ go, activePath }: { go: (path: string) => void; active
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: M.slate, mb: 1.5 }}>
           Not sure which fits?
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.6, color: '#2A3A50', mb: 2 }}>
+        <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.6, color: M.bodyText, mb: 2 }}>
           Most providers run a mix of both. MeticleCare shapes the workflows around your organisation type.
         </Typography>
         <Box
@@ -385,7 +385,7 @@ export default function Nav() {
             <IconButton
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
-              sx={{ width: 44, height: 44, borderRadius: '12px', bgcolor: '#F4F8FB', border: `1px solid ${M.faint}`, color: M.dark }}
+              sx={{ width: 44, height: 44, borderRadius: '12px', bgcolor: M.navIcon, border: `1px solid ${M.faint}`, color: M.dark }}
             >
               <FIcon name="close" size={24} />
             </IconButton>
@@ -425,7 +425,7 @@ export default function Nav() {
             <Button
               fullWidth variant="outlined"
               onClick={() => go('/login')}
-              sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, py: 1.4, borderRadius: '14px', textTransform: 'none', fontSize: '0.9rem' }}
+              sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, py: 1.4, borderRadius: '14px', textTransform: 'none', fontSize: '0.9rem' }}
             >Login</Button>
           </Box>
         </Box>
@@ -527,7 +527,7 @@ function MobilePlatformPanel({ go }: { go: (path: string) => void }) {
               sx={{
                 border: `1px solid ${M.faint}`, bgcolor: 'transparent', cursor: 'pointer',
                 borderRadius: '999px', px: '12px', py: '7px', fontFamily: 'inherit',
-                fontSize: '0.8125rem', color: '#2A3A50',
+                fontSize: '0.8125rem', color: M.bodyText,
                 transition: `background ${M.transition.fast}`,
                 '&:hover': { bgcolor: M.paper },
                 '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },

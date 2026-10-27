@@ -61,7 +61,7 @@ function TrustChecks() {
 function MockShell({ header, badge, badgeTone, children }: { header: string; badge: string; badgeTone: 'live' | 'link' | 'warn' | 'muted'; children: React.ReactNode }) {
   const tones = {
     live: { color: M.green, bgcolor: M.greenLight },
-    link: { color: M.navy, bgcolor: '#E8F1FD' },
+    link: { color: M.navy, bgcolor: M.chipBlue },
     warn: { color: '#B42318', bgcolor: M.coralLight },
     muted: { color: M.slate, bgcolor: M.faint },
   }[badgeTone]
@@ -79,7 +79,7 @@ function MockShell({ header, badge, badgeTone, children }: { header: string; bad
 function CallRow({ time, name, status, tone }: { time: string; name: string; status: string; tone: 'live' | 'link' | 'warn' | 'muted' }) {
   const tones = {
     live: { color: M.green, bgcolor: M.greenLight },
-    link: { color: M.navy, bgcolor: '#E8F1FD' },
+    link: { color: M.navy, bgcolor: M.chipBlue },
     warn: { color: '#B42318', bgcolor: M.coralLight },
     muted: { color: M.slate, bgcolor: M.faint },
   }[tone]
@@ -97,7 +97,7 @@ function CallRow({ time, name, status, tone }: { time: string; name: string; sta
 function KVRow({ k, v, chip, chipTone }: { k: string; v: string; chip?: string; chipTone?: 'live' | 'link' | 'warn' | 'muted' }) {
   const tones = chipTone ? {
     live: { color: M.green, bgcolor: M.greenLight },
-    link: { color: M.navy, bgcolor: '#E8F1FD' },
+    link: { color: M.navy, bgcolor: M.chipBlue },
     warn: { color: '#B42318', bgcolor: M.coralLight },
     muted: { color: M.slate, bgcolor: M.faint },
   }[chipTone] : null

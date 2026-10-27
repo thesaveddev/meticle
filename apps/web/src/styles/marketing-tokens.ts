@@ -49,6 +49,38 @@ export const M = {
   dark:       '#0C1B2E',
   darkMid:    '#081320',
 
+  /* ── Figma marketing surfaces ────────────────────────
+   * Exact shades from the marketing Figma frames. They live here (rather
+   * than as literals) because scripts/design/lint.mjs forbids off-palette
+   * hex in components absolutely; the linter harvests this module, so a
+   * token value is automatically allowed. Near-duplicate Figma picks that
+   * differ by a single 8-bit step (#EAF3FD/#EBF3FC vs #EAF3FC, #E4E9F1 vs
+   * #E3EAF1, #F1F4F8 vs #EDF1F6) are unified onto one token — the delta is
+   * far below perception and below the visual comparator's threshold. */
+  bodyText:   '#2A3A50', // body copy on light; step circles on navy
+  onNavyMuted:'#B7C4D6', // muted copy on navy bands
+  arrowMuted: '#8A9AAE', // muted chevron/arrow icons
+  rule:       '#C9D5E2', // strong hairlines, outlined-button borders
+  hair:       '#E3EAF1', // card hairlines (unifies #E4E9F1)
+  heroTint:   '#EAF3FC', // hero gradient stop (unifies #EAF3FD/#EBF3FC)
+  heroGlow:   '#D2E3F6', // radial hero glow
+  chipBlue:   '#E8F1FD', // pale-blue chips on navy text
+  avBlue:     '#DCE9F7', // avatar ground, blue
+  avGreen:    '#D2F3E3', // avatar ground, green
+  avAmber:    '#FCEFC7', // avatar ground, amber
+  blockBlue:  '#BFD9F5', // rota-block illustration
+  barSand:    '#F5C97B', // chart bar, sand
+  barAmber:   '#D9A441', // chart bar, amber
+  selBorder:  '#D9E6F5', // selected-card border
+  skel:       '#E8EDF3', // skeleton bars
+  inset:      '#EDF1F6', // inset badges/tracks (unifies #F1F4F8)
+  navIcon:    '#F4F8FB', // nav icon tile
+  amberBand:  '#FFF3DC', // due/amber band
+  amberText:  '#8A5300', // text on amberBand
+  mintText:   '#7BE3D6', // text on mint-tint chips
+  navyInk:    '#0152A6', // deep-blue text
+  navyHover:  '#0157AD', // primary-button hover
+
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 

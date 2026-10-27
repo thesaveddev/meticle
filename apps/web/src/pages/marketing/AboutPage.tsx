@@ -23,8 +23,8 @@ import { useScrollReveal } from '../../styles/useScrollReveal'
  *  6. Cover art and photos are exported Figma images, never CSS approximations.
  */
 
-const HAIRLINE = '#E4E9F1'
-const GREY_RULE = '#c9d5e2'
+const HAIRLINE = M.hair
+const GREY_RULE = M.rule
 
 const heroChecks = ['30-minute scoping call', '14-day free trial', 'Named point of contact']
 
@@ -144,7 +144,7 @@ export default function AboutPage() {
               Home
             </Typography>
             <Typography sx={{ color: M.slate, fontSize: '0.8rem' }}>›</Typography>
-            <Typography sx={{ bgcolor: '#EAF3FD', color: M.ink, fontSize: '0.8rem', fontWeight: 600, borderRadius: M.r.full, px: 1.25, py: 0.5 }}>
+            <Typography sx={{ bgcolor: M.heroTint, color: M.ink, fontSize: '0.8rem', fontWeight: 600, borderRadius: M.r.full, px: 1.25, py: 0.5 }}>
               About
             </Typography>
           </Stack>
@@ -155,7 +155,7 @@ export default function AboutPage() {
           data-reveal-group
           sx={{
             position: 'relative', overflow: 'clip',
-            background: 'linear-gradient(180deg, #eaf3fc 0%, #f4f9fc 55%, #ffffff 100%)',
+            background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)`,
             pt: { xs: 8, md: '128px' }, pb: { xs: 7, md: '96px' },
           }}
         >

@@ -13,13 +13,13 @@ import PageMeta from '../../components/PageMeta'
  * Section label (Connected arch):     #03C6B1 (teal)
  * Index numbers / step 02–04:         #51637A (slate)
  * Titles / step titles / values:      #0C1B2E (navy)
- * Capability text:                    #2A3A50 (ink)
- * Hairlines:                          #E3EAF1 · top rules: #C9D5E2
- * Muted arrows:                       #8A9AAE
+ * Capability text:                    M.bodyText (ink)
+ * Hairlines:                          M.hair · top rules: M.rule
+ * Muted arrows:                       M.arrowMuted
  * Reassurance icons:                  #004E45 (teal-deep)
- * Data-flow chips: bg rgba(3,198,177,.12), text #7BE3D6
- * Chips: MAR/England blue #EAF3FD·#0164C8 · Given teal #D2FBF4·#004E45
- *   Due amber #FFF3DC·#8A5300 · Pending grey #F4F9FC·#51637A
+ * Data-flow chips: bg rgba(3,198,177,.12), text M.mintText
+ * Chips: MAR/England blue M.heroTint·#0164C8 · Given teal #D2FBF4·#004E45
+ *   Due amber M.amberBand·M.amberText · Pending grey #F4F9FC·#51637A
  *   Unassigned red #FEF0F0·#B42318 · Scheduled grey · 3 active amber
  */
 
@@ -41,14 +41,14 @@ function CtaButtons({ secondary, secondaryTo }: { secondary: string; secondaryTo
         variant="contained"
         endIcon={<ArrowForward />}
         onClick={() => nav('/contact')}
-        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: M.navyHover } }}
       >
         Book a demo
       </Button>
       <Button
         variant="outlined"
         onClick={() => nav(secondaryTo)}
-        sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
+        sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
       >
         {secondary}
       </Button>
@@ -105,7 +105,7 @@ function CoverageCard() {
   const stats = [
     { label: 'Completed', value: '12', dot: '#03C6B1' },
     { label: 'In progress', value: '3', dot: '#0164C8' },
-    { label: 'Upcoming', value: '5', dot: '#C9D5E2' },
+    { label: 'Upcoming', value: '5', dot: M.rule },
     { label: 'Missed', value: '1', dot: '#B42318' },
   ]
   return (
@@ -117,7 +117,7 @@ function CoverageCard() {
       <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', mx: 2.5, mt: 1.5, mb: 2.5 }}>
         <Box sx={{ flex: 263, bgcolor: '#03C6B1' }} />
         <Box sx={{ flex: 66, bgcolor: '#0164C8' }} />
-        <Box sx={{ flex: 110, bgcolor: '#C9D5E2' }} />
+        <Box sx={{ flex: 110, bgcolor: M.rule }} />
         <Box sx={{ flex: 22, bgcolor: '#B42318' }} />
       </Box>
       <Grid container sx={{ px: 2.5, pb: 2.5 }}>
@@ -139,12 +139,12 @@ function MedicationCard() {
   const rows = [
     { name: 'Metformin', dose: '500mg', time: '08:00', chip: <Chip label="Given" bg="#D2FBF4" color="#004E45" /> },
     { name: 'Amlodipine', dose: '5mg', time: '08:00', chip: <Chip label="Given" bg="#D2FBF4" color="#004E45" /> },
-    { name: 'Omeprazole', dose: '20mg', time: '12:00', chip: <Chip label="Due" bg="#FFF3DC" color="#8A5300" /> },
+    { name: 'Omeprazole', dose: '20mg', time: '12:00', chip: <Chip label="Due" bg={M.amberBand} color={M.amberText} /> },
     { name: 'Paracetamol', dose: '500mg', time: '14:00', chip: <Chip label="Pending" bg="#F4F9FC" color="#51637A" /> },
   ]
   return (
     <UiCard
-      header={<><CardTitle>Medication record</CardTitle><Chip label="MAR" bg="#EAF3FD" color="#0164C8" /></>}
+      header={<><CardTitle>Medication record</CardTitle><Chip label="MAR" bg={M.heroTint} color="#0164C8" /></>}
       bodyless
     >
       {rows.map((r) => (
@@ -165,7 +165,7 @@ function StaffCard() {
   const rows = [
     { name: 'Sarah M.', role: 'Senior Carer', pct: 98, color: '#03C6B1' },
     { name: 'James K.', role: 'Care Worker', pct: 85, color: '#0164C8' },
-    { name: 'Priya S.', role: 'Care Worker', pct: 72, color: '#8A5300' },
+    { name: 'Priya S.', role: 'Care Worker', pct: 72, color: M.amberText },
   ]
   return (
     <UiCard header={<><CardTitle>Staff compliance</CardTitle><CardMeta>3 of 42 shown</CardMeta></>} bodyless>
@@ -191,7 +191,7 @@ function StaffCard() {
 function ScheduleCard() {
   const rows = [
     { time: '09:00', client: 'Margaret W.', carer: 'Sarah M.', chip: <Chip label="Completed" bg="#D2FBF4" color="#004E45" /> },
-    { time: '10:30', client: 'John D.', carer: 'James K.', chip: <Chip label="En route" bg="#EAF3FD" color="#0164C8" /> },
+    { time: '10:30', client: 'John D.', carer: 'James K.', chip: <Chip label="En route" bg={M.heroTint} color="#0164C8" /> },
     { time: '11:00', client: 'Patricia L.', carer: null, chip: <Chip label="Unassigned" bg="#FEF0F0" color="#B42318" /> },
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', chip: <Chip label="Scheduled" bg="#F4F9FC" color="#51637A" /> },
   ]
@@ -217,12 +217,12 @@ function ScheduleCard() {
 
 function RiskCard() {
   const rows = [
-    { title: 'Fall risk assessment overdue', sub: 'High severity · Open', bar: '#8A5300' },
+    { title: 'Fall risk assessment overdue', sub: 'High severity · Open', bar: M.amberText },
     { title: 'Medication error reported', sub: 'Critical severity · Investigating', bar: '#B42318' },
-    { title: 'Safeguarding concern logged', sub: 'High severity · Escalated', bar: '#8A5300' },
+    { title: 'Safeguarding concern logged', sub: 'High severity · Escalated', bar: M.amberText },
   ]
   return (
-    <UiCard header={<><CardTitle>Open incidents</CardTitle><Chip label="3 active" bg="#FFF3DC" color="#8A5300" /></>} bodyless>
+    <UiCard header={<><CardTitle>Open incidents</CardTitle><Chip label="3 active" bg={M.amberBand} color={M.amberText} /></>} bodyless>
       {rows.map((r) => (
         <Stack key={r.title} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
           <Box sx={{ width: 3, height: 36, borderRadius: 1, bgcolor: r.bar, flexShrink: 0 }} />
@@ -230,7 +230,7 @@ function RiskCard() {
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.title}</Typography>
             <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.sub}</Typography>
           </Box>
-          <ChevronRight sx={{ fontSize: 16, color: '#8A9AAE' }} />
+          <ChevronRight sx={{ fontSize: 16, color: M.arrowMuted }} />
         </Stack>
       ))}
     </UiCard>
@@ -242,10 +242,10 @@ function ComplianceCard() {
     { label: 'DBS tracking', pct: 100, color: '#004E45' },
     { label: 'Mandatory training', pct: 87, color: '#0164C8' },
     { label: 'Right to work', pct: 95, color: '#004E45' },
-    { label: 'Competency assessments', pct: 68, color: '#8A5300' },
+    { label: 'Competency assessments', pct: 68, color: M.amberText },
   ]
   return (
-    <UiCard header={<><CardTitle>Compliance dashboard</CardTitle><Chip label="England · CQC" bg="#EAF3FD" color="#0164C8" /></>}>
+    <UiCard header={<><CardTitle>Compliance dashboard</CardTitle><Chip label="England · CQC" bg={M.heroTint} color="#0164C8" /></>}>
       {rows.map((r) => (
         <Box key={r.label} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
@@ -295,7 +295,7 @@ function FamilyCard() {
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#03C6B1', flexShrink: 0 }} />
           <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>Visit completed today</Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.8rem', color: '#2A3A50', lineHeight: 1.6 }}>
+        <Typography sx={{ fontSize: '0.8rem', color: M.bodyText, lineHeight: 1.6 }}>
           Margaret had a good morning. All tasks completed. Mood was positive.
         </Typography>
       </Box>
@@ -332,10 +332,10 @@ function AiCard() {
           ))}
         </Stack>
       </Box>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2, bgcolor: '#FFF3DC' }}>
-        <Box sx={{ width: 3, height: 32, borderRadius: 1, bgcolor: '#8A5300', flexShrink: 0 }} />
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2, bgcolor: M.amberBand }}>
+        <Box sx={{ width: 3, height: 32, borderRadius: 1, bgcolor: M.amberText, flexShrink: 0 }} />
         <Box>
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#8A5300' }}>Risk signal</Typography>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: M.amberText }}>Risk signal</Typography>
           <Typography sx={{ fontSize: '0.78rem', color: M.dark }}>3 missed calls this week — pattern detected</Typography>
         </Box>
       </Stack>
@@ -462,7 +462,7 @@ export default function PlatformPage() {
       />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 8 } }}>
           <Grid container spacing={{ xs: 4, md: 6 }}>
             <Grid item xs={12} md={7}>
@@ -522,7 +522,7 @@ export default function PlatformPage() {
                         <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', color: M.dark }}>{c.title}</Typography>
                         <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{c.sub}</Typography>
                       </Box>
-                      <ArrowForward sx={{ fontSize: 16, color: first ? M.navy : '#8A9AAE' }} />
+                      <ArrowForward sx={{ fontSize: 16, color: first ? M.navy : M.arrowMuted }} />
                     </Box>
                   </Grid>
                 )
@@ -551,7 +551,7 @@ export default function PlatformPage() {
           <Grid container spacing={{ xs: 3, md: 4 }}>
             {steps.map((s, i) => (
               <Grid item xs={12} sm={6} md={3} key={s.no}>
-                <Box sx={{ borderTop: `2px solid ${i === 0 ? M.navy : '#C9D5E2'}`, pt: 3 }}>
+                <Box sx={{ borderTop: `2px solid ${i === 0 ? M.navy : M.rule}`, pt: 3 }}>
                   <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: i === 0 ? M.navy : M.slate, mb: 1 }}>{s.no}</Typography>
                   <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: M.dark, mb: 1 }}>{s.title}</Typography>
                   <Typography sx={{ fontSize: '0.88rem', color: M.slate, lineHeight: 1.65 }}>{s.desc}</Typography>
@@ -587,7 +587,7 @@ export default function PlatformPage() {
                     {m.features.map((f) => (
                       <Stack key={f} direction="row" alignItems="center" spacing={1.5} sx={{ py: '11px', borderBottom: `1px solid ${M.faint}` }}>
                         <Check sx={{ fontSize: 16, color: M.navy, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.9rem', color: '#2A3A50' }}>{f}</Typography>
+                        <Typography sx={{ fontSize: '0.9rem', color: M.bodyText }}>{f}</Typography>
                       </Stack>
                     ))}
                   </Box>
@@ -650,7 +650,7 @@ export default function PlatformPage() {
                     <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>{row.record}</Typography>
                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
                       {row.links.map((l) => (
-                        <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(3,198,177,0.12)', color: '#7BE3D6', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(3,198,177,0.12)', color: M.mintText, fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {l}
                         </Box>
                       ))}

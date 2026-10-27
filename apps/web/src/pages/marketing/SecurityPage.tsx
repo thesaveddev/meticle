@@ -11,10 +11,10 @@ import PageMeta from '../../components/PageMeta'
  * Labels (Security controls / Practices):  #0164C8 (blue)
  * Titles / values:                         #0C1B2E (dark navy)
  * Control descs / practice descs / labels:  #51637A (slate)
- * Capability + glance text:                 #2A3A50 (ink)
- * Practice top rules:                       #C9D5E2 · cell hairlines: #E3EAF1
+ * Capability + glance text:                 M.bodyText (ink)
+ * Practice top rules:                       M.rule · cell hairlines: M.hair
  * In-product tick: teal-tint circle + #004E45 tick · value ink
- * Limitation: amber-tint circle + #8A5300 mark · value #8A5300
+ * Limitation: amber-tint circle + M.amberText mark · value M.amberText
  * Control icons: ink 22px, no tiles, no card radii in the grid
  */
 
@@ -36,8 +36,8 @@ function Tick() {
 
 function LimitMark() {
   return (
-    <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: '#FFF3DC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Info sx={{ fontSize: 12, color: '#8A5300' }} />
+    <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: M.amberBand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Info sx={{ fontSize: 12, color: M.amberText }} />
     </Box>
   )
 }
@@ -83,7 +83,7 @@ function GlanceCard() {
           <Typography sx={{ fontSize: '0.82rem', color: M.slate, flexShrink: 0 }}>{r.label}</Typography>
           <Stack direction="row" alignItems="center" spacing={1.25} sx={{ textAlign: 'right' }}>
             {r.ok ? <Tick /> : <LimitMark />}
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: r.ok ? M.dark : '#8A5300' }}>{r.value}</Typography>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: r.ok ? M.dark : M.amberText }}>{r.value}</Typography>
           </Stack>
         </Box>
       ))}
@@ -158,7 +158,7 @@ export default function SecurityPage() {
       />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 10 } }}>
           <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
             <Grid item xs={12} md={5}>
@@ -169,7 +169,7 @@ export default function SecurityPage() {
                 }}
               >
                 <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: M.navy }} />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#2A3A50' }}>Security &amp; data protection</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.bodyText }}>Security &amp; data protection</Typography>
               </Box>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, color: M.dark, mb: 3 }}>
                 Built around trust.
@@ -182,14 +182,14 @@ export default function SecurityPage() {
                   variant="contained"
                   endIcon={<ArrowForward />}
                   onClick={() => nav('/contact')}
-                  sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+                  sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: M.navyHover } }}
                 >
                   Ask about security
                 </Button>
                 <Button
                   variant="outlined"
                   onClick={() => nav('/compliance')}
-                  sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
+                  sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3, py: 1.6, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}
                 >
                   See compliance
                 </Button>
@@ -231,14 +231,14 @@ export default function SecurityPage() {
                       ...(row === 1 && i === 2 ? { borderBottom: { xs: 'none', md: 'none' } } : {}),
                     }}
                   >
-                    <Box sx={{ color: '#2A3A50', mb: 2, '& svg': { fontSize: 22 } }}>{c.icon}</Box>
+                    <Box sx={{ color: M.bodyText, mb: 2, '& svg': { fontSize: 22 } }}>{c.icon}</Box>
                     <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: M.dark, mb: 1 }}>{c.title}</Typography>
                     <Typography sx={{ fontSize: '0.9rem', color: M.slate, lineHeight: 1.65, mb: 2 }}>{c.desc}</Typography>
                     <Box sx={{ borderTop: `1px solid ${M.faint}`, pt: '14px', display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {c.bullets.map((b) => (
                         <Stack key={b} direction="row" alignItems="center" spacing={1.25}>
                           <Check sx={{ fontSize: 14, color: M.navy, flexShrink: 0 }} />
-                          <Typography sx={{ fontSize: '0.85rem', color: '#2A3A50' }}>{b}</Typography>
+                          <Typography sx={{ fontSize: '0.85rem', color: M.bodyText }}>{b}</Typography>
                         </Stack>
                       ))}
                     </Box>
@@ -262,7 +262,7 @@ export default function SecurityPage() {
           <Grid container spacing={{ xs: 4, md: 7 }}>
             {practices.map((p) => (
               <Grid item xs={12} md={6} key={p.no}>
-                <Box sx={{ borderTop: '1px solid #C9D5E2', pt: '20px' }}>
+                <Box sx={{ borderTop: `1px solid ${M.rule}`, pt: '20px' }}>
                   <Stack direction="row" alignItems="baseline" spacing={1.5} sx={{ mb: 1 }}>
                     <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.navy }}>{p.no}</Typography>
                     <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: M.dark }}>{p.title}</Typography>
@@ -274,7 +274,7 @@ export default function SecurityPage() {
           </Grid>
           <Box sx={{ mt: { xs: 5, md: 7 }, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: '14px', px: 3, py: 2.5, display: 'flex', gap: 1.75, alignItems: 'flex-start' }}>
             <Info sx={{ fontSize: 20, color: M.slate, flexShrink: 0, mt: 0.25 }} />
-            <Typography sx={{ fontSize: '0.9rem', color: '#2A3A50', lineHeight: 1.65 }}>
+            <Typography sx={{ fontSize: '0.9rem', color: M.bodyText, lineHeight: 1.65 }}>
               We do not claim certifications or regulatory approvals that have not been independently verified. If you have specific security requirements, ask the team about the controls and processing arrangements relevant to your service.
             </Typography>
           </Box>
@@ -298,7 +298,7 @@ export default function SecurityPage() {
                 variant="contained"
                 endIcon={<ArrowForward />}
                 onClick={() => nav('/contact')}
-                sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+                sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: M.navyHover } }}
               >
                 Ask about security
               </Button>

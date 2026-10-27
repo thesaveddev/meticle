@@ -14,17 +14,17 @@ import PageMeta from '../../components/PageMeta'
 import api from '../../services/api'
 
 /* ─── Colours pinned from Figma frame 1.6 Contact (node 49:78) ───────
- * Page ground:  linear-gradient #EAF3FC → #F4F9FC (55%) → #FFFFFF
- * Eyebrow pill: white, hairline #E3EAF1, dot #0164C8, text #2A3A50
+ * Page ground:  linear-gradient M.heroTint → #F4F9FC (55%) → #FFFFFF
+ * Eyebrow pill: white, hairline M.hair, dot #0164C8, text M.bodyText
  * Title:        #0C1B2E · lede: #51637A
- * Detail rows:  hairline #E3EAF1 · icon boxes white + hairline, icons #0164C8
+ * Detail rows:  hairline M.hair · icon boxes white + hairline, icons #0164C8
  *   labels #51637A · values #0C1B2E (email value #0164C8)
- * Expect steps: number chips bg #EAF3FD text #0164C8 · text #2A3A50
- * Form card:    white, radius 20, hairline #E3EAF1,
+ * Expect steps: number chips bg M.heroTint text #0164C8 · text M.bodyText
+ * Form card:    white, radius 20, hairline M.hair,
  *               shadow 0 24px 48px rgba(12,27,46,.14), padding 40
- * Fields:      labels #0C1B2E · boxes white radius 10 hairline #C9D5E2
+ * Fields:      labels #0C1B2E · boxes white radius 10 hairline M.rule
  *               h46 (textarea h120) · placeholder #51637A
- * Checkbox:    20px box radius 6, 1.5px #C9D5E2 · label #2A3A50
+ * Checkbox:    20px box radius 6, 1.5px M.rule · label M.bodyText
  * Submit:      #0164C8 radius 14, white label + arrow,
  *               shadow 0 10px 24px rgba(1,99,199,.28) + 0 2px 4px rgba(1,99,199,.20)
  * Disclaimer:  #51637A
@@ -41,12 +41,12 @@ import api from '../../services/api'
 
 const NAVY = M.navy
 const INK = '#0C1B2E'
-const BODY = '#2A3A50'
+const BODY = M.bodyText
 const SLATE = '#51637A'
-const FAINT = '#E3EAF1'
-const INPUT_LINE = '#C9D5E2'
-const PALE_BLUE = '#EAF3FD'
-const DEEP_BLUE_TEXT = '#0152A6'
+const FAINT = M.hair
+const INPUT_LINE = M.rule
+const PALE_BLUE = M.heroTint
+const DEEP_BLUE_TEXT = M.navyInk
 const ERROR = '#B42318'
 const ERROR_BG = '#FEF0F0'
 const MINT = '#D2FBF4'
@@ -63,7 +63,7 @@ function Breadcrumb() {
       >
         Home
       </Typography>
-      <ChevronRight sx={{ fontSize: 14, color: '#8A9AAE' }} />
+      <ChevronRight sx={{ fontSize: 14, color: M.arrowMuted }} />
       <Box
         component="span"
         sx={{
@@ -501,7 +501,7 @@ export default function ContactPageNew() {
       <Box
         component="section"
         sx={{
-          background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)',
+          background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)`,
           pt: { xs: 4, md: 6 },
           pb: { xs: 10, md: 15 },
         }}
@@ -833,7 +833,7 @@ export default function ContactPageNew() {
                           textTransform: 'none',
                           boxShadow:
                             '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)',
-                          '&:hover': { bgcolor: '#0157AD' },
+                          '&:hover': { bgcolor: M.navyHover },
                           '&:disabled': { bgcolor: NAVY, opacity: 0.7, color: '#FFFFFF' },
                         }}
                       >

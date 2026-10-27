@@ -15,8 +15,8 @@ import { useScrollReveal } from '../../styles/useScrollReveal'
  * check-in toast) follow the Home desktop frame exactly. Product-UI mock rows
  * are illustrative interface copy, not marketing claims. */
 
-const HERO_BG = '#EAF3FD'
-const HAIRLINE = '#E4E9F1'
+const HERO_BG = M.heroTint
+const HAIRLINE = M.hair
 const CARD_SHADOW = '0 24px 48px -12px rgba(12,27,46,0.14)'
 
 function Eyebrow({ children }: { children: string }) {
@@ -76,7 +76,7 @@ const callBoardRows = [
 
 const statusStyle: Record<string, { color: string; bgcolor: string }> = {
   teal: { color: '#004e45', bgcolor: '#d2fbf4' },
-  blue: { color: M.navy, bgcolor: '#E8F1FD' },
+  blue: { color: M.navy, bgcolor: M.chipBlue },
   red: { color: '#b42318', bgcolor: '#fef0f0' },
   grey: { color: M.slate, bgcolor: M.faint },
 }
@@ -382,7 +382,7 @@ export default function HomePage() {
                   {/* Top rule: blue for Plan, grey for the rest (Figma Step strokes). */}
                   <Box
                     data-reveal data-reveal-delay={`${i * 0.07}`}
-                    sx={{ borderTop: `1px solid ${i === 0 ? M.navy : '#c9d5e2'}`, pt: 3 }}
+                    sx={{ borderTop: `1px solid ${i === 0 ? M.navy : M.rule}`, pt: 3 }}
                   >
                     <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: M.navy, letterSpacing: '0.06em', mb: 1 }}>{s.n}</Typography>
                     <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: M.ink, mb: 1 }}>{s.step}</Typography>
@@ -456,7 +456,7 @@ export default function HomePage() {
                     <Box key={r.label} sx={{ px: 3, py: 2, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                       <Typography sx={{ fontSize: '0.88rem', fontWeight: 500, color: M.ink }}>{r.label}</Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Box sx={{ minWidth: 24, height: 23, borderRadius: M.r.full, bgcolor: '#E8F1FD', color: M.navy, fontSize: '0.7rem', fontWeight: 700, display: 'grid', placeItems: 'center', px: 1 }}>{r.count}</Box>
+                        <Box sx={{ minWidth: 24, height: 23, borderRadius: M.r.full, bgcolor: M.chipBlue, color: M.navy, fontSize: '0.7rem', fontWeight: 700, display: 'grid', placeItems: 'center', px: 1 }}>{r.count}</Box>
                         <ArrowForward sx={{ fontSize: 16, color: M.muted }} />
                       </Stack>
                     </Box>
@@ -629,7 +629,7 @@ export default function HomePage() {
                         borderBottom: { xs: i < securityCards.length - 1 ? `1px solid ${HAIRLINE}` : 'none', sm: i < 2 ? `1px solid ${HAIRLINE}` : 'none', md: 'none' },
                       }}
                     >
-                      <t.icon sx={{ fontSize: 20, color: '#2a3a50', mb: 1.25 }} />
+                      <t.icon sx={{ fontSize: 20, color: M.bodyText, mb: 1.25 }} />
                       <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: M.ink, mb: 1 }}>{t.title}</Typography>
                       <Typography sx={{ color: M.slate, fontSize: '0.87rem', lineHeight: 1.55 }}>{t.desc}</Typography>
                     </Box>

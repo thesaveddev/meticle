@@ -97,7 +97,7 @@ function BlogIndex() {
       <PageMeta title="Resources" description="Clear, evidence-led reading for domiciliary and supported living providers. No invented credentials, endorsements or customer claims." canonicalPath="/blog" />
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #F4F9FC 55%, #FFFFFF 100%)' }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
         <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 } }}>
           <Grid container spacing={4} alignItems="end" sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={8}>
@@ -108,7 +108,7 @@ function BlogIndex() {
                 }}
               >
                 <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: M.navy }} />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#2A3A50' }}>Resources</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.bodyText }}>Resources</Typography>
               </Box>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, color: M.dark }}>
                 Practical ideas for running better care operations.
@@ -312,7 +312,7 @@ function CtaButton() {
         variant="contained"
         endIcon={<ArrowForward />}
         onClick={() => nav('/contact')}
-        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: '#0157AD' } }}
+        sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.75, borderRadius: '14px', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 10px 24px rgba(1,99,199,0.28), 0 2px 4px rgba(1,99,199,0.20)', '&:hover': { bgcolor: M.navyHover } }}
       >
         Book a demo
       </Button>

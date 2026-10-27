@@ -358,7 +358,7 @@ export function ComplianceOverviewPage() {
       />
 
       {/* Breadcrumb */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
@@ -368,7 +368,7 @@ export function ComplianceOverviewPage() {
         </Container>
       </Box>
       {/* Hero */}
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -386,7 +386,7 @@ export function ComplianceOverviewPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore the platform</Button>
+                <Button variant="outlined" onClick={() => nav('/platform')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>Explore the platform</Button>
               </Stack>
               <AssureRow />
             </Grid>
@@ -444,8 +444,8 @@ export function ComplianceOverviewPage() {
                       borderRight: i % 3 !== 2 ? `1px solid ${M.faint}` : 'none',
                     }}>
                       <Typography sx={{ fontSize: '0.8rem', color: M.slate, fontWeight: 500, mb: 1 }}>{m.label}</Typography>
-                      <Box sx={{ height: 8, borderRadius: 999, bgcolor: '#E8EDF3', width: '72%', mb: 0.75 }} />
-                      <Box sx={{ height: 8, borderRadius: 999, bgcolor: '#E8EDF3', width: '48%' }} />
+                      <Box sx={{ height: 8, borderRadius: 999, bgcolor: M.skel, width: '72%', mb: 0.75 }} />
+                      <Box sx={{ height: 8, borderRadius: 999, bgcolor: M.skel, width: '48%' }} />
                     </Grid>
                   ))}
                 </Grid>
@@ -489,7 +489,7 @@ export function ComplianceOverviewPage() {
               <Stack spacing={0}>
                 {['Care plans and support records', 'Daily care notes and observations', 'Medication administration records', 'Risk assessments and linked actions', 'Incident records and follow-up', 'Reviews, goals and health checks', 'Training and competency evidence', 'Audit logs, reports and governance'].map((label, i) => (
                   <Stack key={label} direction="row" spacing={2} alignItems="center" sx={{ py: 1.8, borderBottom: i < 7 ? `1px solid ${M.faint}` : 'none' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#E8EDF3', color: M.slate, display: 'grid', placeItems: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>{i + 1}</Box>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: M.skel, color: M.slate, display: 'grid', placeItems: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>{i + 1}</Box>
                     <Typography sx={{ fontWeight: 600, color: M.dark }}>{label}</Typography>
                   </Stack>
                 ))}
@@ -541,7 +541,7 @@ export function ComplianceOverviewPage() {
               </Typography>
             </Grid>
             <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Typography sx={{ color: '#B7C4D6', lineHeight: 1.7 }}>
+              <Typography sx={{ color: M.onNavyMuted, lineHeight: 1.7 }}>
                 Every interaction in MeticleCare creates an auditable trail. When an inspector asks "show me your evidence for X", the information is already connected, timestamped and traceable to the source.
               </Typography>
             </Grid>
@@ -562,7 +562,7 @@ export function ComplianceOverviewPage() {
                   <Stack direction={{ xs: 'row', md: 'column' }} spacing={{ xs: 2, md: 0 }} alignItems={{ xs: 'flex-start', md: 'flex-start' }}>
                     <Box sx={{
                       width: 40, height: 40, borderRadius: '50%',
-                      bgcolor: i === 5 ? M.teal : '#2A3A50',
+                      bgcolor: i === 5 ? M.teal : M.bodyText,
                       color: '#FFFFFF', position: 'relative', zIndex: 1,
                       display: 'grid', placeItems: 'center',
                       fontWeight: 700, fontSize: '0.9rem', flexShrink: 0,
@@ -570,7 +570,7 @@ export function ComplianceOverviewPage() {
                     }}>{i + 1}</Box>
                     <Box>
                       <Typography sx={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.95rem' }}>{item.step}</Typography>
-                      <Typography sx={{ fontSize: '0.82rem', color: '#B7C4D6', mt: 0.5, lineHeight: 1.55 }}>{item.detail}</Typography>
+                      <Typography sx={{ fontSize: '0.82rem', color: M.onNavyMuted, mt: 0.5, lineHeight: 1.55 }}>{item.detail}</Typography>
                     </Box>
                   </Stack>
                 </Grid>
@@ -700,7 +700,7 @@ export function RegulatorPage() {
       />
 
       {/* Breadcrumb */}
-      <Box sx={{ background: 'linear-gradient(180deg, #EAF3FC 0%, #EBF3FC 100%)', pt: { xs: 11, md: 15 }, pb: 0 }}>
+      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.heroTint} 100%)`, pt: { xs: 11, md: 15 }, pb: 0 }}>
         <Container maxWidth="lg">
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/compliance')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Compliance</Typography>
@@ -710,7 +710,7 @@ export function RegulatorPage() {
         </Container>
       </Box>
       {/* Hero */}
-      <Box sx={{ background: 'radial-gradient(640px 520px at 82% 220px, #D2E3F6 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, #EAF3FC 0%, #FFFFFF 100%)', py: { xs: 5, md: 8 } }}>
+      <Box sx={{ background: `radial-gradient(640px 520px at 82% 220px, ${M.heroGlow} 0%, rgba(210,227,246,0) 70%), linear-gradient(180deg, ${M.heroTint} 0%, ${M.card} 100%)`, py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
@@ -723,7 +723,7 @@ export function RegulatorPage() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: '#C9D5E2', color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>See all UK regulators</Button>
+                <Button variant="outlined" onClick={() => nav('/compliance')} sx={{ borderColor: M.rule, color: M.dark, fontWeight: 600, px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy } }}>See all UK regulators</Button>
               </Stack>
               <AssureRow />
             </Grid>
