@@ -1,82 +1,63 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { FIcon, type MarketingIconName } from './icons'
-import { M } from '../../styles/marketing-tokens'
 
 /**
- * Figma 02 (Navigation states) dropdown glyph guard.
- * The menu icons are two-tone: slate structure (.mi-base) with brand-navy
- * accents (.mi-accent); heart is solid navy and home is solid slate at rest.
- * ModuleItem recolors .mi-base to navy on hover/selected via CSS.
+ * Figma dropdown glyph guard (platform + solutions panels).
+ * Every menu glyph is a monochrome outline inheriting currentColor — the nav
+ * renders the set in brand blue. The care-management glyph is a heart with a
+ * pulse line inside (not a plain heart); the phone is a plain handset
+ * outline with no dot.
  */
 
-function strokes(name: MarketingIconName) {
+const GLYPHS: MarketingIconName[] = [
+  'heart', 'pill', 'users', 'calendar', 'alert', 'chart', 'home', 'sparkles', 'phone',
+]
+
+function svgFor(name: MarketingIconName) {
   const { container } = render(<FIcon name={name} />)
   const svg = container.querySelector('svg')
   expect(svg).not.toBeNull()
-  const els = Array.from(svg!.querySelectorAll('.mi-base, .mi-accent'))
-  const base = els
-    .filter((el) => el.classList.contains('mi-base'))
-    .map((el) => el.getAttribute('stroke'))
-  const accent = els
-    .filter((el) => el.classList.contains('mi-accent'))
-    .map((el) => el.getAttribute('stroke'))
-  return { base, accent }
+  return svg!
 }
 
-describe('marketing dropdown icons match the Figma two-tone set', () => {
-  it('heart is solid navy (no slate structure)', () => {
-    const { base, accent } = strokes('heart')
-    expect(base).toEqual([])
-    expect(accent).toEqual([])
+describe('marketing dropdown icons match the Figma monochrome set', () => {
+  it('no glyph hardcodes its own colour', () => {
+    for (const name of GLYPHS) {
+      const svg = svgFor(name)
+      expect(svg.querySelectorAll('.mi-base, .mi-accent')).toHaveLength(0)
+      const hardCoded = Array.from(svg.querySelectorAll('*')).filter(
+        (el) => el.hasAttribute('stroke') || el.hasAttribute('fill'),
+      )
+      expect(hardCoded).toHaveLength(0)
+    }
   })
 
-  it('pill: slate capsule with navy divider', () => {
-    const { base, accent } = strokes('pill')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy])
+  it('inherits currentColor from the SvgIcon root', () => {
+    const svg = svgFor('pill')
+    expect(svg.getAttribute('stroke')).toBe('currentColor')
+    expect(svg.getAttribute('fill')).toBe('none')
   })
 
-  it('users: slate front body, navy heads and back figure', () => {
-    const { base, accent } = strokes('users')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy, M.navy, M.navy])
+  it('heart is an outline heart with a pulse line inside', () => {
+    const svg = svgFor('heart')
+    const paths = svg.querySelectorAll('path')
+    const lines = svg.querySelectorAll('polyline')
+    expect(paths).toHaveLength(1)
+    expect(lines).toHaveLength(1)
+    expect(paths[0].getAttribute('d')).toContain('M20.84 4.61')
+    expect(lines[0].getAttribute('points')).toBe('4 12 8 12 10 9.5 14 14.5 16 12 20 12')
   })
 
-  it('calendar: slate frame with navy hangers and top stripe', () => {
-    const { base, accent } = strokes('calendar')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy, M.navy, M.navy])
+  it('phone is a plain handset outline with no dot', () => {
+    const svg = svgFor('phone')
+    expect(svg.querySelectorAll('rect')).toHaveLength(1)
+    expect(svg.querySelectorAll('line, circle')).toHaveLength(0)
   })
 
-  it('alert: slate triangle with navy exclamation', () => {
-    const { base, accent } = strokes('alert')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy, M.navy])
-  })
-
-  it('chart: navy bars over a slate baseline', () => {
-    const { base, accent } = strokes('chart')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy, M.navy, M.navy])
-  })
-
-  it('home is solid slate at rest', () => {
-    const { base, accent } = strokes('home')
-    expect(base).toEqual([M.slate, M.slate])
-    expect(accent).toEqual([])
-  })
-
-  it('sparkles: slate star with a navy plus badge', () => {
-    const { base, accent } = strokes('sparkles')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy])
-  })
-
-  it('phone: slate body with a navy dot', () => {
-    const { base, accent } = strokes('phone')
-    expect(base).toEqual([M.slate])
-    expect(accent).toEqual([M.navy])
+  it('home keeps its door cutout', () => {
+    const svg = svgFor('home')
+    expect(svg.querySelectorAll('path, polyline')).toHaveLength(2)
   })
 
   it('utility glyphs stay single-color', () => {

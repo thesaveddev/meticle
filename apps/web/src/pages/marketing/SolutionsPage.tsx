@@ -270,7 +270,7 @@ export default function SolutionsPage() {
       />
 
       {/* ═══ HERO ═══ */}
-      <Box sx={{ pt: { xs: 6, md: 10 }, pb: { xs: 10, md: 16 }, bgcolor: M.paper }}>
+      <Box sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 10, md: 16 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Breadcrumb trail={[{ label: 'Solutions', to: '/platform' }, { label: data.title }]} />
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">

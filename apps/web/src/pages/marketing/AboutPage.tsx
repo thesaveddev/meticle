@@ -139,7 +139,7 @@ export default function AboutPage() {
         />
 
         {/* Mobile-only breadcrumb (About — Mobile 390) */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2.5, pt: 2, bgcolor: '#FFFFFF' }}>
+        <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2.5, pt: '72px', pb: 1, bgcolor: '#FFFFFF' }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography
               component="button" type="button" onClick={() => nav('/')}

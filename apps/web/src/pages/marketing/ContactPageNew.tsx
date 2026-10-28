@@ -502,7 +502,7 @@ export default function ContactPageNew() {
         component="section"
         sx={{
           background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)`,
-          pt: { xs: 4, md: 6 },
+          pt: { xs: 9, md: 12 },
           pb: { xs: 10, md: 15 },
         }}
       >

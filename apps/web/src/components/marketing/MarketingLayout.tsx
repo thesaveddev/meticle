@@ -11,7 +11,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <Box sx={{ bgcolor: '#FFFFFF', color: '#0C1B2E', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <Box component="main" sx={{ pt: { xs: '56px', md: '68px' }, flex: 1, minWidth: 0, overflowX: 'clip' }}>
+      {/* No top offset here: Nav is a floating pill over the page. Heroes carry
+          their own top padding so their backgrounds run under the pill instead
+          of leaving a scrolling white strip. */}
+      <Box component="main" sx={{ pt: 0, flex: 1, minWidth: 0, overflowX: 'clip' }}>
         {children}
       </Box>
       <Footer />

@@ -79,7 +79,7 @@ function ModuleItem({ item, go, selected }: { item: ModuleChild; go: (path: stri
         transition: `background ${M.transition.fast}, border-color ${M.transition.fast}`,
         '&:hover': { bgcolor: M.paper, borderColor: M.selBorder },
         '&:hover .mi-title': { color: M.navy },
-        '&:hover .mi-base, &[aria-current="true"] .mi-base': { stroke: M.navy },
+
         '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
       }}
     >

@@ -215,7 +215,7 @@ export default function HomePage() {
           sx={{
             position: 'relative', overflow: 'clip',
             bgcolor: HERO_BG,
-            pt: { xs: 7, md: 14 }, pb: { xs: 8, md: 12 },
+            pt: { xs: 9, md: 14 }, pb: { xs: 8, md: 12 },
           }}
         >
           {/* Decor glows (aria-hidden) */}

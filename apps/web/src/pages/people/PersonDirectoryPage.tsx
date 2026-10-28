@@ -50,7 +50,6 @@ export default function PersonDirectoryPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [addOpen, setAddOpen] = useState(false)
-  const [inlineForm, setInlineForm] = useState(false)
   const [form, setForm] = useState({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '', location_id: '', min_staff_required: '' })
   const [formError, setFormError] = useState('')
   const [page, setPage] = useState(0)
@@ -155,9 +154,9 @@ export default function PersonDirectoryPage() {
               </Button>
             </>
           )}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setFormError(''); setAddOpen(true) }}
             sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
-            {inlineForm ? 'Close' : 'Add client'}
+            Add person
           </Button>
         </Stack>
       </Stack>
@@ -192,50 +191,6 @@ export default function PersonDirectoryPage() {
           </Box>
         </PremiumCard>
       </Stack>
-
-      {/* ── Inline add client form ── */}
-      {inlineForm && (
-        <PremiumCard noBorder sx={{ p: 3, mb: 3,  }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Add a new client</Typography>
-            <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary, borderRadius: '10px' }}>Close</Button>
-          </Stack>
-          {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{formError}</Alert>}
-          <Stack spacing={2}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="First name" size="small" required value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} sx={{ flex: 1 }} />
-              <TextField label="Last name" size="small" required value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} sx={{ flex: 1 }} />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField type="date" label="Date of birth" size="small" InputLabelProps={{ shrink: true }} value={form.date_of_birth} onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))} sx={{ flex: 1 }} />
-              <TextField label="NHS number" size="small" value={form.nhs_number} onChange={e => setForm(f => ({ ...f, nhs_number: e.target.value }))} sx={{ flex: 1 }} />
-              <TextField label="Room / address" size="small" value={form.room_number} onChange={e => setForm(f => ({ ...f, room_number: e.target.value }))} sx={{ flex: 1 }} />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField select label="Location" size="small" required value={form.location_id} onChange={e => setForm(f => ({ ...f, location_id: e.target.value }))} sx={{ flex: 1 }}>
-                <MenuItem value="">Select location</MenuItem>
-                {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
-              </TextField>
-              <TextField select label="Support level" size="small" value={form.support_level} onChange={e => setForm(f => ({ ...f, support_level: e.target.value }))} sx={{ flex: 1 }}>
-                {SUPPORT_LEVELS.map(sl => <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>)}
-              </TextField>
-              <TextField select label="Status" size="small" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} sx={{ flex: 1 }}>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="discharged">Discharged</MenuItem>
-              </TextField>
-            </Stack>
-            <TextField label="Allergies (comma-separated)" size="small" placeholder="e.g. Penicillin, Latex" value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} />
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
-              <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id}
-                onClick={(e) => { e.preventDefault(); handleCreate(e as any) }}
-                sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
-                {createMutation.isPending ? 'Adding...' : 'Add client'}
-              </Button>
-            </Stack>
-          </Stack>
-        </PremiumCard>
-      )}
 
       {/* ── Search & Filter ── */}
       <PremiumCard noBorder sx={{ p: 2, mb: 3 }}>
@@ -291,7 +246,7 @@ export default function PersonDirectoryPage() {
                         title={search || statusFilter ? 'No matches found' : 'No people yet'}
                         description={search || statusFilter ? 'Try adjusting your search or filters' : 'Add your first client to get started'}
                         variant={search || statusFilter ? 'search' : 'default'}
-                        action={!search && !statusFilter ? { label: 'Add client', onClick: () => setInlineForm(true) } : undefined}
+                        action={!search && !statusFilter ? { label: 'Add person', onClick: () => { setFormError(''); setAddOpen(true) } } : undefined}
                       />
                     </TableCell>
                   </TableRow>

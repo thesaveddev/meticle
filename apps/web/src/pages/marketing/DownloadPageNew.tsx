@@ -241,7 +241,7 @@ export default function DownloadPageNew() {
       <PageMeta title="MeticleCare mobile app" description="MeticleCare's React Native mobile app gives care teams a field-ready experience alongside the web application. Store links will be published when the apps are available." canonicalPath="/download" />
 
       {/* ═══ HERO ═══ */}
-      <Box sx={{ pt: { xs: 6, md: 10 }, pb: { xs: 10, md: 16 }, bgcolor: M.paper }}>
+      <Box sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 10, md: 16 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: '0.8rem', p: 0, fontFamily: M.font, '&:hover': { textDecoration: 'underline' } }}>
