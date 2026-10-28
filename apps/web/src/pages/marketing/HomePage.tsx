@@ -1,6 +1,6 @@
 import { Box, Button, Chip, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Check, Dns, ExpandMore, Favorite, Home, Key, Layers, Lock, Smartphone,
+  ArrowForward, Assignment, CalendarToday, Check, Dns, East, Favorite, Home, Key, Layers, Lock, PhoneAndroid, QueryStats,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
@@ -81,11 +81,12 @@ const statusStyle: Record<string, { color: string; bgcolor: string }> = {
   grey: { color: M.slate, bgcolor: M.faint },
 }
 
+/* Step icons verbatim from the Home frame: calendar, mobile, record, review. */
 const careDay = [
-  { n: '01', step: 'Plan', desc: 'Schedule visits, assign carers, review availability.' },
-  { n: '02', step: 'Deliver', desc: 'Mobile check-in, notes, travel and disruptions.' },
-  { n: '03', step: 'Record', desc: 'Medication, vitals, incidents and body maps.' },
-  { n: '04', step: 'Review', desc: 'Compliance evidence, person reviews and reporting.' },
+  { n: '01', step: 'Plan', desc: 'Schedule visits, assign carers, review availability.', icon: CalendarToday },
+  { n: '02', step: 'Deliver', desc: 'Mobile check-in, notes, travel and disruptions.', icon: PhoneAndroid },
+  { n: '03', step: 'Record', desc: 'Medication, risks, incidents and body maps.', icon: Assignment },
+  { n: '04', step: 'Review', desc: 'Compliance evidence, person reviews and reporting.', icon: QueryStats },
 ]
 
 /* Verbatim from the Module index cells (title case, no trailing periods). */
@@ -360,7 +361,6 @@ export default function HomePage() {
                       <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.ink, whiteSpace: 'nowrap' }}>9 items need attention</Typography>
                       <Typography sx={{ fontSize: '0.7rem', color: M.slate, whiteSpace: 'nowrap' }}>Care plan reviews, training renewals, risk reviews</Typography>
                     </Box>
-                    <ArrowForward sx={{ fontSize: 16, color: M.slate }} />
                   </Box>
                 </Box>
               </Grid>
@@ -384,7 +384,10 @@ export default function HomePage() {
                     data-reveal data-reveal-delay={`${i * 0.07}`}
                     sx={{ borderTop: `1px solid ${i === 0 ? M.navy : M.rule}`, pt: 3 }}
                   >
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: M.navy, letterSpacing: '0.06em', mb: 1 }}>{s.n}</Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: M.navy, letterSpacing: '0.06em' }}>{s.n}</Typography>
+                      <s.icon sx={{ fontSize: 16, color: M.navy }} />
+                    </Stack>
                     <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: M.ink, mb: 1 }}>{s.step}</Typography>
                     <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{s.desc}</Typography>
                   </Box>
@@ -455,10 +458,7 @@ export default function HomePage() {
                   {attentionRows.map((r) => (
                     <Box key={r.label} sx={{ px: 3, py: 2, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                       <Typography sx={{ fontSize: '0.88rem', fontWeight: 500, color: M.ink }}>{r.label}</Typography>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box sx={{ minWidth: 24, height: 23, borderRadius: M.r.full, bgcolor: M.chipBlue, color: M.navy, fontSize: '0.7rem', fontWeight: 700, display: 'grid', placeItems: 'center', px: 1 }}>{r.count}</Box>
-                        <ArrowForward sx={{ fontSize: 16, color: M.muted }} />
-                      </Stack>
+                      <Box sx={{ minWidth: 24, height: 23, borderRadius: M.r.full, bgcolor: M.heroTint, color: M.navy, fontSize: '0.7rem', fontWeight: 700, display: 'grid', placeItems: 'center', px: 1 }}>{r.count}</Box>
                     </Box>
                   ))}
                   <Box sx={{ display: 'flex' }}>
@@ -538,36 +538,34 @@ export default function HomePage() {
             <Box
               data-reveal
               sx={{
-                mt: 3, borderRadius: '16px', bgcolor: M.paper, border: `1px solid ${HAIRLINE}`,
+                mt: 3, borderRadius: '16px', bgcolor: M.paper,
                 px: { xs: 3, md: 3.5 }, py: { xs: 2.25, md: 2.5 },
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
                 cursor: 'pointer', transition: `all ${M.transition.base}`,
-                '&:hover': { borderColor: M.navy, boxShadow: M.shadow.md },
+                '&:hover': { boxShadow: M.shadow.md },
               }}
               onClick={() => nav('/download')}
               role="link" tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') nav('/download') }}
             >
-              <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                <Smartphone sx={{ fontSize: 20, color: M.navy, mt: 0.25 }} />
+              <Stack direction="row" spacing={2} alignItems="center">
+                <PhoneAndroid sx={{ fontSize: 26, color: M.ink, flexShrink: 0 }} />
                 <Box>
                   <Typography sx={{ fontWeight: 700, color: M.ink, fontSize: '1rem' }}>Mobile app for carers</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.88rem', mt: 0.25 }}>Check in, record notes, report disruptions and see care plans on the go.</Typography>
                 </Box>
               </Stack>
-              <Box sx={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${HAIRLINE}`, bgcolor: M.card, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                <ExpandMore sx={{ transform: 'rotate(-90deg)', color: M.navy }} />
-              </Box>
+              <East sx={{ fontSize: 20, color: M.navy, flexShrink: 0 }} />
             </Box>
           </Container>
         </Box>
 
         {/* ═══ AI INTELLIGENCE (dark) ═══ */}
-        <Box data-reveal-group sx={{ py: { xs: 8, md: '104px' }, bgcolor: M.ink, color: '#FFFFFF' }}>
+        <Box data-reveal-group sx={{ py: { xs: 8, md: '104px' }, bgcolor: M.dark, color: '#FFFFFF' }}>
           <Container maxWidth="lg">
             <Grid container spacing={{ xs: 4, md: 10 }} sx={{ mb: { xs: 4, md: 6 } }}>
               <Grid item xs={12} md={6}>
-                <Typography data-reveal sx={{ color: M.sky, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', mb: 2, display: 'block' }}>
+                <Typography data-reveal sx={{ color: M.teal, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', mb: 2, display: 'block' }}>
                   MeticleCare intelligence
                 </Typography>
                 <Typography data-reveal component="h2" sx={{ ...M.h1, color: '#FFFFFF' }}>
@@ -585,21 +583,21 @@ export default function HomePage() {
                 <Grid key={f.title} container data-reveal data-reveal-delay={`${i * 0.05}`} sx={{ py: 2.75, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                   <Grid item xs={12} md={5}>
                     <Typography sx={{ fontWeight: 700, color: '#FFFFFF', fontSize: '1rem' }}>
-                      <Box component="span" sx={{ color: M.sky, mr: 1.5, fontSize: '0.85rem' }}>{f.n}</Box>
+                      <Box component="span" sx={{ color: M.teal, mr: 1.5, fontSize: '0.85rem' }}>{f.n}</Box>
                       {f.title}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} md={7}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.desc}</Typography>
+                    <Typography sx={{ color: M.onNavyMuted, fontSize: '0.92rem', lineHeight: 1.6 }}>{f.desc}</Typography>
                   </Grid>
                 </Grid>
               ))}
             </Box>
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ pt: 4, mt: 1, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
               <Typography data-reveal sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
-                Every AI output is selective, source-linked and auditable.
+                Every AI output is assistive, source-linked and auditable.
               </Typography>
-              <Button endIcon={<ArrowForward />} onClick={() => nav('/features/ai')} sx={{ color: M.sky, fontWeight: 600, px: 0, textTransform: 'none', whiteSpace: 'nowrap' }}>
+              <Button endIcon={<ArrowForward />} onClick={() => nav('/features/ai')} sx={{ color: M.teal, fontWeight: 600, px: 0, textTransform: 'none', whiteSpace: 'nowrap' }}>
                 See intelligence features
               </Button>
             </Stack>

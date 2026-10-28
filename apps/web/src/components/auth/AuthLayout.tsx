@@ -3,6 +3,8 @@ import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import AuthBrandPanel from './AuthBrandPanel'
 import BrandWordmark from '../BrandWordmark'
+import Nav from '../marketing/Nav'
+import { M } from '../../styles/marketing-tokens'
 
 export const AUTH_CARD_WIDTH = 500
 export const AUTH_CARD_SHADOW = '0 12px 40px rgba(12, 27, 46, 0.06)'
@@ -42,8 +44,14 @@ export default function AuthLayout({
         display: 'flex',
         bgcolor: 'var(--mc-background)',
         color: 'var(--mc-text-primary)',
+        // The homepage header floats fixed over the page, so the canvas is
+        // pushed down by the same offset the marketing layout uses.
+        pt: { xs: '56px', md: '68px' },
+        boxSizing: 'border-box',
       }}
     >
+      {/* Same header as the homepage, for consistency. */}
+      <Nav />
       <AuthBrandPanel
         heading={heading}
         supporting={supporting}
@@ -88,6 +96,18 @@ export default function AuthLayout({
           touchAction: 'pan-y',
         }}
       >
+        {/* Mobile brand-header gradient (Figma 1.7): the brand panel is
+            hidden on mobile, so its gradient lives as a strip behind the
+            wordmark instead. Desktop keeps the form side un-tinted. */}
+        <Box
+          aria-hidden
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            position: 'absolute', top: 0, left: 0, right: 0, height: 120,
+            background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.gradMid} 60%, rgba(255,255,255,0) 100%)`,
+            pointerEvents: 'none',
+          }}
+        />
         {/* Slim top bar: wordmark on mobile (brand panel is hidden there),
             language on desktop. Never a second product's chrome. */}
         <Box

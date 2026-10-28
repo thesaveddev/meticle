@@ -1,7 +1,7 @@
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Assignment, AutoAwesome, BarChart, Check, Close, Favorite,
-  Home, Medication, People, VerifiedUser, Warning,
+  AccessTime, ArrowForward, Assignment, AutoAwesome, BarChart, Check, Close, Favorite,
+  Home, Medication, People, Person, VerifiedUser, Warning,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
@@ -26,7 +26,11 @@ import { useScrollReveal } from '../../styles/useScrollReveal'
 const HAIRLINE = M.hair
 const GREY_RULE = M.rule
 
-const heroChecks = ['30-minute scoping call', '14-day free trial', 'Named point of contact']
+const heroChecks = [
+  { icon: AccessTime, label: '30-minute scoping call' },
+  { icon: Check, label: '14-day free trial' },
+  { icon: Person, label: 'Named point of contact' },
+]
 
 const operatingCells = [
   { icon: Favorite, label: 'Care delivery' },
@@ -161,7 +165,7 @@ export default function AboutPage() {
         >
           <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             <Box sx={{ position: 'absolute', width: 560, height: 560, right: '-4%', top: '-12%', borderRadius: '50%', bgcolor: 'rgba(1,100,200,0.12)', filter: 'blur(140px)' }} />
-            <Box sx={{ position: 'absolute', width: 420, height: 420, right: '6%', top: '30%', borderRadius: '50%', bgcolor: 'rgba(3,198,177,0.12)', filter: 'blur(140px)' }} />
+            <Box sx={{ position: 'absolute', width: 420, height: 420, right: '-3%', top: '55%', borderRadius: '50%', bgcolor: 'rgba(3,198,177,0.12)', filter: 'blur(140px)' }} />
           </Box>
 
           <Container maxWidth="lg" sx={{ position: 'relative' }}>
@@ -217,7 +221,7 @@ export default function AboutPage() {
                       borderTop: `1px solid ${HAIRLINE}`,
                       borderRight: { xs: i % 2 === 0 ? `1px solid ${HAIRLINE}` : 'none', sm: i % 3 !== 2 ? `1px solid ${HAIRLINE}` : 'none' },
                     }}>
-                      <c.icon sx={{ fontSize: 18, color: M.slate, flexShrink: 0 }} />
+                      <c.icon sx={{ fontSize: 18, color: M.navy, flexShrink: 0 }} />
                       <Typography sx={{ fontSize: '0.92rem', fontWeight: 500, color: M.ink }}>{c.label}</Typography>
                     </Box>
                   </Grid>
@@ -432,7 +436,7 @@ export default function AboutPage() {
         </Box>
 
         {/* ═══ CTA ═══ */}
-        <Box data-reveal-group sx={{ py: { xs: 8, md: '96px' }, bgcolor: '#FFFFFF' }}>
+        <Box data-reveal-group sx={{ py: { xs: 10, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}` }}>
           <Container maxWidth="lg">
             <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center" justifyContent="space-between">
               <Grid item xs={12} md={7}>
@@ -444,23 +448,23 @@ export default function AboutPage() {
                 </Typography>
               </Grid>
               <Grid item xs={12} md={5}>
-                <Stack data-reveal data-reveal-delay="0.18" direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2.5 }}>
+                <Stack data-reveal data-reveal-delay="0.18" direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent={{ md: 'flex-end' }} sx={{ mb: 2.5 }}>
                   <Button
                     variant="contained" endIcon={<ArrowForward />}
                     onClick={() => nav('/contact')}
                     sx={{ px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', fontWeight: 600, bgcolor: M.navy, boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}
                   >Book a demo</Button>
                   <Button
-                    variant="outlined" endIcon={<ArrowForward />}
-                    onClick={() => nav('/platform')}
-                    sx={{ px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', fontWeight: 600, color: M.ink, borderColor: M.subtle, '&:hover': { borderColor: M.navy, bgcolor: M.card } }}
-                  >Explore the platform</Button>
+                    variant="outlined"
+                    onClick={() => nav('/contact')}
+                    sx={{ px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', fontWeight: 600, color: M.navy, borderColor: M.navy, bgcolor: '#FFFFFF', '&:hover': { borderColor: M.navy, bgcolor: 'rgba(1,100,200,0.06)' } }}
+                  >Ask us a question</Button>
                 </Stack>
                 <Stack data-reveal data-reveal-delay="0.24" direction="row" spacing={2.5} flexWrap="wrap" useFlexGap>
                   {heroChecks.map((c) => (
-                    <Stack key={c} direction="row" spacing={0.75} alignItems="center">
-                      <Check sx={{ fontSize: 16, color: M.green }} />
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, color: M.ink }}>{c}</Typography>
+                    <Stack key={c.label} direction="row" spacing={0.75} alignItems="center">
+                      <c.icon sx={{ fontSize: 16, color: M.slate }} />
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: M.slate }}>{c.label}</Typography>
                     </Stack>
                   ))}
                 </Stack>

@@ -1,6 +1,6 @@
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Check, Info, Lock, VpnKey, Layers, FindInPage, Dns, VerifiedUser,
+  ArrowForward, Check, PriorityHigh, Info, Lock, VpnKey, Layers, FindInPage, Dns, VerifiedUser,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
@@ -37,7 +37,7 @@ function Tick() {
 function LimitMark() {
   return (
     <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: M.amberBand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Info sx={{ fontSize: 12, color: M.amberText }} />
+      <PriorityHigh sx={{ fontSize: 12, color: M.amberText }} />
     </Box>
   )
 }
@@ -136,7 +136,7 @@ const controls: Control[] = [
 /* ─── Practices (top-ruled rows, no cards) ─────────────────────────── */
 
 const practices = [
-  { no: '01', title: 'AI safety', desc: 'AI features operate within the same RBAC and tenant boundaries as the rest of the platform. AI cannot create, edit or publish care records. Every AI action is logged with source references.' },
+  { no: '01', title: 'AI safety', desc: 'AI features operate within the same RBAC and tenant boundaries as the rest of the platform. AI cannot create, update or publish care records. Every AI action is logged with source references.' },
   { no: '02', title: 'Data minimisation', desc: 'What leaves the platform for AI is controlled per organisation: narrative free text can be withheld, keeping coded facts. The default sends the narrative, so this is a setting to decide on rather than a property you inherit.' },
   { no: '03', title: 'Encryption', desc: 'Data is encrypted in transit. We do not claim encryption at rest at the application layer — the database extension that would provide it is installed but unused, and anything below the application is a question for whoever runs the infrastructure.' },
   { no: '04', title: 'Human review', desc: 'AI-generated outputs are clearly marked as assistive. They require human review before any action is taken. AI never makes autonomous decisions about care.' },
@@ -157,9 +157,13 @@ export default function SecurityPage() {
         breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'Security', path: '/security' }]}
       />
 
-      {/* Hero */}
-      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
-        <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 10 } }}>
+      {/* Hero — gradient + decor glows, per Figma frame 1.4 (node 26:79) */}
+      <Box sx={{ position: 'relative', overflow: 'clip', background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
+        <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <Box sx={{ position: 'absolute', width: 560, height: 560, right: '-4%', top: '-12%', borderRadius: '50%', bgcolor: 'rgba(1,100,200,0.12)', filter: 'blur(140px)' }} />
+          <Box sx={{ position: 'absolute', width: 420, height: 420, right: '6%', top: '30%', borderRadius: '50%', bgcolor: 'rgba(3,198,177,0.12)', filter: 'blur(140px)' }} />
+        </Box>
+        <Container maxWidth="lg" sx={{ position: 'relative', pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 10 } }}>
           <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
             <Grid item xs={12} md={5}>
               <Box
@@ -202,8 +206,8 @@ export default function SecurityPage() {
         </Container>
       </Box>
 
-      {/* Security controls */}
-      <Box sx={{ bgcolor: '#FFFFFF', py: { xs: 8, md: 12 } }}>
+      {/* Security controls — top rule, per the frame (node 27:82) */}
+      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.hair}`, py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} sx={{ mb: { xs: 5, md: 7 } }}>
             <Grid item xs={12} md={7}>

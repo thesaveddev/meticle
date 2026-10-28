@@ -1,7 +1,8 @@
-import { Box, Button, Container, Grid, Stack, Typography, Chip } from '@mui/material'
+import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Download, Check, Groups, CalendarMonth, Warning,
-  Medication, AccessTime, Person,
+  ArrowForward, Check, Groups, CalendarMonth, Medication, Warning,
+  AccessTime, Person, PlayArrow, PhoneIphone, WarningAmber,
+  SignalCellularAlt, Wifi, BatteryFull, ChevronRight,
   ChatBubbleOutline, MapOutlined,
   NotificationsActiveOutlined, DescriptionOutlined,
 } from '@mui/icons-material'
@@ -15,86 +16,136 @@ const playStoreUrl = import.meta.env.VITE_GOOGLE_PLAY_URL || ''
 
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    <Box sx={{ mb: 1.5, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.1em", color: M.navy, textTransform: "uppercase" }}>{children}</Typography>
     </Box>
   )
 }
 
-/* ─── Phone Frame Component ───────────────────────────── */
-
-function PhoneFrame({ children, label }: { children: React.ReactNode; label?: string }) {
+/* White hero pill with blue dot — Figma 5.3 hero badge. */
+function HeroPill({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-      {label && <Typography sx={{ fontWeight: 600, color: M.slate, fontSize: '0.85rem' }}>{label}</Typography>}
-      <Box sx={{
-        width: 240, height: 480, borderRadius: '28px',
-        border: `3px solid ${M.subtle}`, bgcolor: M.card,
-        boxShadow: M.shadow.xl, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        position: 'relative',
-      }}>
-        {/* Notch */}
-        <Box sx={{ height: 32, bgcolor: M.faint, borderBottom: `1px solid ${M.faint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 64, height: 16, borderRadius: 8, bgcolor: M.subtle }} />
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: M.card, border: `1px solid ${M.hair}`, borderRadius: M.r.full, px: 2, py: 0.75, mb: 2.5, boxShadow: M.shadow.xs }}>
+      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: M.navy, flexShrink: 0 }} />
+      <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: M.ink, lineHeight: 1.3 }}>{children}</Typography>
+    </Box>
+  )
+}
+
+/* Dark placeholder tag pinned to imagery — Figma photo notes. */
+function PhotoTag({ children }: { children: React.ReactNode }) {
+  return (
+    <Box sx={{
+      position: 'absolute', top: 16, left: 16, zIndex: 1,
+      bgcolor: 'rgba(12,27,46,0.72)', color: '#FFFFFF',
+      borderRadius: M.r.full, px: 1.75, py: 0.625,
+      fontSize: '0.72rem', fontWeight: 600,
+    }}>
+      {children}
+    </Box>
+  )
+}
+
+/* ─── Phone Frame Component (black device frame, status bar) ─── */
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <Box sx={{ width: 250, flexShrink: 0, borderRadius: '38px', bgcolor: '#0C1B2E', p: '10px', boxShadow: M.shadow.xl }}>
+      <Box sx={{ borderRadius: '30px', bgcolor: M.card, overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 1.25, pb: 0.75 }}>
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: M.ink }}>9:41</Typography>
+          <Box sx={{ width: 64, height: 15, borderRadius: 8, bgcolor: '#0C1B2E' }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+            <SignalCellularAlt sx={{ fontSize: 11, color: M.ink }} />
+            <Wifi sx={{ fontSize: 11, color: M.ink }} />
+            <BatteryFull sx={{ fontSize: 13, color: M.ink }} />
+          </Box>
         </Box>
-        {/* Screen content */}
-        <Box sx={{ flex: 1, overflow: 'hidden' }}>
-          {children}
-        </Box>
-        {/* Home bar */}
-        <Box sx={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: M.card }}>
-          <Box sx={{ width: 80, height: 4, borderRadius: 2, bgcolor: M.subtle }} />
-        </Box>
+        {children}
       </Box>
     </Box>
   )
 }
 
-/* ─── Mobile Screen Mockups ──────────────────────────── */
-
-function ScheduleScreen() {
-  const calls = [
-    { time: '09:00', client: 'Margaret W.', task: 'Personal care', status: 'completed', color: '#10B981' },
-    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'in-progress', color: '#0164C8' },
-    { time: '13:00', client: 'Patricia L.', task: 'Medication', status: 'upcoming', color: '#5D6E85' },
-    { time: '15:00', client: 'Robert H.', task: 'Companionship', status: 'upcoming', color: '#5D6E85' },
-  ]
+function PhoneTabBar({ active }: { active: number }) {
+  const icons = [CalendarMonth, Groups, ChatBubbleOutline, AccessTime]
   return (
-    <Box sx={{ p: 1.5 }}>
-      <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', color: M.navy, mb: 1 }}>Today's Schedule</Typography>
-      <Typography sx={{ fontSize: '0.6rem', color: M.muted, mb: 1.5 }}>4 visits · 2 completed</Typography>
-      {calls.map((c, i) => (
-        <Box key={i} sx={{ mb: 1, p: 1, borderRadius: M.r.sm, bgcolor: M.faint,  }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.navy }}>{c.time}</Typography>
-            <Chip label={c.status} size="small" sx={{ height: 16, fontSize: '0.5rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
-          </Stack>
-          <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: M.slate }}>{c.client}</Typography>
-          <Typography sx={{ fontSize: '0.5rem', color: M.muted }}>{c.task}</Typography>
-        </Box>
+    <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', borderTop: `1px solid ${M.faint}`, mt: 1.5, py: 1.25 }}>
+      {icons.map((Icon, i) => (
+        <Icon key={i} sx={{ fontSize: 17, color: i === active ? M.navy : M.subtle }} />
       ))}
     </Box>
   )
 }
 
-function ClientDetailScreen() {
+/* ─── Mobile Screen Mockups (Figma 5.3 hero) ─────────────────── */
+
+function ScheduleScreen() {
+  const calls = [
+    { time: '09:00', client: 'Margaret W.', task: 'Personal care', status: 'Completed', tone: 'live' as const },
+    { time: '10:30', client: 'John D.', task: 'Meal prep', status: 'In progress', tone: 'link' as const },
+    { time: '13:00', client: 'Patricia L.', task: 'Medication', status: 'Upcoming', tone: 'outline' as const },
+    { time: '15:00', client: 'Robert H.', task: 'Companionship', status: 'Upcoming', tone: 'outline' as const },
+  ]
+  const badge: Record<string, { color: string; bgcolor: string; border?: string }> = {
+    live: { color: '#FFFFFF', bgcolor: M.green },
+    link: { color: '#FFFFFF', bgcolor: M.navy },
+    outline: { color: M.slate, bgcolor: 'transparent', border: `1px solid ${M.rule}` },
+  }
   return (
-    <Box sx={{ p: 1.5 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-        <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: M.tealSoft, display: 'grid', placeItems: 'center' }}>
-          <Person sx={{ fontSize: 16, color: M.tealDeep }} />
-        </Box>
-        <Box>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.navy }}>Margaret Wilson</Typography>
-          <Typography sx={{ fontSize: '0.5rem', color: M.muted }}>DOB: 15/03/1942</Typography>
-        </Box>
-      </Stack>
-      {['Care Plan', 'Medication', 'Risk Assessment', 'Daily Notes', 'Body Map'].map((item, i) => (
-        <Box key={i} sx={{ mb: 0.75, p: 1, borderRadius: M.r.sm, bgcolor: i === 0 ? M.tealSoft : M.faint, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: i === 0 ? M.teal : M.subtle }} />
-          <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: M.navy }}>{item}</Typography>
+    <Box sx={{ px: 1.75, pt: 0.5 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: M.ink }}>Today's schedule</Typography>
+      <Typography sx={{ fontSize: '0.62rem', color: M.slate, mb: 1 }}>4 visits · 2 completed</Typography>
+      {calls.map((c) => (
+        <Box key={c.time} sx={{ mb: 0.75, p: 1, borderRadius: M.r.sm, bgcolor: M.paper }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: M.navy }}>{c.time}</Typography>
+            <Box sx={{ borderRadius: M.r.full, px: 1, py: 0.25, fontSize: '0.52rem', fontWeight: 700, ...badge[c.tone], border: badge[c.tone].border ?? 'none' }}>
+              {c.status}
+            </Box>
+          </Stack>
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: M.ink, mt: 0.25 }}>{c.client}</Typography>
+          <Typography sx={{ fontSize: '0.55rem', color: M.slate }}>{c.task}</Typography>
         </Box>
       ))}
+      <Button fullWidth size="small" sx={{ bgcolor: M.navy, color: '#FFFFFF', textTransform: 'none', fontWeight: 600, fontSize: '0.62rem', borderRadius: M.r.sm, py: 0.75, mt: 0.5, '&:hover': { bgcolor: M.navyMid } }}>
+        Check in to John D.
+      </Button>
+      <PhoneTabBar active={0} />
+    </Box>
+  )
+}
+
+function ClientDetailScreen() {
+  const items = ['Care plan', 'Medication', 'Risk assessment', 'Daily notes', 'Body map']
+  return (
+    <Box sx={{ px: 1.75, pt: 0.5 }}>
+      <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 1.5 }}>
+        <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: M.ink, color: '#FFFFFF', fontSize: '0.72rem', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          MW
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: M.ink }}>Margaret Wilson</Typography>
+          <Typography sx={{ fontSize: '0.58rem', color: M.slate }}>Client detail</Typography>
+        </Box>
+      </Stack>
+      {items.map((item, i) => (
+        <Box key={item} sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          py: 0.9, borderBottom: i < items.length - 1 ? `1px solid ${M.faint}` : 'none',
+        }}>
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 500, color: M.ink }}>{item}</Typography>
+          <ChevronRight sx={{ fontSize: 14, color: M.subtle }} />
+        </Box>
+      ))}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', gap: 1, mt: 1.25,
+        bgcolor: M.amberBand, borderRadius: M.r.sm, px: 1.25, py: 1,
+      }}>
+        <WarningAmber sx={{ fontSize: 15, color: M.amberText, flexShrink: 0 }} />
+        <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: M.amberText }}>Fall risk — high</Typography>
+      </Box>
+      <PhoneTabBar active={1} />
     </Box>
   )
 }
@@ -118,6 +169,32 @@ function ChatScreen() {
           <Typography sx={{ fontSize: '0.45rem', color: m.me ? 'rgba(0,0,0,0.4)' : M.muted, mt: 0.25, textAlign: 'right' }}>{m.time}</Typography>
         </Box>
       ))}
+    </Box>
+  )
+}
+
+/* ─── Store buttons (Figma: white, grey border, pending-release note) ─── */
+
+function StoreButton({ icon: Icon, store, href }: { icon: React.ElementType; store: string; href?: string }) {
+  return (
+    <Box
+      component={href ? 'a' : 'div'}
+      {...(href ? { href, target: '_blank', rel: 'noreferrer' } : {})}
+      sx={{
+        display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none',
+        bgcolor: M.card, border: `1px solid ${M.rule}`, borderRadius: M.r.md,
+        px: 2.5, py: 1.5, minWidth: 215,
+        ...(href ? { cursor: 'pointer', '&:hover': { borderColor: M.navy } } : {}),
+      }}
+    >
+      <Icon sx={{ fontSize: 28, color: M.ink, flexShrink: 0 }} />
+      <Box>
+        <Typography sx={{ fontWeight: 700, color: M.ink, fontSize: '0.92rem', lineHeight: 1.3 }}>{store}</Typography>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <AccessTime sx={{ fontSize: 12, color: M.slate }} />
+          <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>Link pending release</Typography>
+        </Stack>
+      </Box>
     </Box>
   )
 }
@@ -171,39 +248,31 @@ export default function DownloadPageNew() {
               Solutions
             </Typography>
             <Typography sx={{ color: M.subtle, fontSize: '0.8rem' }}>/</Typography>
-            <Typography sx={{ color: M.ink, fontSize: '0.8rem', fontWeight: 600 }}>Mobile App</Typography>
+            <Typography sx={{ color: M.navy, fontSize: '0.8rem', fontWeight: 600 }}>Mobile App</Typography>
           </Stack>
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <SectionLabel>Mobile app</SectionLabel>
-              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
+              <HeroPill>Mobile app</HeroPill>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, color: M.ink, mb: 3 }}>
                 Care doesn't happen behind a desk. Neither should your software.
               </Typography>
               <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 4 }}>
-                Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. The app is built with React Native; App Store and Google Play links will be added once the releases are published.
+                Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-                {appStoreUrl ? (
-                  <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#FFFFFF', fontWeight: 600, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
-                ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 600 }}>App Store link pending</Button>
-                )}
-                {playStoreUrl ? (
-                  <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Get it on Google Play</Button>
-                ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 600 }}>Google Play link pending</Button>
-                )}
+                <StoreButton icon={PhoneIphone} store="App Store" href={appStoreUrl || undefined} />
+                <StoreButton icon={PlayArrow} store="Google Play" href={playStoreUrl || undefined} />
               </Stack>
               <Typography sx={{ color: M.muted, fontSize: '0.8rem' }}>
                 Built with React Native. Store links will be added once the releases are published.
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
-                <PhoneFrame label="Schedule">
+              <Box sx={{ bgcolor: M.card, border: `1px solid ${M.faint}`, borderRadius: '20px', p: { xs: 3, md: 4 }, display: 'flex', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
+                <PhoneFrame>
                   <ScheduleScreen />
                 </PhoneFrame>
-                <PhoneFrame label="Client detail">
+                <PhoneFrame>
                   <ClientDetailScreen />
                 </PhoneFrame>
               </Box>
@@ -218,7 +287,7 @@ export default function DownloadPageNew() {
           <Grid container spacing={{ xs: 3, md: 10 }} sx={{ mb: { xs: 5, md: 6 } }}>
             <Grid item xs={12} md={6}>
               <SectionLabel>What you can do</SectionLabel>
-              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing }}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.ink }}>
                 The full field experience.
               </Typography>
             </Grid>
@@ -232,18 +301,31 @@ export default function DownloadPageNew() {
             {features.map((f) => (
               <Grid item xs={12} sm={6} md={4} key={f.title}>
                 <Box sx={{
-                  p: 3.5, bgcolor: M.paper, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
-                  transition: `all 0.25s`, '&:hover': { borderColor: M.teal, boxShadow: M.shadow.md },
+                  p: 3.5, bgcolor: M.card, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
+                  transition: `all 0.25s`, '&:hover': { borderColor: M.navy, boxShadow: M.shadow.md },
                 }}>
-                  <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2.5 }}>
-                    <f.icon sx={{ color: M.tealDeep, fontSize: 24 }} />
-                  </Box>
-                  <Typography sx={{ fontWeight: 600, mb: 1 }}>{f.title}</Typography>
+                  <f.icon sx={{ color: M.ink, fontSize: 24, mb: 2 }} />
+                  <Typography sx={{ fontWeight: 700, color: M.ink, mb: 1 }}>{f.title}</Typography>
                   <Typography sx={{ color: M.slate, fontSize: '0.9rem', lineHeight: 1.6 }}>{f.desc}</Typography>
                 </Box>
               </Grid>
             ))}
           </Grid>
+        </Container>
+      </Box>
+
+      {/* ═══ PHOTO BANNER ═══ */}
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
+        <Container maxWidth="lg">
+          <Box sx={{ position: 'relative', borderRadius: '16px', bgcolor: M.paper, minHeight: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', p: 4 }}>
+            <PhotoTag>Photo placeholder · shot 7</PhotoTag>
+            <Stack alignItems="center" spacing={1.5}>
+              <PhoneIphone sx={{ fontSize: 32, color: M.subtle }} />
+              <Typography sx={{ color: M.slate, fontSize: '0.9rem' }}>
+                Care team using the mobile app in the field.
+              </Typography>
+            </Stack>
+          </Box>
         </Container>
       </Box>
 
@@ -253,7 +335,7 @@ export default function DownloadPageNew() {
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={4}>
               <SectionLabel>For managers</SectionLabel>
-              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
+              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, color: M.ink, mb: 2 }}>
                 Oversight from anywhere.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
@@ -263,19 +345,19 @@ export default function DownloadPageNew() {
                 {managerFeatures.map((item) => (
                   <Stack key={item} direction="row" spacing={1.5} alignItems="center">
                     <Check sx={{ color: M.navy, fontSize: 18 }} />
-                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', color: M.ink }}>{item}</Typography>
                   </Stack>
                 ))}
               </Stack>
             </Grid>
             <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <PhoneFrame label="Team chat">
+              <PhoneFrame>
                 <ChatScreen />
               </PhoneFrame>
             </Grid>
             <Grid item xs={12} md={4}>
               <SectionLabel>For carers</SectionLabel>
-              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
+              <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, color: M.ink, mb: 2 }}>
                 Everything you need in the field.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
@@ -285,7 +367,7 @@ export default function DownloadPageNew() {
                 {carerFeatures.map((item) => (
                   <Stack key={item} direction="row" spacing={1.5} alignItems="center">
                     <Check sx={{ color: M.navy, fontSize: 18 }} />
-                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{item}</Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', color: M.ink }}>{item}</Typography>
                   </Stack>
                 ))}
               </Stack>
@@ -294,44 +376,37 @@ export default function DownloadPageNew() {
         </Container>
       </Box>
 
-      {/* ═══ PHOTOGRAPHY PLACEHOLDER ═══ */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
+      {/* ═══ CTA — white-split, matches the rest of the marketing site ═══ */}
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}` }}>
         <Container maxWidth="lg">
-          <Box sx={{
-            borderRadius: M.r.xl, border: `1px dashed ${M.subtle}`, bgcolor: M.faint,
-            minHeight: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4,
-          }}>
-            <Typography sx={{ color: M.slate, fontSize: '0.9rem' }}>
-              Photography placeholder — care team using the mobile app in the field.
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* ═══ CTA ═══ */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
-        <Container maxWidth="lg">
-          <Box sx={{ bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}`, px: { xs: 3, md: 6 }, py: { xs: 6, md: 8 }, textAlign: 'center' }}>
-            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.ink, mb: 2 }}>
-              Ready to get started?
-            </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, mb: 4 }}>
-              Download the app or talk to the team about your care operation.
-            </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.navyMid } }}>Book a demo</Button>
-              {appStoreUrl && <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>App Store</Button>}
-              {playStoreUrl && <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" variant="outlined" sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Google Play</Button>}
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} justifyContent="center" sx={{ mt: 3 }}>
-              {['30-minute scoping call', '14-day free trial', 'Named point of contact'].map((t) => (
-                <Stack key={t} direction="row" spacing={1} alignItems="center" justifyContent="center">
-                  <Check sx={{ color: M.navy, fontSize: 16 }} />
-                  <Typography sx={{ color: M.slate, fontSize: '0.82rem', fontWeight: 500 }}>{t}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </Box>
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.ink, mb: 2 }}>
+                Ready to get started?
+              </Typography>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight }}>
+                Download the app or talk to the team about your care operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent={{ md: 'flex-end' }} sx={{ mb: 2.5 }}>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.navyHover } }}>Book a demo</Button>
+                <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: M.navy, color: M.navy, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { borderColor: M.navy, bgcolor: 'rgba(1,100,200,0.06)' } }}>Ask us a question</Button>
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }}>
+                {[
+                  { icon: AccessTime, label: '30-minute scoping call' },
+                  { icon: Check, label: '14-day free trial' },
+                  { icon: Person, label: 'Named point of contact' },
+                ].map((t) => (
+                  <Stack key={t.label} direction="row" spacing={1} alignItems="center">
+                    <t.icon sx={{ color: M.slate, fontSize: 16 }} />
+                    <Typography sx={{ color: M.slate, fontSize: '0.82rem', fontWeight: 500 }}>{t.label}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>

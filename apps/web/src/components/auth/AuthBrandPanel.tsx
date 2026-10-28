@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import BrandWordmark from '../BrandWordmark'
+import { M } from '../../styles/marketing-tokens'
 import NotesIcon from '@mui/icons-material/Notes'
 import PersonIcon from '@mui/icons-material/Person'
 import MedicationIcon from '@mui/icons-material/Medication'
@@ -52,7 +53,9 @@ export default function AuthBrandPanel({
         py: { md: 5, lg: 6 },
         position: 'relative',
         overflow: 'hidden',
-        bgcolor: 'var(--mc-background)',
+        // Figma 1.7 brand-panel gradient — the only thing taken from the
+        // file. Everything else on this panel is existing product UI.
+        background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.gradMid} 60%, #FFFFFF 100%)`,
       }}
     >
       {/* Soft MeticleCare shapes, bottom of the panel. Purely decorative.

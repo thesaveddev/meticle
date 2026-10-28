@@ -1,7 +1,6 @@
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
   ArrowForward, Check, AccessTime, Groups, ChevronRight,
-  AutoAwesome, Link as LinkIcon, NotificationsNone,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
@@ -17,7 +16,7 @@ import PageMeta from '../../components/PageMeta'
  * Hairlines:                          M.hair · top rules: M.rule
  * Muted arrows:                       M.arrowMuted
  * Reassurance icons:                  #004E45 (teal-deep)
- * Data-flow chips: bg rgba(3,198,177,.12), text M.mintText
+ * Data-flow chips (on the blue band): bg rgba(12,27,46,.28), text white
  * Chips: MAR/England blue M.heroTint·#0164C8 · Given teal #D2FBF4·#004E45
  *   Due amber M.amberBand·M.amberText · Pending grey #F4F9FC·#51637A
  *   Unassigned red #FEF0F0·#B42318 · Scheduled grey · 3 active amber
@@ -69,7 +68,7 @@ function Reassurance({ items }: { items: { icon: React.ReactNode; text: string }
   )
 }
 
-const reassuranceIcons = { clock: <AccessTime sx={{ fontSize: 16, color: M.tealDeep }} />, check: <Check sx={{ fontSize: 16, color: M.tealDeep }} /> }
+const reassuranceIcons = { clock: <AccessTime sx={{ fontSize: 16, color: M.navy }} />, check: <Check sx={{ fontSize: 16, color: M.navy }} /> }
 
 /** White UI card used for every module visual (radius 14, hairline, soft shadow). */
 function UiCard({ header, children, bodyless = false }: { header: React.ReactNode; children: React.ReactNode; bodyless?: boolean }) {
@@ -163,15 +162,17 @@ function MedicationCard() {
 
 function StaffCard() {
   const rows = [
-    { name: 'Sarah M.', role: 'Senior Carer', pct: 98, color: '#03C6B1' },
-    { name: 'James K.', role: 'Care Worker', pct: 85, color: '#0164C8' },
-    { name: 'Priya S.', role: 'Care Worker', pct: 72, color: M.amberText },
+    { name: 'Sarah M.', initials: 'SM', role: 'Senior Carer', pct: 98, color: '#03C6B1' },
+    { name: 'James K.', initials: 'JK', role: 'Care Worker', pct: 85, color: '#0164C8' },
+    { name: 'Priya S.', initials: 'PS', role: 'Care Worker', pct: 72, color: M.amberText },
   ]
   return (
     <UiCard header={<><CardTitle>Staff compliance</CardTitle><CardMeta>3 of 42 shown</CardMeta></>} bodyless>
       {rows.map((r) => (
         <Stack key={r.name} direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${M.faint}`, '&:last-child': { borderBottom: 'none' } }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'notice.muted.bg', flexShrink: 0 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: M.inset, color: M.slate, fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {r.initials}
+          </Box>
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: M.dark }}>{r.name}</Typography>
             <Typography sx={{ fontSize: '0.72rem', color: M.slate }}>{r.role}</Typography>
@@ -325,18 +326,18 @@ function AiCard() {
           Margaret&apos;s care needs have increased over the past week. Consider reviewing her support plan and increasing visit frequency.
         </Typography>
         <Stack direction="row" spacing={1}>
-          {[<AutoAwesome key="a" />, <LinkIcon key="l" />, <NotificationsNone key="n" />].map((icon, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', px: 1.25, py: 0.5, borderRadius: '6px', border: `1px solid ${M.faint}`, color: M.slate }}>
-              <Box sx={{ display: 'flex', '& svg': { fontSize: 14 } }}>{icon}</Box>
+          {['6 care notes', '2 incidents', 'MAR'].map((t) => (
+            <Box key={t} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '6px', bgcolor: M.inset, color: M.slate, fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {t}
             </Box>
           ))}
         </Stack>
       </Box>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2, bgcolor: M.amberBand }}>
-        <Box sx={{ width: 3, height: 32, borderRadius: 1, bgcolor: M.amberText, flexShrink: 0 }} />
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2, bgcolor: M.navy }}>
+        <Box sx={{ width: 3, height: 32, borderRadius: 1, bgcolor: M.coral, flexShrink: 0 }} />
         <Box>
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: M.amberText }}>Risk signal</Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: M.dark }}>3 missed calls this week — pattern detected</Typography>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#FFFFFF' }}>Risk signal</Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: '#FFFFFF' }}>3 missed calls this week — pattern detected</Typography>
         </Box>
       </Stack>
     </UiCard>
@@ -461,9 +462,13 @@ export default function PlatformPage() {
         }}
       />
 
-      {/* Hero */}
-      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
-        <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 8 } }}>
+      {/* Hero — gradient + decor glows, per Figma frame 1.3 (node 22:79) */}
+      <Box sx={{ position: 'relative', overflow: 'clip', background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
+        <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <Box sx={{ position: 'absolute', width: 560, height: 560, right: '-4%', top: '-12%', borderRadius: '50%', bgcolor: 'rgba(1,100,200,0.12)', filter: 'blur(140px)' }} />
+          <Box sx={{ position: 'absolute', width: 420, height: 420, right: '6%', top: '30%', borderRadius: '50%', bgcolor: 'rgba(3,198,177,0.12)', filter: 'blur(140px)' }} />
+        </Box>
+        <Container maxWidth="lg" sx={{ position: 'relative', pt: { xs: 8, md: 14 }, pb: { xs: 6, md: 8 } }}>
           <Grid container spacing={{ xs: 4, md: 6 }}>
             <Grid item xs={12} md={7}>
               <Box
@@ -497,12 +502,11 @@ export default function PlatformPage() {
           <Box
             sx={{
               mt: { xs: 5, md: 7 }, border: `1px solid ${M.faint}`, borderRadius: '16px',
-              overflow: 'hidden', bgcolor: 'transparent',
+              overflow: 'hidden', bgcolor: '#FFFFFF',
             }}
           >
             <Grid container>
               {indexCells.map((c, i) => {
-                const first = i === 0
                 return (
                   <Grid item xs={12} sm={6} md={4} key={c.no}>
                     <Box
@@ -511,7 +515,6 @@ export default function PlatformPage() {
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 2, px: 3, py: '22px',
                         textDecoration: 'none', height: '100%',
-                        bgcolor: first ? M.paper : 'transparent',
                         borderBottom: i < 6 ? `1px solid ${M.faint}` : { xs: `1px solid ${M.faint}`, md: 'none' },
                         borderRight: { md: (i % 3 !== 2) ? `1px solid ${M.faint}` : 'none', xs: 'none' },
                         '&:hover': { bgcolor: M.paper },
@@ -522,7 +525,7 @@ export default function PlatformPage() {
                         <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', color: M.dark }}>{c.title}</Typography>
                         <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{c.sub}</Typography>
                       </Box>
-                      <ArrowForward sx={{ fontSize: 16, color: first ? M.navy : M.arrowMuted }} />
+                      <ArrowForward sx={{ fontSize: 16, color: M.arrowMuted }} />
                     </Box>
                   </Grid>
                 )
@@ -538,7 +541,7 @@ export default function PlatformPage() {
           <Grid container spacing={4} sx={{ mb: { xs: 5, md: 7 } }}>
             <Grid item xs={12} md={7}>
               <Eyebrow>How it works</Eyebrow>
-              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.navy }}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.dark }}>
                 From recording to insight in four steps.
               </Typography>
             </Grid>
@@ -550,9 +553,8 @@ export default function PlatformPage() {
           </Grid>
           <Grid container spacing={{ xs: 3, md: 4 }}>
             {steps.map((s, i) => (
-              <Grid item xs={12} sm={6} md={3} key={s.no}>
-                <Box sx={{ borderTop: `2px solid ${i === 0 ? M.navy : M.rule}`, pt: 3 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: i === 0 ? M.navy : M.slate, mb: 1 }}>{s.no}</Typography>
+              <Grid item xs={12} sm={6} md={3} key={s.no}>                  <Box sx={{ borderTop: `2px solid ${i === 0 ? M.navy : M.rule}`, pt: 3 }}>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: M.navy, mb: 1 }}>{s.no}</Typography>
                   <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: M.dark, mb: 1 }}>{s.title}</Typography>
                   <Typography sx={{ fontSize: '0.88rem', color: M.slate, lineHeight: 1.65 }}>{s.desc}</Typography>
                 </Box>
@@ -611,8 +613,8 @@ export default function PlatformPage() {
         </Container>
       </Box>
 
-      {/* Connected architecture */}
-      <Box sx={{ bgcolor: M.dark, py: { xs: 8, md: 14 } }}>
+      {/* Connected architecture — solid brand-blue band, per Figma (node 24:295) */}
+      <Box sx={{ bgcolor: M.navy, py: { xs: 8, md: 14 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 5, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
@@ -628,7 +630,7 @@ export default function PlatformPage() {
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Box sx={{ border: '1px solid rgba(255,255,255,0.28)', borderRadius: '16px', overflow: 'hidden' }}>
+              <Box sx={{ border: '1px solid rgba(255,255,255,0.28)', borderRadius: '16px', overflow: 'hidden', bgcolor: 'rgba(12,27,46,0.20)' }}>
                 <Box
                   sx={{
                     display: 'flex', justifyContent: 'space-between', px: 3, py: 1.75,
@@ -647,10 +649,9 @@ export default function PlatformPage() {
                       '&:last-child': { borderBottom: 'none' },
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>{row.record}</Typography>
-                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>{row.record}</Typography>                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
                       {row.links.map((l) => (
-                        <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(3,198,177,0.12)', color: M.mintText, fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        <Box key={l} component="span" sx={{ px: 1.25, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(12,27,46,0.28)', color: '#FFFFFF', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {l}
                         </Box>
                       ))}
@@ -663,8 +664,8 @@ export default function PlatformPage() {
         </Container>
       </Box>
 
-      {/* CTA */}
-      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+      {/* CTA — white-split, matches the rest of the marketing site */}
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}` }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
             <Grid item xs={12} md={7}>
@@ -681,7 +682,7 @@ export default function PlatformPage() {
                 items={[
                   { icon: reassuranceIcons.clock, text: '30-minute scoping call' },
                   { icon: reassuranceIcons.check, text: '14-day free trial' },
-                  { icon: <Groups sx={{ fontSize: 16, color: M.tealDeep }} />, text: 'Named point of contact' },
+                  { icon: <Groups sx={{ fontSize: 16, color: M.navy }} />, text: 'Named point of contact' },
                 ]}
               />
             </Grid>

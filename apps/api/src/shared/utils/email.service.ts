@@ -961,6 +961,33 @@ export class EmailService {
     return sendMail(to, subject, html, category, undefined, queueOptions, unsubscribeScope);
   }
 
+  /**
+   * A scheduled custom report: the CSV runs against live data at send time
+   * and is attached. Recurring operational mail the recipient may stop, so
+   * it carries the `notifications` scope like the other digests.
+   */
+  static async sendScheduledReportEmail(
+    email: string,
+    name: string,
+    orgName: string,
+    reportName: string,
+    dateLabel: string,
+    rowCount: number,
+    reportId: string,
+    csv: Buffer,
+    filename: string,
+  ) {
+    await sendMail(email, `Scheduled report — ${reportName}`,
+      buildEmailHtml('Scheduled report', `Hi ${escapeHtml(name) || 'there'},`,
+        `<p>Your scheduled report <strong>${escapeHtml(reportName)}</strong> for <strong>${escapeHtml(orgName)}</strong> ran on ${escapeHtml(dateLabel)}.</p>` +
+        `<p>${rowCount} ${rowCount === 1 ? 'row is' : 'rows are'} attached as a CSV. Open the report to explore the latest data.</p>`,
+        { label: 'Open the report', url: `${baseUrl()}/reports/custom/${reportId}` }),
+      'notifications',
+      [{ filename, content: csv, contentType: 'text/csv' }],
+      undefined,
+      'notifications');
+  }
+
   static buildTrialFollowupEmailHtml(name: string, orgName: string, message: string) {
     const url = `${baseUrl()}/billing`;
     return buildEmailHtml(

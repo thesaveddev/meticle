@@ -523,6 +523,17 @@ setInterval(() => {
     .catch(err => logger.error(err, 'Compliance digest check failed'));
 }, 60 * 60 * 1000);
 
+// Deliver due scheduled custom reports by email (hourly; each schedule's
+// next_run_at is in the org's own timezone, so delivery lands within the
+// hour after the configured time, and the sweep stamps a heartbeat).
+import { runDueReportSchedules } from './modules/reporting/reporting.delivery';
+setInterval(() => {
+  if (!databaseReady) return;
+  runDueReportSchedules()
+    .then(result => { if (result.sent > 0 || result.failed > 0) logger.info(result, 'Scheduled report delivery check complete') })
+    .catch(err => logger.error(err, 'Scheduled report delivery check failed'));
+}, 60 * 60 * 1000);
+
 // Scheduled evidence pack generation (every 6 hours; checks day-of-week/month per org)
 setInterval(() => {
   if (!databaseReady) return;

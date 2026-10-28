@@ -42,6 +42,10 @@ export const EXPECTED_JOB_CADENCE: Record<string, JobCadence> = {
     description: 'Nightly DBS certificate retention purge (six-month rule)',
     maxAgeMinutes: 26 * 60,
   },
+  custom_report_delivery: {
+    description: 'Hourly scheduled custom-report email delivery sweep',
+    maxAgeMinutes: 3 * 60,
+  },
 };
 
 export interface JobHeartbeat {

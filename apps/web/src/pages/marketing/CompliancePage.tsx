@@ -27,9 +27,9 @@ function EyebrowPill({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ContextBanner() {
+function ContextBanner({ tinted }: { tinted?: boolean }) {
   return (
-    <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
+    <Box sx={{ p: { xs: 2.5, md: 3 }, bgcolor: tinted ? M.paper : '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.md, display: 'flex', gap: 2 }}>
       <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: M.paper, border: `1px solid ${M.faint}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <InfoOutlined sx={{ color: M.slate, fontSize: 20 }} />
       </Box>
@@ -84,6 +84,7 @@ type Regulator = {
   slug: string; code: string; name: string; nation: string; color: string; desc: string;
   guidance: string[]; evidenceFocus: string[]; facts: { label: string; value: string }[];
   tileText: string; tileRadius?: string; officialLink?: { label: string; href: string }; note?: string;
+  tags?: string[];
 }
 const regulators: Regulator[] = [
   {
@@ -104,6 +105,8 @@ const regulators: Regulator[] = [
       { label: 'Assessment', value: 'Five key questions' },
     ],
     tileText: 'CQC',
+    tileRadius: '6px',
+    tags: ['Safe', 'Effective', 'Caring', 'Responsive', 'Well-led'],
   },
   {
     slug: 'care-inspectorate', code: 'Care Inspectorate', name: 'Care Inspectorate', nation: 'Scotland', color: '#EF4444',
@@ -122,7 +125,7 @@ const regulators: Regulator[] = [
       { label: 'Inspects against', value: 'Published quality indicators' },
     ],
     tileText: 'CI',
-    tileRadius: '8px',
+    tileRadius: '50%',
     officialLink: { label: 'Official guidance on careinspectorate.com', href: 'https://www.careinspectorate.com' },
     note: "This is our summary of the quality indicators, not the Care Inspectorate's wording.",
   },
@@ -730,7 +733,7 @@ export function RegulatorPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ bgcolor: '#FFFFFF', borderRadius: '20px', border: `1px solid ${M.faint}`, boxShadow: M.shadow.lg, p: { xs: 2.5, md: 3 } }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 2.5, borderBottom: `1px solid ${M.faint}` }}>
-                  <Box sx={{ width: 56, height: 56, borderRadius: r.tileRadius || M.r.md, bgcolor: M.navy, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>{r.tileText}</Box>
+                  <Box sx={{ width: 56, height: 56, borderRadius: r.tileRadius || M.r.md, bgcolor: M.dark, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>{r.tileText}</Box>
                   <Box>
                     <Typography sx={{ fontSize: '0.75rem', color: M.slate }}>{r.nation}</Typography>
                     <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: M.dark }}>{r.name}</Typography>
@@ -738,11 +741,18 @@ export function RegulatorPage() {
                 </Stack>
                 <Stack>
                   {r.facts.map((f, i) => (
-                    <Box key={f.label} sx={{ py: 1.75, borderBottom: i < r.facts.length - 1 || r.officialLink ? `1px solid ${M.faint}` : 'none' }}>
+                    <Box key={f.label} sx={{ py: 1.75, borderBottom: i < r.facts.length - 1 || r.tags || r.officialLink ? `1px solid ${M.faint}` : 'none' }}>
                       <Typography sx={{ fontSize: '0.75rem', color: M.slate, mb: 0.25 }}>{f.label}</Typography>
                       <Typography sx={{ fontWeight: 600, color: M.dark }}>{f.value}</Typography>
                     </Box>
                   ))}
+                  {r.tags && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, py: 1.75, borderBottom: r.officialLink ? `1px solid ${M.faint}` : 'none' }}>
+                      {r.tags.map((t) => (
+                        <Box key={t} sx={{ fontSize: '0.72rem', fontWeight: 700, color: M.navy, bgcolor: M.chipBlue, borderRadius: M.r.full, px: 1.5, py: 0.5 }}>{t}</Box>
+                      ))}
+                    </Box>
+                  )}
                   {r.officialLink && (
                     <Box
                       component="a"
@@ -818,7 +828,7 @@ export function RegulatorPage() {
       {/* Context + other nations + CTA */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
-          <ContextBanner />
+          <ContextBanner tinted />
           <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: 700, letterSpacing: '-0.02em', color: M.dark, mt: { xs: 6, md: 8 }, mb: 3 }}>
             Other UK nations
           </Typography>

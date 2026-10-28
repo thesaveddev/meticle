@@ -3,6 +3,7 @@ import { lazy, Suspense, useState, useEffect } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
 import ModuleGuard from './components/ModuleGuard'
+import { ComplianceIndexRoute } from './router/ComplianceIndexRoute'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const SignupPage = lazy(() => import('./pages/auth/SignupPage'))
@@ -14,6 +15,7 @@ const OvertimeClaimsPage = lazy(() => import('./pages/scheduling/OvertimeClaimsP
 const MarketplacePage = lazy(() => import('./pages/marketplace/MarketplacePage'))
 const ReportingPage = lazy(() => import('./pages/reporting/ReportingPage'))
 const ReportBuilder = lazy(() => import('./pages/reporting/ReportBuilder'))
+const CustomReportBuilderPage = lazy(() => import('./pages/reporting/CustomReportBuilderPage'))
 const InsightsPage = lazy(() => import('./pages/insights/InsightsPage'))
 const ManagerBriefingPage = lazy(() => import('./pages/insights/ManagerBriefingPage'))
 const IntelligencePage = lazy(() => import('./pages/insights/IntelligencePage'))
@@ -177,7 +179,8 @@ function App() {
       <Routes>
       <Route path="/" element={<ErrorBoundary><Suspense fallback={null}><HomePage /></Suspense></ErrorBoundary>} />
       <Route path="/platform" element={<ErrorBoundary><Suspense fallback={null}><PlatformPage /></Suspense></ErrorBoundary>} />
-      <Route path="/compliance" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
+      {/* Decided by session: the marketing overview when signed out, the in-app hub when signed in. */}
+      <Route path="/compliance" element={<ComplianceIndexRoute />} />
       <Route path="/compliance/:slug" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
       <Route path="/solutions/:slug" element={<ErrorBoundary><Suspense fallback={null}><SolutionsPage /></Suspense></ErrorBoundary>} />
       <Route path="/features/:slug" element={<ErrorBoundary><Suspense fallback={null}><FeaturePage /></Suspense></ErrorBoundary>} />
@@ -264,6 +267,8 @@ function App() {
           <Route path="/scheduling/overtime-claims" element={<ModuleGuard module="scheduling"><OvertimeClaimsPage /></ModuleGuard>} />
           <Route path="/marketplace" element={<ModuleGuard module="marketplace"><MarketplacePage /></ModuleGuard>} />
           <Route path="/reports" element={<ModuleGuard module="reporting"><ReportingPage /></ModuleGuard>} />
+          <Route path="/reports/builder" element={<ModuleGuard module="reporting"><CustomReportBuilderPage /></ModuleGuard>} />
+          <Route path="/reports/custom/:id" element={<ModuleGuard module="reporting"><CustomReportBuilderPage /></ModuleGuard>} />
           <Route path="/reports/:reportId" element={<ModuleGuard module="reporting"><ReportBuilder /></ModuleGuard>} />
           <Route path="/reporting" element={<ModuleGuard module="reporting"><ReportingPage /></ModuleGuard>} />
           <Route path="/insights" element={<ModuleGuard module="reporting"><InsightsPage /></ModuleGuard>} />

@@ -693,16 +693,16 @@ once — the first declaration wins at runtime.
 
 | Surface | Count |
 |---|---|
-| Routes with a page module | 122 |
-| Route × module rows | 123 |
-| Distinct page modules routed | 106 |
+| Routes with a page module | 124 |
+| Route × module rows | 124 |
+| Distinct page modules routed | 107 |
 | Redirect routes (no page to review) | 7 |
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 2 |
-| audited / updated / tested | 19 / 123 / 34 |
+| audited / updated / tested | 18 / 124 / 36 |
 | Fully signed off (all three) | 13 |
-| Gaps (any of the three missing) | 110 |
+| Gaps (any of the three missing) | 111 |
 
 **Structural wrapper routes** — guards and layouts that render no page of their own:
 `(root)`.
@@ -728,7 +728,6 @@ once — the first declaration wins at runtime.
 | `/chat` | `pages/chat/ChatPage.tsx` | no | yes | no |
 | `/client-billing` | `pages/homecare/ClientBillingPage.tsx` | no | yes | no |
 | `/compliance` † | `pages/compliance/CompliancePage.tsx` | yes | yes | yes |
-| `/compliance` † | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
 | `/compliance-badges` | `pages/marketing/ComplianceBadgesPage.tsx` | no | yes | no |
 | `/compliance/:slug` | `pages/marketing/CompliancePage.tsx` | yes | yes | no |
 | `/compliance/competency` | `pages/compliance/CompetencyAssessmentsPage.tsx` | yes | yes | no |
@@ -810,6 +809,8 @@ once — the first declaration wins at runtime.
 | `/reporting` | `pages/reporting/ReportingPage.tsx` | no | yes | no |
 | `/reports` | `pages/reporting/ReportingPage.tsx` | no | yes | no |
 | `/reports/:reportId` | `pages/reporting/ReportBuilder.tsx` | no | yes | no |
+| `/reports/builder` | `pages/reporting/CustomReportBuilderPage.tsx` | no | yes | yes |
+| `/reports/custom/:id` | `pages/reporting/CustomReportBuilderPage.tsx` | no | yes | yes |
 | `/reset-expired` | `pages/auth/ResetExpiredPage.tsx` | no | yes | no |
 | `/reset-invalid` | `pages/auth/ResetInvalidPage.tsx` | no | yes | no |
 | `/reset-password` | `pages/auth/ResetPasswordPage.tsx` | no | yes | no |

@@ -79,6 +79,7 @@ function ModuleItem({ item, go, selected }: { item: ModuleChild; go: (path: stri
         transition: `background ${M.transition.fast}, border-color ${M.transition.fast}`,
         '&:hover': { bgcolor: M.paper, borderColor: M.selBorder },
         '&:hover .mi-title': { color: M.navy },
+        '&:hover .mi-base, &[aria-current="true"] .mi-base': { stroke: M.navy },
         '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: 2 },
       }}
     >
@@ -254,7 +255,7 @@ export default function Nav() {
     <Box
       className="dropdown"
       sx={{
-        position: 'fixed', top: 96, left: '50%',
+        position: 'fixed', top: 76, left: '50%',
         transform: 'translateX(-50%) translateY(-4px)',
         width: name === 'Platform' ? 'min(1008px, calc(100vw - 48px))' : 'min(640px, calc(100vw - 48px))',
         maxHeight: 'calc(100vh - 120px)', overflowY: 'auto',
@@ -279,7 +280,16 @@ export default function Nav() {
         type="button"
         onClick={() => go(path)}
         aria-haspopup={hasMenu ? 'true' : undefined}
-        sx={{ ...pillSx, color: active ? M.navy : M.slate, '&:hover': { color: M.navy } }}
+        aria-current={active ? 'page' : undefined}
+        sx={{
+          ...pillSx,
+          color: active ? M.navy : M.slate,
+          bgcolor: active ? '#FFFFFF' : 'transparent',
+          borderRadius: 999,
+          boxShadow: active ? M.shadow.xs : 'none',
+          px: active ? 2.25 : 1.5,
+          '&:hover': { color: M.navy, bgcolor: '#FFFFFF' },
+        }}
       >
         {name}
         {hasMenu && <FIcon name="chevronDown" size={14} sx={{ opacity: 0.5 }} />}
@@ -291,7 +301,7 @@ export default function Nav() {
   return (
     <>
       {/* Floating pill bar (unchanged — only the dropdown panels were redesigned). */}
-      <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, px: { xs: 1.5, md: 3 }, pt: { xs: 1.5, md: 2.5 }, pointerEvents: 'none' }}>
+      <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, px: { xs: 1.5, md: 3 }, pointerEvents: 'none' }}>
         <Container
           maxWidth="lg"
           sx={{
@@ -333,7 +343,16 @@ export default function Nav() {
                     component="button"
                     type="button"
                     onClick={() => go(l.path)}
-                    sx={{ ...pillSx, color: isActive(l.path) ? M.navy : M.slate, '&:hover': { color: M.navy } }}
+                    aria-current={isActive(l.path) ? 'page' : undefined}
+                    sx={{
+                      ...pillSx,
+                      color: isActive(l.path) ? M.navy : M.slate,
+                      bgcolor: isActive(l.path) ? '#FFFFFF' : 'transparent',
+                      borderRadius: 999,
+                      boxShadow: isActive(l.path) ? M.shadow.xs : 'none',
+                      px: isActive(l.path) ? 2.25 : 1.5,
+                      '&:hover': { color: M.navy, bgcolor: '#FFFFFF' },
+                    }}
                   >
                     {l.name}
                   </Typography>
@@ -398,16 +417,18 @@ export default function Nav() {
               expanded={Boolean(mobileExpanded.Platform)}
               onToggle={() => setMobileExpanded((p) => ({ ...p, Platform: !p.Platform }))}
               onNavigate={() => go('/platform')}
+              active={isActive('/platform')}
             />
             {mobileExpanded.Platform && <MobilePlatformPanel go={go} />}
             <MobileRow
               label="Solutions"
               expanded={Boolean(mobileExpanded.Solutions)}
               onToggle={() => setMobileExpanded((p) => ({ ...p, Solutions: !p.Solutions }))}
+              active={loc.pathname.startsWith('/solutions') || loc.pathname.startsWith('/download')}
             />
             {mobileExpanded.Solutions && <MobileSolutionsPanel go={go} />}
             {plainLinks.map((l) => (
-              <MobileRow key={l.name} label={l.name} onNavigate={() => go(l.path)} />
+              <MobileRow key={l.name} label={l.name} onNavigate={() => go(l.path)} active={isActive(l.path)} />
             ))}
             <Typography sx={{ color: M.slate, fontSize: '0.8125rem', pt: '24px' }}>
               Built for CQC, Care Inspectorate, CIW and RQIA.
@@ -436,28 +457,31 @@ export default function Nav() {
 
 /* ─── Mobile rows + panels ──────────────────────────────────────── */
 
-function MobileRow({ label, expanded, onToggle, onNavigate }: { label: string; expanded?: boolean; onToggle?: () => void; onNavigate?: () => void }) {
-  const active = expanded === true
+function MobileRow({ label, expanded, onToggle, onNavigate, active }: { label: string; expanded?: boolean; onToggle?: () => void; onNavigate?: () => void; active?: boolean }) {
+  const open = expanded === true
+  const hot = active === true
   return (
     <Box
       component="button"
       type="button"
-      aria-expanded={onToggle ? active : undefined}
+      aria-expanded={onToggle ? open : undefined}
+      aria-current={hot && !onToggle ? 'page' : undefined}
       onClick={onToggle ?? onNavigate}
       sx={{
-        border: 0, borderBottom: active ? 'none' : `1px solid ${M.faint}`,
-        width: '100%', bgcolor: 'transparent', cursor: 'pointer',
+        border: 0, borderBottom: open ? 'none' : `1px solid ${M.faint}`,
+        width: '100%', bgcolor: hot ? M.paper : 'transparent', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        py: '18px', textAlign: 'left', fontFamily: 'inherit',
+        py: '18px', px: hot ? '12px' : 0, borderRadius: hot ? '12px' : 0,
+        textAlign: 'left', fontFamily: 'inherit',
         '&:focus-visible': { outline: `2px solid ${M.navy}`, outlineOffset: -2 },
       }}
     >
-      <Typography sx={{ fontWeight: 600, fontSize: '1.0625rem', color: active ? M.navy : M.dark }}>{label}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '1.0625rem', color: hot || open ? M.navy : M.dark }}>{label}</Typography>
       {onToggle && (
         <FIcon
           name="chevronDown"
           size={22}
-          sx={{ color: active ? M.navy : M.slate, transform: active ? 'rotate(180deg)' : 'none', transition: `transform ${M.transition.fast}` }}
+          sx={{ color: hot || open ? M.navy : M.slate, transform: open ? 'rotate(180deg)' : 'none', transition: `transform ${M.transition.fast}` }}
         />
       )}
     </Box>

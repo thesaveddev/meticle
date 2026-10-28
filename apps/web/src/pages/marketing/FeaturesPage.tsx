@@ -535,50 +535,56 @@ export default function FeaturesPage() {
       ))}
 
       {/* CTA Section */}
-      <Box component="section" sx={{ py: { xs: 11, md: 15 }, bgcolor: 'background.paper', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography
-            variant="h2"
-            sx={{
-              fontSize: { xs: '2.1rem', md: '2.8rem' },
-              fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.03em',
-              color: INK, mb: 3,
-            }}
-          >
-            See it on your service, not a demo dataset.
-          </Typography>
-          <Typography sx={{ color: MIST, fontSize: '1.1rem', lineHeight: 1.7, mb: 5, mx: 'auto', maxWidth: 580 }}>
-            Book a focused conversation about your service, modules and rollout. We will agree any evaluation scope and commercial terms before access is enabled.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <Button
-              variant="contained"
-              size="large"
-              endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/contact')}
-              sx={{
-                bgcolor: NAVY, fontWeight: 600,
-                '&:hover': { bgcolor: NAVY_DEEP },
-                px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.02rem',
-              }}
-            >
-              Book a demo
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/contact')}
-              sx={{
-                borderColor: HAIRLINE, color: INK, fontWeight: 600,
-                '&:hover': { borderColor: INK, bgcolor: 'rgba(15,76,129,0.04)' },
-                px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.02rem',
+      <Box component="section" sx={{ py: { xs: 10, md: 14 }, bgcolor: 'background.paper', borderTop: `1px solid ${HAIRLINE}` }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: { xs: '2rem', md: '2.6rem' },
+                  fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.03em',
+                  color: INK, mb: 2,
+                }}
+              >
+                See it on your service, not a demo dataset.
+              </Typography>
+              <Typography sx={{ color: MIST, fontSize: '1.1rem', lineHeight: 1.7 }}>
+                Book a focused conversation about your service, modules and rollout. We will agree any evaluation scope and commercial terms before access is enabled.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent={{ md: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/contact')}
+                  sx={{
+                    bgcolor: NAVY, color: '#FFFFFF', fontWeight: 600, textTransform: 'none',
+                    '&:hover': { bgcolor: NAVY_DEEP },
+                    px: 4, py: 1.6, fontSize: '1rem',
+                  }}
+                >
+                  Book a demo
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/contact')}
+                  sx={{
+                    borderColor: NAVY, color: NAVY, fontWeight: 600, textTransform: 'none',
+                    '&:hover': { borderColor: NAVY, bgcolor: 'rgba(15,76,129,0.04)' },
+                    px: 4, py: 1.6, fontSize: '1rem',
               }}
             >
               Book a call
             </Button>
-          </Stack>
+              </Stack>
+            </Grid>
+          </Grid>
           <Divider sx={{ my: 5, borderColor: HAIRLINE }} />
-          <Stack direction="row" spacing={3} justifyContent="center" flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={3} justifyContent={{ md: 'flex-end' }} flexWrap="wrap" useFlexGap>
             {[
               { mark: 'CQC', label: 'Care Quality Commission' },
               { mark: 'CIW', label: 'Care Inspectorate Wales' },
@@ -589,7 +595,7 @@ export default function FeaturesPage() {
                 <Box
                   sx={{
                     width: 8, height: 8, borderRadius: '50%',
-                    bgcolor: EMERALD,
+                    bgcolor: NAVY,
                   }}
                 />
                 <Typography sx={{ fontWeight: 600, color: INK, fontSize: '0.82rem' }}>

@@ -1,4 +1,5 @@
 import { Box, Chip, Container, Grid, Stack, Typography, Link } from '@mui/material'
+import { GppGood, Storage } from '@mui/icons-material'
 import { Link as RouterLink } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
 import BrandWordmark from '../BrandWordmark'
@@ -15,7 +16,7 @@ const cols: { title: string; links: { name: string; path: string }[] }[] = [
       { name: 'Medication (eMAR)', path: '/features/medication' },
       { name: 'Workforce', path: '/features/workforce' },
       { name: 'Scheduling', path: '/features/scheduling' },
-      { name: 'AI intelligence', path: '/features/ai' },
+      { name: 'AI Intelligence', path: '/features/ai' },
     ],
   },
   {
@@ -49,7 +50,7 @@ const cols: { title: string; links: { name: string; path: string }[] }[] = [
 
 export default function Footer() {
   return (
-    <Box component="footer" sx={{ bgcolor: M.ink, color: '#FFFFFF' }}>
+    <Box component="footer" sx={{ bgcolor: M.dark, color: '#FFFFFF' }}>
       <Container maxWidth="lg">
         <Grid container spacing={{ xs: 5, md: 6 }} sx={{ py: { xs: 7, md: 9 } }}>
           <Grid item xs={12} md={4}>
@@ -58,21 +59,21 @@ export default function Footer() {
               Care operations for domiciliary and supported living providers across the UK.
             </Typography>
             <Stack direction="row" spacing={1} sx={{ mt: 2.5 }} flexWrap="wrap" useFlexGap>
-              {['UK data hosting', 'GDPR-ready'].map((b) => (
+              {[{ label: 'UK data hosting', icon: Storage }, { label: 'GDPR-ready', icon: GppGood }].map((b) => (
                 <Chip
-                  key={b} label={b} size="small"
+                  key={b.label} label={b.label} size="small" icon={<b.icon sx={{ fontSize: '0.85rem', color: `${M.teal} !important` }} />}
                   sx={{
-                    bgcolor: 'transparent', color: 'rgba(255,255,255,0.85)',
-                    border: '1px solid rgba(255,255,255,0.25)',
+                    bgcolor: 'rgba(3,198,177,0.08)', color: M.teal,
+                    border: '1px solid rgba(3,198,177,0.45)',
                     fontWeight: 600, fontSize: '0.72rem', borderRadius: M.r.full,
+                    py: 1.75, '& .MuiChip-icon': { ml: 0.75 },
                   }}
                 />
               ))}
             </Stack>
           </Grid>
           {cols.map((col) => (
-            <Grid item xs={6} md={2} key={col.title}>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.55)', mb: 2 }}>
+            <Grid item xs={6} md={2} key={col.title}>                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', color: M.teal, mb: 2 }}>
                 {col.title.toUpperCase()}
               </Typography>
               <Stack spacing={1.25}>

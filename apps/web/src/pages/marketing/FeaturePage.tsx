@@ -12,7 +12,7 @@ import PageMeta from '../../components/PageMeta'
 function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
-      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+      <Typography component="span" sx={{ fontSize: "0.8rem", lineHeight: 1.3, fontWeight: 600, letterSpacing: "0.08em", color: M.navy }}>{children}</Typography>
     </Box>
   )
 }
@@ -1032,9 +1032,7 @@ function MedicationPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Medication (eMAR)</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Medication (eMAR)</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1138,13 +1136,19 @@ function MedicationPage() {
         </Container>
       </Box>
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See medication records your team can trust in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See medication records your team can trust in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -1183,9 +1187,7 @@ function ReportingPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Reporting</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Reporting</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1284,13 +1286,19 @@ function ReportingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See what needs attention in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See what needs attention in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -1329,9 +1337,7 @@ function RiskPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Risk &amp; Incidents</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Risk &amp; Incidents</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1430,13 +1436,19 @@ function RiskPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See how to identify, record, review and act in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See how to identify, record, review and act in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -1475,9 +1487,7 @@ function SchedulingPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Scheduling</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Scheduling</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1576,13 +1586,19 @@ function SchedulingPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See how to build rotas around real constraints in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See how to build rotas around real constraints in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -1621,9 +1637,7 @@ function WorkforcePage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Workforce</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Workforce</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1722,13 +1736,19 @@ function WorkforcePage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See how to manage the people who deliver care in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See how to manage the people who deliver care in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -1768,9 +1788,7 @@ function CareManagementPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Care Management</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Care Management</Typography>
           </Stack>
         </Container>
       </Box>
@@ -1874,13 +1892,19 @@ function CareManagementPage() {
         </Container>
       </Box>
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See care management that follows the person in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See care management that follows the person in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -2027,9 +2051,7 @@ function FamilyPortalPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>Family Portal</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>Family Portal</Typography>
           </Stack>
         </Container>
       </Box>
@@ -2128,13 +2150,19 @@ function FamilyPortalPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            Keep families connected to care in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                Keep families connected to care in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -2300,9 +2328,7 @@ function AIPage() {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ fontSize: '0.8125rem' }}>
             <Typography component="button" type="button" onClick={() => nav('/platform')} sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', color: M.slate, fontSize: 'inherit', fontFamily: 'inherit', p: 0, '&:hover': { color: M.navy } }}>Platform</Typography>
             <Typography sx={{ color: M.slate }}>›</Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: 999, px: 1.5, py: 0.375 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: M.navy }}>AI Intelligence</Typography>
-            </Box>
+            <Typography sx={{ fontWeight: 700, color: M.dark }}>AI Intelligence</Typography>
           </Stack>
         </Container>
       </Box>
@@ -2405,13 +2431,19 @@ function AIPage() {
           </Grid>
         </Container>
       </Box>
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, mb: 3 }}>
-            See assistive, auditable AI in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><AssureRow /></Box>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography sx={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
+                See assistive, auditable AI in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.95rem', boxShadow: 'none', '&:hover': { bgcolor: M.navyMid, boxShadow: 'none' } }}>Book a demo</Button>
+              <AssureRow />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
@@ -2539,12 +2571,20 @@ export default function FeaturePage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
-            See {d.title.toLowerCase()} in your operation.
-          </Typography>
-          <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.ink, fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}` }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.ink, mb: 2 }}>
+                See {d.title.toLowerCase()} in your operation.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Box sx={{ display: 'flex', justifyContent: { md: 'flex-end' } }}>
+                <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.navy, color: '#FFFFFF', fontWeight: 600, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.navyHover } }}>Book a demo</Button>
+              </Box>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>

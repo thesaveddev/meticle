@@ -63,6 +63,7 @@ export const M = {
   rule:       '#C9D5E2', // strong hairlines, outlined-button borders
   hair:       '#E3EAF1', // card hairlines (unifies #E4E9F1)
   heroTint:   '#EAF3FC', // hero gradient stop (unifies #EAF3FD/#EBF3FC)
+  gradMid:    '#F8FBFE', // brand-panel gradient mid-stop (auth pages, per Figma 1.7)
   heroGlow:   '#D2E3F6', // radial hero glow
   chipBlue:   '#E8F1FD', // pale-blue chips on navy text
   avBlue:     '#DCE9F7', // avatar ground, blue
@@ -80,6 +81,7 @@ export const M = {
   mintText:   '#7BE3D6', // text on mint-tint chips
   navyInk:    '#0152A6', // deep-blue text
   navyHover:  '#0157AD', // primary-button hover
+  navyBadge:  '#1570CC', // trust-badge fill on the navy footer
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",

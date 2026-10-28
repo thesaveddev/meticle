@@ -436,7 +436,7 @@ button, input, select, textarea {
 }
 
 /* Smooth scroll offset for fixed marketing header */
-[data-lenis-enabled="true"] html {
+html[data-lenis-enabled="true"] {
   scroll-padding-top: max(84px, 5.25rem);
 }
 

@@ -31,7 +31,7 @@ const articles: Article[] = [
     { heading: 'Trace every useful statement', paragraphs: ['Managers should be able to see which source records support an AI-generated statement, when those records were created and what uncertainty remains. This makes review practical rather than ceremonial.'] },
     { heading: 'Permissions come first', paragraphs: ['An AI assistant must work within the same organisation and role boundaries as the rest of the application. It must not receive records that the requesting user could not already access, and each meaningful action should be auditable.'] },
   ] },
-  { slug: 'medication-safety-in-domiciliary-care', title: 'Medication safety in domiciliary care: what good looks like', category: 'Domiciliary care', date: '2026-09-10', readingTime: '6 min read', excerpt: 'Medication errors are among the most common incident types in home care. A structured approach to recording, prompting and auditing reduces risk without adding burden.', img: '/figma/cover-medication.png', body: [
+  { slug: 'medication-safety-in-domiciliary-care', title: 'Medication safety in domiciliary care: what good looks like', category: 'Domiciliary care', date: '2026-09-10', readingTime: '5 min read', excerpt: 'Medication errors are among the most common incident types in home care. A structured approach to recording, prompting and auditing reduces risk without adding burden.', img: '/figma/cover-medication.png', body: [
     { heading: 'The challenge of medication outside clinical settings', paragraphs: ['In domiciliary care, medication administration happens in the person\'s own home, often without a nurse present. The carer may support self-administration, prompt for overdue doses or manage a pre-filled blister pack. Each scenario carries different risk and requires a different level of recording.', 'Unlike residential settings, there is no central pharmacy or shift handover to catch a missed dose. The system has to surface the right information at the right time — on the carer\'s phone, at the door.'] },
     { heading: 'What a safe medication workflow looks like', paragraphs: ['A well-designed electronic MAR (eMAR) should show the carer exactly what is due for this visit, flag anything that was missed in a previous visit, and record the outcome with a timestamp. It should also distinguish between administered, refused, missed and self-managed — because each has a different governance implication.', 'Stock control and controlled-drug workflows add another layer. When a service manages controlled substances, the system should support batch tracking, witness signatures and reconciliation on administration.'] },
     { heading: 'Audit without investigation burden', paragraphs: ['Managers need a clear view of medication adherence across all clients without having to open each MAR individually. A dashboard showing overdue doses, refusal patterns and exception rates makes proactive review possible.', 'When an incident does occur, the audit trail should already be in place: who administered what, when, and what was recorded. This is the difference between a governance gap and inspection-ready evidence.'] },
@@ -96,9 +96,13 @@ function BlogIndex() {
     <MarketingLayout>
       <PageMeta title="Resources" description="Clear, evidence-led reading for domiciliary and supported living providers. No invented credentials, endorsements or customer claims." canonicalPath="/blog" />
 
-      {/* Hero */}
-      <Box sx={{ background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
-        <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 14 } }}>
+      {/* Hero — gradient + decor glows, per Figma frame 1.5 (node 29:79) */}
+      <Box sx={{ position: 'relative', overflow: 'clip', background: `linear-gradient(180deg, ${M.heroTint} 0%, ${M.paper} 55%, ${M.card} 100%)` }}>
+        <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <Box sx={{ position: 'absolute', width: 560, height: 560, right: '-4%', top: '-12%', borderRadius: '50%', bgcolor: 'rgba(1,100,200,0.12)', filter: 'blur(140px)' }} />
+          <Box sx={{ position: 'absolute', width: 420, height: 420, right: '6%', top: '30%', borderRadius: '50%', bgcolor: 'rgba(3,198,177,0.12)', filter: 'blur(140px)' }} />
+        </Box>
+        <Container maxWidth="lg" sx={{ position: 'relative', pt: { xs: 8, md: 14 } }}>
           <Grid container spacing={4} alignItems="end" sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={8}>
               <Box
@@ -194,7 +198,9 @@ function BlogIndex() {
                   <Box component="span" sx={{ px: 1, py: '3px', borderRadius: '6px', bgcolor: M.dark, color: '#FFFFFF', fontSize: '0.68rem', fontWeight: 600 }}>
                     Latest
                   </Box>
-                  <Typography sx={{ fontSize: '0.8rem', color: M.slate }}>{featured.category}</Typography>
+                  <Box component="span" sx={{ px: 1, py: '3px', borderRadius: '6px', bgcolor: M.chipBlue, color: M.navy, fontSize: '0.68rem', fontWeight: 600 }}>
+                    {featured.category}
+                  </Box>
                 </Stack>
                 <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.dark, mb: 2 }}>
                   {featured.title}
@@ -281,8 +287,8 @@ function BlogIndex() {
         </Container>
       </Box>
 
-      {/* CTA */}
-      <Box sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${M.faint}`, py: { xs: 8, md: 12 } }}>
+      {/* CTA — no top rule on this page, per the frame (node 29:346) */}
+      <Box sx={{ bgcolor: '#FFFFFF', py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
             <Grid item xs={12} md={7}>
@@ -322,9 +328,9 @@ function CtaButton() {
 
 function Reassurance() {
   const items = [
-    { icon: <AccessTime sx={{ fontSize: 16, color: M.tealDeep }} />, text: '30-minute scoping call' },
-    { icon: <Check sx={{ fontSize: 16, color: M.tealDeep }} />, text: '14-day free trial' },
-    { icon: <Groups sx={{ fontSize: 16, color: M.tealDeep }} />, text: 'Named point of contact' },
+    { icon: <AccessTime sx={{ fontSize: 16, color: M.slate }} />, text: '30-minute scoping call' },
+    { icon: <Check sx={{ fontSize: 16, color: M.slate }} />, text: '14-day free trial' },
+    { icon: <Groups sx={{ fontSize: 16, color: M.slate }} />, text: 'Named point of contact' },
   ]
   return (
     <Stack direction="row" spacing={2.5} flexWrap="wrap" useFlexGap>

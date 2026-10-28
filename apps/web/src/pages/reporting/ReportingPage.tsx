@@ -104,14 +104,19 @@ export default function ReportingPage() {
   return (
     <PageContainer>
 
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Domiciliary operations reporting' : 'Reporting Suite'}</Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-          {isDomiciliary
-            ? 'A practical view of visit delivery, area coverage, client safety and workforce readiness.'
-            : 'Explore your data with interactive charts, filters, and exports'}
-        </Typography>
-      </Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ mb: 4 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Domiciliary operations reporting' : 'Reporting Suite'}</Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+            {isDomiciliary
+              ? 'A practical view of visit delivery, area coverage, client safety and workforce readiness.'
+              : 'Explore your data with interactive charts, filters, and exports'}
+          </Typography>
+        </Box>
+        <Button variant="contained" startIcon={<TrendingUpIcon />} onClick={() => navigate('/reports/builder')} sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          Build a custom report
+        </Button>
+      </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 

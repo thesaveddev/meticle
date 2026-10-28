@@ -16,9 +16,7 @@ import { M } from '../../styles/marketing-tokens'
 
 // Shared marketing tokens so this page cannot drift from the site palette.
 const INK = M.ink
-const INK_DARK = M.navy
 const NAVY = M.navy
-const EMERALD = M.teal
 const BONE = M.paper
 const MIST = M.slate
 const HAIRLINE = M.faint
@@ -117,7 +115,7 @@ const WHY = [
   { icon: <ShieldIcon size={28} />, title: 'All four regulators', desc: 'CQC, CIW, Care Inspectorate Scotland and RQIA are natively supported — your evidence packs adjust automatically.' },
   { icon: <ManagerIcon size={28} />, title: '5-minute setup', desc: 'No lengthy onboarding. Configure your service, invite your team, and start recording care within the hour.' },
   { icon: <CareWorkerIcon size={28} />, title: 'UK data sovereignty', desc: 'Data hosted in the UK, encrypted at rest (AES-256) and in transit (TLS 1.3), with isolation between organisations enforced in the database.' },
-  { icon: <CheckIcon sx={{ fontSize: 26, color: '#86EFAC' }} />, title: 'No long contracts', desc: 'Month-to-month pricing with no lock-in. Cancel anytime. Your data is yours to export — including read access after cancellation.' },
+  { icon: <CheckIcon sx={{ fontSize: 26 }} />, title: 'No long contracts', desc: 'Month-to-month pricing with no lock-in. Cancel anytime. Your data is yours to export — including read access after cancellation.' },
 ]
 
 export default function HowItWorksPage() {
@@ -134,19 +132,10 @@ export default function HowItWorksPage() {
       {/* HEADER */}
       <Box component="section" sx={{ pt: { xs: 8, md: 11 }, pb: { xs: 8, md: 10 }, bgcolor: BONE, borderBottom: `1px solid ${HAIRLINE}` }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', maxWidth: 760, mx: 'auto' }}>
-            <Box
-              sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: M.card, border: `1px solid ${HAIRLINE}`, borderRadius: 999,
-                px: 2, py: 0.75, mb: 3,
-              }}
-            >
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
-              <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
-                GET STARTED IN MINUTES
-              </Typography>
-            </Box>
+          <Box sx={{ maxWidth: 720 }}>
+            <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.8rem', letterSpacing: '0.08em', mb: 2 }}>
+              GET STARTED IN MINUTES
+            </Typography>
             <Typography
               variant="h1"
               sx={{
@@ -171,7 +160,7 @@ export default function HowItWorksPage() {
             component="section"
             sx={{
               py: { xs: 8, md: 11 },
-              bgcolor: idx % 2 === 0 ? M.card : BONE,
+              bgcolor: BONE,
               borderBottom: `1px solid ${HAIRLINE}`,
             }}
           >
@@ -179,28 +168,17 @@ export default function HowItWorksPage() {
               <Grid container spacing={{ xs: 4, md: 7 }} alignItems="center" direction={reverse ? 'row-reverse' : 'row'}>
                 <Grid item xs={12} md={5}>
                   <Stack spacing={2.5}>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Box
-                        sx={{
-                          width: 56, height: 56, borderRadius: '50%', bgcolor: NAVY,
-                          color: '#FFFFFF', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: '1.6rem', fontWeight: 600,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {step.number}
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, color: MIST, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'none' }}>
-                          STEP {step.number}
-                        </Typography>
-                        <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.78rem' }}>
-                          {step.timeEstimate}
-                        </Typography>
-                      </Box>
-                    </Stack>
+                    <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: '0.8rem', letterSpacing: '0.08em' }}>
+                      STEP {step.number} · {step.timeEstimate.toUpperCase()}
+                    </Typography>
 
-                    <Box sx={{ color: NAVY, display: 'flex', alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        width: 48, height: 48, borderRadius: 1.5,
+                        bgcolor: 'rgba(15,76,129,0.08)', color: NAVY,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
                       {step.icon}
                     </Box>
 
@@ -215,7 +193,7 @@ export default function HowItWorksPage() {
                     <Stack spacing={1.25}>
                       {step.details.map((d, i) => (
                         <Stack key={i} direction="row" spacing={1.5} alignItems="flex-start">
-                          <CheckIcon sx={{ fontSize: 18, color: EMERALD, mt: 0.3, flexShrink: 0 }} />
+                          <CheckIcon sx={{ fontSize: 18, color: NAVY, mt: 0.3, flexShrink: 0 }} />
                           <Typography sx={{ color: INK, fontSize: '0.92rem', fontWeight: 500, lineHeight: 1.55 }}>
                             {d}
                           </Typography>
@@ -325,7 +303,7 @@ export default function HowItWorksPage() {
                     borderRadius: 3,
                     p: { xs: 3, md: 4 },
                     transition: 'border-color 0.15s ease, transform 0.15s ease',
-                    '&:hover': { borderColor: EMERALD, transform: 'translateY(-2px)' },
+                    '&:hover': { borderColor: NAVY, transform: 'translateY(-2px)' },
                   }}
                 >
                   <Box
@@ -351,44 +329,50 @@ export default function HowItWorksPage() {
         </Container>
       </Box>
 
-      {/* FINAL CTA — matches landing / pricing / about */}
-      <Box component="section" sx={{ py: { xs: 11, md: 15 }, bgcolor: INK_DARK, color: '#FFFFFF', textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography
-            variant="h2"
-            sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
-          >
-            Ready to set up in minutes?
-          </Typography>
-          <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-            Book a focused walkthrough and we will show how the platform could fit your service before agreeing an evaluation or rollout.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <Button
-              variant="contained"
-              size="large"
-              endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/contact')}
-              sx={{
-                bgcolor: M.teal, color: M.ink, '&:hover': { bgcolor: M.tealDark },
-                fontWeight: 600, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
-              }}
-            >
-              Book a demo
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/contact')}
-              sx={{
-                borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
-                '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' },
-                fontWeight: 600, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
-              }}
-            >
-              Talk to our team
-            </Button>
-          </Stack>
+      {/* FINAL CTA */}
+      <Box component="section" sx={{ py: { xs: 10, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${HAIRLINE}` }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography
+                variant="h2"
+                sx={{ fontSize: { xs: '2rem', md: '2.6rem' }, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.03em', mb: 2, color: INK }}
+              >
+                Ready to set up in minutes?
+              </Typography>
+              <Typography sx={{ color: MIST, fontSize: '1.1rem', lineHeight: 1.7 }}>
+                Book a focused walkthrough and we will show how the platform could fit your service before agreeing an evaluation or rollout.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent={{ md: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/contact')}
+                  sx={{
+                    bgcolor: NAVY, color: '#FFFFFF', '&:hover': { bgcolor: M.navyHover },
+                    fontWeight: 600, px: 4, py: 1.6, fontSize: '1rem', textTransform: 'none',
+                  }}
+                >
+                  Book a demo
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/contact')}
+                  sx={{
+                    borderColor: NAVY, color: NAVY,
+                    '&:hover': { borderColor: NAVY, bgcolor: 'rgba(15,76,129,0.06)' },
+                    fontWeight: 600, px: 4, py: 1.6, fontSize: '1rem', textTransform: 'none',
+                  }}
+                >
+                  Talk to our team
+                </Button>
+              </Stack>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </MarketingLayout>
