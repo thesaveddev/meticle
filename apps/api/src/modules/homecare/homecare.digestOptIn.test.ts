@@ -148,8 +148,10 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // 159 (family visit feedback), and again on 160 (policy acknowledgements),
     // and again on 161-167 (incident form/severity/workflow engines, submit
     // link, lifecycle, closeout and action suggestions), and again on 168
-    // (per-organisation compliance files), which is the latest run registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_168\]\)/)
+    // (per-organisation compliance files), and again on 169-171 (saved
+    // custom reports, delivery schedules and run history), which is the
+    // latest run registered.
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_171\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {
