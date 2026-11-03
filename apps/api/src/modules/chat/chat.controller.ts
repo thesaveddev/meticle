@@ -530,8 +530,13 @@ export class ChatController {
        JOIN users u ON u.id = rr.user_id
        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
        WHERE rr.organization_id = $1
-         AND (rr.channel = $2 OR ($3 IS NOT NULL AND rr.channel = $3))
+         AND (rr.channel = $2 OR ($3::text IS NOT NULL AND rr.channel = $3::text))
          AND rr.user_id != $4`,
+      // $3 is the channel's display name, which is null when the lookup
+      // above finds nothing. The casts are load-bearing: without them
+      // Postgres cannot determine the parameter's type (42P08), the query
+      // throws, and this route has no asyncHandler — so the rejection is
+      // unhandled and the process-level handler exits the entire API.
       [oid, channelId, channelName, uid]
     );
     res.json({
