@@ -141,9 +141,16 @@ describe('DBS certificate metadata — what may be held', () => {
     // Six months from the recruitment decision, to the day.
     expect(updated.purge_after_on).toBe(plusMonths(decidedOn, 6));
     expect(updated.certificate_purged_on).toBeNull();
-    // Two months of the window already spent, so four remain.
+    // Two months of the window already spent, so roughly four remain — the
+    // countdown agrees with the deadline it counts down to, to within a day.
+    // (A fixed 100–130 window used to stand here; it went stale because the
+    // decision is pinned to the 15th while today keeps moving, and day counts
+    // legitimately swing past either bound depending on the month.)
+    const daysToDeadline = Math.ceil(
+      (new Date(`${updated.purge_after_on}T00:00:00Z`).getTime() - Date.now()) / 86_400_000
+    );
     expect(updated.days_until_purge).toBeGreaterThan(100);
-    expect(updated.days_until_purge).toBeLessThan(130);
+    expect(Math.abs(updated.days_until_purge - daysToDeadline)).toBeLessThanOrEqual(1);
   });
 
   it('refuses information whose retention date has already passed, naming the dates', async () => {
