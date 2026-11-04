@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
-import { isDomiciliaryOrganisation, isSupportedLivingOrganisation } from './src/utils/serviceType'
+import { isDomiciliaryOrganisation, isLivingProviderOrganisation, isSupportedLivingOrganisation } from './src/utils/serviceType'
 import { canApproveOpenCalls, canClaimOpenCalls } from './src/utils/openCalls'
 import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
@@ -44,6 +44,7 @@ import { HandoverScreen } from './src/screens/HandoverScreen'
 import { ShiftClockScreen } from './src/screens/ShiftClockScreen'
 import { RoomChecksScreen } from './src/screens/RoomChecksScreen'
 import { ManagerDashboard } from './src/screens/ManagerDashboard'
+import { SupportedLivingDashboard } from './src/screens/SupportedLivingDashboard'
 import { ClientListScreen } from './src/screens/ClientListScreen'
 import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
 import { StaffDirectoryScreen } from './src/screens/StaffDirectoryScreen'
@@ -206,6 +207,11 @@ function AppInner() {
   // Supported living is where a shift is handed over rather than a call completed,
   // so the Schedule tab shows the shift's handover state only for those providers.
   const isSupportedLiving = useMemo(() => isSupportedLivingOrganisation(session?.organization), [session?.organization])
+  // Which manager home this provider gets. The supported-living dashboard endpoints
+  // (`/dashboard/*`) are gated to supported living and residential organisations, and
+  // a residential provider's work is shifts and residents too — so anything the
+  // domiciliary visit dashboard would show them is empty by definition.
+  const isLivingProvider = useMemo(() => isLivingProviderOrganisation(session?.organization), [session?.organization])
   // Open calls has two audiences and they must not overlap: a care worker picks
   // shifts up, a manager decides on the claims that produces. A manager of a
   // domiciliary agency used to be offered shifts of their own.
@@ -217,6 +223,16 @@ function AppInner() {
   const currentScreen = screenStack[screenStack.length - 1]
   const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
   const popScreen = useCallback(() => setScreenStack(prev => prev.length <= 1 ? prev : prev.slice(0, -1)), [])
+  // The manager home's quick actions, in one place. The domiciliary dashboard names
+  // the client list 'clientList' and the supported-living one 'clients'; both are
+  // the Clients tab.
+  const onManagerNavigate = useCallback((screen: string, params?: any) => {
+    if (screen === 'clients' || screen === 'clientList') setTab('clients')
+    else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
+    else if (screen === 'staffDirectory') { pushScreen({ kind: 'staffDirectory' }) }
+    else if (screen === 'timesheets') { pushScreen({ kind: 'timesheets' }) }
+    else if (screen === 'carerTotals') { pushScreen({ kind: 'carerTotals' }) }
+  }, [pushScreen])
 
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -835,14 +851,12 @@ function AppInner() {
           {isField && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} isSupportedLiving={isSupportedLiving} refreshKey={shiftRevision} onHandover={(shift) => pushScreen({ kind: 'handover', shiftId: shift.id, shift })} onShift={(shift) => pushScreen({ kind: 'clock', shiftId: shift.id, shift })} />}
           {isField && tab === 'mileage' && <MileageScreen session={session} />}
 
-          {/* Companion (manager) tabs */}
-          {surface === 'companion' && tab === 'today' && <ManagerDashboard session={session!} onNavigate={(screen, params) => {
-            if (screen === 'clientList') setTab('clients')
-            else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
-            else if (screen === 'staffDirectory') { pushScreen({ kind: 'staffDirectory' }) }
-            else if (screen === 'timesheets') { pushScreen({ kind: 'timesheets' }) }
-            else if (screen === 'carerTotals') { pushScreen({ kind: 'carerTotals' }) }
-          }} />}
+          {/* Companion (manager) tabs. The home is the service model's own: a visit
+              dashboard for a domiciliary agency, and the supported-living one
+              everywhere the `/dashboard/*` endpoints answer. */}
+          {surface === 'companion' && tab === 'today' && (isLivingProvider
+            ? <SupportedLivingDashboard session={session!} onNavigate={onManagerNavigate} />
+            : <ManagerDashboard session={session!} onNavigate={onManagerNavigate} />)}
           {tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
           {tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visit) => {
             if (visit) pushScreen({ kind: 'visit', visit })

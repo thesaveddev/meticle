@@ -37,3 +37,35 @@ export function isSupportedLivingOrganisation(organisation?: SessionOrganisation
   const types = Array.isArray(organisation.service_types) ? organisation.service_types : []
   return types.includes('supported_living')
 }
+
+/**
+ * The label for the supported-living model, for the screens that only that model
+ * reaches.
+ *
+ * `requireSupportedLivingOnly` on the API admits both supported living and
+ * residential — they share the shift/resident shape of the product — so a screen
+ * behind it must not call a residential provider's home "supported living". The
+ * primary type decides, for the same reason it does everywhere else in this file.
+ */
+export function livingServiceLabel(organisation?: SessionOrganisation | null): string {
+  if (!organisation) return 'Supported living'
+  const primary = typeof organisation.primary_service_type === 'string' ? organisation.primary_service_type : null
+  if (primary === 'residential') return 'Residential'
+  if (primary) return 'Supported living'
+  const types = Array.isArray(organisation.service_types) ? organisation.service_types : []
+  return types.includes('supported_living') || !types.includes('residential') ? 'Supported living' : 'Residential'
+}
+
+/**
+ * Whether the session's organisation is served by the supported-living dashboard
+ * endpoints. Residential counts: the API's `requireSupportedLivingOnly` admits
+ * both, and a residential provider's home is the same set of facts — residents,
+ * shifts, compliance — rather than a list of visits that is empty by definition.
+ */
+export function isLivingProviderOrganisation(organisation?: SessionOrganisation | null): boolean {
+  if (!organisation) return false
+  const primary = typeof organisation.primary_service_type === 'string' ? organisation.primary_service_type : null
+  if (primary) return primary === 'supported_living' || primary === 'residential'
+  const types = Array.isArray(organisation.service_types) ? organisation.service_types : []
+  return types.includes('supported_living') || types.includes('residential')
+}

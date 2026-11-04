@@ -52,6 +52,7 @@ jest.mock('../screens/ClientListScreen', () => ({ ClientListScreen: require('./s
 jest.mock('../screens/AllVisitsScreen', () => ({ AllVisitsScreen: require('./screenStub').stub('allVisits') }))
 jest.mock('../screens/NotificationsScreen', () => ({ NotificationsScreen: require('./screenStub').stub('notifications') }))
 jest.mock('../screens/PoliciesScreen', () => ({ PoliciesScreen: require('./screenStub').stub('policies') }))
+jest.mock('../screens/SupportedLivingDashboard', () => ({ SupportedLivingDashboard: require('./screenStub').stub('livingDashboard') }))
 jest.mock('../screens/HandoverScreen', () => ({ HandoverScreen: require('./screenStub').stub('handover') }))
 jest.mock('../screens/ShiftClockScreen', () => ({ ShiftClockScreen: require('./screenStub').stub('clock') }))
 jest.mock('../screens/RoomChecksScreen', () => ({ RoomChecksScreen: require('./screenStub').stub('roomChecks') }))
@@ -136,8 +137,11 @@ const signInAs = (role: MobileUser['role']): AuthSession => ({
  * a notification that opened a pushed screen. Waiting for a tab bar that the tap has
  * deliberately replaced would never succeed.
  */
-async function mountApp(role: MobileUser['role'] = 'CARE_WORKER', options: { awaitTabs?: boolean } = {}) {
-  const session = signInAs(role)
+async function mountApp(
+  role: MobileUser['role'] = 'CARE_WORKER',
+  options: { awaitTabs?: boolean; organization?: Record<string, unknown> | null } = {},
+) {
+  const session = { ...signInAs(role), organization: options.organization ?? null }
   mockReadSession.mockResolvedValue(session)
   mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: null } as any)
 
@@ -198,6 +202,26 @@ describe('App tab bar per role', () => {
     expect(await screen.findByText('Dashboard')).toBeTruthy()
     expect(screen.queryByText('screen:today')).toBeNull()
     expect(screen.queryByText('Earnings')).toBeNull()
+  })
+
+  it('gives a supported-living manager the supported-living home, not the visit dashboard', async () => {
+    const { screen } = await mountApp('MANAGER', {
+      organization: { id: 'org-1', primary_service_type: 'supported_living' },
+    })
+
+    // The visit dashboard asks `/homecare/*`, which a supported-living provider never
+    // writes to — it would read as a quiet service rather than the wrong question.
+    expect(screen.getByText('screen:livingDashboard')).toBeTruthy()
+    expect(screen.queryByText('Dashboard')).toBeNull()
+  })
+
+  it('keeps a domiciliary manager on the visit dashboard', async () => {
+    const { screen } = await mountApp('MANAGER', {
+      organization: { id: 'org-2', primary_service_type: 'domiciliary' },
+    })
+
+    expect(await screen.findByText('Dashboard')).toBeTruthy()
+    expect(screen.queryByText('screen:livingDashboard')).toBeNull()
   })
 
   it('treats an org admin as a manager', async () => {
