@@ -173,7 +173,10 @@ export class IncidentsRepository {
         }
       }
 
-      return incident;
+      // `RETURNING *` hands back the ciphertext that was just written, and the
+      // caller echoes this row to the reporter — so it is decrypted here, once,
+      // rather than leaving the create response unreadable.
+      return decryptRowForOrg('incidents', incident, orgId);
     });
   }
 
@@ -183,7 +186,7 @@ export class IncidentsRepository {
       `UPDATE incidents SET form_version_id = $1, current_severity_assessment_id = $2 WHERE id = $3 AND organization_id = $4 RETURNING *`,
       [formVersionId, assessmentId, id, orgId]
     );
-    return result.rows[0] || null;
+    return decryptRowForOrg('incidents', result.rows[0], orgId) || null;
   }
 
   /** Appends form answers (cleared fields already dropped by evaluate). */

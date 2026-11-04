@@ -415,6 +415,8 @@ describe('every column registered as encrypted is ciphertext at rest', () => {
           severity: 'high',
           root_cause: 'Bed rail not raised after the night check.',
           outcomes: 'No injury. GP informed. Care plan updated.',
+          investigation_notes: 'Interviewed the night carer and the resident; both agree she was found at 06:40.',
+          lessons_learned: 'Raise the bed rail at every night check and record it.',
         })
       expect(created.status, JSON.stringify(created.body)).toBe(201)
 
@@ -432,6 +434,10 @@ describe('every column registered as encrypted is ciphertext at rest', () => {
       expect(got.body.description).toBe(description)
       expect(got.body.root_cause).toBe('Bed rail not raised after the night check.')
       expect(got.body.outcomes).toBe('No injury. GP informed. Care plan updated.')
+      expect(got.body.investigation_notes).toBe(
+        'Interviewed the night carer and the resident; both agree she was found at 06:40.',
+      )
+      expect(got.body.lessons_learned).toBe('Raise the bed rail at every night check and record it.')
     })
   })
 })

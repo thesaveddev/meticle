@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { ENCRYPTED_COLUMNS } from './encrypted-columns';
 
 /**
  * The clinical narrative columns are encrypted at rest, which means every file
@@ -32,6 +33,7 @@ const ALLOWED_WITHOUT_DECRYPTION: Record<string, string> = {
   'scripts/seed-vps.ts': 'writes demonstration rows, which are fake by construction',
   'scripts/seed-clean-care.ts': 'writes demonstration rows, which are fake by construction',
   'scripts/seed-play-reviewer.ts': 'writes demonstration rows, which are fake by construction',
+  'scripts/seed-orbis.ts': 'writes the demonstration organisation, which is fake by construction',
   'test/factories.ts': 'builds test fixtures; a plaintext fixture is the honest default there',
   'modules/dashboard/dashboard.repository.ts': 'the review scheduler reads plan and risk titles and dates; the one narrative read in the file (a care note summary) is decrypted before it is cut to length',
   'modules/reviews/review-notifications.service.ts': 'selects titles and review dates only',
@@ -107,7 +109,6 @@ describe('clinical narrative encryption coverage', () => {
   it('registers every clinical narrative column with the encryptor', () => {
     // The registry is the single place the answer lives; a scan that finds a
     // narrative column on one of these tables must find it encrypted too.
-    const { ENCRYPTED_COLUMNS } = require('./encrypted-columns');
     expect(ENCRYPTED_COLUMNS.daily_notes).toEqual(['content']);
     expect(ENCRYPTED_COLUMNS.care_plans).toEqual(expect.arrayContaining(['description', 'risk_assessment']));
     expect(ENCRYPTED_COLUMNS.risk_assessments).toEqual(expect.arrayContaining(['details', 'mitigation_actions']));
