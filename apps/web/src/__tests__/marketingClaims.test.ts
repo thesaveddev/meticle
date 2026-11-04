@@ -258,6 +258,16 @@ describe('marketing claim guard — registered claims', () => {
     expect(REGISTERED_CLAIMS.length).toBeGreaterThan(0)
   })
 
+  // The claim was live for weeks before the registration number was, and a
+  // reader had nothing to check it against. Now that it is verified, the
+  // reference itself is the evidence: if it drops off the page while the
+  // sentence stays, the claim silently returns to being an assertion.
+  it('prints the ICO registration reference beside the claim', () => {
+    const copy = copyByFile.map((d) => d.copy).join(' ')
+    expect(copy).toMatch(/ZC259570/)
+    expect(copy).toMatch(/ICO registered[^.]{0,120}ZC259570/i)
+  })
+
   for (const claim of REGISTERED_CLAIMS) {
     it(`records a reason for permitting ${claim.label}`, () => {
       expect(claim.evidence.trim().length).toBeGreaterThan(20)

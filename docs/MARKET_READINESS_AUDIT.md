@@ -209,6 +209,18 @@ Recorded so the audit is not only a list of problems. All commands were run for 
 
 ### P0 — blocks the first paying customer or a store submission
 
+> **Status, 4 November 2026 — 1–4 and 6 were cleared by the submission itself.**
+> The Play listing was submitted and testers are testing the build, so the
+> screenshots, content rating and console fields are satisfied as far as Play is
+> concerned. Two caveats worth keeping rather than deleting: the Data safety form
+> is required for a production release but is not required on an internal testing
+> track, so "submitted" does not by itself evidence it; and screenshot
+> distinctness is not something a review catches, so item 1's rule (open all
+> seven) is still the check that matters. Items 5 (back up the upload key — now
+> permanently fixed by the first upload) and 6 (iOS scope) remain open, as does
+> the whole legal set in item 7 apart from ICO registration, which completed on
+> 4 November 2026 (reference ZC259570).
+
 1. **Recapture the seven screenshots until they are seven distinct images.** The gate is already in place
    (`npm run store:verify-screenshots`) so it cannot silently regress again. Then open them — the runbook's
    own rule, and the one that was skipped.

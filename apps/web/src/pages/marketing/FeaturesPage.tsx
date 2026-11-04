@@ -329,7 +329,14 @@ const featureGroups = [
           // US-based provider. "Hosted in the UK" is what we can actually
           // stand behind. A claim guard now fails the build if the absolute
           // wording returns — see apps/web/src/__tests__/marketingClaims.ts.
-          { title: 'UK GDPR & DPA 2018', desc: 'ICO registered. UK data sovereignty — application data hosted in the UK.' },
+          //
+          // The registration itself completed on 4 November 2026 and the number is
+          // printed beside the claim. "ICO registered" with nothing to check was the
+          // same defect as the withdrawn residency absolute: a compliance lead at a
+          // prospective customer can search the ICO register, and if the page gives
+          // them no reference to search for, the sentence is decoration. The claim
+          // guard now asserts the reference is on the page (T0-1).
+          { title: 'UK GDPR & DPA 2018', desc: 'ICO registered — registration reference ZC259570. UK data sovereignty — application data hosted in the UK.' },
         ],
       },
       {

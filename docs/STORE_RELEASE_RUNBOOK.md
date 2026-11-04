@@ -1,6 +1,15 @@
 # Store release runbook — Meticle Care mobile
 
-The remaining work is all credential- or device-dependent. Nothing here can be
+> **Status, 4 Nov 2026: submitted, and testers are testing the build.** The
+> sections below remain accurate as instructions for the next release; the
+> blockers they describe were cleared when the listing went in. Two things that
+> submission does not evidence, and that this runbook still owns: the Data safety
+> form is required for a production release but not on an internal testing track,
+> and Play does not check that the seven screenshots are seven different images.
+> The first upload has also now permanently fixed the Android upload key — if it
+> is not backed up, do that before anything else.
+
+The remaining work was all credential- or device-dependent. Nothing here can be
 done from a laptop without an Expo account, a Google Play developer account and
 an Apple Developer account. Play reviewer access instructions are in
 `docs/PLAY_REVIEWER_GUIDE.md`; enter the password only in Play Console's secure

@@ -55,10 +55,10 @@ safeguarding defect that a paying customer can reach today.**
 | Design system | ✅ Ready | `design:check` / `design:lint` / `design:test` green; 16 screenshot comparisons green |
 | Feature breadth vs blueprint | 🟡 No P0 gaps; screen work remains | 49 of 51 API modules expose routes; §3.2's five P0s are all closed at the API as of 16 Oct 2026, and what is left of them is the mobile screens |
 | DBS integration | 🟡 **Phase 0 complete; no partner yet** | A mock no longer files a cleared check (submit/poll refuse 503, no document is minted), only the permitted metadata is stored and the six-month purge deletes it on a nightly sweep, and the screen says submission is closed — §2. There is still no automated checking at all: a real partner adapter is phase 2. |
-| Store submission (Play) | ⛔ Blocked | screenshots still identical (`store:verify-screenshots` exit **1**); Data safety template absent |
+| Store submission (Play) | ✅ **Submitted 4 Nov 2026** | Supersedes the 16 Oct finding: the listing went in and testers are testing the build. Unchecked by that: the Data safety form (production-only requirement) and whether the seven screenshots are seven distinct images — Play does not verify either. §4.1's other findings stand as history. |
 | iOS | ⬜ Not started | no build, no capture, no App Privacy label |
 | Billing / revenue | 🟡 Partial | subscription and per-org quote flow real; add-ons recorded but **not purchasable** — §4.2 |
-| Commercial / legal | ⛔ Blocked | DPA, solicitor review, PI insurance, DPIA, AI Art 28 — all tracker-open, all non-engineering |
+| Commercial / legal | 🟡 **ICO registration closed 4 Nov 2026 (ZC259570)** | DPA, solicitor review, PI insurance, DPIA and AI Art 28 are still tracker-open, all non-engineering. ICO registration is no longer among them: the reference is printed on the marketing claim and in the privacy policy, and the claim guard now requires it on the page. |
 | Operations (backup, monitoring) | 🟡 Unproven | backups real, **restore never run**; Kuma monitors invisible from the repo (T0-2, T0-4) |
 
 ---
@@ -369,7 +369,7 @@ on this machine rather than on carers' phones (**T0-6a/6b/6c/6f/6g**).
 | 11 | ~~**Shift clock-on/off and handover** (blueprint §9.1, §9.2)~~ | ✅ **Closed 16 Oct 2026**: both exist at the API with the offline idempotency contract, and both are reachable from the web rota's shift detail. The `/impeccable`-class remaining work is the two mobile screens (blueprint §12 phases 2 and 3) | — |
 | 12 | **Fix or delete `/marketplace`** | `staffId: 'mock-id'` vs `z.string().uuid()` → every click 400s | Opeyemi |
 | 13 | **Rewrite the stale Learning Center articles** (reporting, agency savings) | §3.5 — in-app help contradicts the product | Opeyemi |
-| 14 | **Resident read-scoping for support workers** (blueprint §9.10) | least privilege, data protection | Opeyemi |
+| 14 | ~~**Resident read-scoping for support workers** (blueprint §9.10)~~ | ✅ **Closed 4 Nov 2026**: `GET /people` and `GET /people/:id` now narrow a `CARE_WORKER` to the residents on their shifts and visits (`people/personVisibility.ts`), with the boundary asserted in both directions by six integration tests. Managers, admins and compliance officers keep the whole organisation; sub-resource routes keep their organisation-level check, which is deliberate and recorded in that file | — |
 | 15 | **Tests for `body-map` and `compliance-portal`** | the only two modules with zero test files | Opeyemi |
 | 16 | **Prove monitoring**: cron installed, Kuma has monitors, an alert reaches a phone | T0-4 | Adetoye |
 | 17 | **Run the restore drill** | T0-2 — a backup nobody has restored is a hypothesis | Adetoye/Opeyemi |

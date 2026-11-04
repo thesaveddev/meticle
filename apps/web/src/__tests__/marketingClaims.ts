@@ -280,11 +280,11 @@ export const REGISTERED_CLAIMS: {
   {
     label: 'ICO registered',
     pattern: /ICO registered/i,
-    status: 'pending',
-    evidence: 'Application submitted to the ICO on 28 Sep 2026 and awaiting approval; no registration number exists yet. The public pages state the claim but cite nothing. Decision taken 27 Sep 2026: register and keep the claim, then print the number on the page.',
+    status: 'verified',
+    evidence: 'Registered with the Information Commissioner\'s Office as a data controller, registration reference ZC259570. The number is printed beside the claim on FeaturesPage and in §9 of the privacy policy, so the claim is checkable against the public register rather than asserted. Registration completed 4 November 2026 (T0-1); the application went in on 28 Sep 2026.',
+    evidencePath: 'apps/web/src/pages/marketing/FeaturesPage.tsx',
     owner: 'Adetoye',
-    closesOn: 'T0-1',
-    notes: 'Progressed from not-submitted to submitted-and-waiting on 28 Sep 2026. The claim is not true until the number is on the page, so this stays registered-and-pending rather than being deleted. When the number arrives it goes on FeaturesPage and into the privacy policy, and this entry flips to verified.',
+    notes: 'Went not-submitted → submitted-and-waiting (28 Sep) → registered (4 Nov 2026). The pending state existed because the claim was live while the number was not, which is precisely what the registry is for. Renewal is annual, so the reference has to survive on the page across renewals — marketingClaims.test.ts asserts the reference is still printed beside the claim, because "ICO registered" without one is the original defect.',
   },
   {
     label: 'AES-256 / encryption at rest',

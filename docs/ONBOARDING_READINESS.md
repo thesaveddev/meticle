@@ -32,7 +32,14 @@ Three items on this list were open when it was first written and have since been
 
 ## Tier 0 — before the first paying customer
 
-### 1. 🟡 The website says we are "ICO registered". We have not registered.
+### 1. ✅ Closed 4 Nov 2026 — the website says "ICO registered", and we are (ZC259570)
+
+> **CLOSED 4 Nov 2026.** Registration completed; reference **ZC259570**. It is printed
+> on `FeaturesPage.tsx` beside the claim and in §9 of the privacy policy, and
+> `marketingClaims.test.ts` now fails the build if the reference leaves the page
+> while the sentence stays. The text below is the 27 Sep record of why it mattered,
+> kept because the reasoning is the useful part. `GO_LIVE_READINESS.md` T0-1 is the
+> live tracker row; the remaining action there is the annual renewal.
 
 > **DECISION 27 Sep: register and keep the claim.** Adetoye is registering with the ICO. Once the number exists, it has to be added to `FeaturesPage.tsx:305` — the sentence is not true until the number is on the page, so the claim stays under review until then.
 

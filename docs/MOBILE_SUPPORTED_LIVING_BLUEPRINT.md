@@ -334,8 +334,10 @@ The notification service is shared and works, but supported living needs event t
 
 **Remaining work in this section: nothing at the API.** The screens that record the underlying work are §7's (`RoomCheckScreen`, `HandoverScreen`, `ShiftDetailScreen`) and are tracked there.
 
-### 9.10 Read-scoping for residents — P1
-`GET /people` currently returns the organisation's residents. For supported living, a support worker should see residents on their shift or their team, not the whole organisation. This is a least-privilege change with a real data-protection argument behind it.
+### 9.10 Read-scoping for residents — P1, **closed 4 November 2026**
+`GET /people` returned the organisation's residents to anyone with the `people` module enabled, and the default matrix leaves a care worker at `people: none` — so the one worker who had been granted it could read the whole provider's residents. Closed by `apps/api/src/modules/people/personVisibility.ts`: a `CARE_WORKER` now sees a resident only if a shift naming that resident is assigned to them, or they are assigned to a shift at that resident's location within a week behind and a fortnight ahead, or a domiciliary visit for that resident is assigned to them. One rule, used by both the list and the single-record read, so a known id is not a way around the list.
+
+Two limits are deliberate and recorded in that file rather than left to be discovered. **The scope is location-shaped, not team-shaped**, because residents have no team — `teams`/`team_members` group users and nothing links a resident to one. **A worker with no rota sees an empty directory**, which is the least-privilege answer but needs the empty state to explain itself; the sub-resource routes (notes, care plans, assessments) keep their organisation-level check, because the web rota, eMAR and mobile flows drive them and narrowing them here would stop a carer recording care for the resident in front of them.
 
 ---
 

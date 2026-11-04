@@ -34,6 +34,8 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 
 ## Current State (Phase 1 — Launched August 2026)
 
+**4 Nov 2026:** ICO registration completed — reference **ZC259570**, printed on `FeaturesPage.tsx` beside the "ICO registered" claim and in §9 of the privacy policy, and required on the page by `marketingClaims.test.ts` (T0-1 closed). The **Play submission is complete and testers are testing the build** (T1-1); the upload-key backup and the iOS scope decision remain open. `GET /people` and `GET /people/:id` are now **read-scoped for `CARE_WORKER`** to the residents on their shifts and visits — see the `people` row below.
+
 ### ✅ Backend Modules (51 directories; the 45 rows below are the Phase 1 set, so a module missing from this table is not a module that does not exist — check `apps/api/src/modules/`)
 | Module | Endpoints | Key Features |
 |---|---|---|
@@ -41,7 +43,7 @@ Supported living care management platform. Phase 1 is complete and launched. Foc
 | mfa | 5 | Setup (QR), verify, disable, admin-disable |
 | orgs | 20 | Org CRUD, locations, departments, teams, branding, subscription |
 | organization | 6 | Invitations: send, validate, accept, list, resend, cancel |
-| people | 32 | People (SU/carer/family/visitor/emergency), notes, documents, activities, care plans, goals, risk assessments, contacts |
+| people | 32 | People (SU/carer/family/visitor/emergency), notes, documents, activities, care plans, goals, risk assessments, contacts. **4 Nov 2026:** `GET /people` and `GET /people/:id` are read-scoped for `CARE_WORKER` (`people/personVisibility.ts`, blueprint §9.10): a resident is visible only through a shift naming them, a shift at their location within −7/+14 days, or a domiciliary visit assigned to that worker. Managers, admins and compliance officers keep the whole organisation; sub-resource routes keep their organisation-level check by design. |
 | staff | 18 | Profiles, role/status/skills/qualifications/emergency-contacts, dept assignment |
 | compliance | 16 | Docs, evidence packs (KLOE), identity dashboard, trends, mappings, records, PDF |
 | scheduling | 42 | Shifts CRUD, assign/claim/swap/approve/reject, templates, min-staff, OT, shift clock-on/off + handover with the visit check-in offline contract (migration 152; blueprint §9.1/§9.2 closed 16 Oct 2026), a 15-minute handover-due sweep that raises `shift.handover_due` for a shift that ended with no handover (migration 154; blueprint §9.9's missing event type closed 16 Oct 2026 — notified to the staff on the shift, kept in Mission Control for the manager, and since 17 Oct 2026 read there as a list rather than only an alert: `GET /mission-control/handover-gaps` returns the shifts that ended with no handover in a 1–30 day window on the sweep's own 30-minute grace, with who was rostered and whether they were nudged, and Mission Control's Compliance tab shows it with a row click through to the shift on the rota), and (17 Oct 2026) the phone-side handover: `HandoverScreen` records/amends with the version history kept, acknowledges as a named reader (never the author), keeps a draft when the send fails, and is reached from the handover-due notification and the Schedule tab's handover list |

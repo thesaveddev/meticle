@@ -1,6 +1,7 @@
 import { query } from '../../shared/database';
 import { encryptField } from '../../shared/utils/encryption';
 import { decryptRow, decryptRows, decryptRowForOrg, encryptUpdate, encryptedColumns, orgIdForPerson, orgIdForFamilyContact } from '../../shared/utils/encrypted-columns';
+import { visibleResidentPredicate } from './personVisibility';
 
 /**
  * `people` rows carry their own `organization_id`, which is what the per-tenant
@@ -160,7 +161,15 @@ export class PersonRepository {
   private static readonly TIME_AWAY_UPDATE_COLUMNS = new Set(['title', 'time_away_type', 'destination', 'start_date', 'end_date', 'notes']);
   private static readonly DISCHARGE_CHECKLIST_UPDATE_COLUMNS = new Set(['item', 'category', 'quantity', 'unit', 'is_complete']);
   // ---- People ----
-  static async findAll(orgId: string, filters?: { status?: string; search?: string }) {
+  /**
+   * The resident directory.
+   *
+   * `visibleToUserId` narrows the result to the residents that user is working
+   * with, and is only passed for a support worker — the predicate and the
+   * reasoning live in `personVisibility.ts`, so this query and `canUserSeePerson`
+   * cannot disagree about who is visible.
+   */
+  static async findAll(orgId: string, filters?: { status?: string; search?: string; visibleToUserId?: string }) {
     let sql = `SELECT su.*, 
       (SELECT COUNT(*) FROM care_plans WHERE person_id = su.id AND status = 'active')::int AS active_care_plans,
       (SELECT COUNT(*) FROM risk_assessments WHERE person_id = su.id AND risk_level IN ('high','critical'))::int AS open_risks
@@ -169,6 +178,10 @@ export class PersonRepository {
     let idx = 2;
     if (filters?.status) { sql += ` AND su.status = $${idx++}`; params.push(filters.status); }
     if (filters?.search) { sql += ` AND (LOWER(su.first_name) LIKE LOWER($${idx}) OR LOWER(su.last_name) LIKE LOWER($${idx}) OR LOWER(su.room_number) LIKE LOWER($${idx}))`; params.push(`%${filters.search}%`); idx++; }
+    if (filters?.visibleToUserId) {
+      sql += ` AND ${visibleResidentPredicate(`$${idx++}`)}`;
+      params.push(filters.visibleToUserId);
+    }
     sql += ' ORDER BY su.last_name, su.first_name';
     const result = await query(sql, params);
     return decryptRows('people', result.rows);

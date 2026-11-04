@@ -69,6 +69,7 @@ export default function PrivacyPolicyPage() {
 
       <Section title="9. Contact">
         <p>Data Protection Officer: Adetoye (dpo@meticlecare.com)<br/>Privacy concerns: privacy@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
+        <p>MeticleCare is registered with the Information Commissioner's Office as a data controller, registration reference ZC259570. If you are unhappy with how we have handled your data, you can complain to us first, or raise it with the ICO at ico.org.uk.</p>
       </Section>
     </Container>
     </>

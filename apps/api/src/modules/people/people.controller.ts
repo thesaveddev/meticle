@@ -3,6 +3,7 @@ import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { PersonRepository } from './people.repository';
 import { requirePersonChildInOrg, requirePersonInOrg } from '../../shared/database/tenant';
+import { canUserSeePerson, personReadsAreScoped } from './personVisibility';
 import { EMedicationRepository } from '../emedication/emedication.repository';
 import { AuditRepository } from '../audit/audit.repository';
 
@@ -54,7 +55,13 @@ export class PersonController {
   static async list(req: Request, res: Response) {
     const orgId = PersonController.getOrgId(req);
     const { status, search } = req.query as any;
-    const users = await PersonRepository.findAll(orgId, { status, search });
+    // A support worker gets the residents they are actually working with, not the
+    // whole provider — see `personVisibility.ts` for the rule and its limits.
+    const users = await PersonRepository.findAll(orgId, {
+      status,
+      search,
+      visibleToUserId: personReadsAreScoped(req.user?.role) ? PersonController.getUserId(req) : undefined,
+    });
     res.json(users.map(PersonController.decorate));
   }
 
@@ -63,6 +70,12 @@ export class PersonController {
     const userId = PersonController.getUserId(req);
     const user = await PersonRepository.findById(req.params.id, orgId);
     if (!user) throw new AppError(404, 'Person not found');
+    // Same boundary as the list, or the list is theatre: an id is not a
+    // credential. 404 rather than 403 so the response does not confirm that a
+    // resident exists behind it.
+    if (personReadsAreScoped(req.user?.role) && !(await canUserSeePerson(userId, user.id))) {
+      throw new AppError(404, 'Person not found');
+    }
     await pool.query(
       'INSERT INTO person_access_log (person_id, accessed_by, action, ip_address) VALUES ($1, $2, $3, $4)',
       [req.params.id, userId, 'view', req.ip]

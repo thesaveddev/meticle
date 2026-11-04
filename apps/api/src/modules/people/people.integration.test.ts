@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, createLocation, generateToken } from '../../test/factories'
+import { createOrg, createUser, createLocation, createStaffProfile, createShift, createPerson, generateToken } from '../../test/factories'
+import { migrateQuery } from '../../shared/database'
 
 let app: Express
 
@@ -158,5 +159,114 @@ describe('Service users (people) — CRUD and sub-resources', () => {
   it('should reject without auth (401)', async () => {
     const res = await request(app).get('/people')
     expect(res.status).toBe(401)
+  })
+})
+
+/**
+ * Blueprint §9.10 — a support worker sees the residents they work with, not the
+ * whole provider.
+ *
+ * These assert the boundary in both directions: what the rota grants, and what it
+ * does not. A test that only checked "the worker sees their resident" would pass
+ * for an implementation that returned everything, which is the bug this replaced.
+ */
+describe('Resident read-scoping for support workers (§9.10)', () => {
+  /** Two residents at two sites, a rostered worker, and a manager who sees both. */
+  async function fixture() {
+    const org = await createOrg()
+    const mine = await createLocation({ organizationId: org.id })
+    const other = await createLocation({ organizationId: org.id })
+    const third = await createLocation({ organizationId: org.id })
+    const atMine = await createPerson({ organization_id: org.id, location_id: mine.id, first_name: 'Amina', last_name: 'Yusuf', room_number: 'A1' })
+    const atOther = await createPerson({ organization_id: org.id, location_id: other.id, first_name: 'Bernard', last_name: 'Okafor', room_number: 'B1' })
+    const atThird = await createPerson({ organization_id: org.id, location_id: third.id, first_name: 'Clara', last_name: 'Nwosu', room_number: 'C1' })
+    const manager = await createUser({ role: 'MANAGER', organization_id: org.id })
+    const worker = await createUser({ role: 'CARE_WORKER', organization_id: org.id })
+    const staff = await createStaffProfile({ userId: worker.id, locationId: mine.id })
+    return { org, mine, other, third, atMine, atOther, atThird, manager, worker, staff }
+  }
+
+  const listAs = (token: string) =>
+    request(app).get('/people').set('Authorization', `Bearer ${token}`)
+
+  const rostered = (shiftId: string, staffId: string, status = 'assigned') =>
+    migrateQuery(
+      `INSERT INTO shift_assignments (shift_id, staff_id, status) VALUES ($1,$2,$3)`,
+      [shiftId, staffId, status],
+    )
+
+  it('narrows the directory to the locations the worker is rostered at', async () => {
+    const f = await fixture()
+    const shift = await createShift({ locationId: f.mine.id, status: 'filled' })
+    await rostered(shift.id, f.staff.id)
+
+    const res = await listAs(generateToken(f.worker))
+    expect(res.status).toBe(200)
+    const ids = res.body.map((p: any) => p.id)
+    expect(ids).toContain(f.atMine.id)
+    expect(ids).not.toContain(f.atOther.id)
+    expect(ids).not.toContain(f.atThird.id)
+  })
+
+  it('adds a resident named on the worker’s own shift, and still only that one', async () => {
+    const f = await fixture()
+    // A one-to-one shift: located at the worker's own site, but naming a resident
+    // who lives at another one. The 1:1 assignment must grant that resident
+    // without dragging in the rest of their location.
+    const shift = await createShift({ locationId: f.mine.id, personId: f.atOther.id, status: 'filled' })
+    await rostered(shift.id, f.staff.id)
+
+    const res = await listAs(generateToken(f.worker))
+    const ids = res.body.map((p: any) => p.id)
+    expect(ids).toContain(f.atMine.id)
+    expect(ids).toContain(f.atOther.id)
+    expect(ids).not.toContain(f.atThird.id)
+  })
+
+  it('does not count a shift the worker declined, or one that was cancelled', async () => {
+    const f = await fixture()
+    const declined = await createShift({ locationId: f.other.id, status: 'filled' })
+    await rostered(declined.id, f.staff.id, 'rejected')
+    const cancelled = await createShift({ locationId: f.third.id, status: 'cancelled' })
+    await rostered(cancelled.id, f.staff.id)
+
+    const res = await listAs(generateToken(f.worker))
+    const ids = res.body.map((p: any) => p.id)
+    expect(ids).not.toContain(f.atOther.id)
+    expect(ids).not.toContain(f.atThird.id)
+  })
+
+  it('shows a worker with no rota an empty directory rather than the provider', async () => {
+    const f = await fixture()
+
+    const res = await listAs(generateToken(f.worker))
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual([])
+  })
+
+  it('leaves the manager with the whole organisation', async () => {
+    const f = await fixture()
+    const shift = await createShift({ locationId: f.mine.id, status: 'filled' })
+    await rostered(shift.id, f.staff.id)
+
+    const res = await listAs(generateToken(f.manager))
+    const ids = res.body.map((p: any) => p.id)
+    expect(ids).toEqual(expect.arrayContaining([f.atMine.id, f.atOther.id, f.atThird.id]))
+  })
+
+  it('applies the same boundary to a single record, without confirming it exists', async () => {
+    const f = await fixture()
+    const shift = await createShift({ locationId: f.mine.id, status: 'filled' })
+    await rostered(shift.id, f.staff.id)
+    const token = generateToken(f.worker)
+
+    const visible = await request(app).get(`/people/${f.atMine.id}`).set('Authorization', `Bearer ${token}`)
+    expect(visible.status).toBe(200)
+
+    const hidden = await request(app).get(`/people/${f.atOther.id}`).set('Authorization', `Bearer ${token}`)
+    expect(hidden.status).toBe(404)
+    // A 404, not a 403: the response must not tell the worker that a record is
+    // there behind the boundary.
+    expect(hidden.body.message ?? hidden.body.error).toMatch(/not found/i)
   })
 })
