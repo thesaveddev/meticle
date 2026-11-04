@@ -130,10 +130,19 @@ describe('Incident severity events — catalogue name', () => {
       .send({ incident_id: incident.id, answers: { harm_level: 'severe', category: 'falls', urgency: 'today' } });
     expect(res.status).toBe(201);
 
-    const rows = await migrateQuery(
+    // The assess endpoint publishes this event without awaiting the insert
+    // (`incidents.controller.ts` logs and moves on), so the row can land a moment
+    // after the 201. A single read here raced the scheduler and had failed on CI
+    // for no reason of its own; the wait is bounded, and the assertion is the same.
+    const readEvent = () => migrateQuery(
       `SELECT event_name FROM domain_events WHERE organization_id = $1 AND aggregate_id = $2 AND event_name = 'incident.severity_changed'`,
       [org.id, incident.id]
     );
+    let rows = await readEvent();
+    for (let attempt = 0; attempt < 20 && rows.rows.length === 0; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      rows = await readEvent();
+    }
     expect(rows.rows.length).toBeGreaterThanOrEqual(1);
   });
 });
