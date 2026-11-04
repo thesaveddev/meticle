@@ -42,6 +42,7 @@ import goalRoutes from '../modules/goals/goals.routes'
 import healthRoutes from '../modules/health/health.routes'
 import nutritionRoutes from '../modules/nutrition/nutrition.routes'
 import compliancePortalRoutes from '../modules/compliance-portal/compliance-portal.routes'
+import bodyMapRoutes from '../modules/body-map/bodyMap.routes'
 import settingsRoutes from '../modules/settings/settings.routes'
 import billingRoutes from '../modules/billing/billing.routes'
 import emedicationRoutes from '../modules/emedication/emedication.routes'
@@ -126,6 +127,7 @@ export function createTestApp(): Express {
   app.use('/health', authenticate, requireCareOrganisation, healthRoutes)
   app.use('/nutrition', authenticate, requireSupportedLivingOnly, nutritionRoutes)
   app.use('/compliance-portal', compliancePortalRoutes)
+  app.use('/body-map', bodyMapRoutes)
   app.use('/ai', aiRoutes)
   app.use('/family-portal', familyPortalRoutes)
   app.use('/family-feedback', familyFeedbackRoutes)

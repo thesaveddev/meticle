@@ -166,6 +166,7 @@ export class CompliancePortalController {
     const detail = await CompliancePortalRepository.getMedicationDetail(
       user.orgId, user.locationId, req.params.personId
     );
+    if (!detail) throw new AppError(404, 'Person not found at this location');
     res.json(detail);
   }
 }

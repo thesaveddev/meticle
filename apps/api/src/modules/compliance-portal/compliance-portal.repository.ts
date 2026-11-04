@@ -278,6 +278,17 @@ export class CompliancePortalRepository {
   }
 
   static async getMedicationDetail(orgId: string, locationId: string, personId: string) {
+    // The token is scoped to one location, so the resident must be at it. Without
+    // this check `locationId` was accepted and then never used, and a portal link
+    // issued for one home returned the MAR of a resident at another home in the
+    // same organisation — clinical medication data outside the audit scope the
+    // officer was granted (and the scope the email describes to them).
+    const personCheck = await query(
+      `SELECT id FROM people WHERE id = $1 AND location_id = $2 AND organization_id = $3`,
+      [personId, locationId, orgId]
+    );
+    if (personCheck.rows.length === 0) return null;
+
     const records = await query(`
       SELECT r.*,
         (SELECT first_name || ' ' || last_name FROM people WHERE id = r.person_id) AS person_name
