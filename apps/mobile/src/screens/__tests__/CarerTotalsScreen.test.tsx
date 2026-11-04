@@ -136,6 +136,7 @@ describe('CarerTotalsScreen', () => {
     expect(await findByTestId('carer-action-error')).toBeTruthy()
     // Still listed, because it is still unapproved.
     expect(queryByText('All timesheets reviewed')).toBeNull()
-    expect(await findByText('Morning call')).toBeTruthy()
+    // The row renders `label · person` in one text node, so match on the part.
+    expect(await findByText(/Morning call/)).toBeTruthy()
   })
 })
