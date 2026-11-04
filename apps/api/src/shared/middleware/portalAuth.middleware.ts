@@ -67,7 +67,11 @@ export const authenticatePortal = async (req: Request, res: Response, next: Next
       await ctx.client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['COMPLIANCE_OFFICER']);
     }
 
-    req.portalUser = decoded;
+    // Links signed before the payload was corrected carry `officer_name`. Those
+    // tokens live at most 72 hours, so reading the old key as a fallback keeps an
+    // emailed link working across the deploy without keeping the mismatch.
+    const legacyName = (decoded as PortalUser & { officer_name?: string }).officer_name;
+    req.portalUser = { ...decoded, officerName: decoded.officerName || legacyName || '' };
     next();
   } catch {
     return res.status(401).json({ statusCode: 401, message: 'Invalid portal token' });

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import request from 'supertest'
+import jwt from 'jsonwebtoken'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import {
@@ -128,6 +129,41 @@ describe('Compliance portal — what the link may read', () => {
       officerName: 'Inspector Jane Fields',
       locationName: 'Oak House',
     })
+  })
+
+  // Links emailed before the token payload was corrected carry `officer_name`.
+  // They live at most 72 hours, so the middleware still reads the old key — this
+  // is the test that says the deploy does not break a link already in an inbox.
+  it('still names the officer on a link signed with the old payload key', async () => {
+    const { admin, locationA } = await site()
+    const issued = await issueToken(admin, locationA.id)
+    const tokenRecordId = (await migrateQuery(
+      'SELECT id FROM compliance_portal_tokens WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [admin.organization_id]
+    )).rows[0].id
+
+    const legacy = jwt.sign(
+      {
+        portalId: tokenRecordId,
+        officer_name: 'Inspector Jane Fields',
+        email: 'jane.fields@cqc.gov.uk',
+        orgId: admin.organization_id,
+        locationId: locationA.id,
+        locationName: 'Oak House',
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        isPortal: true,
+      },
+      `${process.env.JWT_SECRET}_portal`,
+      { expiresIn: '1h' }
+    )
+
+    expect(issued.status).toBe(201)
+    const res = await request(app)
+      .get('/compliance-portal/portal/verify')
+      .set('Authorization', `Bearer ${legacy}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.officerName).toBe('Inspector Jane Fields')
   })
 
   it('returns the dashboard for the location without leaking the rest of the organisation', async () => {
