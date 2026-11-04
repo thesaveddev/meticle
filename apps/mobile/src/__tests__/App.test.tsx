@@ -143,7 +143,9 @@ async function mountApp(
 ) {
   const session = { ...signInAs(role), organization: options.organization ?? null }
   mockReadSession.mockResolvedValue(session)
-  mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: null } as any)
+  // `/auth/me` is what the shell trusts for the service model: the boot effect
+  // replaces the stored organisation with the one the server returns.
+  mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: options.organization ?? null } as any)
 
   const screen = render(<App />)
   if (options.awaitTabs !== false) {
