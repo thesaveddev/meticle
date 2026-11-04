@@ -51,6 +51,7 @@ jest.mock('../screens/SettingsScreen', () => ({ SettingsScreen: require('./scree
 jest.mock('../screens/ClientListScreen', () => ({ ClientListScreen: require('./screenStub').stub('clientList') }))
 jest.mock('../screens/AllVisitsScreen', () => ({ AllVisitsScreen: require('./screenStub').stub('allVisits') }))
 jest.mock('../screens/NotificationsScreen', () => ({ NotificationsScreen: require('./screenStub').stub('notifications') }))
+jest.mock('../screens/PoliciesScreen', () => ({ PoliciesScreen: require('./screenStub').stub('policies') }))
 jest.mock('../screens/HandoverScreen', () => ({ HandoverScreen: require('./screenStub').stub('handover') }))
 jest.mock('../screens/ShiftClockScreen', () => ({ ShiftClockScreen: require('./screenStub').stub('clock') }))
 jest.mock('../screens/RoomChecksScreen', () => ({ RoomChecksScreen: require('./screenStub').stub('roomChecks') }))
@@ -204,6 +205,30 @@ describe('App tab bar per role', () => {
 
     expect(tabLabels(screen)).toEqual(['Team', 'Clients', 'Visits', 'Chat', 'Settings'])
     expect(await screen.findByText('Dashboard')).toBeTruthy()
+  })
+
+  it('gives a compliance officer oversight — no Today, no Earnings, and the policies they answer for', async () => {
+    const { screen } = await mountApp('COMPLIANCE_OFFICER')
+
+    expect(tabLabels(screen)).toEqual(['Clients', 'Policies', 'Chat', 'Settings'])
+    // The carer's day list and the marketplace money tab are what the old
+    // isManager test gave them, with an empty rota on top.
+    expect(screen.queryByText('screen:today')).toBeNull()
+    expect(screen.queryByText('Earnings')).toBeNull()
+    expect(screen.queryByText('Schedule')).toBeNull()
+    expect(screen.queryByText('Dashboard')).toBeNull()
+  })
+
+  it('opens the compliance officer on their first tab, since oversight has no Today', async () => {
+    const { screen } = await mountApp('COMPLIANCE_OFFICER')
+
+    // The initial tab state is 'today', which no oversight surface carries; the
+    // shell would otherwise open on an empty body with nothing selected.
+    expect(tabNamed(screen, 'Clients').props.accessibilityState).toEqual({ selected: true })
+    expect(screen.getByText('screen:clientList')).toBeTruthy()
+
+    fireEvent.press(tabNamed(screen, 'Policies'))
+    expect(screen.getByText('screen:policies')).toBeTruthy()
   })
 })
 

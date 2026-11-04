@@ -1400,3 +1400,41 @@ export async function approveVoiceNote(
     }),
   }, token)
 }
+
+// ── Policies ──
+// Read by every role, and acknowledged in the caller's own name (`blueprint
+// §9.7`). The list carries the full content, so opening a policy is not a
+// second request.
+export interface PolicySummary {
+  id: string
+  title: string
+  category: string
+  content: string
+  version: string
+  status?: string
+  review_due_at?: string | null
+  updated_at?: string
+  updated_by_name?: string | null
+}
+
+export interface PolicyAcknowledgement {
+  id: string
+  policy_id: string
+  user_id: string
+  acknowledged_at: string
+  email?: string
+  name?: string
+}
+
+export async function getPolicies(token: string): Promise<PolicySummary[]> {
+  return request<PolicySummary[]>('/policies', {}, token)
+}
+
+/** Managers receive everyone's rows; anyone else receives only their own. */
+export async function getPolicyAcknowledgements(token: string, policyId: string): Promise<PolicyAcknowledgement[]> {
+  return request<PolicyAcknowledgement[]>(`/policies/${policyId}/acknowledgements`, {}, token)
+}
+
+export async function acknowledgePolicy(token: string, policyId: string): Promise<PolicyAcknowledgement> {
+  return request<PolicyAcknowledgement>(`/policies/${policyId}/acknowledge`, { method: 'POST' }, token)
+}

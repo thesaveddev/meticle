@@ -19,6 +19,7 @@ import { flushShiftClockActions, pendingShiftClockActions } from './src/services
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification, presentChatNotification } from './src/services/notifications'
 import { ensureChatLiveSocket, disconnectChatLive, subscribeChatLive, subscribeChatUnreadTotal, getOpenChatChannel, chatLiveChannelOf, type ChatLiveMessage } from './src/services/chatLive'
 import { notificationTarget, resolveTab } from './src/utils/notificationLinks'
+import { surfaceOf, tabsForSurface, type TabKey } from './src/utils/surface'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { StaffNoticeGate } from './src/components/StaffNoticeGate'
@@ -38,6 +39,7 @@ import { OpenCallsScreen } from './src/screens/OpenCallsScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
 import { NotificationsScreen } from './src/screens/NotificationsScreen'
+import { PoliciesScreen } from './src/screens/PoliciesScreen'
 import { HandoverScreen } from './src/screens/HandoverScreen'
 import { ShiftClockScreen } from './src/screens/ShiftClockScreen'
 import { RoomChecksScreen } from './src/screens/RoomChecksScreen'
@@ -62,8 +64,6 @@ import { announceShot } from './src/capture/signal'
 import { LOGIN_SHOT } from './src/capture/shots'
 import { CAPTURE_INCIDENT_DRAFT } from './src/capture/fixtures'
 import type { CaptureScene, CaptureTarget } from './src/capture/shots'
-
-type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
 /**
  * The only mount path for a stack screen, and the only place in the app that
@@ -104,22 +104,6 @@ function assertNever(value: never): never {
   throw new Error(`Screen ${JSON.stringify(value)} has no mount in App.tsx`)
 }
 
-const carerTabs: { key: TabKey; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'schedule', label: 'Schedule' },
-  { key: 'chat', label: 'Chat' },
-  { key: 'mileage', label: 'Earnings' },
-  { key: 'settings', label: 'Settings' },
-]
-
-const managerTabs: { key: TabKey; label: string }[] = [
-  { key: 'today', label: 'Team' },
-  { key: 'clients', label: 'Clients' },
-  { key: 'visits', label: 'Visits' },
-  { key: 'chat', label: 'Chat' },
-  { key: 'settings', label: 'Settings' },
-]
-
 /* ─── Screen stack for Android back button ──────────────────── */
 type Screen =
   | { kind: 'incident'; visitId?: string; personId?: string; personName?: string }
@@ -135,6 +119,7 @@ type Screen =
   | { kind: 'swap'; mode?: 'swap' | 'transfer'; visitId?: string }
   | { kind: 'chat' }
   | { kind: 'notifications' }
+  | { kind: 'policies' }
   | { kind: 'handover'; shiftId: string; shift?: MyShift }
   | { kind: 'clock'; shiftId: string; shift?: MyShift }
   | { kind: 'roomChecks' }
@@ -203,8 +188,19 @@ function AppInner() {
   // normal launch, where the chat tab lands on the channel list.
   const [captureChannelId, setCaptureChannelId] = useState<string | undefined>(undefined)
 
-  const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
-  const tabs = isManager ? managerTabs : carerTabs
+  // The shell branches on a surface, never on a role: `field`, `oversight` or
+  // `companion` (see src/utils/surface.ts). It used to ask `isManager`, which
+  // handed a compliance officer the carer's app — visits that were not theirs, an
+  // Earnings tab, and an empty rota that read as a quiet day.
+  const surface = surfaceOf(session?.user)
+  const tabs = tabsForSurface(surface)
+  const isField = surface === 'field'
+  // A surface's tab set does not always contain the tab the last session left
+  // selected — 'today' is the field dashboard, and no oversight surface has one.
+  // Without this the shell opens on an empty body with nothing marked as current.
+  useEffect(() => {
+    if (!tabs.some(item => item.key === tab)) setTab(tabs[0].key)
+  }, [tabs, tab])
   // Gates the open-call marketplace, the Learn screen and the Settings row.
   const isDomiciliary = useMemo(() => isDomiciliaryOrganisation(session?.organization), [session?.organization])
   // Supported living is where a shift is handed over rather than a call completed,
@@ -672,9 +668,9 @@ function AppInner() {
   const goBack = popScreen
 
   /* ─── Tab icon mapping ──────────────────────────────────── */
-  const tabIconName: Record<TabKey, 'today' | 'week' | 'chat' | 'mileage' | 'calendar' | 'settings'> = {
+  const tabIconName: Record<TabKey, 'today' | 'week' | 'chat' | 'mileage' | 'calendar' | 'settings' | 'policies'> = {
     today: 'today', schedule: 'week', chat: 'chat', mileage: 'mileage', settings: 'settings',
-    team: 'today', clients: 'week', visits: 'calendar',
+    clients: 'week', visits: 'calendar', policies: 'policies',
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
@@ -756,6 +752,8 @@ function AppInner() {
       return frame(<SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'notifications':
       return frame(<SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} onOpenLink={openNotificationLink} onUnreadChange={setUnreadCount} /></SwipeBack>)
+    case 'policies':
+      return frame(<SwipeBack onBack={goBack}><PoliciesScreen session={session} onBack={goBack} /></SwipeBack>)
     case 'handover':
       return frame(<SwipeBack onBack={goBack}><HandoverScreen session={session} shiftId={currentScreen.shiftId} shift={currentScreen.shift} onBack={goBack} onChanged={() => setShiftRevision(value => value + 1)} /></SwipeBack>)
     case 'clock':
@@ -795,7 +793,7 @@ function AppInner() {
             The greeting is the Today tab's own — other tabs keep the empty
             slot, so the bell never moves. */}
         <View style={[s.header, { backgroundColor: c.bg }]}>
-          {tab === 'today' && !isManager ? (
+          {tab === 'today' && isField ? (
             <View style={{ flex: 1 }}>
               <Text style={[s.greetDate, { color: c.muted }]}>{dateLabel()}</Text>
               <Text style={[s.greetName, { color: c.ink }]} numberOfLines={1}>
@@ -833,26 +831,28 @@ function AppInner() {
         </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
-          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} pendingIncidentReports={pendingIncidentReports} />}
-          {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} isSupportedLiving={isSupportedLiving} refreshKey={shiftRevision} onHandover={(shift) => pushScreen({ kind: 'handover', shiftId: shift.id, shift })} onShift={(shift) => pushScreen({ kind: 'clock', shiftId: shift.id, shift })} />}
-          {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
+          {isField && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} pendingIncidentReports={pendingIncidentReports} />}
+          {isField && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} isSupportedLiving={isSupportedLiving} refreshKey={shiftRevision} onHandover={(shift) => pushScreen({ kind: 'handover', shiftId: shift.id, shift })} onShift={(shift) => pushScreen({ kind: 'clock', shiftId: shift.id, shift })} />}
+          {isField && tab === 'mileage' && <MileageScreen session={session} />}
 
-          {/* Manager tabs */}
-          {isManager && tab === 'today' && <ManagerDashboard session={session!} onNavigate={(screen, params) => {
+          {/* Companion (manager) tabs */}
+          {surface === 'companion' && tab === 'today' && <ManagerDashboard session={session!} onNavigate={(screen, params) => {
             if (screen === 'clientList') setTab('clients')
             else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
             else if (screen === 'staffDirectory') { pushScreen({ kind: 'staffDirectory' }) }
             else if (screen === 'timesheets') { pushScreen({ kind: 'timesheets' }) }
             else if (screen === 'carerTotals') { pushScreen({ kind: 'carerTotals' }) }
           }} />}
-          {isManager && tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
-          {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visit) => {
+          {tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
+          {tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visit) => {
             if (visit) pushScreen({ kind: 'visit', visit })
           }} />}
 
-          {/* Shared tabs */}
+          {/* Shared tabs. Policies is the oversight surface's own tab and is also
+              pushed from Settings on every other surface (§9.7). */}
+          {tab === 'policies' && <PoliciesScreen session={session!} onBack={() => setTab('clients')} />}
           {tab === 'chat' && <ChatScreen session={session} initialChannelId={captureChannelId} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} queue={activeQueue} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onMica={openMica} onSos={openSos} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} pendingIncidentReports={pendingIncidentReports} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} queue={activeQueue} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onPolicies={() => pushScreen({ kind: 'policies' })} onMica={openMica} onSos={openSos} onAvailability={isField ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={isField ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} pendingIncidentReports={pendingIncidentReports} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

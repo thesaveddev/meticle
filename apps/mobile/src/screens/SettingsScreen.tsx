@@ -11,12 +11,14 @@ import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon 
 import { mica } from '../theme'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onMica, onSos, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount, pendingIncidentReports = [], queue = [] }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onPolicies, onMica, onSos, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount, pendingIncidentReports = [], queue = [] }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
   onLearn?: () => void
+  /** The policy library and its acknowledgement record (blueprint §9.7). */
+  onPolicies?: () => void
   onMica?: () => void
   onSos?: () => void
   onAvailability?: () => void
@@ -83,7 +85,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
         </Pressable>
 
         {/* Settings groups */}
-        {onLearn || onMica || onSos ? <View style={s.group}>
+        {onLearn || onMica || onSos || onPolicies ? <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>HELP</Text>
           <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {onLearn ? <Pressable onPress={() => { hapticLight(); onLearn() }} style={s.menuRow}>
@@ -111,6 +113,16 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Mica</Text>
                 <Text style={[s.menuDesc, { color: c.muted }]}>Open Mica, your care assistant</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable> : null}
+            {onPolicies ? <Pressable accessibilityRole="button" accessibilityLabel="Policies" onPress={() => { hapticLight(); onPolicies() }} style={[s.menuRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borderLight }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
+                <Ionicons name="shield-checkmark" size={18} color={c.primary} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Policies</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Read your organisation’s policies and record that you have</Text>
               </View>
               <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable> : null}
