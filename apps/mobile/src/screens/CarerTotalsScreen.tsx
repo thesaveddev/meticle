@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppColors, typography, spacing, radii } from '../theme'
@@ -67,6 +67,12 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
   const [pendingVisits, setPendingVisits] = useState<any[]>([])
   const [pendingLoading, setPendingLoading] = useState(false)
   const [approving, setApproving] = useState<string | null>(null)
+  // One per view, because each view loads separately and a failure in one is not
+  // a failure in the others.
+  const [loadError, setLoadError] = useState('')
+  const [detailError, setDetailError] = useState('')
+  const [pendingError, setPendingError] = useState('')
+  const [actionError, setActionError] = useState('')
 
   const range = useMemo(() => getMonthRange(), [])
   const [from] = useState(range.from)
@@ -77,13 +83,22 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
     try {
       const data = await getMonthlyCarerTotals(session.accessToken, from, to)
       setTotals(data)
-    } catch {} finally {
+      setLoadError('')
+    } catch (err) {
+      // "No data for this period" for a rejected request told a manager that a
+      // whole month of work had not happened. The totals already on screen are
+      // left alone and the failure is shown above them.
+      setLoadError(err instanceof Error ? err.message : 'Could not load carer totals')
+    } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }, [session.accessToken, from, to])
 
-  useState(() => { loadData() })
+  // A `useState` initialiser was being used as an effect here, which ran the load
+  // during render. A plain effect is what it meant, and it is what the retry and
+  // the failure state below can be tested against.
+  useEffect(() => { loadData() }, [loadData])
 
   const grandWork = totals.reduce((s, t) => s + Number(t.total_work_minutes || 0), 0)
   const grandTravel = totals.reduce((s, t) => s + Number(t.total_paid_travel_minutes || 0), 0)
@@ -95,21 +110,34 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
     hapticLight()
     setSelectedCarer(carer)
     setCarerLoading(true)
+    setDetailError('')
     setView('carer-detail')
     try {
       const data = await getCarerTimesheetDetail(session.accessToken, carer.staff_id, from, to)
       setCarerVisits(data)
-    } catch {} finally { setCarerLoading(false) }
+      setDetailError('')
+    } catch (err) {
+      // An empty "No visits" for this carer would read as a carer who did not
+      // work, which is exactly the wrong conclusion to hand a manager.
+      setDetailError(err instanceof Error ? err.message : 'Could not load this carer\'s visits')
+    } finally { setCarerLoading(false) }
   }, [session.accessToken, from, to])
 
   const loadPending = useCallback(async () => {
     hapticLight()
     setPendingLoading(true)
+    setPendingError('')
+    setActionError('')
     setView('pending')
     try {
       const data = await getPendingTimesheets(session.accessToken, from, to)
       setPendingVisits(data)
-    } catch {} finally { setPendingLoading(false) }
+      setPendingError('')
+    } catch (err) {
+      // "All timesheets reviewed" is the most expensive empty state in the app to
+      // show for a failed request: it ends the approval run.
+      setPendingError(err instanceof Error ? err.message : 'Could not load pending approvals')
+    } finally { setPendingLoading(false) }
   }, [session.accessToken, from, to])
 
   const handleApprove = useCallback(async (timesheetId: string) => {
@@ -118,9 +146,13 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
     try {
       await approveTimesheet(session.accessToken, timesheetId)
       hapticSuccess()
+      setActionError('')
       setPendingVisits(prev => prev.filter(v => v.timesheet_id !== timesheetId))
       loadData(true)
-    } catch {} finally { setApproving(null) }
+    } catch (err) {
+      // The row stays in the list, because it is still unapproved.
+      setActionError(err instanceof Error ? err.message : 'Could not approve this timesheet')
+    } finally { setApproving(null) }
   }, [session.accessToken, loadData])
 
   const handleReject = useCallback(async (timesheetId: string) => {
@@ -129,9 +161,12 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
     try {
       await rejectTimesheet(session.accessToken, timesheetId)
       hapticSuccess()
+      setActionError('')
       setPendingVisits(prev => prev.filter(v => v.timesheet_id !== timesheetId))
       loadData(true)
-    } catch {} finally { setApproving(null) }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not reject this timesheet')
+    } finally { setApproving(null) }
   }, [session.accessToken, loadData])
 
   const goBack = () => {
@@ -169,6 +204,14 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
           contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(true) }} tintColor={c.primary} />}
         >
+          {loadError ? (
+            <Pressable onPress={() => loadData()} accessibilityRole="button" testID="carer-totals-error" style={{ backgroundColor: '#FEF0F0', borderRadius: radii.md, padding: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: '#F5C2C0' }}>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: '#B42318' }}>
+                {loadError} Tap to try again.
+              </Text>
+            </Pressable>
+          ) : null}
+
           {/* Summary cards */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg }}>
             {[
@@ -206,6 +249,19 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
           {/* Carer list */}
           {loading ? (
             <ActivityIndicator size="large" color={c.primary} style={{ marginTop: spacing.xxl }} />
+          ) : loadError && totals.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
+              <Ionicons name="cloud-offline-outline" size={48} color={c.border} />
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '600', color: c.ink, marginTop: spacing.md }}>
+                Could not load carer totals
+              </Text>
+              <Text testID="carer-totals-failure" style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginTop: spacing.xs, textAlign: 'center', maxWidth: 280 }}>
+                {loadError}
+              </Text>
+              <Pressable onPress={() => loadData()} accessibilityRole="button" testID="carer-totals-retry" hitSlop={8} style={{ marginTop: spacing.md }}>
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '700', color: c.primary }}>Try again</Text>
+              </Pressable>
+            </View>
           ) : totals.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
               <Ionicons name="receipt-outline" size={48} color={c.border} />
@@ -261,6 +317,19 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
 
           {carerLoading ? (
             <ActivityIndicator size="large" color={c.primary} style={{ marginTop: spacing.xxl }} />
+          ) : detailError ? (
+            <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
+              <Ionicons name="cloud-offline-outline" size={48} color={c.border} />
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '600', color: c.ink, marginTop: spacing.md }}>
+                Could not load this carer&apos;s visits
+              </Text>
+              <Text testID="carer-detail-error" style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginTop: spacing.xs, textAlign: 'center', maxWidth: 280 }}>
+                {detailError}
+              </Text>
+              <Pressable onPress={() => loadCarerDetail(selectedCarer)} accessibilityRole="button" testID="carer-detail-retry" hitSlop={8} style={{ marginTop: spacing.md }}>
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '700', color: c.primary }}>Try again</Text>
+              </Pressable>
+            </View>
           ) : carerVisits.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
               <Ionicons name="receipt-outline" size={48} color={c.border} />
@@ -321,8 +390,26 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {header}
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }}>
+        {actionError ? (
+          <View testID="carer-action-error" style={{ backgroundColor: '#FEF0F0', borderRadius: radii.md, padding: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: '#F5C2C0' }}>
+            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: '#B42318' }}>{actionError}</Text>
+          </View>
+        ) : null}
         {pendingLoading ? (
           <ActivityIndicator size="large" color={c.primary} style={{ marginTop: spacing.xxl }} />
+        ) : pendingError ? (
+          <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
+            <Ionicons name="cloud-offline-outline" size={48} color={c.border} />
+            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '600', color: c.ink, marginTop: spacing.md }}>
+              Could not load pending approvals
+            </Text>
+            <Text testID="carer-pending-error" style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginTop: spacing.xs, textAlign: 'center', maxWidth: 280 }}>
+              {pendingError}
+            </Text>
+            <Pressable onPress={loadPending} accessibilityRole="button" testID="carer-pending-retry" hitSlop={8} style={{ marginTop: spacing.md }}>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '700', color: c.primary }}>Try again</Text>
+            </Pressable>
+          </View>
         ) : pendingVisits.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
             <Ionicons name="checkmark-circle-outline" size={48} color={c.success} />

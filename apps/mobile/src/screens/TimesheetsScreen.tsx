@@ -42,6 +42,8 @@ export function TimesheetsScreen({ session, onBack }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const [processing, setProcessing] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
 
   /* Reject modal */
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
@@ -54,7 +56,14 @@ export function TimesheetsScreen({ session, onBack }: Props) {
     try {
       const data = await getPendingTimesheets(session.accessToken, range.from, range.to)
       setTimesheets(Array.isArray(data) ? data : [])
-    } catch {} finally { setLoading(false); setRefreshing(false) }
+      setLoadError('')
+    } catch (err) {
+      // A rejected load rendered as "All caught up", which is the one empty state
+      // on this screen that costs money: the manager approves nothing, the carers
+      // are not paid, and nothing anywhere says why. The list is left as it was
+      // and the reason is shown instead of replacing it.
+      setLoadError(err instanceof Error ? err.message : 'Could not load timesheets')
+    } finally { setLoading(false); setRefreshing(false) }
   }, [session.accessToken, range.from, range.to])
 
   useEffect(() => { loadData() }, [loadData])
@@ -85,9 +94,12 @@ export function TimesheetsScreen({ session, onBack }: Props) {
     try {
       await approveTimesheet(session.accessToken, ts.timesheet_id || ts.id)
       hapticSuccess()
+      setActionError('')
       setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === (ts.timesheet_id || ts.id) ? { ...t, timesheet_status: 'approved' } : t))
-    } catch {
-      /* silent */ 
+    } catch (err) {
+      // The row stays as it was: showing it as approved after a failed request
+      // would be a lie the payroll run inherits.
+      setActionError(err instanceof Error ? err.message : 'Could not approve this timesheet')
     } finally { setProcessing(null) }
   }, [session.accessToken])
 
@@ -99,11 +111,14 @@ export function TimesheetsScreen({ session, onBack }: Props) {
     try {
       await rejectTimesheet(session.accessToken, rejectModal.id, rejectReason || undefined)
       hapticSuccess()
+      setActionError('')
       setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === rejectModal.id ? { ...t, timesheet_status: 'rejected' } : t))
       setRejectModal(null)
       setRejectReason('')
-    } catch {
-      /* silent */
+    } catch (err) {
+      // The sheet stays open with the reason still typed in it, so a failed
+      // rejection does not silently discard what the manager wrote.
+      setActionError(err instanceof Error ? err.message : 'Could not reject this timesheet')
     } finally { setProcessing(null) }
   }, [session.accessToken, rejectModal, rejectReason])
 
@@ -201,11 +216,39 @@ export function TimesheetsScreen({ session, onBack }: Props) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={c.primary} />
         </View>
+      ) : loadError && timesheets.length === 0 ? (
+        // Nothing loaded and the request failed: say so, rather than showing the
+        // "All caught up" empty state that a manager would believe.
+        <View style={{ alignItems: 'center', paddingVertical: spacing.xxl * 2, paddingHorizontal: spacing.lg }}>
+          <Ionicons name="cloud-offline-outline" size={48} color={c.border} />
+          <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '600', color: c.ink, marginTop: spacing.md }}>
+            Could not load timesheets
+          </Text>
+          <Text testID="timesheets-error" style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginTop: spacing.xs, textAlign: 'center', maxWidth: 280 }}>
+            {loadError}
+          </Text>
+          <Pressable onPress={() => loadData()} accessibilityRole="button" testID="timesheets-retry" hitSlop={8} style={{ marginTop: spacing.md }}>
+            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '700', color: c.primary }}>Try again</Text>
+          </Pressable>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.sm }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(true) }} tintColor={c.primary} />}
         >
+          {loadError ? (
+            // Stale rows are better than no rows, as long as it is clear they are stale.
+            <Pressable onPress={() => loadData()} accessibilityRole="button" testID="timesheets-error" style={{ backgroundColor: '#FEF0F0', borderRadius: radii.md, padding: spacing.sm, borderWidth: 1, borderColor: '#F5C2C0' }}>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: '#B42318' }}>
+                {loadError} Tap to try again.
+              </Text>
+            </Pressable>
+          ) : null}
+          {actionError ? (
+            <View testID="timesheets-action-error" style={{ backgroundColor: '#FEF0F0', borderRadius: radii.md, padding: spacing.sm, borderWidth: 1, borderColor: '#F5C2C0' }}>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: '#B42318' }}>{actionError}</Text>
+            </View>
+          ) : null}
           {filtered.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: spacing.xxl * 2 }}>
               <Ionicons name={filter === 'pending' ? 'checkmark-circle-outline' : 'receipt-outline'} size={48} color={filter === 'pending' ? c.success : c.border} />
@@ -296,6 +339,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
                       <Pressable
                         onPress={() => {
                           hapticLight()
+                          setActionError('')
                           setRejectModal({ id: tsId, name: ts.staff_name })
                         }}
                         disabled={isProcessing}
@@ -353,6 +397,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
               Reason for rejection (optional)
             </Text>
             <TextInput
+              testID="timesheets-reject-reason"
               value={rejectReason}
               onChangeText={setRejectReason}
               placeholder="e.g. Incorrect hours logged"
@@ -367,14 +412,21 @@ export function TimesheetsScreen({ session, onBack }: Props) {
               }}
             />
 
+            {actionError ? (
+              <Text testID="timesheets-reject-error" style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: '#B42318', marginBottom: spacing.sm }}>
+                {actionError}
+              </Text>
+            ) : null}
+
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <Pressable
-                onPress={() => { setRejectModal(null); setRejectReason('') }}
+                onPress={() => { setRejectModal(null); setRejectReason(''); setActionError('') }}
                 style={({ pressed }) => [{ flex: 1, backgroundColor: c.bg, borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center', borderWidth: 1, borderColor: c.border }, pressed && { opacity: 0.7 }]}
               >
                 <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '600', color: c.ink }}>Cancel</Text>
               </Pressable>
               <Pressable
+                testID="timesheets-reject-confirm"
                 onPress={handleReject}
                 disabled={processing === rejectModal?.id}
                 style={({ pressed }) => [{ flex: 1, backgroundColor: '#EF4444', borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center' }, pressed && { opacity: 0.7 }]}
