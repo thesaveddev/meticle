@@ -74,7 +74,7 @@ What actually shipped:
 
 - `daily_notes.content`; `care_plans.description` and `.risk_assessment`;
   `risk_assessments.details` and `.mitigation_actions`; `incidents.description`,
-  `.root_cause`, `.outcomes`, `.investigation_notes` and `.lessons_learned` — nine
+  `.root_cause`, `.outcomes`, `.investigation_notes` and `.lessons_learned` — ten
   columns, all already `TEXT`, so **no migration was needed**. Nothing filters, sorts,
   ranges or `ILIKE`s any of them; the predicates that caused the earlier caution are
   on chat message content and medication `notes`, which stay plaintext and are now
