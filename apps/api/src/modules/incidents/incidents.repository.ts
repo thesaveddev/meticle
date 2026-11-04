@@ -1,4 +1,5 @@
 import { query, transaction } from '../../shared/database';
+import { decryptRow, decryptRowsForOrg, decryptRowForOrg, encryptUpdate } from '../../shared/utils/encrypted-columns';
 import { AppError } from '../../shared/middleware/error.middleware';
 
 export class IncidentsRepository {
@@ -69,7 +70,8 @@ export class IncidentsRepository {
     if (opts.limit) { sql += ` LIMIT $${idx}`; params.push(opts.limit); idx++; }
     if (opts.offset) { sql += ` OFFSET $${idx}`; params.push(opts.offset); }
     const result = await query(sql, params);
-    return result.rows;
+    // The narrative is encrypted at rest; `i.*` brings it back as ciphertext.
+    return decryptRowsForOrg('incidents', result.rows, orgId);
   }
 
   static async findById(id: string, orgId?: string, includeConfidential = true) {
@@ -88,10 +90,14 @@ export class IncidentsRepository {
        WHERE i.id = $1${orgId ? ' AND i.organization_id = $2' : ''}${includeConfidential ? '' : ' AND i.is_confidential = FALSE'}`,
       orgId ? [id, orgId] : [id]
     );
-    return result.rows[0] || null;
+    return decryptRow('incidents', result.rows[0]) || null;
   }
 
   static async create(orgId: string, data: any, reportedBy: string) {
+    // What the reporter wrote is encrypted at rest; the title, dates, location
+    // and severity stay in the clear because the register filters and sorts on
+    // them.
+    data = encryptUpdate('incidents', data, orgId);
     return transaction(async client => {
       const parameters = [orgId, data.category_id, data.title, data.description, data.incident_date, data.incident_time, data.location, data.severity || 'medium', data.status, data.is_cqc_reportable || false, data.is_near_miss || false, data.is_confidential || false, data.root_cause, data.outcomes, data.investigation_notes, data.lessons_learned, data.cqc_reference, data.reported_to_cqc_at, reportedBy, data.client_submission_id || null, data.witnesses || null];
       const inserted = await client.query(
@@ -193,6 +199,11 @@ export class IncidentsRepository {
   }
 
   static async update(id: string, data: any, orgId?: string) {
+    // An update may arrive without the organisation, so resolve it from the row
+    // itself — `incidents` is the one clinical table that carries its own.
+    const keyOrg = orgId || (await query('SELECT organization_id FROM incidents WHERE id = $1', [id])).rows[0]?.organization_id;
+    if (!keyOrg) return null;
+    data = encryptUpdate('incidents', data, keyOrg);
     const fields: string[] = [];
     const params: any[] = [];
     let idx = 1;
@@ -210,7 +221,7 @@ export class IncidentsRepository {
       `UPDATE incidents SET ${fields.join(', ')} WHERE id = $${idx}${orgId ? ` AND organization_id = $${idx + 1}` : ''} RETURNING *`,
       params
     );
-    return result.rows[0] || null;
+    return decryptRowForOrg('incidents', result.rows[0], keyOrg) || null;
   }
 
   static async delete(id: string, orgId: string) {
@@ -476,7 +487,7 @@ export class IncidentsRepository {
    * and stay assigned.
    */
   static async closeBlockers(orgId: string, incidentId: string) {
-    const incident = (await query('SELECT * FROM incidents WHERE id = $1 AND organization_id = $2', [incidentId, orgId])).rows[0];
+    const incident = decryptRow('incidents', (await query('SELECT * FROM incidents WHERE id = $1 AND organization_id = $2', [incidentId, orgId])).rows[0]);
     if (!incident) return null;
     const openInv = (await query(
       `SELECT id FROM incident_investigations WHERE organization_id = $1 AND incident_id = $2 AND status = 'open' LIMIT 1`,

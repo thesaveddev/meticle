@@ -15,6 +15,7 @@ import { validateAIResponse, IntelligenceResponseSchema } from '../ai.schemas';
 import { query as dbQuery } from '../../../shared/database';
 import { resolveAiMinimisation } from '../ai.minimisation';
 import logger from '../../../shared/utils/logger';
+import { decryptRowsForOrg } from '../../../shared/utils/encrypted-columns';
 
 /**
  * PREPARE_HANDOVER — a read-only Mica action.
@@ -135,7 +136,7 @@ export class PrepareHandoverAction implements MicaAction<PrepareHandoverInput, P
           [personId, context.organizationId, fromDate, toDate],
         ),
         this.db.query(
-          `SELECT n.id, n.note_date, n.shift, n.category, LEFT(n.content, 600) AS content
+          `SELECT n.id, n.note_date, n.shift, n.category, n.content AS content
            FROM daily_notes n
            WHERE n.person_id = $1 AND n.note_date BETWEEN $2::date AND $3::date
            ORDER BY n.note_date DESC, n.created_at DESC LIMIT 100`,
@@ -165,7 +166,11 @@ export class PrepareHandoverAction implements MicaAction<PrepareHandoverInput, P
 
       const records = [
         ...visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: String(r.id), ...r })),
-        ...notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: String(r.id), ...r })),
+        // Truncated after decryption: `LEFT()` on a ciphertext would take a slice
+        // of hex that no key can put back together.
+        ...decryptRowsForOrg('daily_notes', notes.rows, context.organizationId).map((r: any) => ({
+          source_type: 'daily_note', source_id: String(r.id), ...r, content: String(r.content ?? '').slice(0, 600),
+        })),
         ...medication.rows.map((r: any) => ({ source_type: 'medication_administration', source_id: String(r.id), ...r })),
         ...incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: String(r.id), ...r })),
       ];

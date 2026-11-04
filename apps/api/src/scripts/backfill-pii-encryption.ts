@@ -55,6 +55,13 @@ const TARGETS: {
     orgExpression:
       '(SELECT u.organization_id FROM users u JOIN staff_profiles sp ON sp.user_id = u.id WHERE sp.id = staff_id)',
   },
+  // Clinical narrative. Three of these carry only a `person_id`, so the key
+  // context — like the read paths' — comes back through the resident. `incidents`
+  // is the exception and holds its own organisation.
+  { table: 'daily_notes', keyset: 'id', orgExpression: '(SELECT p.organization_id FROM people p WHERE p.id = person_id)' },
+  { table: 'care_plans', keyset: 'id', orgExpression: '(SELECT p.organization_id FROM people p WHERE p.id = person_id)' },
+  { table: 'risk_assessments', keyset: 'id', orgExpression: '(SELECT p.organization_id FROM people p WHERE p.id = person_id)' },
+  { table: 'incidents', keyset: 'id', orgExpression: 'organization_id' },
 ]
 
 async function backfillTable(target: (typeof TARGETS)[number]): Promise<void> {

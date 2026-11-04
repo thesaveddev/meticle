@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptRow, decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 export class CompliancePortalRepository {
   // ── Token Management ──
@@ -259,17 +260,20 @@ export class CompliancePortalRepository {
     `, [personId]);
 
     return {
+      // `decryptRow` also walks the nested `care_plans`/`risk_assessments`
+      // aggregates on this row, so the plan narrative and the risk text arrive
+      // readable rather than as ciphertext inside JSON.
       person: person.rows[0] ? {
-        ...person.rows[0],
+        ...decryptRow('people', person.rows[0]),
         allergies: typeof person.rows[0].allergies === 'string' ? JSON.parse(person.rows[0].allergies) : person.rows[0].allergies || [],
       } : null,
-      dailyNotes: dailyNotes.rows,
+      dailyNotes: decryptRowsForOrg('daily_notes', dailyNotes.rows, orgId),
       meals: meals.rows.map((m: any) => ({
         ...m,
         items: m.items || [],
       })),
       dietaryProfile: dietaryProfile.rows[0] || null,
-      incidents: incidents.rows,
+      incidents: decryptRowsForOrg('incidents', incidents.rows, orgId),
     };
   }
 

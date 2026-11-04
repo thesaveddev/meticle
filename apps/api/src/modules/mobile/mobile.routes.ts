@@ -7,6 +7,7 @@ import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { resolveLocation, isLocationTrackingEnabled, getWorkerLocationDecision } from '../homecare/homecare.repository';
 import { getRoomCheckBoard } from './mobile.roomChecks';
+import { decryptRowForOrg, encryptUpdate } from '../../shared/utils/encrypted-columns';
 
 const router = Router();
 router.use(authenticate);
@@ -240,12 +241,15 @@ router.post('/notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole
   const sp = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [user.userId]);
   const staffId = sp.rows[0]?.id;
 
+  // The voice note is a care note: its text is encrypted at rest under the
+  // resident's organisation key, exactly as the web path does it.
+  const encrypted = encryptUpdate('daily_notes', { content }, user.organizationId);
   const result = await pool.query(
     `INSERT INTO daily_notes (person_id, author_id, note_date, shift, category, content)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [person_id, user.userId, note_date || new Date().toISOString().split('T')[0], shift || 'day', category || 'wellbeing', content]
+    [person_id, user.userId, note_date || new Date().toISOString().split('T')[0], shift || 'day', category || 'wellbeing', encrypted.content]
   );
-  res.status(201).json(result.rows[0]);
+  res.status(201).json(decryptRowForOrg('daily_notes', result.rows[0], user.organizationId));
 }));
 
 export default router;

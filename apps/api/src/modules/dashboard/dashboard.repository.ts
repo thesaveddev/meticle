@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
 
 // Counts of expiring identity documents, by each person's own nation's scheme
@@ -384,7 +385,7 @@ export class DashboardRepository {
       query(`
         (
           SELECT dn.id, dn.created_at, 'care_note' AS kind, dn.category AS summary_title,
-                 LEFT(dn.content, 90) AS summary, pe.first_name || ' ' || pe.last_name AS person_name, pe.photo_url
+                 dn.content AS summary, pe.first_name || ' ' || pe.last_name AS person_name, pe.photo_url
           FROM daily_notes dn
           JOIN people pe ON pe.id = dn.person_id
           WHERE pe.organization_id = $1 AND dn.note_date = $2
@@ -467,12 +468,15 @@ export class DashboardRepository {
         due_date: t.due_date,
         person_name: t.person_name || null,
       })),
-      activity: notesResult.rows.map((n: any) => ({
+      // The care note's text is decrypted first and only then cut to the 90
+      // characters the panel shows — `LEFT()` in the query would have sliced a
+      // ciphertext, which no key can reassemble.
+      activity: decryptRowsForOrg('daily_notes', notesResult.rows, orgId).map((n: any) => ({
         id: n.id,
         kind: n.kind,
         time: n.created_at,
         title: n.summary_title,
-        summary: n.summary,
+        summary: n.summary == null ? n.summary : String(n.summary).slice(0, 90),
         person_name: n.person_name,
         photo_url: n.photo_url || null,
       })),

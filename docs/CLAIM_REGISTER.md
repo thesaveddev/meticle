@@ -129,6 +129,8 @@ Separately: **this fix was applied to the marketing site and missed on `apps/web
 
 F10 is therefore reopened rather than closed: the claim is now accurate and evidence-backed for one column, and remains an open engineering task for the rest (T0-15).
 
+**Fourth state, 4 Nov 2026 — the claim covers the care record now.** Between October and this entry the registry widened to every identifier column and then to the clinical free text: a care worker's daily note, the care-plan description, the risk assessment and its mitigation actions, and the incident's description, root cause, outcome, investigation notes and lessons learned. All are encrypted under the same per-organisation key, and the privacy policy now states that instead of calling it "a significant gap". The policy also states the two things that are deliberately still plaintext — chat messages and medication-administration notes, both searched directly — because a security paragraph that lists only what is protected is how the previous version of this claim went wrong. Evidence: `encrypted-columns.sentinel.test.ts` asserts ciphertext in the raw row and plaintext in the API response for all four tables, and `clinicalNarrativeCoverage.test.ts` fails the build if a file selects a narrative column without decrypting it or truncates one in SQL.
+
 ### F11. "Breach notification workflow with 72-hour reporting"
 
 **Where:** `ComplianceBadgesPage.tsx`, under "How Meticle Care helps".

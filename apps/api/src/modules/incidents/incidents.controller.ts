@@ -213,7 +213,10 @@ export class IncidentsController {
       payload: {
         id: incident.id,
         title: incident.title,
-        description: incident.description,
+        // The narrative is deliberately absent: an event payload is stored in
+        // `domain_events`, and a plaintext copy there would undo the encryption
+        // on the column. The triage consumer reads the incident and decrypts it.
+        // Events published before 4 Nov 2026 still carry `description`.
         category_id: incident.category_id,
         incident_date: incident.incident_date,
         incident_time: incident.incident_time,

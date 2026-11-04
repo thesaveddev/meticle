@@ -292,4 +292,146 @@ describe('every column registered as encrypted is ciphertext at rest', () => {
       expect(isCiphertext(profile.rows[0].first_name)).toBe(false)
     })
   })
+
+  /**
+   * The clinical narrative is the most sensitive text in the product: what a
+   * carer wrote about a resident's day, what a care plan says someone needs, what
+   * a risk assessment says might hurt them, and what an incident report says
+   * happened. None of it is used in a query predicate, so none of it needs to be
+   * readable in the database.
+   */
+  describe('clinical narrative', () => {
+    async function managedResident() {
+      const org = await createOrg()
+      const location = await createLocation({ organizationId: org.id })
+      const mgr = await createUser({
+        email: `clin-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`,
+        password: 'TestPass123!',
+        role: 'MANAGER',
+        organization_id: org.id,
+      })
+      const token = generateToken(mgr)
+      const person = await request(app)
+        .post('/people')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ first_name: 'Edith', last_name: 'Cavell', date_of_birth: '1940-02-03', location_id: location.id })
+      expect(person.status, JSON.stringify(person.body)).toBe(201)
+      return { org, token, personId: person.body.id as string }
+    }
+
+    it('encrypts a daily note and decrypts it back out of the notes list', async () => {
+      const { token, personId } = await managedResident()
+      const content = 'Refused breakfast but drank tea. Asked about her sister twice; settled with music.'
+
+      const created = await request(app)
+        .post(`/people/${personId}/daily-notes`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ category: 'wellbeing', shift: 'day', content })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+      expect(created.body.content).toBe(content)
+
+      const row = await storedRow('daily_notes', created.body.id)
+      expect(isCiphertext(row?.content), `content is stored as ${JSON.stringify(row?.content)}`).toBe(true)
+
+      const list = await request(app).get(`/people/${personId}/daily-notes`).set('Authorization', `Bearer ${token}`)
+      expect(list.status, JSON.stringify(list.body)).toBe(200)
+      const note = (Array.isArray(list.body) ? list.body : list.body.notes ?? []).find((n: any) => n.id === created.body.id)
+      expect(note, 'the note should come back from the list').toBeDefined()
+      expect(note.content).toBe(content)
+    })
+
+    it('encrypts a care plan narrative and decrypts it inside the person payload', async () => {
+      const { token, personId } = await managedResident()
+      const description = 'Needs prompting with personal care in the morning; prefers a female carer.'
+      const riskAssessment = 'Falls risk: unsteady on the stairs, uses a frame indoors.'
+
+      const created = await request(app)
+        .post(`/people/${personId}/care-plans`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ title: 'Personal care', category: 'personal_care', description, risk_assessment: riskAssessment })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+
+      const row = await storedRow('care_plans', created.body.id)
+      for (const column of ENCRYPTED_COLUMNS.care_plans) {
+        expect(isCiphertext(row?.[column]), `${column} is stored as ${JSON.stringify(row?.[column])}`).toBe(true)
+      }
+      // The title stays searchable, which is the whole reason it is not encrypted.
+      expect(row?.title).toBe('Personal care')
+
+      // `findById` returns care plans as a `json_agg` inside the person row, so
+      // this is the nested case: decrypting only the top-level columns would
+      // leave ciphertext in the middle of a care record.
+      const got = await request(app).get(`/people/${personId}`).set('Authorization', `Bearer ${token}`)
+      expect(got.status, JSON.stringify(got.body)).toBe(200)
+      const plan = (got.body.care_plans ?? []).find((p: any) => p.id === created.body.id)
+      expect(plan, 'the care plan should be nested in the person payload').toBeDefined()
+      expect(plan.description).toBe(description)
+      expect(plan.risk_assessment).toBe(riskAssessment)
+    })
+
+    it('encrypts a risk assessment and its mitigation on create and update', async () => {
+      const { token, personId } = await managedResident()
+
+      const created = await request(app)
+        .post(`/people/${personId}/risk-assessments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          type: 'Falls',
+          risk_level: 'high',
+          details: 'Two falls in the last month, both in the bathroom.',
+          mitigation_actions: 'Grab rails fitted; night light; hourly checks overnight.',
+        })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+
+      let row = await storedRow('risk_assessments', created.body.id)
+      for (const column of ENCRYPTED_COLUMNS.risk_assessments) {
+        expect(isCiphertext(row?.[column]), `${column} is stored as ${JSON.stringify(row?.[column])}`).toBe(true)
+      }
+
+      const updated = await request(app)
+        .patch(`/people/risk-assessments/${created.body.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ mitigation_actions: 'Additional: sensor mat by the bed.' })
+      expect(updated.status, JSON.stringify(updated.body)).toBe(200)
+      expect(updated.body.mitigation_actions).toBe('Additional: sensor mat by the bed.')
+
+      row = await storedRow('risk_assessments', created.body.id)
+      expect(isCiphertext(row?.mitigation_actions)).toBe(true)
+      // The untouched column keeps its original ciphertext rather than being
+      // re-encrypted from a value that was never decrypted.
+      expect(isCiphertext(row?.details)).toBe(true)
+    })
+
+    it('encrypts an incident narrative and decrypts it on the incident read path', async () => {
+      const { token } = await managedResident()
+      const description = 'Found on the floor beside the bed at 06:40, conscious and talking. No injury.'
+
+      const created = await request(app)
+        .post('/incidents')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          title: 'Unwitnessed fall',
+          description,
+          severity: 'high',
+          root_cause: 'Bed rail not raised after the night check.',
+          outcomes: 'No injury. GP informed. Care plan updated.',
+        })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+
+      const row = await storedRow('incidents', created.body.id)
+      for (const column of ENCRYPTED_COLUMNS.incidents) {
+        expect(isCiphertext(row?.[column]), `${column} is stored as ${JSON.stringify(row?.[column])}`).toBe(true)
+      }
+      // Severity, dates and the title drive the register's filters and sorts, so
+      // they deliberately stay in the clear.
+      expect(row?.title).toBe('Unwitnessed fall')
+      expect(row?.severity).toBe('high')
+
+      const got = await request(app).get(`/incidents/${created.body.id}`).set('Authorization', `Bearer ${token}`)
+      expect(got.status, JSON.stringify(got.body)).toBe(200)
+      expect(got.body.description).toBe(description)
+      expect(got.body.root_cause).toBe('Bed rail not raised after the night check.')
+      expect(got.body.outcomes).toBe('No injury. GP informed. Care plan updated.')
+    })
+  })
 })

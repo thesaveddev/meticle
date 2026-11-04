@@ -1,4 +1,4 @@
-import { encryptField, decryptField } from './encryption';
+import { encryptField, decryptField, isCiphertext } from './encryption';
 
 /**
  * Which columns are stored encrypted, and on which table.
@@ -49,6 +49,27 @@ export const ENCRYPTED_COLUMNS: Record<string, readonly string[]> = {
     'social_worker_phone',
   ],
   staff_profiles: ['birth_date', 'phone', 'address', 'city', 'postal_code'],
+  /**
+   * Clinical free text. These are the columns that say what happened to a named,
+   * vulnerable person — the highest-value data in the product and, until
+   * 4 November 2026, the only sensitive set stored in the clear.
+   *
+   * None of these four tables carries `organization_id` except `incidents`, so the
+   * key context comes from the resident (or the incident's own column) and the
+   * reads use `decryptRowsForOrg`. Because they are child tables of `people`, the
+   * nested aggregates in `PersonRepository.findById` decrypt through
+   * `NESTED_JSON_TABLES` rather than each caller remembering.
+   *
+   * Nothing here is used in a `WHERE`, `ORDER BY`, `LIKE` or aggregate — checked
+   * before the change: only chat messages and policy content are free-text
+   * searched, neither of which is on this list. Encrypting a column that is
+   * searched does not fail loudly; it silently stops matching, which is why that
+   * check comes before the registry entry and not after it.
+   */
+  daily_notes: ['content'],
+  care_plans: ['description', 'risk_assessment'],
+  risk_assessments: ['details', 'mitigation_actions'],
+  incidents: ['description', 'root_cause', 'outcomes', 'investigation_notes', 'lessons_learned'],
   // A third party's contact details, held because they are the person to call
   // in an emergency. Encrypted under the *subject's* organisation key, which is
   // worth being explicit about: the key context is the tenant that holds the
@@ -68,6 +89,13 @@ export const ENCRYPTED_COLUMNS: Record<string, readonly string[]> = {
  */
 export const NESTED_JSON_TABLES: Record<string, string> = {
   family_contacts: 'family_contacts',
+  // `findById` returns the resident's active care plans, risk assessments and last
+  // fifty notes as aggregates inside the person row. Leaving those ciphertext in
+  // the middle of a care record is worse than leaving them plain: it reads as
+  // corruption rather than as a decision.
+  care_plans: 'care_plans',
+  risk_assessments: 'risk_assessments',
+  recent_notes: 'daily_notes',
 };
 
 export function encryptedColumns(table: string): readonly string[] {
@@ -157,6 +185,12 @@ export function encryptUpdate(
     // otherwise encrypt ciphertext; `decryptRow` runs on every read path, so
     // this is the normal case and not an edge case.
     if (typeof out[column] === 'string') {
+      // An empty string carries nothing to protect, and `encryptField('')` is
+      // null — which a NOT NULL column (`daily_notes.content`) would reject. A
+      // value that is already ciphertext is passed through rather than encrypted
+      // again: `encryptField` throws on it, and a client echoing back something
+      // it read must not turn a save into a 500.
+      if (out[column] === '' || isCiphertext(out[column])) continue;
       out[column] = encryptField(out[column], orgId);
     }
   }
@@ -185,6 +219,30 @@ export async function orgIdForStaffProfile(staffIdOrUserId: string): Promise<str
 export async function orgIdForPerson(personId: string): Promise<string | null> {
   const { query } = await import('../database');
   const result = await query('SELECT organization_id FROM people WHERE id = $1', [personId]);
+  return result.rows[0]?.organization_id ?? null;
+}
+
+/**
+ * The organisation for a clinical child row, addressed by its own id.
+ *
+ * `daily_notes`, `care_plans` and `risk_assessments` carry only a `person_id`, so
+ * an update — which knows nothing but the row's own id — reaches the key context
+ * through the resident. The table name comes from a closed union rather than a
+ * caller-supplied string, so it cannot become an injection point.
+ */
+export async function orgIdForClinicalRow(
+  table: 'daily_notes' | 'care_plans' | 'risk_assessments',
+  id: string,
+): Promise<string | null> {
+  const { query } = await import('../database');
+  const result = await query(
+    `SELECT p.organization_id
+       FROM ${table} t
+       JOIN people p ON p.id = t.person_id
+      WHERE t.id = $1
+      LIMIT 1`,
+    [id],
+  );
   return result.rows[0]?.organization_id ?? null;
 }
 

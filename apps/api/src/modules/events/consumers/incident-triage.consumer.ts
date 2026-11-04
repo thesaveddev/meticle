@@ -1,4 +1,5 @@
 import { query } from '../../../shared/database';
+import { decryptRowForOrg } from '../../../shared/utils/encrypted-columns';
 import logger from '../../../shared/utils/logger';
 import { AIRepository } from '../../ai/ai.repository';
 import { getProvider } from '../../ai/ai.provider';
@@ -38,6 +39,21 @@ export const IncidentTriageConsumer: EventConsumer = {
       ? (await query(`SELECT name FROM incident_categories WHERE id = $1`, [payload.category_id])).rows[0]?.name
       : undefined;
 
+    // The description is **not** carried in the event payload any more: the
+    // outbox row is a second copy of the narrative, and a plaintext copy in
+    // `domain_events.payload` would put the incident's text back outside the
+    // encrypted column for as long as that event is retained. So the consumer
+    // reads the incident and decrypts it the same way a request would. Events
+    // published before this change still carry the field, which is why the
+    // payload is used as a fallback rather than dropped.
+    const incidentRow = (await query(
+      'SELECT organization_id, description FROM incidents WHERE id = $1 AND organization_id = $2',
+      [event.aggregateId, orgId],
+    )).rows[0];
+    const description = incidentRow
+      ? String(decryptRowForOrg('incidents', incidentRow, orgId)?.description ?? '')
+      : String(payload.description || '');
+
     // Audit rows attribute the run to the person who reported the incident
     // (ai_audit_logs.created_by is an FK to users).
     const reportedBy = (payload.reported_by as string | undefined) || undefined;
@@ -55,7 +71,7 @@ export const IncidentTriageConsumer: EventConsumer = {
     // quietly ignoring a policy the manager believed was in force.
     const { system, user } = await renderOrgPrompt(FEATURE, {
       title: String(payload.title || 'Untitled'),
-      description: String(payload.description || ''),
+      description,
       category: category || 'Uncategorized',
       date: String(payload.incident_date || new Date().toISOString().split('T')[0]),
       location: String(payload.location || 'Unknown'),
