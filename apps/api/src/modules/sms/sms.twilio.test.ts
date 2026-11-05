@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import crypto from 'crypto';
-import { verifyTwilioSignature } from './sms.twilio';
+import { TwilioError, verifyTwilioSignature } from './sms.twilio';
 
 /**
  * The webhook's only authentication is this signature, so the verifier is
@@ -17,6 +17,16 @@ function sign(url: string, params: Record<string, string>): string {
 
 const URL = 'https://api.meticlecare.com/api/sms/status?org=org-1';
 const PARAMS = { MessageSid: 'SM123', MessageStatus: 'delivered', To: '+447700900123' };
+
+describe('TwilioError', () => {
+  it('marks a dropped connection retryable and a 4xx rejection permanent', () => {
+    // A network failure once retired a row on its first attempt: status 0
+    // fell into the rejection branch, so the queue never retried it.
+    expect(new TwilioError('down', 0).code).toBe('ETWILIO_TRANSIENT');
+    expect(new TwilioError('server', 503).code).toBe('ETWILIO_TRANSIENT');
+    expect(new TwilioError('bad number', 400).code).toBe('ETWILIO_REJECTED');
+  });
+});
 
 describe('verifyTwilioSignature', () => {
   it('accepts a correctly signed callback', () => {

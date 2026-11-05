@@ -26,4 +26,4 @@ export default router;
  * authenticating. See SmsController.handleStatus.
  */
 export const publicSmsRouter = Router();
-publicSmsRouter.post('/status', asyncHandler(SmsController.handleStatus));
+publicSmsRouter.post('/', asyncHandler(SmsController.handleStatus));

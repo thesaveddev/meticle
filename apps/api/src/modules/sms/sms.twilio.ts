@@ -23,9 +23,11 @@ export class TwilioError extends Error {
     super(message);
     this.name = 'TwilioError';
     this.status = status;
-    // 5xx and network failures may succeed on retry; 4xx (bad number,
-    // unverified trial sender, unknown SID) will fail the same way again.
-    this.code = status >= 500 ? 'ETWILIO_SERVER' : 'ETWILIO_REJECTED';
+    // A dropped connection (status 0) and 5xx may succeed on retry; 4xx
+    // (bad number, unverified trial sender, unknown SID) will fail the
+    // same way again. The queue retires a row on the rejection code, so a
+    // transient failure must never carry it.
+    this.code = status === 0 || status >= 500 ? 'ETWILIO_TRANSIENT' : 'ETWILIO_REJECTED';
   }
 }
 

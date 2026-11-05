@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { Express } from 'express';
 import { createTestApp } from '../../test/helpers';
 import { createLocation, createOrg, createShift, createStaffProfile, createUser, generateToken } from '../../test/factories';
-import { query } from '../../shared/database';
+import { migrateQuery, query } from '../../shared/database';
 import { setSmsSender, SmsQueue, smsStatusCallbackUrl } from './sms.queue';
 import { sendViaTwilio } from './sms.twilio';
 
@@ -87,7 +87,10 @@ describe('SMS config', () => {
     expect(cfg.account_sid_enc).not.toContain('ACtest123');
     expect(cfg.auth_token_enc).not.toContain('auth-secret');
 
-    const audit = await query(
+    // Audit rows are read through the migration pool like the other suites
+    // do: the RLS policy on audit_logs hides them from the app-role query
+    // outside a request, so `query` sees nothing here.
+    const audit = await migrateQuery(
       `SELECT new_data FROM audit_logs WHERE entity_type = 'organization_sms_config' AND entity_id = $1 ORDER BY created_at DESC LIMIT 1`,
       [org.id],
     );
@@ -183,7 +186,17 @@ describe('SMS assignment producer', () => {
   it('texts the assignee when a shift is assigned, and assigns fine without SMS', async () => {
     const { org, token, admin } = await adminInOrg();
     const loc = await createLocation({ organizationId: org.id, name: 'Ash Court' });
-    const shift = await createShift({ organizationId: org.id, locationId: loc.id, status: 'open' });
+    // Two shifts on different days: the second assign must not trip the
+    // overlapping-shift conflict check, and reusing one shift would test
+    // the repository's reassign rules instead of the SMS producer.
+    const shiftA = await createShift({ organizationId: org.id, locationId: loc.id, status: 'open' });
+    const shiftB = await createShift({
+      organizationId: org.id,
+      locationId: loc.id,
+      status: 'open',
+      startTime: new Date(Date.now() + 3 * 86400000).toISOString(),
+      endTime: new Date(Date.now() + 3 * 86400000 + 3600000).toISOString(),
+    });
     const staffUser = await createUser({
       email: `sms-assign-${Date.now()}@test.com`,
       password: 'TestPass123!',
@@ -194,7 +207,7 @@ describe('SMS assignment producer', () => {
 
     // Without SMS configured the assignment still lands and nothing queues.
     const plain = await request(app)
-      .post(`/shifts/${shift.id}/assign`)
+      .post(`/shifts/${shiftA.id}/assign`)
       .set('Authorization', `Bearer ${token}`)
       .send({ staffId: staff.id });
     expect(plain.status).toBe(201);
@@ -204,9 +217,8 @@ describe('SMS assignment producer', () => {
     await request(app).put('/sms/config').set('Authorization', `Bearer ${token}`).send({
       enabled: true, accountSid: 'ACtest123', authToken: 'auth-secret', fromNumber: '+447700900999',
     });
-    await query(`DELETE FROM shift_assignments WHERE shift_id = $1`, [shift.id]);
     const assigned = await request(app)
-      .post(`/shifts/${shift.id}/assign`)
+      .post(`/shifts/${shiftB.id}/assign`)
       .set('Authorization', `Bearer ${token}`)
       .send({ staffId: staff.id });
     expect(assigned.status).toBe(201);

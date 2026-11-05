@@ -149,9 +149,10 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // and again on 161-167 (incident form/severity/workflow engines, submit
     // link, lifecycle, closeout and action suggestions), and again on 168
     // (per-organisation compliance files), and again on 169-171 (saved
-    // custom reports, delivery schedules and run history), which is the
+    // custom reports, delivery schedules and run history), and again on
+    // 172 (the SMS queue and per-organisation Twilio config), which is the
     // latest run registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_171\]\)/)
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_172\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {
