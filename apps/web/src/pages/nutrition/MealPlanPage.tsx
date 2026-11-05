@@ -2,15 +2,15 @@ import { useMemo, useRef, useState } from 'react';
 import {
   Box, Typography, Paper, Grid, Card, CardContent, CardActions, Button, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, Stack, Tabs, Tab,
-  Divider, List, ListItem, ListItemText, ListItemSecondaryAction, Checkbox, FormControlLabel,
-  Switch, Tooltip, CircularProgress, Alert, Avatar, Select, FormControl, InputLabel, Table,
+  Divider, List, ListItem, ListItemText, Checkbox, FormControlLabel,
+  Tooltip, CircularProgress, Alert, Avatar, Select, FormControl, InputLabel, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material';
 import PageContainer from '../../components/design/PageContainer'
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
-  ContentCopy as CloneIcon, LocalDining as FoodIcon, AccessTime as TimeIcon, AutoAwesome as AIIcon,
-  Save as SaveIcon, Description as DocIcon, CalendarMonth as PlannerIcon, Dashboard as TemplatesIcon,
+  ContentCopy as CloneIcon, LocalDining as FoodIcon, AutoAwesome as AIIcon,
+  Save as SaveIcon, Description as DocIcon, CalendarMonth as PlannerIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
