@@ -19,6 +19,12 @@ export interface RotaViewProps {
   onClaimShift: (shiftId: string) => void
   onUnassign: (shiftId: string, staffId: string) => void
   onSwap: (shiftId: string, startTime?: string) => void
+  /**
+   * A drag-and-drop onto a (staff, day) cell. Only the roster grid offers
+   * drop targets today; the board and timeline receive the same callback and
+   * ignore it, so a new drop surface is a view change rather than a page one.
+   */
+  onDropShift: (shiftId: string, fromStaffId: string | null, toStaffId: string, toDateStr: string) => void
   onOpenDetail: (shift: any) => void
 }
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box, Typography, Stack, Chip, IconButton, Tooltip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper,
@@ -6,6 +6,7 @@ import {
 import { Add as AddIcon, Warning as WarningIcon, Check as CheckIcon } from '@mui/icons-material'
 import type { RotaViewProps } from './types'
 import { rotaHelpers } from './helpers'
+import { ROTA_DRAG_MIME, decodeRotaDrag, encodeRotaDrag } from './dragDrop'
 
 const { DAYS, toLocalDateStr, isDayPast, shiftMatchesDay, shiftDurationHours, shiftVisual } = rotaHelpers
 
@@ -51,6 +52,25 @@ export default function RosterView(props: RotaViewProps) {
   const dayCell = (staff: any, d: Date) => {
     const dateStr = toLocalDateStr(d)
     return (shiftsByStaff.get(staff.staff_id) || []).filter(s => shiftMatchesDay(s, dateStr))
+  }
+
+  // Drag-and-drop: a chip is draggable wherever the planner can edit, and a
+  // cell is a drop target for any other cell. Clicks still open the detail
+  // dialog, so keyboard and touch users keep the dialogs as their path — the
+  // drag is a faster pointer path, not the only path.
+  const droppable = canEdit && !isReadOnly
+  const [dropKey, setDropKey] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  const cellKey = (staffId: string, dateStr: string) => `${staffId}|${dateStr}`
+
+  const onChipDrop = (e: React.DragEvent, toStaffId: string, toDateStr: string) => {
+    e.preventDefault()
+    setDropKey(null)
+    setDraggingId(null)
+    const payload = decodeRotaDrag(e.dataTransfer.getData(ROTA_DRAG_MIME))
+    if (!payload) return
+    props.onDropShift(payload.shiftId, payload.fromStaffId, toStaffId, toDateStr)
   }
 
   return (
@@ -129,26 +149,46 @@ export default function RosterView(props: RotaViewProps) {
                 {weekDates.map((d, i) => {
                   const cellShifts = dayCell(staff, d)
                   const today = d.toDateString() === new Date().toDateString()
+                  const dateStr = toLocalDateStr(d)
+                  const past = isDayPast(d)
+                  const key = cellKey(staff.staff_id, dateStr)
+                  const highlighted = droppable && !past && dropKey === key
                   return (
-                    <TableCell key={i} sx={{
-                      textAlign: 'center', verticalAlign: 'top', minWidth: 120,
-                      bgcolor: today ? '#F7FAFE' : 'inherit', p: 0.5,
-                    }}>
+                    <TableCell key={i}
+                      onDragOver={droppable && !past ? (e) => { e.preventDefault(); if (dropKey !== key) setDropKey(key) } : undefined}
+                      onDragLeave={droppable ? () => { if (dropKey === key) setDropKey(null) } : undefined}
+                      onDrop={droppable && !past ? (e) => onChipDrop(e, staff.staff_id, dateStr) : undefined}
+                      sx={{
+                        textAlign: 'center', verticalAlign: 'top', minWidth: 120,
+                        bgcolor: highlighted ? '#EAF3FF' : today ? '#F7FAFE' : 'inherit',
+                        outline: highlighted ? '2px dashed #0164C8' : 'none',
+                        outlineOffset: -2, p: 0.5,
+                      }}>
                       {cellShifts.length === 0 ? (
                         <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#D6E2EE' }}>—</Typography>
                       ) : (
                         <Stack spacing={0.3}>
                           {cellShifts.map(s => {
                             const vis = shiftVisual(s)
+                            const draggable = droppable && !past
                             return (
                               <Tooltip key={s.id} title={`${s.location_name} · ${s._startLabel}–${s._endLabel}${s.shift_type !== 'day' ? ` · ${s.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'}` : ''}`}>
                                 <Chip
                                   label={`${s._startLabel}-${s._endLabel}`}
                                   size="small"
                                   onClick={() => props.onOpenDetail(s)}
+                                  draggable={draggable}
+                                  onDragStart={draggable ? (e) => {
+                                    e.dataTransfer.setData(ROTA_DRAG_MIME, encodeRotaDrag({ shiftId: s.id, fromStaffId: staff.staff_id, fromDate: dateStr }))
+                                    e.dataTransfer.effectAllowed = 'move'
+                                    setDraggingId(s.id)
+                                  } : undefined}
+                                  onDragEnd={draggable ? () => { setDraggingId(null); setDropKey(null) } : undefined}
                                   sx={{
-                                    cursor: 'pointer', height: 17, fontSize: '0.55rem', fontWeight: 600,
-                                    bgcolor: vis.chipBg, color: vis.chipFg, width: '100%', '&:hover': { filter: 'brightness(0.97)', borderColor: '#0164C8' },
+                                    cursor: draggable ? 'grab' : 'pointer', height: 17, fontSize: '0.55rem', fontWeight: 600,
+                                    bgcolor: vis.chipBg, color: vis.chipFg, width: '100%',
+                                    opacity: draggingId === s.id ? 0.45 : 1,
+                                    '&:hover': { filter: 'brightness(0.97)', borderColor: '#0164C8' },
                                   }}
                                 />
                               </Tooltip>
