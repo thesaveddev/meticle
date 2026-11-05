@@ -120,8 +120,12 @@ export class SmsQueue {
   static async recordDelivery(providerSid: string, twilioStatus: string, errorMessage?: string) {
     const status = twilioStatus === 'delivered' ? 'delivered' : ['failed', 'undelivered'].includes(twilioStatus) ? 'undelivered' : null;
     if (!status) return null;
+    // $1 is cast because it serves twice: the VARCHAR status value and a
+    // comparison against a text literal, which Postgres otherwise refuses
+    // to reconcile (42P08).
     const res = await query(
-      `UPDATE sms_queue SET status = $1, delivered_at = CASE WHEN $1 = 'delivered' THEN CURRENT_TIMESTAMP ELSE delivered_at END,
+      `UPDATE sms_queue SET status = $1::VARCHAR,
+         delivered_at = CASE WHEN $1::VARCHAR = 'delivered' THEN CURRENT_TIMESTAMP ELSE delivered_at END,
          error_message = COALESCE($2, error_message)
        WHERE provider_sid = $3 AND status = 'sent' RETURNING id`,
       [status, errorMessage ? String(errorMessage).slice(0, 2000) : null, providerSid],
