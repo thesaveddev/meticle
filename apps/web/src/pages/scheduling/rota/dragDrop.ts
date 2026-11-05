@@ -26,6 +26,8 @@
  * the drop needs, never whether they will succeed.
  */
 
+import { localToday } from '../../../utils/dateFormat'
+
 export interface RotaDragPayload {
   shiftId: string
   /** Null when the dragged chip names no assignment (a pure assign). */
@@ -76,7 +78,10 @@ export function resolveRotaDrop(args: {
   todayStr?: string
 }): RotaDropPlan {
   const { shiftStartDate, fromStaffId, toStaffId, toDate } = args
-  const today = args.todayStr ?? new Date().toISOString().slice(0, 10)
+  // The wall the drop is measured against is the viewer's own today, not a
+  // UTC slice of now — east of UTC the two disagree for the first hour of
+  // every day, which is exactly when a night shift hands over (localDay).
+  const today = args.todayStr ?? localToday()
   if (!toStaffId || !toDate || toDate < today) return NO_PLAN
 
   const moveDate = toDate !== shiftStartDate ? toDate : null
