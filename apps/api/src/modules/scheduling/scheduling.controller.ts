@@ -10,6 +10,9 @@ import { ShiftAttendanceRepository } from './shiftAttendance.repository';
 import { ShiftHandoverRepository } from './shiftHandover.repository';
 import { recordShiftOfflineAction } from './shiftOfflineActions';
 import { publishShiftHandoverAcknowledgedEvent, publishShiftHandoverRecordedEvent } from './scheduling.events';
+import logger from '../../shared/utils/logger';
+import { decryptRowForOrg } from '../../shared/utils/encrypted-columns';
+import { queueSms } from '../sms/sms.service';
 import type { ShiftAttendanceInput, ShiftAttendanceSource, ShiftHandoverInput } from './shiftAttendance.types';
 // The record a scheduling message is about travels as one ref, so the bell row, the
 // push and the email all open the same record (`@meticle/shared`).
@@ -22,6 +25,28 @@ async function requireShiftNotPast(shiftId: string, organizationId?: string) {
   if (new Date(shift.end_time) < new Date()) {
     throw new AppError(400, 'Cannot modify a shift that has already ended');
   }
+}
+
+/**
+ * Text the assignee about a new shift. Resolves nothing when there is
+ * nothing to send to: no mobile number, no SMS account, or a number Twilio
+ * would reject. Every one of those is an ordinary state, not an error — the
+ * caller logs and moves on, because the roster is the record and the text
+ * is only the tap on the shoulder.
+ */
+async function queueAssignmentSms(orgId: string, staffId: string, shift: any): Promise<void> {
+  const profile = await pool.query('SELECT phone FROM staff_profiles WHERE id = $1', [staffId]);
+  const phone = decryptRowForOrg('staff_profiles', profile.rows[0], orgId)?.phone as string | undefined;
+  if (!phone?.trim()) return;
+  const start = shift?.start_time ? new Date(shift.start_time) : null;
+  const end = shift?.end_time ? new Date(shift.end_time) : null;
+  const when = start
+    ? start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+      ` ${start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` +
+      (end ? `-${end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : '')
+    : 'soon';
+  const where = shift?.location_name ? ` at ${shift.location_name}` : '';
+  await queueSms(orgId, { to: phone.trim(), body: `You've been rostered${where}: ${when}.` });
 }
 
 export class SchedulingController {
@@ -513,6 +538,12 @@ export class SchedulingController {
     }
     const assignment = await SchedulingRepository.assignStaff(id, staffId);
     logDelegationAction(user.userId, 'ASSIGN_STAFF', 'shift', id, `Assigned staff ${staffId}`);
+    // A text is best-effort: the assignment stands whether or not the
+    // organisation has connected SMS, the worker has a mobile on file, or
+    // Twilio answers. It therefore never throws past this point.
+    queueAssignmentSms(user.organizationId!, staffId, shiftForLoc).catch(err =>
+      logger.warn({ err, shiftId: id, staffId }, 'Assignment SMS not queued'),
+    );
     res.status(201).json(assignment);
   }
 

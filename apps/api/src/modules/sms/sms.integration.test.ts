@@ -3,7 +3,7 @@ import request from 'supertest';
 import crypto from 'crypto';
 import { Express } from 'express';
 import { createTestApp } from '../../test/helpers';
-import { createOrg, createUser, generateToken } from '../../test/factories';
+import { createLocation, createOrg, createShift, createStaffProfile, createUser, generateToken } from '../../test/factories';
 import { query } from '../../shared/database';
 import { setSmsSender, SmsQueue, smsStatusCallbackUrl } from './sms.queue';
 import { sendViaTwilio } from './sms.twilio';
@@ -176,6 +176,57 @@ describe('SMS send and queue', () => {
     expect(byPhone['+447700900125'].status).toBe('pending');
     expect(Number(byPhone['+447700900125'].retry_count)).toBeGreaterThan(0);
     expect(calls).toBe(2);
+  });
+});
+
+describe('SMS assignment producer', () => {
+  it('texts the assignee when a shift is assigned, and assigns fine without SMS', async () => {
+    const { org, token, admin } = await adminInOrg();
+    const loc = await createLocation({ organizationId: org.id, name: 'Ash Court' });
+    const shift = await createShift({ organizationId: org.id, locationId: loc.id, status: 'open' });
+    const staffUser = await createUser({
+      email: `sms-assign-${Date.now()}@test.com`,
+      password: 'TestPass123!',
+      role: 'CARE_WORKER',
+      organization_id: org.id,
+    });
+    const staff = await createStaffProfile({ userId: staffUser.id, locationId: loc.id, phone: '+447700900127' });
+
+    // Without SMS configured the assignment still lands and nothing queues.
+    const plain = await request(app)
+      .post(`/shifts/${shift.id}/assign`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ staffId: staff.id });
+    expect(plain.status).toBe(201);
+    const none = await query(`SELECT COUNT(*)::int AS n FROM sms_queue WHERE organization_id = $1`, [org.id]);
+    expect(none.rows[0].n).toBe(0);
+
+    await request(app).put('/sms/config').set('Authorization', `Bearer ${token}`).send({
+      enabled: true, accountSid: 'ACtest123', authToken: 'auth-secret', fromNumber: '+447700900999',
+    });
+    await query(`DELETE FROM shift_assignments WHERE shift_id = $1`, [shift.id]);
+    const assigned = await request(app)
+      .post(`/shifts/${shift.id}/assign`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ staffId: staff.id });
+    expect(assigned.status).toBe(201);
+
+    // The text is queued after the response is sent, so wait for the row
+    // rather than racing the fire-and-forget producer.
+    let queued: any = null;
+    for (let i = 0; i < 50 && !queued; i++) {
+      const rows = await query(
+        `SELECT to_phone, body, status FROM sms_queue WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 1`,
+        [org.id],
+      );
+      queued = rows.rows[0] || null;
+      if (!queued) await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(queued).toBeTruthy();
+    expect(queued.to_phone).toBe('+447700900127');
+    expect(queued.status).toBe('pending');
+    expect(queued.body).toContain('Ash Court');
+    expect(admin.id).toBeTruthy();
   });
 });
 
