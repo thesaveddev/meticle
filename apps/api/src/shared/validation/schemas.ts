@@ -87,6 +87,19 @@ export const updateAIConfigSchema = z.object({
   fallbackModel: z.string().optional(),
 });
 
+// === SMS (Twilio) ===
+export const updateSmsConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  fromNumber: z.string().regex(/^\+\d{7,15}$/, 'From number must be international format (e.g. +447700900123)').optional().nullable(),
+  accountSid: z.string().min(1).optional(),
+  authToken: z.string().min(1).optional(),
+});
+
+export const sendSmsSchema = z.object({
+  to: z.string().regex(/^\+\d{7,15}$/, 'Destination must be international format (e.g. +447700900123)'),
+  body: z.string().min(1).max(1600),
+});
+
 export const aiAnalysisRequestSchema = z.object({
   orgName: z.string().optional(),
   regulator: z.string().optional(),

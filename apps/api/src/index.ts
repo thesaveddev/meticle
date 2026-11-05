@@ -21,6 +21,8 @@ import { senderDomain, misalignedSenders as senderAlignmentFailures } from './sh
 import { setupDatabase } from './shared/database/setup';
 import { closeDatabasePools } from './shared/database';
 import { EmailQueue } from './shared/utils/email.queue';
+import { startSmsProcessor, stopSmsProcessor } from './modules/sms/sms.queue';
+import smsRoutes, { publicSmsRouter } from './modules/sms/sms.routes';
 import { EventWorker } from './modules/events/events.worker';
 import authRoutes from './modules/auth/auth.routes';
 import orgRoutes from './modules/orgs/org.routes';
@@ -225,6 +227,10 @@ app.use((req, _res, next) => {
 
 app.post('/billing/webhook', express.raw({ type: 'application/json' }), asyncHandler(BillingController.handleWebhook));
 app.use('/homecare/email/dsn-callback', express.raw({ type: 'application/json' }), publicEmailDsnRouter);
+// Twilio posts delivery receipts as a form, and its signature covers the form
+// fields — so this route parses urlencoded bodies, not JSON. The signature
+// is the authentication; see SmsController.handleStatus.
+app.use('/sms/status', express.urlencoded({ extended: false }), publicSmsRouter);
 app.use(express.json({ limit: '15mb' }));
 app.get('/files/private/:filename', authenticate, asyncHandler(ComplianceController.servePrivateFile));
 app.get('/files/:id', authenticate, asyncHandler(ComplianceController.serveFile));
@@ -278,6 +284,7 @@ app.use('/agencies', authenticate, requireSupportedLivingOnly, agencyRoutes);
 app.use('/dbs', dbsRoutes);
 app.use('/expenses', authenticate, requireSupportedLivingOnly, expensesRoutes);
 app.use('/mission-control', missionControlRoutes);
+app.use('/sms', smsRoutes);
 app.use('/platform-admin', platformAdminRoutes);
 // Health checks — must be BEFORE /health routes to avoid auth middleware clash
 app.get('/health/live', (_req: Request, res: Response) => {
@@ -417,6 +424,7 @@ async function shutdown(signal: string) {
     process.exit(1);
   }, 10_000);
   EmailQueue.stopProcessor();
+  stopSmsProcessor();
   EventWorker.stop();
   try { await closeSocketServer(); } catch (err) { logger.warn({ err }, 'Socket shutdown failed'); }
   await new Promise<void>((resolve) => {
@@ -774,6 +782,7 @@ databaseReadyPromise.then(() => setTimeout(() => {
 
 // Start email queue processor only after the database is ready.
 databaseReadyPromise.then(() => EmailQueue.startProcessor());
+databaseReadyPromise.then(() => startSmsProcessor());
 
 // Clean permanently failed email jobs daily. Failed rows older than three days no longer
 // need to remain in the operational queue, while recent failures stay available for review/retry.
