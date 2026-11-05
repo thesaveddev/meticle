@@ -54,7 +54,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const multerUpload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter });
+// 25 MB: matches the chat share dialog's stated cap and stays under nginx's 25m body limit.
+const multerUpload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter });
 
 /** Multer upload + virus scan. Scans the saved file and removes it if unsafe. */
 /** Multer upload (multiple files) + virus scan. */

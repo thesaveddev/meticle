@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
-import { Box, Typography, Paper, Button, Stack, Chip, Alert, Card, CardContent, Grid, Tabs, Tab, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Divider } from '@mui/material'
+import { Box, Typography, Paper, Button, Stack, Chip, Alert, Tabs, Tab, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Divider } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
-import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, History, Send as SendIcon, AccessTime as AccessTimeIcon, DateRange as DateRangeIcon, Person as PersonIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
+import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, Send as SendIcon, AccessTime as AccessTimeIcon, Person as PersonIcon, SwapHoriz as SwapHorizIcon, Flag as FlagIcon, Group as GroupIcon, Place as PlaceIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material'
 import api from '../../services/api'
-import ContextualLearnLink from '../../components/ContextualLearnLink'
 import AppButton from '../../components/design/AppButton'
 
 const shiftTypeLabel = (t?: string) =>
@@ -17,6 +16,19 @@ const fmtLongDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', {
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 const fmtDateTime = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 const shiftHours = (s: any) => Math.round((new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / 3600000)
+/** Shift pattern beside the time, as Figma shows (`07:00 – 15:00 · Early`). */
+const shiftPattern = (s: any) => {
+  if (s.shift_type === 'sleep') return 'Sleep-in'
+  if (s.shift_type === 'wake_night') return 'Waking night'
+  const h = new Date(s.start_time).getHours()
+  if (h >= 5 && h < 12) return 'Early'
+  if (h >= 12 && h < 18) return 'Late'
+  if (h >= 18 || h < 5) return 'Waking night'
+  return 'Day'
+}
+const initialsOf = (first?: string, last?: string) =>
+  `${(first || '').trim().charAt(0)}${(last || '').trim().charAt(0)}`.toUpperCase() || '—'
+const fmtDayMonth = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 
 const claimStatusChip = (status: string) => {
   const m: Record<string, { label: string; color: any }> = {
@@ -372,15 +384,7 @@ export default function ShiftMarketplacePage() {
     })
   }, [clients, locations, openCall.location_id])
 
-  const groupedByDate = useMemo(() => {
-    const grouped: Record<string, any[]> = {}
-    for (const s of shifts) {
-      const date = fmtLongDate(s.start_time)
-      if (!grouped[date]) grouped[date] = []
-      grouped[date].push(s)
-    }
-    return grouped
-  }, [shifts])
+
 
   const claimsWithMeta = useMemo(() => {
     if (!isAdminOrManager) return myClaims.map((c: any) => ({ ...c, isOwn: true }))
@@ -397,10 +401,50 @@ export default function ShiftMarketplacePage() {
     rejected: claimsWithMeta.filter((c: any) => c.assignment_status === 'rejected').length,
   }), [claimsWithMeta])
 
-  const reviewCount = useMemo(
-    () => claimsWithMeta.filter((c: any) => !c.isOwn && c.assignment_status === 'pending').length,
-    [claimsWithMeta]
-  )
+
+  /** Pending claim per shift, so the table can show `Claimed — needs approval`. */
+  const pendingByShift = useMemo(() => {
+    const m = new Map<string, any>()
+    for (const c of claimsWithMeta) {
+      if (c.assignment_status === 'pending' && c.shift_id && !m.has(c.shift_id)) m.set(c.shift_id, c)
+    }
+    return m
+  }, [claimsWithMeta])
+
+  /** Approved claims starting this week (Mon–Sun) — the `Filled this week` card. */
+  const filledThisWeek = useMemo(() => {
+    const now = new Date()
+    const monday = new Date(now)
+    monday.setHours(0, 0, 0, 0)
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(sunday.getDate() + 6)
+    sunday.setHours(23, 59, 59, 999)
+    return claimsWithMeta.filter((c: any) => {
+      if (c.assignment_status !== 'assigned') return false
+      const t = new Date(c.start_time).getTime()
+      return Number.isFinite(t) && t >= monday.getTime() && t <= sunday.getTime()
+    }).length
+  }, [claimsWithMeta])
+
+  const selectedLocName = selectedLocation === 'all'
+    ? (isDomiciliary ? 'all areas' : 'all locations')
+    : (locations.find((l: any) => l.id === selectedLocation)?.name || (isDomiciliary ? 'all areas' : 'all locations'))
+
+  /** `29 Oct – 12 Nov · all locations`, from the shifts on screen (or the default window). */
+  const dateRangeLabel = useMemo(() => {
+    const times = shifts.map((s: any) => new Date(s.start_time).getTime()).filter(Number.isFinite).sort((a, b) => a - b)
+    if (openDateFrom || openDateTo) {
+      const from = openDateFrom ? fmtDayMonth(new Date(`${openDateFrom}T00:00:00`)) : fmtDayMonth(new Date())
+      const to = openDateTo ? fmtDayMonth(new Date(`${openDateTo}T00:00:00`)) : fmtDayMonth(new Date(Date.now() + 14 * 86400000))
+      return `${from} – ${to} · ${selectedLocName}`
+    }
+    if (times.length === 0) {
+      const to = new Date(Date.now() + 14 * 86400000)
+      return `${fmtDayMonth(new Date())} – ${fmtDayMonth(to)} · ${selectedLocName}`
+    }
+    return `${fmtDayMonth(new Date(times[0]))} – ${fmtDayMonth(new Date(times[times.length - 1]))} · ${selectedLocName}`
+  }, [shifts, openDateFrom, openDateTo, selectedLocName])
 
   const statusToAssignment: Record<string, string> = { pending: 'pending', approved: 'assigned', rejected: 'rejected' }
 
@@ -424,72 +468,100 @@ export default function ShiftMarketplacePage() {
     { key: 'rejected', label: 'Rejected' },
   ]
 
-  const openStatusChip = (s: any) => {
-    if (s.status === 'pending') {
-      return <Chip label="Pending approval" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600 }} />
-    }
-    if (new Date(s.start_time) < new Date()) {
-      return <Chip label="Unclaimed" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 600 }} />
-    }
-    return <Chip label="Open" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 600 }} />
-  }
+  /** Status chips live in the table rows now (Open / Claimed — needs approval / Unclaimed). */
 
   return (
     <PageContainer>
-
-      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <ScheduleIcon sx={{ color: '#0164C8', fontSize: 28 }} />
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>{marketplaceTitle}</Typography>
-            <Typography variant="caption" color="text.secondary">{marketplaceDescription}</Typography>
-            <ContextualLearnLink topic="dom-manager-web" label="Learn how open calls work" />
-          </Box>
-        </Stack>
-        <Box sx={{ flexGrow: 1 }} />
-        {tab === 0 && <Chip label={`${shifts.length} available`} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />}
+      <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Staffing / {marketplaceTitle}
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>{marketplaceTitle}</Typography>
+          <Typography variant="body2" color="text.secondary">{marketplaceDescription}.</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+          <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Select size="small" variant="standard" disableUnderline value={selectedLocation}
+            onChange={e => setSelectedLocation(e.target.value)}
+            sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+            <MenuItem value="all">{isDomiciliary ? 'All areas' : 'All locations'}</MenuItem>
+            {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
+          </Select>
+        </Box>
         {isAdminOrManager && <AppButton onClick={openCreateOpenCall}>Post open call</AppButton>}
-        {tab === 1 && isAdminOrManager && reviewCount > 0 && <Chip label={`${reviewCount} to review`} color="warning" sx={{ fontWeight: 600 }} />}
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-      <Paper variant="outlined" sx={{ mb: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5 }}>
-          <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-            <Tab label={isDomiciliary ? 'Open Calls' : 'Available Shifts'} icon={<ScheduleIcon />} iconPosition="start" />
-            <Tab label="Claims" icon={<History />} iconPosition="start" />
-          </Tabs>
-          <FormControl size="small" sx={{ m: 1, minWidth: 180 }}>
-            <InputLabel>{isDomiciliary ? 'Area' : 'Location'}</InputLabel>
-            <Select value={selectedLocation} label={isDomiciliary ? 'Area' : 'Location'} onChange={e => setSelectedLocation(e.target.value)}>
-              <MenuItem value="all">{isDomiciliary ? 'All Areas' : 'All Locations'}</MenuItem>
-              {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
-            </Select>
-          </FormControl>
-        </Stack>
-      </Paper>
-
-      {tab === 0 && (
-        <Paper variant="outlined" sx={{ mb: 3, px: 2, py: 1.5 }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }} flexWrap="wrap" useFlexGap>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <DateRangeIcon sx={{ color: '#0164C8', fontSize: 18 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{isDomiciliary ? 'Open calls' : 'Unclaimed overtime'}</Typography>
-            </Stack>
-            <TextField label="From" type="date" size="small" value={openDateFrom}
-              onChange={e => setOpenDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
-            <TextField label="To" type="date" size="small" value={openDateTo}
-              onChange={e => setOpenDateTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
-            {(openDateFrom || openDateTo) && (
-              <Button size="small" onClick={() => { setOpenDateFrom(''); setOpenDateTo('') }}>Reset</Button>
-            )}
-            <Box sx={{ flexGrow: 1 }} />
-            <Typography variant="caption" color="#51637A">Default: today – next 14 days</Typography>
+      {/* Live banner — Figma 4.2: shown once calls are posted */}
+      {shifts.length > 0 && (
+        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#BBF7D0', bgcolor: '#F0FDF4' }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#fff', color: '#16A34A', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <CheckCircle sx={{ fontSize: 18 }} />
+            </Box>
+            <Box>
+              <Typography variant="body2" fontWeight={700} sx={{ color: '#166534' }}>
+                {shifts.length} open call{shifts.length === 1 ? ' is' : 's are'} live
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#166534' }}>
+                Staff with matching skills have been told. We’ll let you know as soon as someone claims a shift.
+              </Typography>
+            </Box>
           </Stack>
         </Paper>
       )}
+
+      {/* Tabs — Figma 4.2 */}
+      <Tabs value={tab} onChange={(_, v) => { if (v === 0 || v === 1) setTab(v) }}
+        sx={{ borderBottom: 1, borderColor: '#E3E9F0', mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40 } }}>
+        <Tab value={0} icon={<FlagIcon sx={{ fontSize: 15 }} />} iconPosition="start"
+          label={`Available shifts ${shifts.length}`} />
+        <Tab value={1} icon={<CheckCircle sx={{ fontSize: 15 }} />} iconPosition="start"
+          label={`Claims ${claimCounts.pending}`} />
+      </Tabs>
+
+      {/* Metric cards — Figma 4.2 */}
+      {(() => {
+        const cards = [
+          {
+            label: 'Open calls', value: `${shifts.length}`,
+            detail: shifts.length === 0 ? 'Available to claim' : 'Posted today',
+            icon: <FlagIcon fontSize="small" />,
+          },
+          {
+            label: 'Claims waiting', value: `${claimCounts.pending}`,
+            detail: 'Need your approval',
+            icon: <CheckCircle fontSize="small" />,
+          },
+          {
+            label: 'Filled this week', value: `${filledThisWeek}`,
+            detail: 'Through the marketplace',
+            icon: <GroupIcon fontSize="small" />,
+          },
+        ]
+        return (
+          <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 2 }}>
+            {cards.map(card => (
+              <Paper key={card.label} sx={{ flex: '1 1 160px', p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>{card.label}</Typography>
+                  <Box sx={{
+                    width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%',
+                    bgcolor: '#EAF3FF', color: '#0164C8',
+                  }}>{card.icon}</Box>
+                </Stack>
+                <Typography variant="h4" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1 }}>{card.value}</Typography>
+                <Typography variant="caption" color="text.secondary">{card.detail}</Typography>
+              </Paper>
+            ))}
+          </Stack>
+        )
+      })()}
+
+
 
       {tab === 1 && (
         <Paper variant="outlined" sx={{ mb: 3, px: 2, py: 1.5 }}>
@@ -516,85 +588,148 @@ export default function ShiftMarketplacePage() {
         </Paper>
       )}
 
-      {/* ── Tab 0: Available Shifts ── */}
+      {/* ── Tab 0: Available shifts — Figma 4.2 extended view ── */}
       {tab === 0 && (
-        <>
+        <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden', mb: 2 }}>
+          <Box sx={{ p: 2, pb: 1 }}>
+            <Typography variant="subtitle1" fontWeight={600}>Available shifts</Typography>
+            <Typography variant="caption" color="text.secondary">{dateRangeLabel}</Typography>
+          </Box>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+              <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Select size="small" variant="standard" disableUnderline value={selectedLocation}
+                onChange={e => setSelectedLocation(e.target.value)}
+                sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                <MenuItem value="all">{isDomiciliary ? 'All areas' : 'All locations'}</MenuItem>
+                {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
+              </Select>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
+              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <TextField variant="standard" type="date" value={openDateFrom}
+                onChange={e => setOpenDateFrom(e.target.value)} InputProps={{ disableUnderline: true }}
+                inputProps={{ 'aria-label': 'From date' }} sx={{ width: 128, '& input': { fontSize: '0.8rem', fontWeight: 600 } }} />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
+              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <TextField variant="standard" type="date" value={openDateTo}
+                onChange={e => setOpenDateTo(e.target.value)} InputProps={{ disableUnderline: true }}
+                inputProps={{ 'aria-label': 'To date' }} sx={{ width: 128, '& input': { fontSize: '0.8rem', fontWeight: 600 } }} />
+            </Box>
+            {(openDateFrom || openDateTo) && (
+              <Button size="small" onClick={() => { setOpenDateFrom(''); setOpenDateTo('') }}>Reset</Button>
+            )}
+          </Stack>
           {shiftsLoading && shifts.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={28} /></Box>
           ) : shifts.length === 0 ? (
-            <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No open calls available</Typography>
-              <Typography variant="body2" color="text.secondary">Check back later for new earning opportunities.</Typography>
-            </Paper>
-          ) : (
-            Object.entries(groupedByDate).map(([date, dayShifts]) => (
-              <Box key={date} sx={{ mb: 4 }}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#0164C8' }}>{date}</Typography>
-                  <Typography variant="caption" color="#51637A">{dayShifts.length} shift{dayShifts.length === 1 ? '' : 's'}</Typography>
-                  <Divider sx={{ flexGrow: 1, borderColor: '#E3E9F0' }} />
-                </Stack>
-                <Grid container spacing={2}>
-                  {dayShifts.map((s: any) => (
-                    <Grid item xs={12} sm={6} md={4} key={s.id}>
-                      <Card variant="outlined" onClick={() => setDetail(s)} sx={{
-                        borderRadius: 2, borderColor: '#E3E9F0', bgcolor: 'background.paper', cursor: 'pointer',
-                        transition: 'box-shadow 0.2s, border-color 0.2s',
-                        '&:hover': { boxShadow: '0 6px 18px rgba(15,76,129,0.12)', borderColor: '#0164C8' },
-                      }}>
-                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 1 }}>
-                            <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                              <Stack direction="row" spacing={0.5} alignItems="center">
-                                <LocationIcon sx={{ fontSize: 16, color: '#0164C8' }} />
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>{s.location_name || '—'}</Typography>
-                              </Stack>
-                              {s.department_name && <Typography variant="caption" color="#51637A">{s.department_name}</Typography>}
-                              {s.su_first_name && (
-                                <Typography variant="caption" color="#51637A">For: {s.su_first_name} {s.su_last_name}</Typography>
-                              )}
-                            </Stack>
-                            <Chip label={shiftTypeLabel(s.shift_type)} size="small" variant="outlined" sx={{ fontSize: '0.65rem', fontWeight: 600, height: 20, color: '#0164C8', borderColor: '#EAF3FF' }} />
-                          </Stack>
-                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.25 }}>
-                            <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {fmtTime(s.start_time)} – {fmtTime(s.end_time)}
-                            </Typography>
-                            <Typography variant="caption" color="#51637A">({shiftHours(s)}h)</Typography>
-                          </Stack>
-                          <Stack direction="row" spacing={0.5} sx={{ mb: 1.5 }}>
-                            <Chip label={`${shiftHours(s)}h`} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem' }} />
-                            <Chip label={`${s.staff_count || 0} assigned`} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem' }} />
-                            {openStatusChip(s)}
-                          </Stack>
-                          <Stack spacing={1}>
-                            <AppButton fullWidth
-                              startIcon={claimingId === s.id ? undefined : <ClaimIcon />}
-                              loading={claimingId === s.id}
-                              onClick={(e) => { e.stopPropagation(); handleClaim(s.id) }}
-                              disabled={new Date(s.start_time) < new Date()}>
-                              {new Date(s.start_time) < new Date() ? 'Call started' : 'Claim Open Call'}
-                            </AppButton>
-                            {isAdminOrManager && !isDomiciliary && (
-                              <Button fullWidth variant="outlined" size="small"
-                                startIcon={<SendIcon />}
-                                onClick={(e) => { e.stopPropagation(); openAgencyDialog(s) }}
-                                disabled={new Date(s.start_time) < new Date()}
-                                sx={{ textTransform: 'none', fontSize: '0.75rem', color: 'notice.info.fg', borderColor: '#6B8AFD', '&:hover': { borderColor: '#0164C8', bgcolor: 'notice.info.bg' } }}>
-                                Send to Agency
-                              </Button>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
+            <Box sx={{ px: 2, pb: 4, pt: 2, textAlign: 'center' }}>
+              <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                <FlagIcon />
               </Box>
-            ))
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>No open calls right now</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 440, mx: 'auto' }}>
+                When a shift is posted, it appears here for staff with the right skills. Check back later, or post one yourself.
+              </Typography>
+              {isAdminOrManager && <AppButton onClick={openCreateOpenCall}>Post open call</AppButton>}
+            </Box>
+          ) : (
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 700 }}>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>Shift</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>{isDomiciliary ? 'Area' : 'Location'}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>Status</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {shifts.map((s: any) => {
+                    const pending = pendingByShift.get(s.id)
+                    const past = new Date(s.start_time) < new Date()
+                    const actionKey = pending ? `${s.id}-${pending.staff_id}` : null
+                    const isProcessing = !!actionKey && approvingId === actionKey
+                    const claimant = pending
+                      ? (pending.isOwn ? 'you' : `${pending.first_name || ''} ${pending.last_name || ''}`.trim() || initialsOf(pending.first_name, pending.last_name))
+                      : ''
+                    return (
+                      <TableRow key={s.id} hover onClick={() => setDetail(pending || s)} sx={{ cursor: 'pointer' }}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={700} sx={{ whiteSpace: 'nowrap' }}>{fmtDate(s.start_time)}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                            {fmtTime(s.start_time)} – {fmtTime(s.end_time)} · {shiftPattern(s)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell><Typography variant="body2">{s.location_name || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2">{s.department_name || shiftTypeLabel(s.shift_type)}</Typography></TableCell>
+                        <TableCell>
+                          {pending ? (
+                            <>
+                              <Chip label="Claimed — needs approval" size="small"
+                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#DCFCE7', color: '#166534' }} />
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, whiteSpace: 'nowrap' }}>
+                                Claimed by {claimant}
+                              </Typography>
+                            </>
+                          ) : past ? (
+                            <Chip label="Unclaimed" size="small"
+                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 600 }} />
+                          ) : (
+                            <>
+                              <Chip label="Open" size="small"
+                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EAF3FF', color: '#0164C8' }} />
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, whiteSpace: 'nowrap' }}>
+                                No claims yet
+                              </Typography>
+                            </>
+                          )}
+                        </TableCell>
+                        <TableCell align="right" onClick={e => e.stopPropagation()}>
+                          {pending && isAdminOrManager ? (
+                            <Button size="small" variant="contained"
+                              startIcon={isProcessing ? <CircularProgress size={14} color="inherit" /> : undefined}
+                              onClick={() => handleApprove(s.id, pending.staff_id)}
+                              disabled={isProcessing}
+                              sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#0164C8' }}>
+                              Approve claim
+                            </Button>
+                          ) : !pending && !past && !isAdminOrManager ? (
+                            <AppButton
+                              startIcon={claimingId === s.id ? undefined : <ClaimIcon sx={{ fontSize: 16 }} />}
+                              loading={claimingId === s.id}
+                              onClick={() => handleClaim(s.id)}
+                              sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
+                              Claim
+                            </AppButton>
+                          ) : !pending && !past && isAdminOrManager ? (
+                            <Button size="small" variant="outlined"
+                              onClick={() => { window.location.href = `/scheduling?week=${String(s.start_time).split('T')[0]}&shift=${s.id}` }}
+                              sx={{ textTransform: 'none' }}>
+                              Edit call
+                            </Button>
+                          ) : past && !pending ? (
+                            <Typography variant="caption" color="text.secondary">Call started</Typography>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
-        </>
+          {shifts.length > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderTop: '1px solid #E3E9F0' }}>
+              <Typography variant="caption" color="text.secondary">
+                {shifts.length} open call{shifts.length === 1 ? '' : 's'} · {claimCounts.pending} claim{claimCounts.pending === 1 ? '' : 's'} waiting
+              </Typography>
+              <Typography variant="caption" color="text.secondary">Live data</Typography>
+            </Box>
+          )}
+        </Paper>
       )}
 
       {/* ── Tab 1: Claims (own history + all staff, in one place) ── */}
@@ -819,6 +954,14 @@ export default function ShiftMarketplacePage() {
                     Convert to regular
                   </Button>
                 </>
+              )}
+              {isAdminOrManager && !isDomiciliary && !detail.assignment_status && detail.id && (
+                <Button variant="outlined"
+                  startIcon={<SendIcon />}
+                  onClick={() => { const s = detail; setDetail(null); openAgencyDialog(s) }}
+                  sx={{ textTransform: 'none' }}>
+                  Send to Agency
+                </Button>
               )}
               <Box sx={{ flexGrow: 1 }} />
               <Button onClick={() => setDetail(null)}>Close</Button>

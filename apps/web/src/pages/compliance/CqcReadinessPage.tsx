@@ -5,6 +5,7 @@ import { PremiumCard } from '../../components/design/PremiumCard'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { EmptyState } from '../../components/design/EmptyState'
 import { X as DX } from '../../styles/export-tokens'
 // The export is named for the day the manager made it in their own timezone, not
@@ -76,6 +77,7 @@ function getFrameworkStyle(frameworkName: string) {
 
 export default function CqcReadinessPage() {
   const printRef = useRef<HTMLDivElement>(null)
+  const { showSnackbar } = useSnackbar()
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['cqc-readiness'],
     queryFn: async () => {
@@ -108,17 +110,19 @@ export default function CqcReadinessPage() {
 
   const createAction = useMutation({
     mutationFn: (data: any) => api.post('/cqc/action-items', data),
-    onSuccess: () => refetchActions(),
+    // Figma 5.8 TOAST / Action created.
+    onSuccess: () => { refetchActions(); showSnackbar('The action is tracked in the action plan below.', 'success', 'Action created') },
+    onError: (e: any) => showSnackbar(e.response?.data?.message || 'Could not create the action.', 'error'),
   })
 
   const updateAction = useMutation({
     mutationFn: (d: { id: string; data: any }) => api.patch(`/cqc/action-items/${d.id}`, d.data),
-    onSuccess: () => refetchActions(),
+    onSuccess: () => { refetchActions(); showSnackbar('The action plan below is up to date.', 'success', 'Action updated') },
   })
 
   const deleteAction = useMutation({
     mutationFn: (id: string) => api.delete(`/cqc/action-items/${id}`),
-    onSuccess: () => refetchActions(),
+    onSuccess: () => { refetchActions(); showSnackbar('The action was removed from the action plan.', 'success', 'Action removed') },
   })
 
   // Share to Chat state
@@ -335,9 +339,24 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
     const a = document.createElement('a')
     a.href = url
     const frameworkSlug = (data?.framework?.name || 'readiness').toLowerCase().replace(/\s+/g, '-')
-    a.download = `${frameworkSlug}-readiness-${localDate()}.html`
+    const filename = `${frameworkSlug}-readiness-${localDate()}.html`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
+    // Figma 5.12: every download announces itself the same way — what started, and which file.
+    showSnackbar(`${filename} is downloading.`, 'success', 'Download started')
+  }
+
+  // Figma 5.12: a refresh ends with the score, not silence. The score is
+  // recomputed live on refetch — there is no minute-long recalculation and no
+  // stored "last calculated" time, so the dialog's copy would be fiction.
+  const handleRefresh = () => {
+    refetch().then((result: any) => {
+      const score = result?.data?.overall ?? data?.overall
+      if (score != null && !Number.isNaN(Number(score))) {
+        showSnackbar(`Your readiness score is ${Math.round(Number(score))}%.`, 'success', 'Score refreshed')
+      }
+    })
   }
 
   const handlePrintReport = () => {
@@ -384,7 +403,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         <Stack direction="row" spacing={1} className="no-print">
           <Button startIcon={<PrintIcon />} onClick={handlePrintReport}>Print / PDF</Button>
           <Button startIcon={<DownloadIcon />} onClick={handleDownloadReport}>Download Report</Button>
-          <Button startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isFetching}>
+          <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={isFetching}>
             {isFetching ? 'Refreshing...' : 'Refresh'}
           </Button>
         </Stack>

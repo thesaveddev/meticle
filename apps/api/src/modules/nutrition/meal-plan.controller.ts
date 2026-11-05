@@ -4,7 +4,28 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
 import { query } from '../../shared/database';
 
+/** Canonical dietary tags for template menus (Figma 11.1). Anything else
+ *  sent by a hand-written request is dropped, never stored. */
+const DIETARY_TAGS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free', 'halal', 'kosher', 'soft', 'low-sugar', 'diabetic-friendly'];
+
 export class MealPlanController {
+  private static cleanMealPlanInput(body: any) {
+    const out: any = {};
+    if (body.dietary_tags !== undefined) {
+      out.dietary_tags = Array.isArray(body.dietary_tags)
+        ? body.dietary_tags.filter((t: any) => DIETARY_TAGS.includes(String(t))).slice(0, 20)
+        : [];
+    }
+    return out;
+  }
+
+  private static async assertLocationInOrg(locationId: string | undefined, orgId: string) {
+    if (!locationId) return null;
+    const result = await query('SELECT 1 FROM locations WHERE id = $1 AND organization_id = $2', [locationId, orgId]);
+    if (!result.rows.length) throw new AppError(400, 'Location not found in your organisation.');
+    return locationId;
+  }
+
   private static async assertTemplateInOrg(templateId: string, orgId: string) {
     const result = await query('SELECT 1 FROM meal_plan_templates WHERE id = $1 AND organization_id = $2', [templateId, orgId]);
     if (!result.rows.length) throw new AppError(404, 'Meal plan template not found');
@@ -40,6 +61,8 @@ export class MealPlanController {
     const orgId = req.user!.organizationId!;
     const template = await MealPlanRepository.createTemplate(orgId, {
       ...req.body,
+      ...MealPlanController.cleanMealPlanInput(req.body),
+      location_id: await MealPlanController.assertLocationInOrg(req.body.location_id, orgId),
       created_by: req.user!.userId,
     });
     // Create items if provided
@@ -60,7 +83,13 @@ export class MealPlanController {
     const { id } = req.params;
     const orgId = req.user!.organizationId!;
     await MealPlanController.assertTemplateInOrg(id, orgId);
-    const updated = await MealPlanRepository.updateTemplate(id, req.body, orgId);
+    const updated = await MealPlanRepository.updateTemplate(id, {
+      ...req.body,
+      ...MealPlanController.cleanMealPlanInput(req.body),
+      ...(req.body.location_id !== undefined
+        ? { location_id: await MealPlanController.assertLocationInOrg(req.body.location_id, orgId) }
+        : {}),
+    }, orgId);
     if (!updated) throw new AppError(404, 'Meal plan template not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'meal_plan_template', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json(updated);

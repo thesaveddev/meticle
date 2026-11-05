@@ -1,7 +1,7 @@
 import { Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material'
+import { ExpandMore as ExpandMoreIcon, Forum as ForumIcon } from '@mui/icons-material'
 import { type ChatMessage } from '../hooks/useChat'
-import { formatDate, NAVY, EMERALD, EMERALD_DEEP, INK, MIST, BONE, HAIRLINE, OUTLINE } from '../utils'
+import { formatDate, NAVY, EMERALD, EMERALD_DEEP, INK, MIST, HAIRLINE, OUTLINE, WHITE } from '../utils'
 import MessageBubble from './MessageBubble'
 
 interface Props {
@@ -31,6 +31,7 @@ interface Props {
   containerRef: React.Ref<HTMLDivElement>
   isMessageSeen: (msg: ChatMessage) => boolean
   getSeenByNames: (msg: ChatMessage) => string
+  emptySubtitle?: string
 }
 
 export default function MessageList({
@@ -38,11 +39,11 @@ export default function MessageList({
   currentUserId, user, channelType, otherLastRead, memberReads,
   editingId, editText, onEditTextChange, onStartEdit, onSaveEdit,
   onCancelEdit, onDelete, onReact, onOpenReactionPicker, onOpenFile, onReply,
-  typingText, messagesEndRef, containerRef, isMessageSeen, getSeenByNames,
+  typingText, messagesEndRef,  containerRef, isMessageSeen, getSeenByNames, emptySubtitle,
 }: Props) {
   if (loading) {
     return (
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: BONE }}>
+      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: WHITE }}>
         <CircularProgress size={22} sx={{ color: NAVY }} />
       </Box>
     )
@@ -50,9 +51,12 @@ export default function MessageList({
 
   if (messages.length === 0) {
     return (
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1, bgcolor: BONE, px: 3 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: INK }}>No messages yet</Typography>
-        <Typography sx={{ fontSize: 13, color: MIST, textAlign: 'center', lineHeight: 1.5 }}>Send the first message to start the conversation.</Typography>
+      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1, bgcolor: WHITE, px: 3, py: 6 }}>
+        <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF2FB', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+          <ForumIcon />
+        </Box>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: INK }}>No messages yet</Typography>
+        <Typography sx={{ fontSize: 13, color: MIST, textAlign: 'center', lineHeight: 1.5, maxWidth: 340 }}>{emptySubtitle || 'Send the first message to start the conversation.'}</Typography>
       </Box>
     )
   }
@@ -62,7 +66,7 @@ export default function MessageList({
     : -1
 
   return (
-    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, md: 2.5 }, py: 1.5, bgcolor: 'notice.subtle.bg', display: 'flex', flexDirection: 'column' }}>
+    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, md: 2.5 }, py: 1.5, bgcolor: WHITE, display: 'flex', flexDirection: 'column' }}>
       {hasOlder && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
           <Button size="small" variant="outlined" onClick={onLoadOlder} disabled={olderLoading}

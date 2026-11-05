@@ -186,6 +186,7 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
         { text: 'Compliance', icon: <ComplianceIcon />, path: isDom ? '/compliance/homecare' : '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'policies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'incidents', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Shift handovers', icon: <SwapHorizIcon />, path: '/compliance/handovers', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['supported_living', 'residential'] },
       ],
     },
     {

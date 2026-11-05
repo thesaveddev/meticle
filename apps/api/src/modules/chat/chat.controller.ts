@@ -176,12 +176,14 @@ export class ChatController {
     await requireChannelMember(oid, channelId, uid);
     if (!req.file) throw new AppError(400, 'No file provided');
 
+    // Optional caption typed in the share dialog (multipart text field).
+    const caption = typeof req.body?.message === 'string' ? req.body.message.trim().slice(0, 2000) : '';
     const fileUrl = `/files/private/${req.file.filename}`;
     const result = await query(
       `INSERT INTO org_chat_messages (organization_id, sender_id, channel, message, file_url, file_name, file_size, file_type)
-       VALUES ($1, $2, $3, '', $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, channel AS channel_id, file_name, file_url, file_size, file_type, created_at`,
-      [oid, uid, channelId, fileUrl, req.file.originalname, req.file.size, req.file.mimetype]
+      [oid, uid, channelId, caption, fileUrl, req.file.originalname, req.file.size, req.file.mimetype]
     );
 
     const senderResult = await query(
@@ -213,8 +215,8 @@ export class ChatController {
       fileMembers,
       {
         ...record,
-        message: '',
-        content: '',
+        message: caption,
+        content: caption,
         channel_id: channelId,
         sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
       }
@@ -773,9 +775,11 @@ export class ChatController {
     const result = await query(
       `SELECT u.id, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name,
               u.email, u.role, u.status,
-              sp.first_name, sp.last_name, sp.profile_picture_url
+              sp.first_name, sp.last_name, sp.profile_picture_url,
+              l.name AS location_name
        FROM users u
        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       LEFT JOIN locations l ON l.id = sp.location_id
        WHERE u.organization_id = $1 AND u.id != $2 AND u.status = 'active'
        ORDER BY COALESCE(sp.first_name, u.email)`,
       [oid, uid]
@@ -789,11 +793,13 @@ export class ChatController {
     const { channelId } = req.params;
     await requireChannelMember(oid, channelId, uid);
     const result = await query(
-      `SELECT u.id, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name,
-              u.email, u.role, sp.profile_picture_url
+      `SELECT u.id, u.id AS user_id, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name,
+              u.email, u.role, sp.first_name, sp.last_name, sp.profile_picture_url,
+              l.name AS location_name
        FROM chat_members cm
        JOIN users u ON u.id = cm.user_id
        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       LEFT JOIN locations l ON l.id = sp.location_id
        WHERE cm.channel_id = $1 AND u.organization_id = $2
        ORDER BY COALESCE(sp.first_name, u.email)`,
       [channelId, oid]
@@ -814,6 +820,34 @@ export class ChatController {
     }
     await query('DELETE FROM chat_members WHERE channel_id = $1 AND user_id = $2', [channelId, targetUserId]);
     res.json({ removed: true });
+  }
+
+  static async addChannelMembers(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId } = req.params;
+    const { memberIds = [] } = req.body;
+    const channel = await query('SELECT created_by, type FROM chat_channels WHERE id = $1 AND organization_id = $2', [channelId, oid]);
+    if (!channel.rows.length) throw new AppError(404, 'Channel not found');
+    await requireChannelMember(oid, channelId, uid);
+    if (channel.rows[0].type === 'dm') throw new AppError(400, 'Members cannot be added to a direct message');
+    if (channel.rows[0].created_by !== uid && !['MANAGER', 'ADMIN', 'OWNER'].includes(req.user!.role)) {
+      throw new AppError(403, 'Only the group creator or a manager can add members');
+    }
+    // Add only active members from the same organization; never trust client-supplied IDs.
+    const validMembers = await query(
+      `SELECT id FROM users WHERE organization_id = $1 AND status = 'active' AND id = ANY($2::uuid[])`,
+      [oid, (memberIds as unknown[]).filter((id: unknown) => typeof id === 'string')]
+    );
+    let added = 0;
+    for (const mid of validMembers.rows) {
+      const r = await query(
+        'INSERT INTO chat_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [channelId, mid.id]
+      );
+      added += (r as unknown as { rowCount: number }).rowCount ?? 0;
+    }
+    res.status(201).json({ added });
   }
 
   static async leaveChannel(req: Request, res: Response) {

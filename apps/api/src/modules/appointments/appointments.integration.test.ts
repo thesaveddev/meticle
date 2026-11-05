@@ -65,6 +65,69 @@ describe('Appointments — CRUD', () => {
     expect(deleted.status).toBe(200)
   })
 
+  it('should list a date range and locations', async () => {
+    const org = await createOrg()
+    const location = await createLocation({ organizationId: org.id })
+    const mgr = await createUser({ email: `apt-r-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const token = generateToken(mgr)
+    const day1 = new Date(Date.now() + 86400000)
+    const day3 = new Date(Date.now() + 3 * 86400000)
+    for (const d of [day1, day3]) {
+      const res = await request(app).post('/appointments').set('Authorization', `Bearer ${token}`).send({
+        title: 'Ranged visit', start_time: d.toISOString(), end_time: new Date(d.getTime() + 3600000).toISOString(), location_id: location.id,
+      })
+      expect(res.status).toBe(201)
+    }
+    const ymd = (d: Date) => d.toISOString().slice(0, 10)
+    const range = await request(app)
+      .get('/appointments')
+      .query({ from: ymd(day1), to: ymd(day3) })
+      .set('Authorization', `Bearer ${token}`)
+    expect(range.status).toBe(200)
+    expect(range.body.length).toBe(2)
+    const narrow = await request(app)
+      .get('/appointments')
+      .query({ from: ymd(day1), to: ymd(day1) })
+      .set('Authorization', `Bearer ${token}`)
+    expect(narrow.status).toBe(200)
+    expect(narrow.body.length).toBe(1)
+    const locations = await request(app)
+      .get('/appointments/locations')
+      .set('Authorization', `Bearer ${token}`)
+    expect(locations.status).toBe(200)
+    expect(locations.body.some((l: any) => l.id === location.id)).toBe(true)
+  })
+
+  it('should round-trip venue and cancellation record fields', async () => {
+    const org = await createOrg()
+    const mgr = await createUser({ email: `apt-w-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const token = generateToken(mgr)
+
+    const created = await request(app)
+      .post('/appointments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Optician', start_time: new Date(Date.now() + 86400000).toISOString(),
+        end_time: new Date(Date.now() + 90000000).toISOString(), where_text: 'Specsavers, Five Ways',
+      })
+    expect(created.status).toBe(201)
+    expect(created.body.where_text).toBe('Specsavers, Five Ways')
+
+    const cancelled = await request(app)
+      .patch(`/appointments/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'cancelled', cancellation_reason: 'Clinic cancelled', cancellation_note: 'Offered a new date next week.' })
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.cancellation_reason).toBe('Clinic cancelled')
+    expect(cancelled.body.cancellation_note).toBe('Offered a new date next week.')
+
+    const got = await request(app)
+      .get(`/appointments/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(got.body.where_text).toBe('Specsavers, Five Ways')
+    expect(got.body.cancellation_reason).toBe('Clinic cancelled')
+  })
+
   it('should reject CARE_WORKER creating an appointment', async () => {
     const org = await createOrg()
     const person = await createPerson({ organizationId: org.id })

@@ -18,6 +18,8 @@ import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { EmptyState } from '../../components/design/EmptyState'
 import PrintableWeeklyMealPlan from '../../components/nutrition/PrintableWeeklyMealPlan'
 import { localToday } from '../../utils/dateFormat'
+import FigDialogHeader, { PillOptions, nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
+import { useSnackbar } from '../../context/SnackbarContext'
 
 // Meals and fluids are recorded against the local day, so an entry logged during
 // a night shift before 01:00 BST is not filed under yesterday.
@@ -109,7 +111,8 @@ function DietaryProfileSection({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader
-        title="Dietary Profile"
+        title="Diet"
+        subtitle={profile?.dietary_type || undefined}
         action={
           <Button size="small" variant="contained" startIcon={<EditIcon />} onClick={startEdit} sx={{ textTransform: 'none' }}>
             {hasProfile ? 'Edit Profile' : 'Set Up Profile'}
@@ -355,6 +358,8 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
 // ─── Meal Records Section ───
 function MealRecordsSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
+  const eyebrow = usePersonEyebrow(personId, 'CLINICAL')
+  const { showSnackbar } = useSnackbar()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewMeal, setViewMeal] = useState<any>(null)
@@ -389,11 +394,12 @@ function MealRecordsSection({ personId }: { personId: string }) {
 
   const addMealMut = useMutation({
     mutationFn: (data: any) => api.post(`/nutrition/${personId}/meals`, data),
-    onSuccess: () => {
+    onSuccess: (_d, variables: any) => {
       qc.invalidateQueries({ queryKey: ['meals'] })
       qc.invalidateQueries({ queryKey: ['meal-summary'] })
       setAddOpen(false)
       resetForm()
+      showSnackbar(`${MEAL_TYPES.find(m => m.value === variables?.meal_type)?.label || 'Meal'} for ${nameFromEyebrow(eyebrow)} is recorded.`, 'success', 'Meal recorded')
     },
   })
 
@@ -461,12 +467,13 @@ function MealRecordsSection({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader
-        title="Meal Records"
+        title="Meal records"
+        subtitle={meals?.length > 0 ? `${meals.length} logged · ${new Date(dateFilter).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : undefined}
         action={
           <Stack direction="row" spacing={1}>
             <TextField type="date" size="small" value={dateFilter} onChange={e => setDateFilter(e.target.value)} sx={{ width: 160 }} />
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }} sx={{ bgcolor: '#087A55', textTransform: 'none' }}>
-              Log Meal
+              Record a meal
             </Button>
           </Stack>
         }
@@ -543,11 +550,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
       {/* Add/Edit Meal Dialog */}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); if (editId) updateMealMut.mutate({ id: editId, data: mealForm }); else addMealMut.mutate(mealForm) }}>
-          <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            {editId ? 'Edit Meal' : 'Log Meal'}
-            <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={() => { setAddOpen(false); setEditId(null) }}><CloseIcon fontSize="small" /></IconButton>
-          </DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={editId ? 'Edit meal' : 'Record a meal'} subtitle={`Record what ${nameFromEyebrow(eyebrow)} was offered and how much was eaten.`} onClose={() => { setAddOpen(false); setEditId(null) }} />
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -555,12 +558,10 @@ function MealRecordsSection({ personId }: { personId: string }) {
                 <TextField label="Time" type="time" fullWidth InputLabelProps={{ shrink: true }} value={mealForm.meal_time} onChange={e => setMealForm(f => ({ ...f, meal_time: e.target.value }))} />
               </Stack>
 
-              <FormControl fullWidth>
-                <InputLabel>Meal Type</InputLabel>
-                <Select value={mealForm.meal_type} label="Meal Type" onChange={e => setMealForm(f => ({ ...f, meal_type: e.target.value }))}>
-                  {MEAL_TYPES.map(m => <MenuItem key={m.value} value={m.value}><Stack direction="row" spacing={1} alignItems="center"><Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: m.color }} /><span>{m.label}</span></Stack></MenuItem>)}
-                </Select>
-              </FormControl>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Meal</Typography>
+                <PillOptions options={MEAL_TYPES.map(m => ({ value: m.value, label: m.label }))} value={mealForm.meal_type} onChange={v => setMealForm(f => ({ ...f, meal_type: v }))} color="#087A55" />
+              </Box>
 
               <FormControl fullWidth>
                 <InputLabel>Appetite</InputLabel>
@@ -571,20 +572,17 @@ function MealRecordsSection({ personId }: { personId: string }) {
               </FormControl>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField label="Amount Offered" fullWidth value={mealForm.amount_offered} onChange={e => setMealForm(f => ({ ...f, amount_offered: e.target.value }))} placeholder="e.g., Full plate, half portion" />
-                <TextField label="Amount Consumed" fullWidth value={mealForm.amount_consumed} onChange={e => setMealForm(f => ({ ...f, amount_consumed: e.target.value }))} placeholder="e.g., Most of it, a few bites" />
+                <TextField label="What was offered" fullWidth value={mealForm.amount_offered} onChange={e => setMealForm(f => ({ ...f, amount_offered: e.target.value }))} placeholder="Chicken casserole, mash and peas" />
+                <TextField label="What was eaten" fullWidth value={mealForm.amount_consumed} onChange={e => setMealForm(f => ({ ...f, amount_consumed: e.target.value }))} placeholder="Most of it, asked for extra gravy" />
               </Stack>
 
               <Box>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                  <Typography variant="body2" fontWeight={600}>Consumed: {mealForm.consumed_percent}%</Typography>
-                  <Chip size="small" label={getConsumedColor(mealForm.consumed_percent).label} sx={{ bgcolor: getConsumedColor(mealForm.consumed_percent).bg, color: getConsumedColor(mealForm.consumed_percent).text }} />
-                </Stack>
-                <input type="range" min={0} max={100} value={mealForm.consumed_percent} onChange={e => setMealForm(f => ({ ...f, consumed_percent: Number(e.target.value) }))} style={{ width: '100%' }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>How much was eaten</Typography>
+                <PillOptions options={[{ value: '100', label: 'All' }, { value: '75', label: 'Most' }, { value: '50', label: 'About half' }, { value: '25', label: 'A little' }, { value: '0', label: 'None' }]} value={String(mealForm.refused ? 0 : mealForm.consumed_percent)} onChange={v => setMealForm(f => ({ ...f, consumed_percent: Number(v) }))} color="#087A55" />
               </Box>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField label="Fluid with meal (ml)" type="number" fullWidth value={mealForm.fluid_ml || ''} onChange={e => setMealForm(f => ({ ...f, fluid_ml: Number(e.target.value) }))} inputProps={{ min: 0 }} />
+                <TextField label="Drinks (ml)" type="number" fullWidth value={mealForm.fluid_ml || ''} onChange={e => setMealForm(f => ({ ...f, fluid_ml: Number(e.target.value) }))} inputProps={{ min: 0 }} />
               </Stack>
 
               <FormControlLabel
@@ -621,7 +619,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMealMut.isPending || updateMealMut.isPending} sx={{ bgcolor: '#087A55' }}>
-              {(addMealMut.isPending || updateMealMut.isPending) ? <CircularProgress size={20} /> : (editId ? 'Update Meal' : 'Log Meal')}
+              {(addMealMut.isPending || updateMealMut.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save changes' : 'Save meal')}
             </Button>
           </DialogActions>
         </Box>

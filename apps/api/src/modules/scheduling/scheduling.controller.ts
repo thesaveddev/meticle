@@ -1008,6 +1008,37 @@ export class SchedulingController {
     res.status(replayed ? 200 : 201).json({ acknowledgement, replayed });
   }
 
+  /** Recent handovers with their shift and senior check, newest first. */
+  static async listHandovers(req: Request, res: Response) {
+    const user = req.user!;
+    const days = parseInt(req.query.days as string, 10);
+    const locationId = (req.query.locationId as string) || undefined;
+    res.json(await ShiftHandoverRepository.listRecent(
+      user.organizationId!,
+      Number.isFinite(days) ? days : 7,
+      locationId,
+    ));
+  }
+
+  /**
+   * A senior verifies the handover's current wording. Managers and admins
+   * only: the author cannot check their own handover, and neither can a
+   * colleague — the check is the senior's sign-off, enforced by the route's
+   * role gate rather than a per-row comparison.
+   */
+  static async checkHandover(req: Request, res: Response) {
+    const user = req.user!;
+    const { id } = req.params;
+    await requireShiftInOrg(user, id);
+    const checked = await ShiftHandoverRepository.check({
+      orgId: user.organizationId!,
+      shiftId: id,
+      userId: user.userId,
+    });
+    logDelegationAction(user.userId, 'CHECK_HANDOVER', 'shift', id, 'Checked a shift handover');
+    res.json(checked);
+  }
+
   /**
    * Clock actions share everything but direction. An `action_key` is accepted on
    * the online route as well as the offline one: the same key sent twice is one

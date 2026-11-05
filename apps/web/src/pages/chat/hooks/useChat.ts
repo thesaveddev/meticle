@@ -48,6 +48,7 @@ export interface OrgMember {
   email?: string
   role?: string
   profile_picture_url?: string
+  location_name?: string
 }
 
 export interface ChannelMember {
@@ -57,6 +58,7 @@ export interface ChannelMember {
   email?: string
   role?: string
   profile_picture_url?: string
+  location_name?: string
 }
 
 export interface SharedFile {
@@ -107,7 +109,6 @@ export function useChat() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -204,7 +205,6 @@ export function useChat() {
     setInputLinkPreview(null)
     setEditingMessageId(null)
     setReplyTo(null)
-    setPendingFile(null)
   }, [activeChannel])
 
   useEffect(() => {
@@ -381,42 +381,29 @@ export function useChat() {
     return () => { clearTimeout(timer); setSearching(false) }
   }, [searchQuery])
 
-  const handleSend = useCallback(async () => {
-    if ((!messageText.trim() && !pendingFile && !replyTo) || sending || !activeChannel) return
+  const handleSend = useCallback(async (): Promise<boolean> => {
+    if ((!messageText.trim() && !replyTo) || sending || !activeChannel) return false
     setSending(true)
     setSendError('')
     try {
-      let fileUrl = ''
-      let fileName = ''
-      if (pendingFile) {
-        const formData = new FormData()
-        formData.append('file', pendingFile)
-        const uploadRes = await api.post('/settings/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-        fileUrl = uploadRes.data.url
-        fileName = pendingFile.name
-      }
       const msgRes = await api.post(`/chat/channels/${activeChannel}/messages`, {
         content: messageText.trim() || (replyTo ? 'Reply' : undefined),
-        file_url: fileUrl || undefined,
-        file_name: fileName || undefined,
         parent_id: replyTo?.id || undefined,
       })
       setMessages(prev => prev.find(m => m.id === msgRes.data.id) ? prev : [...prev, msgRes.data])
-      if (fileUrl) {
-        setSharedFiles(prev => [{ id: `temp-${Date.now()}`, channel_id: activeChannel, file_name: fileName, file_url: fileUrl, file_size: 0, file_type: '', created_at: new Date().toISOString(), first_name: user.first_name, last_name: user.last_name, email: user.email } as SharedFile, ...prev])
-      }
-      setChannels(prev => prev.map(c => c.id === activeChannel ? { ...c, last_message: messageText.trim() || (fileName ? `📎 ${fileName}` : ''), last_message_at: new Date().toISOString() } : c))
+      setChannels(prev => prev.map(c => c.id === activeChannel ? { ...c, last_message: messageText.trim(), last_message_at: new Date().toISOString() } : c))
       setMessageText('')
       setInputLinkPreview(null)
       setReplyTo(null)
-      setPendingFile(null)
       const socket = getSocket()
       if (socket) socket.emit('chat:typing', { channelId: activeChannel, isTyping: false })
+      return true
     } catch (err: any) {
       setSendError(err.response?.data?.message || 'Failed to send message')
+      return false
     }
     finally { setSending(false) }
-  }, [messageText, sending, activeChannel, user, replyTo, pendingFile])
+  }, [messageText, sending, activeChannel, replyTo])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -492,19 +479,39 @@ export function useChat() {
     } catch { /* ignore */ }
   }, [])
 
-  const handleAttachFile = useCallback((file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      setSendError('File exceeds 10MB limit')
-      return
+  const SHAREABLE_FILE = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|html|md|zip|json|xml|rtf)$/i
+
+  const handleSendFile = useCallback(async (file: File, caption = ''): Promise<boolean> => {
+    if (!activeChannel) return false
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadError('File exceeds 25MB limit')
+      return false
     }
-    const allowedTypes = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|html|md|zip|json|xml|rtf)$/i
-    if (!allowedTypes.test(file.name)) {
-      setSendError('File type not supported')
-      return
+    if (!SHAREABLE_FILE.test(file.name)) {
+      setUploadError('File type not supported')
+      return false
     }
-    setPendingFile(file)
-    setSendError('')
-  }, [])
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      if (caption.trim()) formData.append('message', caption.trim())
+      const res = await api.post(`/chat/channels/${activeChannel}/files`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setSharedFiles(prev => [res.data, ...prev])
+      setMessages(prev => prev.find(m => m.id === res.data.id) ? prev : [...prev, res.data])
+      setChannels(prev => prev.map(c => c.id === activeChannel ? { ...c, last_message: caption.trim() || `📎 ${file.name}`, last_message_at: new Date().toISOString() } : c))
+      return true
+    } catch (err: any) {
+      setUploadError(err.response?.data?.message || 'Failed to send file')
+      return false
+    }
+  }, [activeChannel])
+
+  const handleAddMembers = useCallback(async (memberIds: string[]): Promise<number> => {
+    if (!activeChannel) return 0
+    const res = await api.post(`/chat/channels/${activeChannel}/members`, { memberIds })
+    loadChannelMembers(activeChannel)
+    return res.data.added ?? 0
+  }, [activeChannel, loadChannelMembers])
 
   const handleFileUpload = useCallback(async (file: File) => {
     if (!activeChannel) return
@@ -559,7 +566,7 @@ export function useChat() {
     editingMessageId, setEditingMessageId, editText, setEditText, saveEdit, confirmDeleteMessage,
     replyTo, setReplyTo,
     handleToggleReaction, handleCreateGroup, handleStartDM, handleRemoveMember, handleLeaveGroup,
-    handleFileUpload, handleAttachFile, pendingFile, setPendingFile, handleDeleteFile,
+    handleFileUpload, handleSendFile, handleAddMembers, handleDeleteFile,
     isMessageSeen, getSeenByNames, getOnlineCount,
     inputLinkPreview, inputLinkLoading,
     uploadError, setUploadError,

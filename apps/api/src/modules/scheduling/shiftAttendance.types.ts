@@ -97,6 +97,8 @@ export interface ShiftHandover {
   recorded_at: string;
   created_at: string;
   updated_at: string;
+  checked_by: string | null;
+  checked_at: string | null;
   acknowledgements: ShiftHandoverAcknowledgement[];
 }
 

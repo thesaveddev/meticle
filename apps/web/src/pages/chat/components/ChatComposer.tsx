@@ -13,37 +13,27 @@ interface Props {
   sending: boolean
   sendError: string
   activeChannel: string | null
-  onFileSelect: (file: File) => void
+  onAttachClick: () => void
   inputLinkPreview: { title: string; description: string; image: string; url: string } | null
   inputLinkLoading: boolean
   replyTo: ChatMessage | null
   onCancelReply: () => void
-  pendingFile: File | null
-  onCancelFile: () => void
   currentUserId: string
 }
 
 export default function ChatComposer({
   messageText, onTextChange, onSend, onKeyDown, onTyping,
-  sending, sendError, activeChannel, onFileSelect,
+  sending, sendError, activeChannel, onAttachClick,
   inputLinkPreview, inputLinkLoading,
-  replyTo, onCancelReply, pendingFile, onCancelFile, currentUserId,
+  replyTo, onCancelReply, currentUserId,
 }: Props) {
   const [showEmoji, setShowEmoji] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const emojiRef = useRef<HTMLDivElement>(null)
 
   const insertEmoji = (emoji: string) => {
     onTextChange(messageText + emoji)
     setShowEmoji(false)
     onTyping()
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      onFileSelect(e.target.files[0])
-      e.target.value = ''
-    }
   }
 
   return (
@@ -66,17 +56,6 @@ export default function ChatComposer({
             <IconButton size="small" onClick={onCancelReply} sx={{ width: 24, height: 24, '&:hover': { bgcolor: OUTLINE } }}>
               <CloseIcon sx={{ fontSize: 15, color: MIST }} />
             </IconButton>
-          </Stack>
-        </Box>
-      )}
-
-      {pendingFile && (
-        <Box sx={{ px: 2.5, pt: 1.5 }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1.25, py: 0.75, borderRadius: 2, bgcolor: BONE, borderLeft: `3px solid ${NAVY}` }}>
-            <AttachFileIcon sx={{ fontSize: 18, color: NAVY }} />
-            <Typography variant="caption" sx={{ flex: 1, color: INK, fontWeight: 600 }} noWrap>{pendingFile.name}</Typography>
-            <Typography variant="caption" sx={{ color: MIST }}>{Math.ceil(pendingFile.size / 1024)} KB</Typography>
-            <IconButton size="small" onClick={onCancelFile} sx={{ width: 24, height: 24 }}><CloseIcon sx={{ fontSize: 15, color: MIST }} /></IconButton>
           </Stack>
         </Box>
       )}
@@ -116,16 +95,13 @@ export default function ChatComposer({
       {/* Input row */}
       <Box sx={{ px: 2, py: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="flex-end">
-          <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange}
-            accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.tif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.html,.md,.zip,.json,.xml,.rtf" />
-
-          <Tooltip title="Attach file">
+          <Tooltip title="Share a file">
             <span>
-              <IconButton size="small" aria-label="Attach file" onClick={() => fileInputRef.current?.click()}
-                disabled={!activeChannel}
-                sx={{ color: MIST, width: 36, height: 36, border: `1px solid ${OUTLINE}`, borderRadius: 2, '&:hover': { bgcolor: BONE, color: NAVY, borderColor: NAVY } }}>
-                <AttachFileIcon sx={{ fontSize: 18 }} />
-              </IconButton>
+            <IconButton size="small" aria-label="Share a file" onClick={onAttachClick}
+              disabled={!activeChannel}
+              sx={{ color: MIST, width: 36, height: 36, '&:hover': { bgcolor: BONE, color: NAVY } }}>
+              <AttachFileIcon sx={{ fontSize: 20 }} />
+            </IconButton>
             </span>
           </Tooltip>
 
@@ -138,8 +114,8 @@ export default function ChatComposer({
               onKeyDown={onKeyDown}
               disabled={!activeChannel}
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2, bgcolor: 'notice.subtle.bg', fontSize: 14, lineHeight: 1.5,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 999, bgcolor: 'notice.subtle.bg', fontSize: 14, lineHeight: 1.5,
                   '& fieldset': { borderColor: OUTLINE },
                   '&:hover fieldset': { borderColor: NAVY },
                   '&.Mui-focused fieldset': { borderColor: NAVY, borderWidth: 1.5 },
@@ -173,11 +149,11 @@ export default function ChatComposer({
 
           <Button
             variant="contained" onClick={onSend}
-            disabled={sending || (!messageText.trim() && !replyTo && !pendingFile) || !activeChannel}
+            disabled={sending || (!messageText.trim() && !replyTo) || !activeChannel}
             startIcon={sending ? <CircularProgress size={16} sx={{ color: WHITE }} /> : <SendIcon sx={{ fontSize: 18 }} />}
             sx={{
               bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, '&:disabled': { bgcolor: OUTLINE },
-              minWidth: 44, px: 2, height: 36, borderRadius: 2,
+              minWidth: 44, px: 2, height: 36, borderRadius: 999,
               textTransform: 'none', fontWeight: 600, fontSize: 13,
               boxShadow: '0 1px 3px rgba(15,76,129,0.2)',
             }}>

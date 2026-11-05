@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useParams, useNavigate, useLocation as useRouterLocation } from 'react-router-dom'
 import {
   Box, Typography, Paper, Stack, Button, TextField, MenuItem, Select, FormControl, InputLabel,
   Chip, IconButton, Tooltip, CircularProgress, Alert, Drawer, Divider, Dialog, DialogTitle,
@@ -15,6 +15,11 @@ import {
 import api from '../../services/api'
 import { StatCard, BarChart, PieChart, LineChart, ReportTable } from '../../components/charts'
 import { localDate } from '../../utils/dateFormat'
+import { useSnackbar } from '../../context/SnackbarContext'
+import { togglePin, isPinned } from './reportPins'
+import SaveReportDialog, { type SaveReportValues } from './dialogs/SaveReportDialog'
+import PreparingReportDialog from './dialogs/PreparingReportDialog'
+import type { BuilderInitial } from './dialogs/ReportFiltersDialog'
 
 interface DatasetColumn { key: string; label: string; type: 'text' | 'number' | 'date' | 'boolean'; aggregatable: boolean }
 interface Dataset { id: string; label: string; description: string; columns: DatasetColumn[] }
@@ -30,7 +35,7 @@ interface RunResult {
 }
 
 interface SavedReport {
-  id: string; name: string; description: string; dataset: string; columns: string[]
+  id: string; name: string; description: string; visibility?: string; dataset: string; columns: string[]
   filters: { field: string; op: string; value?: any }[]; group_by: string | null
   aggregations: { func: string; field?: string }[]; sort_by: string | null
   sort_dir: 'asc' | 'desc'; row_limit: number; chart_type: string; updated_at?: string
@@ -90,6 +95,7 @@ const aggAlias = (func: string, field: string) => (func === 'count' && !field ? 
 export default function CustomReportBuilderPage() {
   const { id: savedId } = useParams<{ id?: string }>()
   const navigate = useNavigate()
+  const routerLocation = useRouterLocation() as { state?: { initial?: BuilderInitial } }
 
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,11 +121,14 @@ export default function CustomReportBuilderPage() {
 
   // Library + save dialog
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const { showSnackbar: showToast } = useSnackbar()
+  const [pinTick, setPinTick] = useState(0)
+  void pinTick
   const [saved, setSaved] = useState<SavedReport[]>([])
   const [saveOpen, setSaveOpen] = useState(false)
-  const [saveName, setSaveName] = useState('')
-  const [saveDesc, setSaveDesc] = useState('')
   const [saving, setSaving] = useState(false)
+  const [preparingOpen, setPreparingOpen] = useState(false)
+  const exportAbort = useRef<AbortController | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [snackbar, setSnackbar] = useState('')
 
@@ -166,15 +175,37 @@ export default function CustomReportBuilderPage() {
     api.get('/reporting/custom/datasets')
       .then(res => {
         if (!active) return
-        setDatasets(res.data.datasets || [])
-        if (!savedId && res.data.datasets?.length) {
-          setDatasetId(res.data.datasets[0].id)
-          setColumns(res.data.datasets[0].columns.slice(0, 6).map((c: DatasetColumn) => c.key))
+        const list: Dataset[] = res.data.datasets || []
+        setDatasets(list)
+        if (savedId || list.length === 0) return
+        // Fresh from the Filters dialog (Figma 10.2): prefill + run at once.
+        const initial = routerLocation.state?.initial
+        const ds = (initial && list.find(d => d.id === initial.dataset)) || list[0]
+        const cols = ds.columns.slice(0, 6).map(c => c.key)
+        setDatasetId(ds.id)
+        setColumns(cols)
+        if (initial) {
+          setFilters(initial.filters.map(f => ({ ...f })))
+          setSortBy(initial.sortBy)
+          setSortDir(initial.sortDir)
+          const payload = {
+            name: 'Untitled report', dataset: ds.id, columns: cols,
+            filters: initial.filters, group_by: null, aggregations: [],
+            sort_by: initial.sortBy || null, sort_dir: initial.sortDir,
+            row_limit: 500, chart_type: 'table',
+          }
+          setRunning(true)
+          setRunError('')
+          api.post('/reporting/custom/run', { config: payload })
+            .then(r => { if (active) setData(r.data) })
+            .catch((e: any) => { if (active) setRunError(e.response?.data?.message || 'Could not run this report.') })
+            .finally(() => { if (active) setRunning(false) })
         }
       })
       .catch((e: any) => { if (active) setError(e.response?.data?.message || 'Could not load the report builder.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedId])
 
   useEffect(() => {
@@ -241,9 +272,12 @@ export default function CustomReportBuilderPage() {
 
   const handleExport = async () => {
     if (exporting) return
+    const controller = new AbortController()
+    exportAbort.current = controller
     setExporting(true)
+    setPreparingOpen(true)
     try {
-      const res = await api.post('/reporting/custom/export', { ...(savedId ? { saved_id: savedId } : { config: buildPayload() }), format: 'csv' }, { responseType: 'blob' })
+      const res = await api.post('/reporting/custom/export', { ...(savedId ? { saved_id: savedId } : { config: buildPayload() }), format: 'csv' }, { responseType: 'blob', signal: controller.signal })
       const blob = new Blob([res.data])
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -252,10 +286,12 @@ export default function CustomReportBuilderPage() {
       a.click()
       URL.revokeObjectURL(url)
       setSnackbar('Report exported as CSV')
-    } catch {
-      setSnackbar('Export failed')
+    } catch (e: any) {
+      if (e?.code !== 'ERR_CANCELED') setSnackbar('Export failed')
     } finally {
       setExporting(false)
+      setPreparingOpen(false)
+      exportAbort.current = null
     }
   }
 
@@ -272,32 +308,27 @@ export default function CustomReportBuilderPage() {
     setLibraryOpen(true)
   }
 
-  const openSave = () => {
-    setSaveName(savedId ? name : name === 'Untitled report' ? '' : name)
-    setSaveDesc('')
-    setSaveOpen(true)
-  }
+  const openSave = () => setSaveOpen(true)
 
-  const handleSave = async () => {
-    if (!saveName.trim()) {
-      setSnackbar('Give the report a name first')
-      return
-    }
+  const handleSave = async ({ name: reportName, visibility, pin: shouldPin }: SaveReportValues) => {
     setSaving(true)
     try {
-      const payload = { ...buildPayload(), name: saveName.trim(), description: saveDesc.trim() }
+      // Updates keep the stored description (this page edits config, not docs).
+      const description = savedId ? saved.find(r => r.id === savedId)?.description || '' : ''
+      const payload = { ...buildPayload(), name: reportName, description, visibility }
+      const id = savedId || (await api.post('/reporting/custom', payload)).data.report.id
       if (savedId) {
         await api.put(`/reporting/custom/${savedId}`, payload)
-        setName(saveName.trim())
+        setName(reportName)
         setSnackbar('Report updated')
       } else {
-        const res = await api.post('/reporting/custom', payload)
         setSnackbar('Report saved')
-        setSaveOpen(false)
-        navigate(`/reports/custom/${res.data.report.id}`)
-        return
       }
+      const pinId = `custom:${id}`
+      if (shouldPin && !isPinned(pinId)) { togglePin(pinId); setPinTick(t => t + 1) }
+      if (!shouldPin && isPinned(pinId)) { togglePin(pinId); setPinTick(t => t + 1) }
       setSaveOpen(false)
+      if (!savedId) navigate(`/reports/custom/${id}`)
     } catch (e: any) {
       setSnackbar(e.response?.data?.message || 'Save failed')
     } finally {
@@ -656,6 +687,13 @@ export default function CustomReportBuilderPage() {
               {r.description && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{r.description}</Typography>}
               <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                 <Button size="small" variant="outlined" onClick={() => { setLibraryOpen(false); navigate(`/reports/custom/${r.id}`) }} sx={{ textTransform: 'none' }}>Open</Button>
+                <Button size="small" sx={{ textTransform: 'none' }} onClick={() => {
+                  const next = togglePin(`custom:${r.id}`)
+                  setPinTick(t => t + 1)
+                  showToast(next ? 'Saved to your reports' : 'Removed from your reports', 'success')
+                }}>
+                  {isPinned(`custom:${r.id}`) ? 'Saved ✓' : 'Save'}
+                </Button>
                 {confirmDelete === r.id ? (
                   <>
                     <Button size="small" color="error" variant="contained" onClick={() => handleDelete(r.id)} sx={{ textTransform: 'none' }}>Confirm</Button>
@@ -670,22 +708,17 @@ export default function CustomReportBuilderPage() {
         </Stack>
       </Drawer>
 
-      {/* ─── Save dialog ─── */}
-      <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>{savedId ? 'Update saved report' : 'Save report'}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Name" fullWidth size="small" value={saveName} onChange={e => setSaveName(e.target.value)} inputProps={{ maxLength: 120 }} />
-            <TextField label="Description (optional)" fullWidth size="small" multiline rows={2} value={saveDesc} onChange={e => setSaveDesc(e.target.value)} inputProps={{ maxLength: 500 }} />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSaveOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ textTransform: 'none' }}>
-            {saving ? <CircularProgress size={18} color="inherit" /> : savedId ? 'Update' : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ─── Save dialog (Figma 10.2: name, who-can-view, pin) ─── */}
+      <SaveReportDialog open={saveOpen} onClose={() => setSaveOpen(false)}
+        initialName={savedId ? name : name === 'Untitled report' ? '' : name}
+        saving={saving} onSave={handleSave} />
+
+      {/* ─── Export progress (Figma 10.2) ─── */}
+      <PreparingReportDialog open={preparingOpen}
+        title={savedId ? name : 'Untitled report'}
+        subtitle={`${dataset?.label || 'Custom report'} · CSV export`}
+        cancelLabel="Cancel export"
+        onCancel={() => exportAbort.current?.abort()} />
 
       {/* ─── Delivery schedules ─── */}
       <Dialog open={schedOpen} onClose={() => setSchedOpen(false)} fullWidth maxWidth="sm">

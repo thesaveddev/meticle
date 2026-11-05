@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
+import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu, Switch } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined, Person as PersonIcon, Search as SearchIcon, Today as TodayIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, Flag as FlagIcon, Description as DocIcon, Group as GroupIcon, Notifications as BellIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined, Person as PersonIcon, Search as SearchIcon, Today as TodayIcon } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { formatDateOnly, localDate, localToday, parseDateOnly, toLocalDateTimeInput } from '../../utils/dateFormat'
 import { P } from '../../styles/tokens'
 import { NOTICE_COLORS } from '../../theme/noticeTokens'
 import { METICLE_COLORS } from '../../context/ThemeContext'
-import { EX } from '../../styles/export-tokens'
 import { countPeopleOnActiveMedication, getMedicationDailyMetrics } from './medicationMetrics'
+import { useSnackbar } from '../../context/SnackbarContext'
 
 const ROUTES = ['oral', 'topical', 'injection', 'inhalation', 'rectal', 'sublingual', 'other']
 const FREQUENCIES = ['once daily', 'twice daily', 'three times daily', 'four times daily', 'as required (PRN)', 'weekly', 'monthly']
@@ -185,6 +185,7 @@ export default function EMedicationPage() {
   const requestedTab = Number(searchParams.get('tab') ?? '')
   const [tab, setTab] = useState(Number.isInteger(requestedTab) && requestedTab >= 0 && requestedTab <= 4 ? requestedTab : 0)
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
   const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const userRole = currentUser.role
   const canManage = userRole === 'ORG_ADMIN' || userRole === 'MANAGER'
@@ -194,6 +195,7 @@ export default function EMedicationPage() {
   const [selectedPerson, setSelectedPerson] = useState<any>(null)
   const [personSearch, setPersonSearch] = useState('')
   const [personStatusFilter, setPersonStatusFilter] = useState('all')
+  const [personSort, setPersonSort] = useState<'overdue' | 'name'>('overdue')
   const [personMedicationSearch, setPersonMedicationSearch] = useState('')
   const [selectedLocationFilter, setSelectedLocationFilter] = useState('all')
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
@@ -249,6 +251,11 @@ export default function EMedicationPage() {
   const [countReadOnly, setCountReadOnly] = useState(false)
   const [countedBy, setCountedBy] = useState(`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email)
   const [countedAt, setCountedAt] = useState(toDatetimeLocal(new Date().toISOString()))
+  const [countHistoryPerson, setCountHistoryPerson] = useState<any>(null)
+  const [countHistorySearch, setCountHistorySearch] = useState('')
+  const [countHistoryDate, setCountHistoryDate] = useState('all')
+  const [countPage, setCountPage] = useState(0)
+  const [countRowsPerPage, setCountRowsPerPage] = useState(10)
 
   // Delivery state
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -266,12 +273,25 @@ export default function EMedicationPage() {
   const [deliveryItemMode, setDeliveryItemMode] = useState<'new' | 'mar'>('new')
   const [deliveryAuditLogs, setDeliveryAuditLogs] = useState<AuditLog[]>([])
   const [deliveryAuditLoading, setDeliveryAuditLoading] = useState(false)
+  const [deliverySearch, setDeliverySearch] = useState('')
+  const [deliveryLocation, setDeliveryLocation] = useState('all')
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState('all')
+  const [deliveryPage, setDeliveryPage] = useState(0)
+  const [deliveryRowsPerPage, setDeliveryRowsPerPage] = useState(10)
+  const [auditSearch, setAuditSearch] = useState('')
+  const [auditPersonFilter, setAuditPersonFilter] = useState<any>(null)
+  const [auditActionFilter, setAuditActionFilter] = useState('all')
+  const [auditDateFilter, setAuditDateFilter] = useState('all')
+  const [auditPage, setAuditPage] = useState(0)
+  const [auditRowsPerPage, setAuditRowsPerPage] = useState(10)
 
   // Stock filter state
   const [stockLevelFilter, setStockLevelFilter] = useState('all')
   const [stockExpiryFilter, setStockExpiryFilter] = useState('all')
   const [stockSearch, setStockSearch] = useState('')
   const [stockLocation, setStockLocation] = useState('all')
+  const [stockPage, setStockPage] = useState(0)
+  const [stockRowsPerPage, setStockRowsPerPage] = useState(7)
   const [stockDetail, setStockDetail] = useState<StockItem | null>(null)
 
   // Daily count state
@@ -400,13 +420,22 @@ export default function EMedicationPage() {
 
   const today = todayStr()
   const overdueCount = overdueCountData?.count ?? overdueData?.length ?? 0
-  const activeRecordsByPerson = useMemo(() => new Set(
-    (organizationMedicationRecords || []).map(record => record.person_id),
-  ), [organizationMedicationRecords])
+  const overdueByPerson = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const row of overdueData || []) {
+      const key = String((row as any).person_id || '')
+      if (key) counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return counts
+  }, [overdueData])
+  const overduePeopleCount = overdueByPerson.size
+  const sortedPeople = useMemo(() => [...visiblePeople].sort((a: any, b: any) => {
+    if (personSort === 'overdue') return (overdueByPerson.get(String(b.id)) || 0) - (overdueByPerson.get(String(a.id)) || 0)
+    return `${a.first_name || ''} ${a.last_name || ''}`.localeCompare(`${b.first_name || ''} ${b.last_name || ''}`)
+  }), [visiblePeople, personSort, overdueByPerson])
   const peopleOnMedication = peopleLoading || organizationRecordsLoading || suError || organizationRecordsError
     ? '—'
     : countPeopleOnActiveMedication(people || [], organizationMedicationRecords || [])
-  const personHasMedication = (personId: string) => activeRecordsByPerson.has(personId)
   const dailyMetrics = getMedicationDailyMetrics(chartData, today)
   const dueTodayCount = dailyMetrics.dueToday
   const administeredTodayCount = dailyMetrics.administeredToday
@@ -429,7 +458,7 @@ export default function EMedicationPage() {
       const res = await api.get(`/emedication/stock${qs}`)
       return res.data as StockItem[]
     },
-    enabled: tab === 0 || tab === 1
+    enabled: tab === 0 || tab === 1 || tab === 3
   })
 
   // Stock scoped to the person whose MAR is being viewed, for the "From stock" source
@@ -454,12 +483,13 @@ export default function EMedicationPage() {
     staleTime: 30_000
   })
 
-  // Daily Counts
+  // Daily Counts — full history; the person picker filters client-side so the
+  // table can show every count (Figma lists several people) while logging
+  // still targets one person.
   const { data: dailyCounts, isError: dailyCountsError } = useQuery({
-    queryKey: ['emedication-daily-counts', countPerson?.id],
+    queryKey: ['emedication-daily-counts', 'all'],
     queryFn: async () => {
-      const params = countPerson?.id ? `?personId=${countPerson.id}` : ''
-      const res = await api.get(`/emedication/daily-counts${params}`)
+      const res = await api.get('/emedication/daily-counts')
       return res.data as any[]
     },
     enabled: tab === 3,
@@ -558,8 +588,12 @@ export default function EMedicationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emedication-chart'] })
       queryClient.invalidateQueries({ queryKey: ['emedication-overdue'] })
+      // Figma 9: recording the dose confirms with a toast, naming what moved.
+      const item = chartData?.items.find((i: MedicationItem) => i.id === adminTarget?.itemId)
+      const dose = item ? `${item.name}${item.dosage ? ` ${item.dosage}${item.unit ? ` ${item.unit}` : ''}` : ''}` : 'The administration'
+      const who = chartData?.record?.person_name ? ` for ${chartData.record.person_name}` : ''
       setAdminDialog(false); setAdminTarget(null); setAdminError('')
-      setSuccessMsg('Administration logged'); setTimeout(() => setSuccessMsg(''), 3000)
+      showSnackbar(`${dose}${who} was recorded and stock updated.`, 'success', 'Stock recorded')
     },
     onError: (err: any) => {
       setAdminError(apiErrorMsg(err, 'Failed to save administration'))
@@ -665,8 +699,11 @@ export default function EMedicationPage() {
       setStockDialog(false); setEditStock(null)
       setStockForm({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets', reorder_level: 10, location: '' })
       setStockPerson(null)
-      setSuccessMsg('Stock item added'); setTimeout(() => setSuccessMsg(''), 3000)
-    }
+      // Figma 9: adding stock confirms with a toast — what happened, then what happens next.
+      showSnackbar('It will go down automatically as stock is used.', 'success', 'Stock item added')
+    },
+    // Figma 9, error state: saving failed and there is no inline surface here.
+    onError: () => showSnackbar('Check your connection and try again.', 'error', "We couldn't save that"),
   })
 
   const stockUpdateMutation = useMutation({
@@ -704,8 +741,11 @@ export default function EMedicationPage() {
       queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
       setDeliveryDialog(false); setEditDelivery(null); setDeliveryPerson(null); setDeliveryShared(false)
       setDeliveryForm({ supplier: '', delivery_note: '', delivery_date: todayStr(), received_by: '', notes: '', items: [] })
-      setSuccessMsg('Delivery created'); setTimeout(() => setSuccessMsg(''), 3000)
-    }
+      // Figma 9: logging the delivery confirms with a toast.
+      showSnackbar('The items have been added to stock.', 'success', 'Delivery logged')
+    },
+    // Figma 9, error state: saving failed and there is no inline surface here.
+    onError: () => showSnackbar('Check your connection and try again.', 'error', "We couldn't save that"),
   })
 
   const deliveryUpdateMutation = useMutation({
@@ -736,9 +776,10 @@ export default function EMedicationPage() {
       const escalatedCount = (variables?.items || []).filter((it: any) => it.escalate).length
       queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
       setCountDialog(false)
-      setSuccessMsg(escalatedCount > 0
+      // Figma 9: the count confirms with a toast.
+      showSnackbar(escalatedCount > 0
         ? `Daily count logged — ${escalatedCount} medication${escalatedCount !== 1 ? 's' : ''} escalated for manager review`
-        : 'Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
+        : `Thanks, ${(variables?.items || []).length}/${(variables?.items || []).length} counts saved, no discrepancies.`, 'success', 'Count saved')
       if (countPerson) await loadCountData(countPerson, countDate, countSession)
     },
     onError: (err: any) => setErrorMsg(apiErrorMsg(err, 'Failed to save the count. Please check the values and try again.'))
@@ -2124,13 +2165,18 @@ export default function EMedicationPage() {
   const medGroupColors = [EMR.paper, EMR.rowAlt]
   const getMedColor = (index: number) => medGroupColors[index % medGroupColors.length]
 
-  const lowStockItems = (stockData || []).filter((s: StockItem) => s.quantity <= s.reorder_level && s.status !== 'archived')
-
-  const expiringStockItems = (stockData || []).filter((s: StockItem) => {
+  const isLowStock = (s: StockItem) => {
+    if (s.status === 'archived') return false
+    if (Number(s.quantity) <= 0) return true
+    return s.days_until_empty != null && Number(s.days_until_empty) <= 7
+  }
+  const isExpiringSoon = (s: StockItem) => {
     if (s.status === 'archived' || !s.expiry_date) return false
     const days = (new Date(s.expiry_date).getTime() - Date.now()) / 86400000
-    return days <= 90
-  })
+    return days >= 0 && days <= 30
+  }
+  const lowStockItems = (stockData || []).filter(isLowStock)
+  const expiringStockItems = (stockData || []).filter(isExpiringSoon)
 
   // Stock filters (client-side over the loaded list)
   const stockLocations = useMemo(
@@ -2138,13 +2184,11 @@ export default function EMedicationPage() {
     [stockData]
   )
   const filteredStock = useMemo(() => (stockData || []).filter((s: StockItem) => {
-    if (stockLevelFilter === 'low' && !(s.quantity <= s.reorder_level)) return false
-    if (stockLevelFilter === 'out' && !(s.quantity <= 0)) return false
-    if (stockLevelFilter === 'ok' && !(s.quantity > s.reorder_level)) return false
+    if (stockLevelFilter === 'low' && !isLowStock(s)) return false
+    if (stockLevelFilter === 'out' && !(Number(s.quantity) <= 0)) return false
+    if (stockLevelFilter === 'ok' && isLowStock(s)) return false
     if (stockExpiryFilter === 'expiring') {
-      if (!s.expiry_date) return false
-      const days = (new Date(s.expiry_date).getTime() - Date.now()) / 86400000
-      if (days > 90 || days < 0) return false
+      if (!isExpiringSoon(s)) return false
     }
     if (stockExpiryFilter === 'expired') {
       if (!s.expiry_date) return false
@@ -2310,16 +2354,23 @@ export default function EMedicationPage() {
 
   return (
     <Box sx={{ py: { xs: 1.5, md: 2.5 }, bgcolor: 'notice.muted.bg', minWidth: 0 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }} className="no-print">
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={1.5} sx={{ mb: 2 }} className="no-print">
         <Box>
-          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 700, color: METICLE_COLORS.text, letterSpacing: '-0.025em' }}>Medication (eMAR)</Typography>
-          <Typography variant="body2" sx={{ color: '#51637A', mt: 0.25 }}>Administration records, stock, deliveries and controlled-drug counts.</Typography>
+          <Typography variant="caption" sx={{ fontWeight: 600, letterSpacing: '0.08em', color: METICLE_COLORS.info, textTransform: 'uppercase' }}>Care</Typography>
+          <Typography component="h1" variant="h4" sx={{ fontSize: '1.75rem', fontWeight: 700, color: METICLE_COLORS.text, mt: 0.25 }}>MAR Chart</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Medication administration records for {formatMonthLabel(month)} · {(people || []).length} people · {chartData?.items?.length || 0} medicines
+          </Typography>
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
-          {overdueError || overdueCountError ? <Chip icon={<WarningIcon />} label="Overdue status unavailable" size="small" variant="outlined" /> : overdueLoading || overdueCountLoading ? <Chip label="Checking overdue doses…" size="small" variant="outlined" /> : overdueCount > 0 ? (
-            <Chip icon={<WarningIcon />} label={`${overdueCount} overdue`} color="error" size="small" aria-label={`${overdueCount} overdue medication administrations`} />
-          ) : null}
-          {canManage && <Button size="small" variant="outlined" onClick={() => navigate('/mission-control/alerts')}>Manage alerts</Button>}
+          <TextField select size="small" value={selectedLocationFilter} onChange={e => setSelectedLocationFilter(e.target.value)} aria-label="Filter by location" sx={{ minWidth: 150, bgcolor: METICLE_COLORS.surface, borderRadius: 6, '& .MuiOutlinedInput-root': { borderRadius: 6 } }}>
+            <MenuItem value="all">All locations</MenuItem>
+            {locations.map((location: any) => <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>)}
+          </TextField>
+          <Button size="small" variant="outlined" startIcon={<TodayIcon />} onClick={() => setMonth(todayStr().slice(0, 7))} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 6 }}>
+            Today
+          </Button>
+          {canManage && <Button size="small" variant="contained" startIcon={<BellIcon />} onClick={() => navigate('/mission-control/alerts')} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 6 }}>Manage alerts</Button>}
         </Stack>
       </Stack>
 
@@ -2333,46 +2384,59 @@ export default function EMedicationPage() {
         </Alert>
       )}
 
-      {/* Overdue Alert */}
+      {/* Overdue banner */}
       {overdueCount > 0 && tab === 0 && (
-        <Alert severity="error" sx={{ mb: 2 }} icon={<WarningIcon />}>
-          {overdueCount} overdue medication administration{overdueCount > 1 ? 's' : ''}.{' '}
-          {Array.from(new Set((overdueData || []).slice(0, 3).map((a: any) => a.person_name).filter(Boolean))).join(', ')}
-          {overdueCount > 3 ? ` and ${overdueCount - Math.min(overdueCount, 3)} more` : ''} require attention.
-        </Alert>
+        <Box sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: '#FDEDED', borderLeft: `4px solid ${METICLE_COLORS.danger}` }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1}>
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+              <WarningIcon sx={{ color: METICLE_COLORS.danger, mt: 0.25 }} />
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: METICLE_COLORS.text }}>
+                  {overdueCount} dose{overdueCount === 1 ? '' : 's'} overdue ({overduePeopleCount} {overduePeopleCount === 1 ? 'person' : 'people'})
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {Array.from(new Set((overdueData || []).slice(0, 3).map((a: any) => a.person_name).filter(Boolean))).join(', ')}
+                  {overduePeopleCount > 3 ? ` and ${overduePeopleCount - 3} more` : ''} need attention.
+                  {overdueCount >= 50 && ' Showing up to 50 most overdue.'}
+                </Typography>
+              </Box>
+            </Stack>
+            <Button size="small" variant="text" onClick={() => { setPersonSort('overdue'); document.getElementById('emar-people-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} sx={{ textTransform: 'none', fontWeight: 600, color: METICLE_COLORS.danger, flexShrink: 0 }}>
+              Review overdue →
+            </Button>
+          </Stack>
+        </Box>
       )}
 
       {/* Tabs */}
-      <Paper sx={{ mb: 2, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
-        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ '& .MuiTab-root': { minHeight: 48, color: '#51637A', '&.Mui-selected': { color: METICLE_COLORS.primary } }, '& .MuiTabs-indicator': { backgroundColor: METICLE_COLORS.primary, height: 3 } }}>
+      <Box sx={{ mb: 2, borderBottom: `1px solid ${METICLE_COLORS.border}` }}>
+        <Tabs value={canManage ? tab : Math.min(tab, 3)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" aria-label="Medication workspaces" sx={{ minHeight: 44, '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 600, color: '#51637A', '&.Mui-selected': { color: METICLE_COLORS.primary } }, '& .MuiTabs-indicator': { backgroundColor: METICLE_COLORS.primary, height: 2 } }}>
           <Tab id="emed-tab-0" aria-controls="emed-panel-0" label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
           <Tab id="emed-tab-1" aria-controls="emed-panel-1" label="Stock" icon={<InventoryIcon />} iconPosition="start" />
-          <Tab id="emed-tab-2" aria-controls="emed-panel-2" label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
+          <Tab id="emed-tab-2" aria-controls="emed-panel-2" label="Deliveries" icon={<FlagIcon />} iconPosition="start" />
           <Tab id="emed-tab-3" aria-controls="emed-panel-3" label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />
-          {canManage && <Tab id="emed-tab-4" aria-controls="emed-panel-4" label="Audit Log" icon={<AuditIcon />} iconPosition="start" />}
+          {canManage && <Tab id="emed-tab-4" aria-controls="emed-panel-4" label="Audit Log" icon={<DocIcon />} iconPosition="start" />}
         </Tabs>
-      </Paper>
+      </Box>
 
       {/* ═══ TAB 0: MAR Chart ═══ */}
       {tab === 0 && (
         <Box id="emed-panel-0" role="tabpanel" aria-labelledby="emed-tab-0">
           <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
-            {[                  { label: 'Overdue administrations', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'Require attention', icon: <WarningIcon fontSize="small" />, color: overdueCount ? METICLE_COLORS.danger : '#51637A' },
-
-              { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: selectedPerson ? 'Scheduled doses' : 'Select a person for count', icon: <TodayIcon fontSize="small" />, color: METICLE_COLORS.info },
-              { label: 'Administered today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: selectedPerson ? 'Recorded as given' : 'Select a person for count', icon: <CheckIcon fontSize="small" />, color: METICLE_COLORS.success },
-              { label: 'Missed today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? missedTodayCount : '—', detail: selectedPerson ? 'Explicitly recorded' : 'Select a person for count', icon: <CloseIcon fontSize="small" />, color: METICLE_COLORS.danger },
-              { label: 'People on medication', value: peopleOnMedication, detail: 'Active MAR records', icon: <PersonIcon fontSize="small" />, color: METICLE_COLORS.primary },
+            {[
+              { label: 'Overdue', value: overdueError || overdueCountError || overdueLoading || overdueCountLoading ? '—' : overdueCount, detail: 'More than 30 min late', icon: <WarningIcon fontSize="small" />, tint: overdueCount ? NOTICE_COLORS.error.bg : '#F0F5FC', color: overdueCount ? METICLE_COLORS.danger : '#51637A' },
+              { label: 'Due today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? dueTodayCount : '—', detail: 'Scheduled doses', icon: <TodayIcon fontSize="small" />, tint: NOTICE_COLORS.info.bg, color: METICLE_COLORS.info },
+              { label: 'Given today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? administeredTodayCount : '—', detail: 'Recorded on time', icon: <CheckIcon fontSize="small" />, tint: NOTICE_COLORS.success.bg, color: METICLE_COLORS.success },
+              { label: 'Missed today', value: selectedPerson && (chartLoading || recordsLoading || ensureMarMutation.isPending) ? '…' : selectedPerson ? missedTodayCount : '—', detail: 'Needs a reason recorded', icon: <ScheduleIcon fontSize="small" />, tint: NOTICE_COLORS.info.bg, color: METICLE_COLORS.info },
+              { label: 'On medication', value: peopleOnMedication, detail: 'Active MAR records', icon: <GroupIcon fontSize="small" />, tint: NOTICE_COLORS.info.bg, color: METICLE_COLORS.primary },
             ].map(metric => <Grid item xs={6} sm={4} lg key={metric.label}>
               <Paper variant="outlined" sx={{ p: 1.5, height: '100%', minHeight: 104, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, color: metric.color, bgcolor: metric.label === 'Overdue administrations' && overdueCount === 0 ? '#F0F5FC' : metric.color === METICLE_COLORS.danger ? NOTICE_COLORS.error.bg : metric.color === METICLE_COLORS.success ? NOTICE_COLORS.success.bg : NOTICE_COLORS.info.bg }}>{metric.icon}</Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
-                    <Typography variant="h5" sx={{ mt: 0.2, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{metric.value}</Typography>
-                    <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
-                  </Box>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                  <Box sx={{ width: 32, height: 32, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '50%', color: metric.color, bgcolor: metric.tint }}>{metric.icon}</Box>
                 </Stack>
+                <Typography variant="h4" sx={{ mt: 0.5, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{metric.value}</Typography>
+                <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
               </Paper>
             </Grid>)}
           </Grid>
@@ -2383,9 +2447,9 @@ export default function EMedicationPage() {
                 <TextField size="small" fullWidth label="Search by name" placeholder="Search by name..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
               </Grid>
               <Grid item xs={6} sm={3} md={2.5}>
-                <TextField select size="small" fullWidth label="Location" value={selectedLocationFilter} onChange={e => setSelectedLocationFilter(e.target.value)}>
-                  <MenuItem value="all">All locations</MenuItem>
-                  {locations.map((location: any) => <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>)}
+                <TextField select size="small" fullWidth label="Sort" value={personSort} onChange={e => setPersonSort(e.target.value as 'overdue' | 'name')}>
+                  <MenuItem value="overdue">Overdue first</MenuItem>
+                  <MenuItem value="name">Name A–Z</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={6} sm={3} md={2.5}>
@@ -2401,11 +2465,11 @@ export default function EMedicationPage() {
 
           <Grid container spacing={1.5}>
             <Grid item xs={12} md={3.25}>
-              <Paper sx={{ p: 1.5, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
+              <Paper id="emar-people-list" sx={{ p: 1.5, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2, scrollMarginTop: 80 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Box>
                     <Typography variant="subtitle2" fontWeight={600} sx={{ color: METICLE_COLORS.text }}>People</Typography>
-                    <Typography variant="caption" color="text.secondary">{visiblePeople.length} of {(people || []).length} people</Typography>
+                    <Typography variant="caption" color="text.secondary">{sortedPeople.length} of {(people || []).length} people</Typography>
                   </Box>
                   {selectedPerson && (
                     <Button size="small" variant="outlined" startIcon={<ArchiveOutlined />}
@@ -2435,19 +2499,24 @@ export default function EMedicationPage() {
                   </IconButton>
                 </Stack>}
 
-                {peopleLoading ? <Box sx={{ display: 'grid', gap: 0.75 }}>{[0, 1, 2, 3].map(i => <Box key={i} sx={{ height: 50, bgcolor: '#F0F5FC', borderRadius: 1 }} />)}</Box> : visiblePeople.length === 0 ? (
+                {peopleLoading ? <Box sx={{ display: 'grid', gap: 0.75 }}>{[0, 1, 2, 3].map(i => <Box key={i} sx={{ height: 50, bgcolor: '#F0F5FC', borderRadius: 1 }} />)}</Box> : sortedPeople.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 3 }}>
                     <Typography color="text.secondary" variant="body2">{personSearch || selectedLocationFilter !== 'all' || personStatusFilter !== 'all' ? 'No people match these filters.' : 'No people found for this organisation.'}</Typography>
                   </Box>
                 ) : (
                   <Stack spacing={0.5} sx={{ maxHeight: { xs: 250, md: 520 }, overflowY: 'auto', pr: 0.5 }}>
-                    {visiblePeople.map((person: any) => {
+                    {sortedPeople.map((person: any) => {
                       const isSelected = selectedPerson?.id === person.id
-                      const isOnMedication = personHasMedication(person.id)
+                      const overdueN = overdueByPerson.get(String(person.id)) || 0
+                      const initials = `${person.first_name?.[0] || ''}${person.last_name?.[0] || ''}`.toUpperCase()
                       return <Box key={person.id} component="button" type="button" onClick={() => { setSelectedPerson(person); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)); setPersonMedicationSearch('') }} sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, p: 1, border: '1px solid', borderColor: isSelected ? METICLE_COLORS.primary : 'transparent', borderRadius: 1.5, bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: isSelected ? METICLE_COLORS.infoSoft : 'notice.subtle.bg' }, '&:focus-visible': { outline: `2px solid ${METICLE_COLORS.primary}`, outlineOffset: 1 } }}>
-                        <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: METICLE_COLORS.infoSoft, color: '#004085' }}><PersonIcon fontSize="small" /></Box>
-                        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={600} noWrap>{person.first_name} {person.last_name}</Typography><Typography variant="caption" color="text.secondary" noWrap>{person.location_name || locations.find((loc: any) => loc.id === person.location_id)?.name || 'No location'}</Typography></Box>
-                        {isOnMedication && <Box aria-label="Active medication record" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: METICLE_COLORS.success, flexShrink: 0 }} />}
+                        <Box sx={{ width: 32, height: 32, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', fontSize: 12, fontWeight: 700 }}>{initials}</Box>
+                        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={600} noWrap>{person.first_name} {person.last_name}</Typography><Typography variant="caption" color="text.secondary" noWrap>{person.location_name || locations.find((loc: any) => loc.id === person.location_id)?.name || 'No location'} · {overdueN > 0 ? `${overdueN} overdue` : 'On track'}</Typography></Box>
+                        {overdueN > 0 ? (
+                          <Box sx={{ px: 1, py: 0.25, borderRadius: 6, bgcolor: NOTICE_COLORS.error.bg, color: METICLE_COLORS.danger, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{overdueN} overdue</Box>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: METICLE_COLORS.success, fontWeight: 600, flexShrink: 0 }}>On track</Typography>
+                        )}
                       </Box>
                     })}
                   </Stack>
@@ -2495,21 +2564,12 @@ export default function EMedicationPage() {
                 </Paper>
               ) : (
                 <>
-                  <Paper sx={{ overflow: 'hidden', border: `1px solid ${EMR.windowBorder}`, borderRadius: 2, boxShadow: '0 24px 48px -28px rgba(20, 32, 45, 0.28)' }}>
-                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={1.5} sx={{ p: 2, bgcolor: EMR.chrome, borderBottom: `1px solid ${EMR.windowBorder}` }}>
+                  <Paper sx={{ overflow: 'hidden', border: `1px solid ${METICLE_COLORS.border}`, borderRadius: 2, boxShadow: 'none' }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={1.5} sx={{ p: 2, borderBottom: `1px solid ${METICLE_COLORS.border}` }}>
                       <Box>
                         <Stack direction="row" spacing={0.75} alignItems="center">
                           <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink, letterSpacing: '-0.01em' }}>{chartData.record.title}</Typography>
-                          <Box sx={{
-                            width: 8, height: 8, borderRadius: '50%', bgcolor: EMR.emerald,
-                            '@keyframes emrPulse': {
-                              '0%': { boxShadow: '0 0 0 0 rgba(16,185,129,0.45)' },
-                              '70%': { boxShadow: '0 0 0 6px rgba(16,185,129,0)' },
-                              '100%': { boxShadow: '0 0 0 0 rgba(16,185,129,0)' }
-                            },
-                            animation: 'emrPulse 2s ease-in-out infinite',
-                            '@media (prefers-reduced-motion: reduce)': { animation: 'none' }
-                          }} />
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: METICLE_COLORS.success }} />
                         </Stack>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                           {chartData.record.person_name} &bull; {new Date(chartData.record.start_date).toLocaleDateString()} &ndash; {new Date(chartData.record.end_date).toLocaleDateString()}
@@ -2879,161 +2939,160 @@ export default function EMedicationPage() {
 
       {/* ═══ TAB 1: Stock ═══ */}
       {tab === 1 && (
-        <Paper id="emed-panel-1" role="tabpanel" aria-labelledby="emed-tab-1" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Stock Inventory</Typography>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`${(stockData || []).length} line${(stockData || []).length !== 1 ? 's' : ''}`}
-                onClick={() => { setStockLevelFilter('all'); setStockExpiryFilter('all'); setStockLocation('all'); setStockSearch('') }}
-              />
-              <Chip
-                size="small"
-                icon={<WarningIcon />}
-                label={`${lowStockItems.length} low`}
-                color={lowStockItems.length > 0 ? 'warning' : 'default'}
-                variant={stockLevelFilter === 'low' ? 'filled' : 'outlined'}
-                onClick={() => setStockLevelFilter(stockLevelFilter === 'low' ? 'all' : 'low')}
-              />
-              <Chip
-                size="small"
-                icon={<ScheduleIcon />}
-                label={`${expiringStockItems.length} expiring`}
-                color={expiringStockItems.length > 0 ? 'warning' : 'default'}
-                variant={stockExpiryFilter === 'expiring' ? 'filled' : 'outlined'}
-                onClick={() => setStockExpiryFilter(stockExpiryFilter === 'expiring' ? 'all' : 'expiring')}
-              />
-              <Chip
-                label={showArchivedStock ? 'Showing All' : 'Active Only'}
-                size="small"
-                color={showArchivedStock ? 'warning' : 'default'}
-                onClick={() => setShowArchivedStock(!showArchivedStock)}
-                variant="outlined"
-              />
-              <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => openStockDialog()}>
-                Add Stock Item
+        <Box id="emed-panel-1" role="tabpanel" aria-labelledby="emed-tab-1">
+          <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
+            {[
+              { label: 'Stock lines', value: stockLoading ? '…' : (stockData || []).length, detail: 'Active medicines in stock', icon: <InventoryIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+              { label: 'Low stock', value: stockLoading ? '…' : lowStockItems.length, detail: 'Under 7 days left', icon: <WarningIcon fontSize="small" />, tint: lowStockItems.length > 0 ? NOTICE_COLORS.error.bg : '#F0F5FC', color: lowStockItems.length > 0 ? METICLE_COLORS.danger : '#51637A' },
+              { label: 'Expiring soon', value: stockLoading ? '…' : expiringStockItems.length, detail: 'Within 30 days', icon: <ScheduleIcon fontSize="small" />, tint: expiringStockItems.length > 0 ? NOTICE_COLORS.error.bg : '#F0F5FC', color: expiringStockItems.length > 0 ? METICLE_COLORS.danger : '#51637A' },
+            ].map(metric => <Grid item xs={4} key={metric.label}>
+              <Paper variant="outlined" sx={{ p: 1.5, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                  <Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%', color: metric.color, bgcolor: metric.tint }}>{metric.icon}</Box>
+                </Stack>
+                <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: (metric.label !== 'Stock lines' && Number(metric.value) > 0) ? METICLE_COLORS.danger : METICLE_COLORS.text }}>{metric.value}</Typography>
+                <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+              </Paper>
+            </Grid>)}
+          </Grid>
+          <Paper sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 1.5 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>Stock inventory</Typography>
+              <Typography variant="caption" color="text.secondary">{(stockData || []).length} lines · {lowStockItems.length} low · {expiringStockItems.length} expiring</Typography>
+            </Box>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" size="small" onClick={() => setDeliveryDialog(true)} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                Log delivery
+              </Button>
+              <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => openStockDialog()} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                Add stock item
               </Button>
             </Stack>
           </Stack>
 
           {/* Filter bar */}
-          <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: EMR.paper, borderColor: EMR.hairline }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
-              <Box sx={{ minWidth: 200, flex: 1 }}>
-                <TextField size="small" fullWidth placeholder="Search medication, batch…" value={stockSearch}
-                  onChange={(e) => setStockSearch(e.target.value)}
-                  InputProps={{ endAdornment: stockSearch ? (
-                    <InputAdornment position="end"><IconButton size="small" onClick={() => setStockSearch('')}><CloseIcon fontSize="small" /></IconButton></InputAdornment>
-                  ) : undefined }} />
-              </Box>
-              <Box sx={{ minWidth: 150 }}>
-                <Autocomplete
-                  options={people || []}
-                  getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-                  value={stockFilterPerson}
-                  onChange={(_, v) => setStockFilterPerson(v)}
-                  renderInput={(params) => <TextField {...params} label="Filter by person" size="small" />}
-                  isOptionEqualToValue={(o, v) => o.id === v.id}
-                  clearOnEscape
-                />
-              </Box>
-              <TextField select size="small" label="Stock level" value={stockLevelFilter}
-                onChange={(e) => setStockLevelFilter(e.target.value)} sx={{ minWidth: 140 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+              <TextField size="small" placeholder="Search" value={stockSearch}
+                onChange={(e) => { setStockSearch(e.target.value); setStockPage(0) }}
+                sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                InputProps={{ startAdornment: (
+                  <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
+                ) }} />
+              <Autocomplete
+                options={people || []}
+                getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
+                value={stockFilterPerson}
+                onChange={(_, v) => { setStockFilterPerson(v); setStockPage(0) }}
+                renderInput={(params) => <TextField {...params} placeholder="All people" size="small" sx={{ minWidth: 130, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                clearOnEscape
+                sx={{ minWidth: 130 }}
+              />
+              <TextField select size="small" value={stockLevelFilter}
+                onChange={(e) => { setStockLevelFilter(e.target.value); setStockPage(0) }} sx={{ minWidth: 110, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                 <MenuItem value="all">All levels</MenuItem>
-                <MenuItem value="low">Low (≤ reorder)</MenuItem>
+                <MenuItem value="low">Low stock</MenuItem>
                 <MenuItem value="out">Out of stock</MenuItem>
-                <MenuItem value="ok">Healthy</MenuItem>
+                <MenuItem value="ok">In stock</MenuItem>
               </TextField>
-              <TextField select size="small" label="Expiry" value={stockExpiryFilter}
-                onChange={(e) => setStockExpiryFilter(e.target.value)} sx={{ minWidth: 150 }}>
+              <TextField select size="small" value={stockExpiryFilter}
+                onChange={(e) => { setStockExpiryFilter(e.target.value); setStockPage(0) }} sx={{ minWidth: 110, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                 <MenuItem value="all">Any expiry</MenuItem>
-                <MenuItem value="expiring">Expiring ≤ 90 days</MenuItem>
+                <MenuItem value="expiring">Expiring soon</MenuItem>
                 <MenuItem value="expired">Expired</MenuItem>
               </TextField>
-              <TextField select size="small" label="Location" value={stockLocation}
-                onChange={(e) => setStockLocation(e.target.value)} sx={{ minWidth: 150 }}>
+              <TextField select size="small" value={stockLocation}
+                onChange={(e) => { setStockLocation(e.target.value); setStockPage(0) }} sx={{ minWidth: 120, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                 <MenuItem value="all">All locations</MenuItem>
                 {stockLocations.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
               </TextField>
-            </Stack>
-          </Paper>
+              <FormControlLabel
+                control={<Switch size="small" checked={!showArchivedStock} onChange={() => setShowArchivedStock(v => !v)} />}
+                label={<Typography variant="caption" color="text.secondary">Active only</Typography>}
+                sx={{ ml: 'auto', mr: 0 }}
+              />
+          </Box>
 
           {stockLoading ? (
             <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
           ) : !stockData || stockData.length === 0 ? (
-            <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-              No stock items yet — add a stock item or log a delivery to get started.
-            </Typography>
+            <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                <InventoryIcon />
+              </Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>No stock items yet</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2, maxWidth: 420, mx: 'auto' }}>
+                Add a stock item or log a delivery to get started. Stock goes down automatically as doses are recorded on the MAR chart.
+              </Typography>
+              <Stack direction="row" spacing={1} justifyContent="center">
+                <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => openStockDialog()} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                  Add stock item
+                </Button>
+                <Button variant="outlined" size="small" onClick={() => setDeliveryDialog(true)} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                  Log delivery
+                </Button>
+              </Stack>
+            </Box>
           ) : filteredStock.length === 0 ? (
             <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
               No stock items match the current filters.
             </Typography>
           ) : (
+            <>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Dosage</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Batch</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Expiry</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Qty</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Run-out</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Reorder Level</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Last Chased</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Medicine</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Person</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>In stock</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Days left</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Expiry</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#51637A' }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStock.map((item: StockItem) => {
-                    const isLow = item.quantity <= item.reorder_level
+                  {filteredStock.slice(stockPage * stockRowsPerPage, stockPage * stockRowsPerPage + stockRowsPerPage).map((item: StockItem) => {
+                    const low = isLowStock(item)
+                    const expiring = isExpiringSoon(item)
+                    const expired = item.expiry_date ? new Date(item.expiry_date) < new Date(`${todayStr()}T00:00:00`) : false
+                    const daysLeft = item.days_until_empty == null ? null : Number(item.days_until_empty)
+                    const status = expired || Number(item.quantity) <= 0
+                      ? { label: expired ? 'Expired' : 'Out of stock', bg: NOTICE_COLORS.error.bg, fg: NOTICE_COLORS.error.fg }
+                      : low
+                        ? { label: 'Low stock', bg: NOTICE_COLORS.error.bg, fg: NOTICE_COLORS.error.fg }
+                        : expiring
+                          ? { label: 'Expires soon', bg: NOTICE_COLORS.info.bg, fg: METICLE_COLORS.info }
+                          : { label: 'In stock', bg: NOTICE_COLORS.success.bg, fg: METICLE_COLORS.success }
                     return (
-                      <TableRow key={item.id} hover onClick={() => setStockDetail(item)}
-                        sx={{ cursor: 'pointer', bgcolor: isLow ? '#FFF7E6' : undefined, '&:hover': { boxShadow: (t) => `inset 0 0 0 1px ${t.palette.primary.main}55` } }}>
-                        <TableCell sx={{ fontWeight: 600 }}>{item.person_name || (item.person_id ? '—' : <Chip label="Shared" size="small" variant="outlined" sx={{ fontStyle: 'italic' }} />) as any}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{item.medication_name}</TableCell>
-                        <TableCell>{item.dosage}{item.unit}</TableCell>
-                        <TableCell><Typography variant="caption" fontFamily="monospace">{item.batch_number || '\u2014'}</Typography></TableCell>
+                      <TableRow key={item.id} hover onClick={() => setStockDetail(item)} sx={{ cursor: 'pointer' }}>
                         <TableCell>
-                          <Chip label={item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '\u2014'} size="small"
-                            color={item.expiry_date && new Date(item.expiry_date) < new Date() ? 'error' : 'default'} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>{item.medication_name} {item.dosage}{item.unit}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.quantity_unit || ''}</Typography>
                         </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight={600} color={isLow ? '#9A6700' : 'text.primary'}>{item.quantity}</Typography>
-                        </TableCell>
-                        <TableCell>{item.quantity_unit}</TableCell>
                         <TableCell>
-                          {Number(item.quantity) <= 0 ? (
-                            <Chip label="Out of stock" size="small" sx={{ bgcolor: NOTICE_COLORS.error.bg, color: NOTICE_COLORS.error.fg, fontWeight: 600 }} />
-                          ) : item.days_until_empty == null ? (
-                            <Tooltip title="No doses recorded in the last 28 days; run-out time cannot be estimated.">
-                              <Chip label="No usage data" size="small" variant="outlined" sx={{ color: P.slateLight, borderColor: P.subtle }} />
-                            </Tooltip>
-                          ) : Number(item.days_until_empty) <= 3 ? (
-                            <Chip label={`~${item.days_until_empty} day${Number(item.days_until_empty) === 1 ? '' : 's'}`} size="small" sx={{ bgcolor: NOTICE_COLORS.error.bg, color: NOTICE_COLORS.error.fg, fontWeight: 600 }} />
-                          ) : Number(item.days_until_empty) <= 7 ? (
-                            <Chip label={`~${item.days_until_empty} days`} size="small" sx={{ bgcolor: NOTICE_COLORS.warning.bg, color: NOTICE_COLORS.warning.fg, fontWeight: 600 }} />
-                          ) : (
-                            <Chip label={`~${item.days_until_empty} days`} size="small" sx={{ bgcolor: EX.neutralBg, color: EX.ink, fontWeight: 600 }} />
-                          )}
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>{item.person_name || (item.person_id ? '—' : 'Shared stock')}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.location || ''}</Typography>
                         </TableCell>
-                        <TableCell>{item.reorder_level}</TableCell>
-                        {/* When the reorder alert last went out for this line —
-                            tells a manager whether a low row has already been
-                            chased (and how long ago) or is still un-warned. */}
                         <TableCell>
-                          <Typography variant="caption" color={item.last_reorder_alerted_at ? 'text.primary' : 'text.secondary'}>
-                            {item.last_reorder_alerted_at
-                              ? new Date(item.last_reorder_alerted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                              : 'Not yet warned'}
+                          <Typography variant="body2" sx={{ color: low ? METICLE_COLORS.danger : 'text.primary' }}>{item.quantity} {item.quantity_unit}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: daysLeft != null && daysLeft <= 7 ? METICLE_COLORS.danger : 'text.primary' }}>
+                            {daysLeft == null ? '—' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}
                           </Typography>
                         </TableCell>
-                        <TableCell>{item.location || '\u2014'}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 6, bgcolor: status.bg, color: status.fg, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{status.label}</Box>
+                        </TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <Tooltip title="Adjust stock (damaged/expired/lost/returned)">
@@ -3054,245 +3113,640 @@ export default function EMedicationPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredStock.length}
+              page={stockPage}
+              onPageChange={(_, p) => setStockPage(p)}
+              rowsPerPage={stockRowsPerPage}
+              onRowsPerPageChange={(e) => { setStockRowsPerPage(Number(e.target.value)); setStockPage(0) }}
+              rowsPerPageOptions={[7, 14, 25]}
+            />
+            </>
           )}
-        </Paper>
+          </Paper>
+        </Box>
       )}
 
       {/* ═══ TAB 2: Deliveries ═══ */}
       {tab === 2 && (
-        <Paper id="emed-panel-2" role="tabpanel" aria-labelledby="emed-tab-2" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: EMR.ink }}>Delivery Tracking</Typography>
-            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)}>
-              Log Delivery
-            </Button>
-          </Stack>
-          {deliveriesLoading ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
-          ) : deliveriesError ? (
-            <Alert severity="error" sx={{ py: 3 }}>
-              Could not load deliveries. {apiErrorMsg(deliveriesError, '')}
-            </Alert>
-          ) : !deliveriesData || deliveriesData.length === 0 ? (
-            <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-              No deliveries logged yet — log one to add stock for the people in your service.
-            </Typography>
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Supplier</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Delivery Note</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Received By</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Items</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {deliveriesData.map((d: Delivery) => (
-                    <TableRow
-                      key={d.id}
-                      hover
-                      onClick={() => openDeliveryDetail(d)}
-                      sx={{ cursor: 'pointer', '&:hover': { boxShadow: (t) => `inset 0 0 0 1px ${t.palette.primary.main}55` } }}
-                    >
-                      <TableCell>{new Date(d.delivery_date).toLocaleDateString()}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{d.supplier}</TableCell>
-                      <TableCell>{d.person_name || (d.person_id ? '\u2014' : <Chip label="Shared" size="small" variant="outlined" sx={{ fontStyle: 'italic' }} />) as any}</TableCell>
-                      <TableCell><Typography variant="caption" fontFamily="monospace">{d.delivery_note || '\u2014'}</Typography></TableCell>
-                      <TableCell>{d.received_by || '\u2014'}</TableCell>
-                      <TableCell>{d.items_count ?? d.items?.length ?? 0} item{((d.items_count ?? d.items?.length ?? 0)) !== 1 ? 's' : ''}</TableCell>
-                      <TableCell><Typography variant="caption" color="text.secondary">{d.notes || '\u2014'}</Typography></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
+        <Box id="emed-panel-2" role="tabpanel" aria-labelledby="emed-tab-2">
+          {(() => {
+            const monthKey = todayStr().slice(0, 7)
+            const monthDeliveries = (deliveriesData || []).filter((d: Delivery) => String(d.delivery_date || '').startsWith(monthKey))
+            const itemsReceived = monthDeliveries.reduce((n: number, d: Delivery) => n + Number(d.items_count ?? d.items?.length ?? 0), 0)
+            const hasDiscrepancy = (d: Delivery) => String(d.notes || '').toLowerCase().includes('discrepancy')
+            const discrepancyCount = monthDeliveries.filter(hasDiscrepancy).length
+            const deliveryLocationOf = (d: Delivery) => {
+              const p = (people || []).find((pp: any) => pp.id === d.person_id)
+              return p?.location_name || locations.find((loc: any) => loc.id === p?.location_id)?.name || ''
+            }
+            const deliveryLocations = Array.from(new Set((deliveriesData || []).map(deliveryLocationOf).filter(Boolean))) as string[]
+            const filtered = (deliveriesData || []).filter((d: Delivery) => {
+              if (deliveryDateFilter === 'month' && !String(d.delivery_date || '').startsWith(monthKey)) return false
+              if (deliveryLocation !== 'all' && deliveryLocationOf(d) !== deliveryLocation) return false
+              if (deliverySearch) {
+                const q = deliverySearch.toLowerCase()
+                const hay = `${d.supplier || ''} ${d.delivery_note || ''} ${d.person_name || ''} ${d.received_by || ''} ${d.notes || ''}`.toLowerCase()
+                if (!hay.includes(q)) return false
+              }
+              return true
+            })
+            const pageRows = filtered.slice(deliveryPage * deliveryRowsPerPage, deliveryPage * deliveryRowsPerPage + deliveryRowsPerPage)
+            return (
+              <>
+                <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
+                  {[
+                    { label: 'Logged this month', value: deliveriesLoading ? '…' : monthDeliveries.length, detail: 'Pharmacy deliveries', icon: <FlagIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'Items received', value: deliveriesLoading ? '…' : itemsReceived, detail: 'Added to stock', icon: <InventoryIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'Discrepancies', value: deliveriesLoading ? '…' : discrepancyCount, detail: 'Need checking', icon: <WarningIcon fontSize="small" />, tint: discrepancyCount > 0 ? NOTICE_COLORS.error.bg : '#F0F5FC', color: discrepancyCount > 0 ? METICLE_COLORS.danger : '#51637A' },
+                  ].map(metric => <Grid item xs={4} key={metric.label}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                        <Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%', color: metric.color, bgcolor: metric.tint }}>{metric.icon}</Box>
+                      </Stack>
+                      <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: metric.label === 'Discrepancies' && Number(metric.value) > 0 ? METICLE_COLORS.danger : METICLE_COLORS.text }}>{metric.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+                    </Paper>
+                  </Grid>)}
+                </Grid>
+                <Paper sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>Delivery tracking</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(!deliveriesData || deliveriesData.length === 0) ? 'No deliveries logged yet' : `${monthDeliveries.length} ${monthDeliveries.length === 1 ? 'delivery' : 'deliveries'} this month · ${discrepancyCount} with a discrepancy`}
+                      </Typography>
+                    </Box>
+                    <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                      Log delivery
+                    </Button>
+                  </Stack>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                    <TextField size="small" placeholder="Search" value={deliverySearch}
+                      onChange={(e) => { setDeliverySearch(e.target.value); setDeliveryPage(0) }}
+                      sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }} />
+                    <TextField select size="small" value={deliveryLocation}
+                      onChange={(e) => { setDeliveryLocation(e.target.value); setDeliveryPage(0) }} sx={{ minWidth: 130, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <MenuItem value="all">All locations</MenuItem>
+                      {deliveryLocations.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" value={deliveryDateFilter}
+                      onChange={(e) => { setDeliveryDateFilter(e.target.value); setDeliveryPage(0) }} sx={{ minWidth: 120, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <MenuItem value="all">Any date</MenuItem>
+                      <MenuItem value="month">This month</MenuItem>
+                    </TextField>
+                  </Box>
+                  {deliveriesLoading ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
+                  ) : deliveriesError ? (
+                    <Alert severity="error" sx={{ py: 3 }}>
+                      Could not load deliveries. {apiErrorMsg(deliveriesError, '')}
+                    </Alert>
+                  ) : !deliveriesData || deliveriesData.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
+                      <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                        <FlagIcon />
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>No deliveries logged yet</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2, maxWidth: 440, mx: 'auto' }}>
+                        Log a delivery when medicines arrive. Each line is checked in and added to stock for the right person.
+                      </Typography>
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setDeliveryDialog(true)} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                        Log delivery
+                      </Button>
+                    </Box>
+                  ) : filtered.length === 0 ? (
+                    <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                      No deliveries match the current filters.
+                    </Typography>
+                  ) : (
+                    <>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Delivery</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Location</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Items</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Checked in by</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Status</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {pageRows.map((d: Delivery) => {
+                              const bad = hasDiscrepancy(d)
+                              const count = Number(d.items_count ?? d.items?.length ?? 0)
+                              return (
+                                <TableRow key={d.id} hover onClick={() => openDeliveryDetail(d)} sx={{ cursor: 'pointer' }}>
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>
+                                      {d.delivery_date ? new Date(d.delivery_date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">{d.supplier}{d.delivery_note ? ' \u00b7 ' + d.delivery_note : ''}</Typography>
+                                  </TableCell>
+                                  <TableCell><Typography variant="body2" color="text.secondary">{deliveryLocationOf(d) || '—'}</Typography></TableCell>
+                                  <TableCell><Typography variant="body2">{count} item{count === 1 ? '' : 's'}</Typography></TableCell>
+                                  <TableCell><Typography variant="body2">{d.received_by || '—'}</Typography></TableCell>
+                                  <TableCell>
+                                    <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 6, bgcolor: bad ? NOTICE_COLORS.error.bg : NOTICE_COLORS.success.bg, color: bad ? NOTICE_COLORS.error.fg : METICLE_COLORS.success, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                      {bad ? 'Discrepancy' : 'Checked in'}
+                                    </Box>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                      <TablePagination
+                        component="div"
+                        count={filtered.length}
+                        page={deliveryPage}
+                        onPageChange={(_, p) => setDeliveryPage(p)}
+                        rowsPerPage={deliveryRowsPerPage}
+                        onRowsPerPageChange={(e) => { setDeliveryRowsPerPage(Number(e.target.value)); setDeliveryPage(0) }}
+                        rowsPerPageOptions={[10, 25, 50]}
+                      />
+                    </>
+                  )}
+                </Paper>
+              </>
+            )
+          })()}
+        </Box>
       )}
 
       {/* ═══ TAB 3: Daily Counts ═══ */}
       {tab === 3 && (
         <Box id="emed-panel-3" role="tabpanel" aria-labelledby="emed-tab-3">
-          {/* Person selector + log controls */}
-          <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Daily Medication Counts</Typography>
-            <Autocomplete
-              options={people || []}
-              getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-              value={countPerson}
-              onChange={async (_, v) => {
-                setCountPerson(v)
-                if (!v?.id) {
-                  setCountMedications([])
-                  setCountItemsForm({})
-                  setCountNoRecords(false)
-                  return
-                }
-                setCountedBy(`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email)
-                setCountedAt(toDatetimeLocal(new Date().toISOString()))
-                setCountSession(defaultCountSession)
-                setCountDate(todayStr())
-                await loadCountData(v, todayStr(), defaultCountSession)
-              }}
-              renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
-              sx={{ maxWidth: 400 }}
-            />
-
-            {countPerson && !countLoading && !countNoRecords && countMedications.length > 0 && (
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
-                <TextField select label="Count type" size="small" sx={{ minWidth: 180 }}
-                  value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
-                  onChange={(e) => { setCountSession(e.target.value); loadCountData(countPerson, countDate, e.target.value) }}>
-                  {COUNT_TYPES.map((t) => <MenuItem key={t} value={t}>{countSessionLabel(t)}</MenuItem>)}
-                </TextField>
-                <TextField label="Date" type="date" size="small" value={countDate} sx={{ minWidth: 160 }}
-                  onChange={(e) => { setCountDate(e.target.value); loadCountData(countPerson, e.target.value, countSession) }}
-                  InputLabelProps={{ shrink: true }} inputProps={{ max: todayStr() }} />
-                <Typography variant="caption" color="text.secondary">
-                  {countMedications.length} medication{countMedications.length !== 1 ? 's' : ''} · expected quantities from current stock
-                </Typography>
-                <Button variant="contained" size="small" startIcon={<AddIcon />}
-                  onClick={() => { setCountReadOnly(false); setCountDialog(true); setErrorMsg('') }}>
-                  {countDate === todayStr() ? "Log Today's Count" : 'Log Count'}
-                </Button>
-              </Stack>
-            )}
-
-            {countLoading && (
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
-                <CircularProgress size={20} />
-                <Typography variant="body2" color="text.secondary">Loading medications and stock…</Typography>
-              </Stack>
-            )}
-
-            {countNoRecords && !countLoading && countPerson && (
-              <Alert severity="info" sx={{ mt: 2 }}>No active MAR records found for this person.</Alert>
-            )}
-          </Paper>
-
-          {/* History table */}
-          <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: EMR.ink }}>Count History</Typography>
-            {dailyCountsError ? (
-              <Alert severity="error" sx={{ py: 3 }}>
-                Could not load count history. {apiErrorMsg(dailyCountsError, '')}
-              </Alert>
-            ) : !dailyCounts || dailyCounts.length === 0 ? (
-              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                No daily counts logged yet — select a person and log a count to record the first one.
-              </Typography>
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Count Type</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Counted By</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Counted At</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Medications Checked</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Overall Match</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Review</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dailyCounts.map((c: any) => (
-                      <TableRow key={c.id} hover
-                        onClick={() => {
-                          const person = (people || []).find((p: any) => p.id === c.person_id) || { id: c.person_id, first_name: c.person_name?.split(' ')[0] || '', last_name: c.person_name?.split(' ')[1] || '' }
-                          const date = c.count_date?.slice?.(0, 10) || todayStr()
-                          const session = c.count_session || defaultCountSession
-                          setCountPerson(person)
-                          setCountDate(date)
-                          setCountSession(session)
-                          setCountedBy(c.staff_name || countedBy)
-                          setCountedAt(toDatetimeLocal(c.counted_at) || toDatetimeLocal(new Date().toISOString()))
-                          setErrorMsg('')
-                          setCountReadOnly(true)
-                          setCountDialog(true)
-                          loadCountData(person, date, session)
+          {(() => {
+            const todayKey = todayStr()
+            const monthKey = todayKey.slice(0, 7)
+            const todayCounts = (dailyCounts || []).filter((c) => String(c.count_date || '').slice(0, 10) === todayKey)
+            const loggedToday = todayCounts.length
+            const mismatchesToday = todayCounts.filter((c) => !c.matches_physical).length
+            const dueToday = stockLoading ? null : (stockData || []).filter((st) => st.is_controlled_drug && st.status !== 'archived').length
+            const personLocationOf = (personId: string) => {
+              const per = (people || []).find((pp) => pp.id === personId)
+              return per?.location_name || locations.find((loc) => loc.id === per?.location_id)?.name || ''
+            }
+            const filtered = (dailyCounts || []).filter((c) => {
+              if (countHistoryDate === 'today' && String(c.count_date || '').slice(0, 10) !== todayKey) return false
+              if (countHistoryDate === 'month' && !String(c.count_date || '').startsWith(monthKey)) return false
+              if (countHistoryPerson?.id && c.person_id !== countHistoryPerson.id) return false
+              if (countHistorySearch) {
+                const q = countHistorySearch.toLowerCase()
+                const hay = (c.person_name || '') + ' ' + (c.first_medication_name || '') + ' ' + (c.staff_name || '') + ' ' + (c.notes || '')
+                if (!hay.toLowerCase().includes(q)) return false
+              }
+              return true
+            })
+            const pageRows = filtered.slice(countPage * countRowsPerPage, countPage * countRowsPerPage + countRowsPerPage)
+            const logReady = countPerson && !countLoading && !countNoRecords && countMedications.length > 0
+            const openCountLog = () => {
+              if (logReady) { setCountReadOnly(false); setCountDialog(true); setErrorMsg('') }
+              else { const el = document.getElementById('count-log-person'); if (el) el.focus() }
+            }
+            const openCountReview = (c: any) => {
+              const person = (people || []).find((pp) => pp.id === c.person_id) || { id: c.person_id, first_name: (c.person_name || '').split(' ')[0] || '', last_name: (c.person_name || '').split(' ')[1] || '' }
+              const date = (c.count_date || '').slice?.(0, 10) || todayKey
+              const session = c.count_session || defaultCountSession
+              setCountPerson(person)
+              setCountDate(date)
+              setCountSession(session)
+              setCountedBy(c.staff_name || countedBy)
+              setCountedAt(toDatetimeLocal(c.counted_at) || toDatetimeLocal(new Date().toISOString()))
+              setErrorMsg('')
+              setCountReadOnly(true)
+              setCountDialog(true)
+              loadCountData(person, date, session)
+            }
+            const formatCountWhen = (c: any) => {
+              const at = c.counted_at ? new Date(c.counted_at) : null
+              const day = c.count_date ? new Date(c.count_date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
+              if (at && !Number.isNaN(at.getTime())) {
+                return day + ' \u00b7 ' + at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+              }
+              return day || ''
+            }
+            return (
+              <>
+                <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
+                  {[
+                    { label: 'Counts due today', value: dueToday == null ? '\u2026' : dueToday, detail: 'Controlled medicines', icon: <TodayIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'Logged today', value: loggedToday, detail: 'With a witness', icon: <CheckIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'Mismatches', value: mismatchesToday, detail: 'Need investigating', icon: <WarningIcon fontSize="small" />, tint: mismatchesToday > 0 ? NOTICE_COLORS.error.bg : '#F0F5FC', color: mismatchesToday > 0 ? METICLE_COLORS.danger : '#51637A' },
+                  ].map((metric) => <Grid item xs={4} key={metric.label}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                        <Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%', color: metric.color, bgcolor: metric.tint }}>{metric.icon}</Box>
+                      </Stack>
+                      <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: metric.label === 'Mismatches' && Number(metric.value) > 0 ? METICLE_COLORS.danger : METICLE_COLORS.text }}>{metric.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+                    </Paper>
+                  </Grid>)}
+                </Grid>
+                <Paper sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid ' + METICLE_COLORS.border, boxShadow: 'none', borderRadius: 2 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>Daily medication counts</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(!dailyCounts || dailyCounts.length === 0) ? 'No counts logged yet' : loggedToday + ' ' + (loggedToday === 1 ? 'count' : 'counts') + ' today \u00b7 ' + mismatchesToday + ' ' + (mismatchesToday === 1 ? 'mismatch' : 'mismatches')}
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Autocomplete
+                        options={people || []}
+                        getOptionLabel={(o) => o.first_name + ' ' + o.last_name}
+                        value={countPerson}
+                        onChange={async (_, v) => {
+                          setCountPerson(v)
+                          if (!v?.id) {
+                            setCountMedications([])
+                            setCountItemsForm({})
+                            setCountNoRecords(false)
+                            return
+                          }
+                          setCountedBy(((currentUser.first_name || '') + ' ' + (currentUser.last_name || '')).trim() || currentUser.email)
+                          setCountedAt(toDatetimeLocal(new Date().toISOString()))
+                          setCountSession(defaultCountSession)
+                          setCountDate(todayStr())
+                          await loadCountData(v, todayStr(), defaultCountSession)
                         }}
-                        sx={{ cursor: 'pointer', '&:hover': { boxShadow: (t) => `inset 0 0 0 1px ${t.palette.primary.main}55` } }}>
-                        <TableCell>{new Date(c.count_date).toLocaleDateString()}</TableCell>
-                        <TableCell><Chip label={countSessionLabel(c.count_session || 'end_of_day')} size="small" variant="outlined" /></TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{c.person_name || '\u2014'}</TableCell>
-                        <TableCell>{c.staff_name || '\u2014'}</TableCell>
-                        <TableCell>{c.counted_at ? new Date(c.counted_at).toLocaleString() : '\u2014'}</TableCell>
-                        <TableCell>{c.items_count || 0} meds</TableCell>
-                        <TableCell>
-                          <Chip label={c.matches_physical ? 'Yes' : 'No'} size="small"
-                            color={c.matches_physical ? 'success' : 'error'} />
-                        </TableCell>
-                        <TableCell>
-                          {c.has_escalation ? (
-                            <Chip label="Escalated" size="small" color="warning" variant="outlined"
-                              icon={<WarningAmberOutlined sx={{ fontSize: '0.9rem !important' }} />} />
-                          ) : (
-                            <Typography variant="body2" color="text.disabled">{'\u2014'}</Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Paper>          </Box>
-        )}
+                        renderInput={(params) => <TextField {...params} id="count-log-person" placeholder="Select person…" size="small" sx={{ minWidth: 170, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                        isOptionEqualToValue={(o, v) => o.id === v.id}
+                        clearOnEscape
+                      />
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCountLog} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                        Log a count
+                      </Button>
+                    </Stack>
+                  </Stack>
+                  {countPerson && !countLoading && !countNoRecords && countMedications.length > 0 && (
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 1.5, p: 1, bgcolor: '#F4F9FC', borderRadius: 2 }} flexWrap="wrap" useFlexGap>
+                      <TextField select label="Count type" size="small" sx={{ minWidth: 160, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
+                        onChange={(e) => { setCountSession(e.target.value); loadCountData(countPerson, countDate, e.target.value) }}>
+                        {COUNT_TYPES.map((t) => <MenuItem key={t} value={t}>{countSessionLabel(t)}</MenuItem>)}
+                      </TextField>
+                      <TextField label="Date" type="date" size="small" value={countDate} sx={{ minWidth: 150, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        onChange={(e) => { setCountDate(e.target.value); loadCountData(countPerson, e.target.value, countSession) }}
+                        InputLabelProps={{ shrink: true }} inputProps={{ max: todayStr() }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {countMedications.length} medication{countMedications.length !== 1 ? 's' : ''} · expected quantities from current stock
+                      </Typography>
+                    </Stack>
+                  )}
+                  {countLoading && (
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+                      <CircularProgress size={20} />
+                      <Typography variant="body2" color="text.secondary">Loading medications and stock…</Typography>
+                    </Stack>
+                  )}
+                  {countNoRecords && !countLoading && countPerson && (
+                    <Alert severity="info" sx={{ mb: 1.5 }}>No active MAR records found for this person.</Alert>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                    <TextField size="small" placeholder="Search" value={countHistorySearch}
+                      onChange={(e) => { setCountHistorySearch(e.target.value); setCountPage(0) }}
+                      sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }} />
+                    <Autocomplete
+                      options={people || []}
+                      getOptionLabel={(o) => o.first_name + ' ' + o.last_name}
+                      value={countHistoryPerson}
+                      onChange={(_, v) => { setCountHistoryPerson(v); setCountPage(0) }}
+                      renderInput={(params) => <TextField {...params} placeholder="All people" size="small" sx={{ minWidth: 130, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      clearOnEscape
+                      sx={{ minWidth: 130 }}
+                    />
+                    <TextField select size="small" value={countHistoryDate}
+                      onChange={(e) => { setCountHistoryDate(e.target.value); setCountPage(0) }} sx={{ minWidth: 120, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <MenuItem value="all">Any date</MenuItem>
+                      <MenuItem value="today">Today</MenuItem>
+                      <MenuItem value="month">This month</MenuItem>
+                    </TextField>
+                  </Box>
+                  {dailyCountsError ? (
+                    <Alert severity="error" sx={{ py: 3 }}>
+                      Could not load count history. {apiErrorMsg(dailyCountsError, '')}
+                    </Alert>
+                  ) : !dailyCounts || dailyCounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
+                      <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                        <CheckIcon />
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>No daily counts logged yet</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2, maxWidth: 440, mx: 'auto' }}>
+                        Select a person and log a count to record the first one. Controlled medicines are counted by two members of staff.
+                      </Typography>
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCountLog} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                        Log a count
+                      </Button>
+                    </Box>
+                  ) : filtered.length === 0 ? (
+                    <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                      No counts match the current filters.
+                    </Typography>
+                  ) : (
+                    <>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Count</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Medicine</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Expected</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Counted</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>By</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Result</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {pageRows.map((c) => {
+                              const itemsN = Number(c.items_count || 0)
+                              const exp = c.total_expected != null ? Number(c.total_expected) : null
+                              const got = c.total_counted != null ? Number(c.total_counted) : null
+                              const diff = exp != null && got != null ? got - exp : null
+                              const match = !!c.matches_physical
+                              const pill = match
+                                ? { label: 'Match', bg: NOTICE_COLORS.success.bg, fg: METICLE_COLORS.success }
+                                : diff != null && diff !== 0
+                                  ? { label: diff < 0 ? Math.abs(diff) + ' short' : diff + ' over', bg: NOTICE_COLORS.error.bg, fg: NOTICE_COLORS.error.fg }
+                                  : { label: 'Mismatch', bg: NOTICE_COLORS.error.bg, fg: NOTICE_COLORS.error.fg }
+                              return (
+                                <TableRow key={c.id} hover onClick={() => openCountReview(c)} sx={{ cursor: 'pointer' }}>
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>{formatCountWhen(c) || '\u2014'}</Typography>
+                                    <Typography variant="caption" color="text.secondary">{c.person_name || '\u2014'}{personLocationOf(c.person_id) ? ' \u00b7 ' + personLocationOf(c.person_id) : ''}</Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">{c.first_medication_name || (itemsN > 0 ? itemsN + ' ' + (itemsN === 1 ? 'medicine' : 'medicines') : '\u2014')}{c.first_medication_name && itemsN > 1 ? ' +' + (itemsN - 1) + ' more' : ''}</Typography>
+                                  </TableCell>
+                                  <TableCell><Typography variant="body2">{exp != null && itemsN > 0 ? exp : '\u2014'}</Typography></TableCell>
+                                  <TableCell><Typography variant="body2">{got != null && itemsN > 0 ? got : '\u2014'}</Typography></TableCell>
+                                  <TableCell><Typography variant="body2">{c.staff_name || '\u2014'}</Typography></TableCell>
+                                  <TableCell>
+                                    <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 6, bgcolor: pill.bg, color: pill.fg, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{pill.label}</Box>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                      <TablePagination
+                        component="div"
+                        count={filtered.length}
+                        page={countPage}
+                        onPageChange={(_, p) => setCountPage(p)}
+                        rowsPerPage={countRowsPerPage}
+                        onRowsPerPageChange={(e) => { setCountRowsPerPage(Number(e.target.value)); setCountPage(0) }}
+                        rowsPerPageOptions={[10, 25, 50]}
+                      />
+                    </>
+                  )}
+                </Paper>
+              </>
+            )
+          })()}
+        </Box>
+      )}
 
       {/* ═══ TAB 4: Audit Log ═══ */}
       {canManage && tab === 4 && (
-        <Paper id="emed-panel-4" role="tabpanel" aria-labelledby="emed-tab-4" sx={{ p: { xs: 1.25, sm: 2 }, border: `1px solid ${METICLE_COLORS.border}`, boxShadow: 'none', borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: EMR.ink }}>Medication Audit Trail</Typography>
-          {!auditLogsData || auditLogsData.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No audit log entries yet — actions on this page will appear here.</Typography>
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Date/Time</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>IP</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {auditLogsData.map((log: AuditLog) => (
-                    <TableRow key={log.id} hover>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</TableCell>
-                      <TableCell>{log.user_name}</TableCell>
-                      <TableCell>
-                        <Chip label={log.action.replace(/_/g, ' ')} size="small"
-                          color={log.action.includes('delete') ? 'error' : log.action.includes('create') ? 'success' : 'default'} />
-                      </TableCell>
-                      <TableCell><Typography variant="caption" color="text.secondary">{log.entity_type}</Typography></TableCell>
-                      <TableCell>
-                        {log.changes && typeof log.changes === 'object' ? (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.65rem' }}>
-                            {Object.entries(log.changes).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                            {Object.keys(log.changes).length > 3 ? ` +${Object.keys(log.changes).length - 3} more` : ''}
-                          </Typography>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">{'\u2014'}</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell><Typography variant="caption" color="text.secondary">{log.ip_address || '\u2014'}</Typography></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
+        <Box id="emed-panel-4" role="tabpanel" aria-labelledby="emed-tab-4">
+          {(() => {
+            const todayKey = todayStr()
+            const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
+            const inWeek = (log: AuditLog) => String(log.created_at || '').slice(0, 10) >= weekAgo
+            const isToday = (log: AuditLog) => String(log.created_at || '').slice(0, 10) === todayKey
+            const changesOf = (log: AuditLog) => (log.changes && typeof log.changes === 'object' ? log.changes : {})
+            const typeOf = (log: AuditLog) => {
+              const a = String(log.action || '')
+              if (a.includes('administration')) return { label: 'Administration', bg: NOTICE_COLORS.info.bg, fg: METICLE_COLORS.info }
+              if (a.includes('daily_count') || a.includes('count_item')) return { label: 'Daily count', bg: NOTICE_COLORS.error.bg, fg: NOTICE_COLORS.error.fg }
+              if (a.includes('delivery')) return { label: 'Delivery', bg: '#F0F5FC', fg: '#51637A' }
+              if (a.includes('stock') || a.includes('adjustment')) return { label: 'Stock', bg: NOTICE_COLORS.success.bg, fg: METICLE_COLORS.success }
+              if (a.includes('record') || a.includes('item') || a.includes('import')) return { label: 'Chart', bg: '#F0F5FC', fg: '#51637A' }
+              return { label: 'Settings', bg: '#F0F5FC', fg: '#51637A' }
+            }
+            const describeEntry = (log: AuditLog) => {
+              const ch = changesOf(log)
+              const name = ch.medication_name || ch.name || ''
+              switch (log.action) {
+                case 'update_administration': {
+                  const st = ch.status || 'updated'
+                  const verb = st === 'given' ? 'Recorded' : 'Marked'
+                  return verb + ' ' + (name ? name + ' ' : '') + 'as ' + st
+                }
+                case 'create_delivery': {
+                  const n = Array.isArray(ch.items) ? ch.items.length : null
+                  return 'Checked in a delivery' + (n != null ? ' \u00b7 ' + n + ' item' + (n === 1 ? '' : 's') : '')
+                }
+                case 'update_delivery': return 'Updated a delivery'
+                case 'delete_delivery': return 'Deleted a delivery (stock reversed)'
+                case 'create_stock': return 'Added ' + (name || 'stock') + ' to stock'
+                case 'update_stock': return 'Updated ' + (name || 'stock')
+                case 'archive_stock': return 'Archived a stock item'
+                case 'delete_stock': return 'Deleted a stock item'
+                case 'create_stock_adjustment': return 'Adjusted stock' + (ch.reason ? ' (' + ch.reason + ')' : '')
+                case 'create_daily_count':
+                case 'upsert_daily_count':
+                case 'upsert_daily_count_item':
+                  return 'Logged a daily count' + (ch.matches_physical === false ? ' with a mismatch' : '')
+                case 'add_item': return 'Added ' + (name || 'a medication') + ' to a chart'
+                case 'update_item': return 'Updated ' + (name || 'a medication')
+                case 'delete_item': return 'Removed a medication from a chart'
+                case 'create_record': return 'Created a medication chart'
+                case 'update_record': return 'Updated a medication chart'
+                case 'delete_record': return 'Deleted a medication chart'
+                case 'import_from_previous_month': return 'Imported a chart from the previous month'
+                case 'toggle_medication_competence': return 'Changed medication competence'
+                default: return String(log.action || 'change').replace(/_/g, ' ')
+              }
+            }
+            const personOrPlaceOf = (log: AuditLog) => {
+              const ch = changesOf(log)
+              const pid = ch.person_id || ch.personId || null
+              if (pid) {
+                const per = (people || []).find((pp) => pp.id === pid)
+                if (per) return per.first_name + ' ' + per.last_name
+              }
+              return ''
+            }
+            const formatWhen = (log: AuditLog) => {
+              if (!log.created_at) return ''
+              const d = new Date(log.created_at)
+              if (Number.isNaN(d.getTime())) return ''
+              return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' \u00b7 ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+            }
+            const entriesToday = (auditLogsData || []).filter(isToday).length
+            const entriesWeek = (auditLogsData || []).filter(inWeek).length
+            const staffWeek = new Set((auditLogsData || []).filter(inWeek).map((l: AuditLog) => l.user_name || l.user_email).filter(Boolean)).size
+            const actionOptions = Array.from(new Set((auditLogsData || []).map((l: AuditLog) => typeOf(l).label)))
+            const filtered = (auditLogsData || []).filter((log: AuditLog) => {
+              if (auditDateFilter === 'today' && !isToday(log)) return false
+              if (auditDateFilter === 'week' && !inWeek(log)) return false
+              if (auditActionFilter !== 'all' && typeOf(log).label !== auditActionFilter) return false
+              if (auditPersonFilter?.id) {
+                const ch = changesOf(log)
+                if ((ch.person_id || ch.personId || null) !== auditPersonFilter.id) return false
+              }
+              if (auditSearch) {
+                const hay = describeEntry(log) + ' ' + personOrPlaceOf(log) + ' ' + (log.user_name || '') + ' ' + (log.user_email || '') + ' ' + String(log.action || '')
+                if (!hay.toLowerCase().includes(auditSearch.toLowerCase())) return false
+              }
+              return true
+            })
+            const pageRows = filtered.slice(auditPage * auditRowsPerPage, auditPage * auditRowsPerPage + auditRowsPerPage)
+            const exportCsv = () => {
+              const rows = [['Date', 'Entry', 'Person or place', 'By', 'Type']]
+              for (const log of filtered) {
+                rows.push([
+                  log.created_at ? new Date(log.created_at).toLocaleString('en-GB') : '',
+                  describeEntry(log),
+                  personOrPlaceOf(log),
+                  log.user_name || log.user_email || '',
+                  typeOf(log).label,
+                ])
+              }
+              const csv = rows.map((r) => r.map((c) => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'medication-audit-' + todayKey + '.csv'
+              a.click()
+              URL.revokeObjectURL(url)
+            }
+            return (
+              <>
+                <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
+                  {[
+                    { label: 'Entries today', value: entriesToday, detail: 'Recorded automatically', icon: <DocIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'This week', value: entriesWeek, detail: 'Across ' + locations.length + ' location' + (locations.length === 1 ? '' : 's'), icon: <TodayIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                    { label: 'Staff involved', value: staffWeek, detail: 'Made a change', icon: <GroupIcon fontSize="small" />, tint: '#F0F5FC', color: '#51637A' },
+                  ].map((metric) => <Grid item xs={4} key={metric.label}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderColor: METICLE_COLORS.border, borderRadius: 2, bgcolor: METICLE_COLORS.surface }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="caption" color="text.secondary">{metric.label}</Typography>
+                        <Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%', color: metric.color, bgcolor: metric.tint }}>{metric.icon}</Box>
+                      </Stack>
+                      <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: METICLE_COLORS.text }}>{metric.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+                    </Paper>
+                  </Grid>)}
+                </Grid>
+                <Paper sx={{ p: { xs: 1.25, sm: 2 }, border: '1px solid ' + METICLE_COLORS.border, boxShadow: 'none', borderRadius: 2 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>Medication audit trail</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(!auditLogsData || auditLogsData.length === 0) ? 'No entries yet' : entriesWeek + ' ' + (entriesWeek === 1 ? 'entry' : 'entries') + ' this week'}
+                      </Typography>
+                    </Box>
+                    <Button variant="contained" size="small" onClick={exportCsv} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                      Export CSV
+                    </Button>
+                  </Stack>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                    <TextField size="small" placeholder="Search" value={auditSearch}
+                      onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(0) }}
+                      sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }} />
+                    <Autocomplete
+                      options={people || []}
+                      getOptionLabel={(o) => o.first_name + ' ' + o.last_name}
+                      value={auditPersonFilter}
+                      onChange={(_, v) => { setAuditPersonFilter(v); setAuditPage(0) }}
+                      renderInput={(params) => <TextField {...params} placeholder="All people" size="small" sx={{ minWidth: 130, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      clearOnEscape
+                      sx={{ minWidth: 130 }}
+                    />
+                    <TextField select size="small" value={auditActionFilter}
+                      onChange={(e) => { setAuditActionFilter(e.target.value); setAuditPage(0) }} sx={{ minWidth: 120, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <MenuItem value="all">All actions</MenuItem>
+                      {actionOptions.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" value={auditDateFilter}
+                      onChange={(e) => { setAuditDateFilter(e.target.value); setAuditPage(0) }} sx={{ minWidth: 120, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <MenuItem value="all">Any date</MenuItem>
+                      <MenuItem value="today">Today</MenuItem>
+                      <MenuItem value="week">This week</MenuItem>
+                    </TextField>
+                  </Box>
+                  {!auditLogsData || auditLogsData.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
+                      <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: '#EAF3FF', color: '#0164C8', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                        <DocIcon />
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>No audit log entries yet</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2, maxWidth: 440, mx: 'auto' }}>
+                        Every administration, count, delivery and settings change on this page will appear here automatically.
+                      </Typography>
+                      <Button variant="contained" size="small" onClick={exportCsv} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                        Export CSV
+                      </Button>
+                    </Box>
+                  ) : filtered.length === 0 ? (
+                    <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                      No entries match the current filters.
+                    </Typography>
+                  ) : (
+                    <>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Entry</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Person or place</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>By</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#51637A' }}>Type</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {pageRows.map((log) => {
+                              const t = typeOf(log)
+                              return (
+                                <TableRow key={log.id} hover>
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: METICLE_COLORS.text }}>{formatWhen(log) || '\u2014'}</Typography>
+                                    <Typography variant="caption" color="text.secondary">{describeEntry(log)}</Typography>
+                                  </TableCell>
+                                  <TableCell><Typography variant="body2">{personOrPlaceOf(log) || '\u2014'}</Typography></TableCell>
+                                  <TableCell><Typography variant="body2">{log.user_name || log.user_email || '\u2014'}</Typography></TableCell>
+                                  <TableCell>
+                                    <Box component="span" sx={{ px: 1, py: 0.25, borderRadius: 6, bgcolor: t.bg, color: t.fg, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{t.label}</Box>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                      <TablePagination
+                        component="div"
+                        count={filtered.length}
+                        page={auditPage}
+                        onPageChange={(_, p) => setAuditPage(p)}
+                        rowsPerPage={auditRowsPerPage}
+                        onRowsPerPageChange={(e) => { setAuditRowsPerPage(Number(e.target.value)); setAuditPage(0) }}
+                        rowsPerPageOptions={[10, 25, 50]}
+                      />
+                    </>
+                  )}
+                </Paper>
+              </>
+            )
+          })()}
+        </Box>
       )}
 
       {/* ── Dialogs ── */}

@@ -13,13 +13,15 @@ interface PageHeaderProps {
   subtitle?: string
   actions?: ReactNode
   backAction?: ReactNode
+  eyebrow?: string
 }
 
-export function PageHeader({ title, subtitle, actions, backAction }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, backAction, eyebrow }: PageHeaderProps) {
   return (
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-end' }} spacing={2} sx={{ mb: 4, gap: 2 }}>
       <Box sx={{ minWidth: 0, flex: 1 }}>
         {backAction && <Box sx={{ mb: 1 }}>{backAction}</Box>}
+        {eyebrow && <Typography variant="caption" sx={{ fontWeight: 600, letterSpacing: '0.08em', color: 'primary.main', textTransform: 'uppercase' }}>{eyebrow}</Typography>}
         <Typography variant="h4" sx={{ fontWeight: 600 }}>{title}</Typography>
         {subtitle && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 680 }}>{subtitle}</Typography>}
       </Box>

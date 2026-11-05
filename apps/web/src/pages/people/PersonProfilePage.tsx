@@ -5,11 +5,11 @@ import {
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
   DialogContent, DialogActions, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, MenuItem, Divider,
-  Menu, ListItemIcon, ListItemText,  Tooltip, LinearProgress, Rating, InputAdornment,
+  Menu, ListItemIcon, ListItemText,  Tooltip, Rating, InputAdornment,
 } from '@mui/material'
 import {
   Add as AddIcon, Edit as EditIcon,
-  Phone as PhoneIcon, Warning as WarningIcon,
+  Phone as PhoneIcon, Warning as WarningIcon, Email as EmailIcon, Videocam as VideoCallIcon, Home as HomeIcon,
   Delete as DeleteIcon, CameraAlt as CameraIcon, MoreVert as MoreVertIcon,
   Block as BlockIcon,
   Event as EventIcon, Note as NoteIcon, Assignment as AssignmentIcon,
@@ -18,9 +18,10 @@ import {
   People as PeopleIcon, AutoAwesome as AiIcon, Mic as MicIcon, Stop as StopIcon,
   Psychology as PsychologyIcon, Flag as FlagIcon, TrendingUp as TrendIcon,
   Lightbulb as LightbulbIcon,
-  Description as FileIcon, Download as DownloadIcon, Close as CloseIcon,
+  Description as FileIcon, Download as DownloadIcon, Close as CloseIcon, Print as PrintIcon,
   OpenInNew as OpenInNewIcon, Luggage as LuggageIcon, Place as PlaceIcon,
-  CalendarMonth as CalendarMonthIcon,
+  CalendarMonth as CalendarMonthIcon, Chat as ChatIcon, Shield as ShieldIcon,
+  Search as SearchIcon, Login as LoginIcon, Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
@@ -36,14 +37,20 @@ import NutritionTab from './NutritionTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell } from 'recharts'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import PageContainer from '../../components/design/PageContainer'
 import { METICLE_COLORS } from '../../context/ThemeContext'
 import { PremiumCard } from '../../components/design/PremiumCard'
 import AppButton from '../../components/design/AppButton'
 import { CarePlanCardView } from './carePlanCardView'
+import FigDialogHeader, { PillOptions, nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
 
 const RISK_COLORS: Record<string, string> = { low: METICLE_COLORS.success, medium: METICLE_COLORS.warning, high: METICLE_COLORS.danger, critical: '#8B7CF6' }
+
+// Figma 6.8 dialog eyebrow: "DANIEL PRICE / CARE". Dialogs inside inline tab
+// components (no person in scope) use usePersonEyebrow from ./dialogHeader.
+const eyebrowFor = (u: any, area: string) =>
+  `${(`${u?.first_name || ''} ${u?.last_name || ''}`.trim() || 'Resident').toUpperCase()} / ${area}`
 
 // Shift values the profile note form accepts. The server normalises these to
 // day/night, but the client keeps the richer labels the brief wants so the UI
@@ -142,6 +149,12 @@ export default function PersonProfilePage() {
   }, [searchParams, tab])
 
   const [editOpen, setEditOpen] = useState(false)
+  const [editTab, setEditTab] = useState(0)
+  const [dischargeOpen, setDischargeOpen] = useState(false)
+  const [roomMoveOpen, setRoomMoveOpen] = useState(false)
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null)
+  const [dischargeForm, setDischargeForm] = useState({ discharge_date: localDate(), discharge_destination: '', discharge_reason: '', discharge_summary: '' })
+  const [moveForm, setMoveForm] = useState({ location_id: '', room_number: '' })
   const [addPlanOpen, setAddPlanOpen] = useState(false)
   const [viewPlan, setViewPlan] = useState<any>(null)
   const [addNoteOpen, setAddNoteOpen] = useState(false)
@@ -162,6 +175,7 @@ export default function PersonProfilePage() {
   const [invitePortalOpen, setInvitePortalOpen] = useState(false)
   const [invitePortalForm, setInvitePortalForm] = useState({ name: '', email: '', relationship: '', phone: '' })
   const [invitePortalError, setInvitePortalError] = useState('')
+  const [planStatusFilter, setPlanStatusFilter] = useState<string>('all')
   const [editPlanId, setEditPlanId] = useState<string | null>(null)
   const [editRiskId, setEditRiskId] = useState<string | null>(null)
   const [viewRisk, setViewRisk] = useState<any>(null)
@@ -219,13 +233,53 @@ export default function PersonProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/people/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditOpen(false) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditOpen(false); setError(''); showSnackbar(`${user.first_name} ${user.last_name}'s profile is up to date.`, 'success', 'Profile saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Update failed'),
   })
 
+  const dischargeMutation = useMutation({
+    mutationFn: (data: any) => api.patch(`/people/${id}`, { ...data, status: 'discharged' }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setDischargeOpen(false); setError(''); showSnackbar(`${user.first_name} ${user.last_name} is discharged. Their record is kept under Discharged.`, 'success', 'Person discharged') },
+    onError: (err: any) => setError(err.response?.data?.message || 'Discharge failed'),
+  })
+
+  const moveMutation = useMutation({
+    mutationFn: (data: any) => api.patch(`/people/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setRoomMoveOpen(false); setError(''); showSnackbar(`${user.first_name} ${user.last_name} is moved. The rota and room board show the new room.`, 'success', 'Room updated') },
+    onError: (err: any) => setError(err.response?.data?.message || 'Move failed'),
+  })
+
+  const downloadProfile = () => {
+    const loc = locations.find((l: any) => l.id === user.location_id)?.name || 'Not set'
+    const lines = [
+      `${user.first_name} ${user.last_name} — profile summary`,
+      `Status: ${user.status || 'active'}`,
+      `Date of birth: ${user.date_of_birth ? formatDateOnly(user.date_of_birth) : 'Not recorded'}`,
+      `NHS number: ${user.nhs_number || 'Not recorded'}`,
+      `Room: ${user.room_number || 'Not set'} · Location: ${loc}`,
+      `GP: ${[user.gp_name, user.gp_surgery, user.gp_phone].filter(Boolean).join(' · ') || 'Not recorded'}`,
+      `Pharmacy: ${[user.pharmacy_name, user.pharmacy_phone].filter(Boolean).join(' · ') || 'Not recorded'}`,
+      `Allergies: ${user.allergies?.length ? user.allergies.join(', ') : 'None recorded'}`,
+      `Dietary requirements: ${user.dietary_requirements || 'None recorded'}`,
+      `Support level: ${user.support_level ? SUPPORT_LEVEL_LABELS[user.support_level] || user.support_level : 'Not recorded'}`,
+      `Funding: ${(user.funding_type || 'Not recorded').replace(/_/g, ' ')}`,
+      `Admission: ${user.admission_date ? formatDateOnly(user.admission_date) : 'Not recorded'}${user.admission_source ? ` from ${user.admission_source}` : ''}`,
+      `Social worker: ${[user.social_worker_name, user.social_worker_phone].filter(Boolean).join(' · ') || 'Not recorded'}`,
+      `DNACPR: ${user.dnacpr_status === 'in_place' ? 'In place' : user.dnacpr_status === 'not_in_place' ? 'Not in place' : 'Not recorded'}`,
+    ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${user.first_name}-${user.last_name}-profile.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+    showSnackbar('The summary is downloaded as a text file.', 'success', 'Profile downloaded')
+  }
+
   const addPlanMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/care-plans`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar('Care plan added') },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar(`${variables?.title || 'Care plan'} is saved.`, 'success', 'Care plan added') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add care plan'),
   })
 
@@ -237,13 +291,13 @@ export default function PersonProfilePage() {
 
   const addRiskMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/risk-assessments`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }); showSnackbar(`${variables?.details || (variables?.type || 'risk').replace(/_/g, ' ')} is saved.`, 'success', 'Risk assessment saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add risk assessment'),
   })
 
   const addContactMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/family-contacts`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddContactOpen(false); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddContactOpen(false); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }); showSnackbar(`${variables?.name || 'Contact'} is saved as a ${variables?.relationship || 'contact'}.`, 'success', 'Contact added') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add contact'),
   })
 
@@ -255,7 +309,7 @@ export default function PersonProfilePage() {
 
   const updatePlanMutation = useMutation({
     mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/people/care-plans/${planId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar('Care plan updated') },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }); setError(''); showSnackbar(`${variables?.data?.title || 'Care plan'} is saved.`, 'success', 'Care plan updated') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update care plan'),
   })
 
@@ -273,7 +327,7 @@ export default function PersonProfilePage() {
 
   const updateRiskMutation = useMutation({
     mutationFn: ({ riskId, data }: { riskId: string; data: any }) => api.patch(`/people/risk-assessments/${riskId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditRiskId(null); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditRiskId(null); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }); const reviewed = !!(variables?.data?.review_date && !variables?.data?.details && !variables?.data?.mitigation_actions); showSnackbar(reviewed ? 'The risk assessment is reviewed today.' : 'Risk assessment saved.', 'success', reviewed ? 'Marked as reviewed' : 'Risk assessment saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update risk assessment'),
   })
 
@@ -285,19 +339,19 @@ export default function PersonProfilePage() {
 
   const updateContactMutation = useMutation({
     mutationFn: ({ contactId, data }: { contactId: string; data: any }) => api.patch(`/people/family-contacts/${contactId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setContactEditId(null); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setContactEditId(null); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }); showSnackbar(`${variables?.data?.name || 'Contact'} is up to date.`, 'success', 'Contact updated') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update contact'),
   })
 
   const inviteFromContactMutation = useMutation({
     mutationFn: (data: any) => api.post('/family-portal/members', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['family-members', id] }); setInvitePortalOpen(false); setInvitePortalForm({ name: '', email: '', relationship: '', phone: '' }); showSnackbar('Portal invitation sent successfully') },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['family-members', id] }); setInvitePortalOpen(false); setInvitePortalForm({ name: '', email: '', relationship: '', phone: '' }); showSnackbar(`${variables?.name || 'They'} will get an email to set up their portal.`, 'success', 'Invite sent') },
     onError: (err: any) => setInvitePortalError(err?.response?.data?.error?.message || 'Failed to send invite'),
   })
 
   const inlineInvitePortalMutation = useMutation({
     mutationFn: (data: any) => api.post('/family-portal/members', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['family-members', id] }); showSnackbar('Portal invitation sent successfully') },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['family-members', id] }); showSnackbar(`${variables?.name || 'They'} will get an email to set up their portal.`, 'success', 'Invite sent') },
     onError: (err: any) => setError(err?.response?.data?.error?.message || 'Failed to send invite'),
   })
 
@@ -652,6 +706,13 @@ export default function PersonProfilePage() {
     { label: 'Records', tabs: [13, 8, 1, 18, 20, 22] },
   ]
   const activeCategory = Math.max(0, CATEGORIES.findIndex(cat => cat.tabs.includes(tab)))
+  // Header strip + At a glance (Figma 6.2): all counted from the person row in hand.
+  const highRisks = (user.risk_assessments || []).filter((r: any) => r.risk_level === 'high' || r.risk_level === 'critical').length
+  const medRisks = (user.risk_assessments || []).filter((r: any) => r.risk_level === 'medium').length
+  const nextPlanReview: string | null = (() => {
+    const dates = (user.care_plans || []).map((p: any) => p.review_date).filter(Boolean).sort()
+    return dates.length ? dates[0] : null
+  })()
   const TAB_LABELS: Record<number, string> = {
     0: 'Overview', 1: 'Timeline', 2: 'Care Plans', 3: 'Daily Notes', 4: 'Risk Assessments',
     5: 'Family & Contacts', 6: 'Health', 7: 'Body Map', 8: 'Memory Book', 9: 'Goals',
@@ -661,11 +722,37 @@ export default function PersonProfilePage() {
     22: 'Billing & Rates',
   }
 
+  const handleReadmit = async () => {
+    try {
+      await api.patch(`/people/${id}`, { status: 'active' })
+      queryClient.invalidateQueries({ queryKey: ['person', id] })
+      showSnackbar(`${user.first_name} ${user.last_name} is active again.`, 'success', 'Person readmitted')
+    } catch (e: any) {
+      showSnackbar(e.response?.data?.message || 'Failed to readmit', 'error', 'Request failed')
+    }
+  }
+
   return (
     <PageContainer>
 
+      {/* Breadcrumb (Figma 6.2) */}
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Care / {isDomiciliary ? 'Clients' : 'People'} / {user.first_name} {user.last_name}
+      </Typography>
+      {/* Discharged banner (Figma 6.8): read-only record + Readmit */}
+      {user.status === 'discharged' && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}
+          action={<Button size="small" variant="contained" onClick={handleReadmit} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>Readmit</Button>}>
+          <Typography variant="subtitle2" fontWeight={600}>This record is discharged and read-only.</Typography>
+          <Typography variant="body2">
+            {user.discharge_date ? `Discharged ${new Date(user.discharge_date).toLocaleDateString('en-GB')}` : 'Discharged'}
+            {user.discharge_destination ? ` to ${String(user.discharge_destination).replace(/_/g, ' ')}` : ''}
+            {' '}— readmit to make {user.first_name} active again.
+          </Typography>
+        </Alert>
+      )}
       {/* Profile Header */}
-      <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
+      <PremiumCard noBorder sx={{ p: 3, mb: 3, mt: 0.5 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>
           <Stack direction="row" spacing={2.5} alignItems="center">
             {/* Photo */}
@@ -701,11 +788,12 @@ export default function PersonProfilePage() {
                   <Chip label={SUPPORT_LEVEL_LABELS[user.support_level]} size="small" color={SUPPORT_LEVEL_COLORS[user.support_level] || 'default'} sx={{ borderRadius: 1 }} />
                 )}
               </Stack>
-              {user.date_of_birth && (
+              {user.date_of_birth ? (
                 <Typography variant="caption" color="text.secondary">
-                  DOB: {formatDateOnly(user.date_of_birth)}
-                  {user.date_of_birth && ` (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)`}
+                  Born {formatDateOnly(user.date_of_birth)} · {Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} years
                 </Typography>
+              ) : (
+                <Typography variant="caption" color="text.secondary">Date of birth not recorded</Typography>
               )}
             </Box>
           </Stack>
@@ -731,13 +819,63 @@ export default function PersonProfilePage() {
           <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => {
             const f: any = { ...user }
             for (const k of EDIT_DATE_FIELDS) f[k] = toDateInput(f[k])
-            setEditForm(f); setEditOpen(true)
+            setEditForm(f); setEditTab(0); setEditOpen(true)
           }}
             sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
             Edit Profile
           </Button>
+            <Button variant="contained" startIcon={<AddIcon />} size="small" onClick={() => { resetAiMode(); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
+              sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
+              Add a note
+            </Button>
+            <IconButton size="small" aria-label="More actions" onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+            <Menu anchorEl={profileMenuAnchor} open={Boolean(profileMenuAnchor)} onClose={() => setProfileMenuAnchor(null)}>
+              <MenuItem onClick={() => { setProfileMenuAnchor(null); downloadProfile() }}>
+                <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Download profile</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setProfileMenuAnchor(null); window.print() }}>
+                <ListItemIcon><PrintIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Print</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setProfileMenuAnchor(null); setMoveForm({ location_id: user.location_id || '', room_number: user.room_number || '' }); setRoomMoveOpen(true) }}>
+                <ListItemIcon><HomeIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Move to another home</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setProfileMenuAnchor(null); setDischargeForm({ discharge_date: localDate(), discharge_destination: user.discharge_destination || '', discharge_reason: user.discharge_reason || '', discharge_summary: user.discharge_summary || '' }); setDischargeOpen(true) }}>
+                <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Discharge</ListItemText>
+              </MenuItem>
+            </Menu>
           </Stack>
         </Stack>
+        {/* At-a-glance strip (Figma 6.2): the frame's key-worker line has no data source, so it is omitted. */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mt: 2.5, pt: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
+          {[{
+            icon: <WarningIcon sx={{ fontSize: 16, color: user.allergies?.length ? 'notice.error.fg' : 'text.secondary' }} />,
+            label: 'Allergy', value: user.allergies?.length ? user.allergies.join(', ') : 'None recorded',
+          }, {
+            icon: <HealthIcon sx={{ fontSize: 16, color: user.dnacpr_status === 'in_place' ? 'notice.warning.fg' : 'text.secondary' }} />,
+            label: 'DNACPR', value: user.dnacpr_status === 'in_place' ? 'In place' : user.dnacpr_status === 'not_in_place' ? 'Not in place' : user.dnacpr_status === 'discussed' ? 'Discussed' : 'Not recorded',
+          }, {
+            icon: <ChatIcon sx={{ fontSize: 16, color: 'text.secondary' }} />,
+            label: 'Communication', value: [user.communication_method ? user.communication_method.charAt(0).toUpperCase() + user.communication_method.slice(1).replace(/_/g, ' ') : '', user.communication_language || ''].filter(Boolean).join(' - ') || 'Not recorded',
+          }, {
+            icon: <ShieldIcon sx={{ fontSize: 16, color: highRisks > 0 ? 'notice.error.fg' : 'text.secondary' }} />,
+            label: 'Open risks', value: highRisks + medRisks > 0 ? `${highRisks} high - ${medRisks} medium` : 'None recorded',
+          }].map((s) => (
+            <Stack key={s.label} direction="row" spacing={1} alignItems="flex-start" sx={{ minWidth: 0 }}>
+              <Box sx={{ mt: 0.25 }}>{s.icon}</Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.value}</Typography>
+              </Box>
+            </Stack>
+          ))}
+        </Box>
       </PremiumCard>
 
       {/* Flags / Alerts Banner (visible on every tab) */}
@@ -802,25 +940,26 @@ export default function PersonProfilePage() {
         </Tabs>
       </PremiumCard>
 
-      {/* Tab: Overview */}
+      {/* Tab: Overview (Figma 6.2): fact tables left, summary cards right. */}
       {tab === 0 && (
         <Box>
         <Grid container spacing={2.5}>
+          <Grid item xs={12} md={7}>
+            <Stack spacing={2.5}>
           {/* Personal Details */}
-          <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.primary }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Personal Details</Typography>
               </Stack>
               <Stack spacing={1}>
-                {[{ label: 'DOB', value: user.date_of_birth ? `${formatDateOnly(user.date_of_birth)} (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)` : '—' },
-                  { label: 'Gender', value: user.gender || '—' },
-                  { label: 'Pronouns', value: user.pronouns || '—' },
-                  { label: 'Marital Status', value: user.marital_status ? user.marital_status.replace(/_/g, ' ') : '—' },
-                  { label: 'Religion / Faith', value: user.religion || '—' },
-                  { label: 'NHS Number', value: user.nhs_number || '—' },
-                  { label: 'Room', value: user.room_number || '—' },
+                {[{ label: 'DOB', value: user.date_of_birth ? `${formatDateOnly(user.date_of_birth)} (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)` : 'Not recorded' },
+                  { label: 'Gender', value: user.gender || 'Not recorded' },
+                  { label: 'Pronouns', value: user.pronouns || 'Not recorded' },
+                  { label: 'Marital Status', value: user.marital_status ? user.marital_status.replace(/_/g, ' ') : 'Not recorded' },
+                  { label: 'Religion / Faith', value: user.religion || 'Not recorded' },
+                  { label: 'NHS Number', value: user.nhs_number || 'Not recorded' },
+                  { label: 'Room', value: user.room_number || 'Not recorded' },
                 ].map((r, i) => (
                   <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 6 ? '1px solid divider' : 'none', pb: i < 6 ? 0.75 : 0 }}>
                     <Typography variant="body2" color="text.secondary">{r.label}</Typography>
@@ -829,43 +968,38 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
             </Paper>
-          </Grid>
-
-          {/* Medical & GP */}
-          <Grid item xs={12} md={6}>
+          {/* Medical & GP (Figma 6.2): allergies ride in this card, in red. GP address stays — live data the frame omits. */}
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <HealthIcon sx={{ fontSize: 18, color: METICLE_COLORS.success }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Medical &amp; GP</Typography>
               </Stack>
               <Stack spacing={1}>
-                {[{ label: 'GP Name', value: user.gp_name || '—' },
-                  { label: 'GP Surgery', value: user.gp_surgery || '—' },
-                  { label: 'GP Phone', value: user.gp_phone || '—' },
-                  { label: 'GP Email', value: user.gp_email || '—', isLong: true },
-                  { label: 'GP Address', value: user.gp_address || '—', isLong: true },
-                  { label: 'Dietary', value: user.dietary_requirements || 'None specified' },
-                ].map((r: any, i) => (
-                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 5 ? '1px solid divider' : 'none', pb: i < 5 ? 0.75 : 0 }}>
+                {[{ label: 'GP name', value: user.gp_name || 'Not recorded' },
+                  { label: 'GP surgery', value: user.gp_surgery || 'Not recorded' },
+                  { label: 'GP phone', value: user.gp_phone || 'Not recorded' },
+                  { label: 'GP email', value: user.gp_email || 'Not recorded', isLong: true },
+                  { label: 'Allergies', value: user.allergies?.length ? user.allergies.join(', ') : 'None recorded', alert: !!user.allergies?.length },
+                  { label: 'Dietary needs', value: user.dietary_requirements || 'Not recorded' },
+                  { label: 'GP address', value: user.gp_address || 'Not recorded', isLong: true },
+                ].map((r: any, i, arr) => (
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < arr.length - 1 ? '1px solid divider' : 'none', pb: i < arr.length - 1 ? 0.75 : 0 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0, mr: 1 }}>{r.label}</Typography>
-                    <Typography variant="body2" fontWeight={600} textAlign="right" sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
+                    <Typography variant="body2" fontWeight={600} textAlign="right" color={r.alert ? 'notice.error.fg' : 'text.primary'} sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
                   </Stack>
                 ))}
               </Stack>
             </Paper>
-          </Grid>
-
-          {/* Pharmacy */}
-          <Grid item xs={12} md={6}>
+          {/* Pharmacy (Figma 6.2 labels). */}
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <AssignmentIcon sx={{ fontSize: 18, color: '#8B7CF6' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Pharmacy</Typography>
               </Stack>
               <Stack spacing={1}>
-                {[{ label: 'Pharmacy Name', value: user.pharmacy_name || '—' },
-                  { label: 'Phone', value: user.pharmacy_phone || '—' },
-                  { label: 'Address', value: user.pharmacy_address || '—', isLong: true },
+                {[{ label: 'Pharmacy', value: user.pharmacy_name || 'Not recorded' },
+                  { label: 'Phone', value: user.pharmacy_phone || 'Not recorded' },
+                  { label: 'Address', value: user.pharmacy_address || 'Not recorded', isLong: true },
                 ].map((r: any, i) => (
                   <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
                     <Typography variant="body2" color="text.secondary">{r.label}</Typography>
@@ -874,31 +1008,30 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
             </Paper>
+            </Stack>
           </Grid>
-
-          {/* Social Worker */}
-          <Grid item xs={12} md={6}>
+          {/* ── Right column: summary cards (Figma 6.2) ── */}
+          <Grid item xs={12} md={5}>
+            <Stack spacing={2.5}>
+            {/* At a glance (Figma 6.2): the frame's key-worker and medicines rows have no data source on this page, so they are omitted. */}
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.warning }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Social Worker</Typography>
+                <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.primary }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>At a glance</Typography>
               </Stack>
               <Stack spacing={1}>
-                {[{ label: 'Name', value: user.social_worker_name || '—' },
-                  { label: 'Phone', value: user.social_worker_phone || '—' },
-                  { label: 'Email', value: user.social_worker_email || '—', isLong: true },
-                ].map((r: any, i) => (
+                {[{ label: 'Location', value: user.location_id && locations.find((l: any) => l.id === user.location_id) ? locations.find((l: any) => l.id === user.location_id).name : '—' },
+                  { label: 'Support level', value: (user.support_level && SUPPORT_LEVEL_LABELS[user.support_level]) || '—' },
+                  { label: 'Care plan review', value: nextPlanReview ? `${nextPlanReview < localDate() ? 'Overdue' : 'Due'} ${formatDateOnly(nextPlanReview)}` : 'None scheduled' },
+                ].map((r, i) => (
                   <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
                     <Typography variant="body2" color="text.secondary">{r.label}</Typography>
-                    <Typography variant="body2" fontWeight={600} sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
+                    <Typography variant="body2" fontWeight={600}>{r.value}</Typography>
                   </Stack>
                 ))}
               </Stack>
             </Paper>
-          </Grid>
-
           {/* Communication */}
-          <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <NoteIcon sx={{ fontSize: 18, color: METICLE_COLORS.primary }} />
@@ -906,7 +1039,7 @@ export default function PersonProfilePage() {
               </Stack>
               <Stack spacing={1}>
                 {[{ label: 'Language', value: user.communication_language || 'English' },
-                  { label: 'Interpreter', value: user.communication_interpreter ? 'Required' : 'Not required' },
+                  { label: 'Interpreter', value: user.communication_interpreter ? 'Required' : 'Not needed' },
                   { label: 'Preferred Method', value: user.communication_method ? user.communication_method.replace(/_/g, ' ') : '—' },
                 ].map((r, i) => (
                   <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
@@ -916,10 +1049,7 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
             </Paper>
-          </Grid>
-
           {/* Admission & Funding */}
-          <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <EventIcon sx={{ fontSize: 18, color: METICLE_COLORS.success }} />
@@ -938,6 +1068,52 @@ export default function PersonProfilePage() {
                 ))}
               </Stack>
             </Paper>
+            {/* Social Worker */}
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                <PersonIcon sx={{ fontSize: 18, color: METICLE_COLORS.warning }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Social Worker</Typography>
+              </Stack>
+              <Stack spacing={1}>
+                {[{ label: 'Name', value: user.social_worker_name || 'Not assigned' },
+                  { label: 'Phone', value: user.social_worker_phone || '—' },
+                  { label: 'Email', value: user.social_worker_email || '—', isLong: true },
+                ].map((r: any, i) => (
+                  <Stack key={r.label} direction="row" justifyContent="space-between" sx={{ borderBottom: i < 2 ? '1px solid divider' : 'none', pb: i < 2 ? 0.75 : 0 }}>
+                    <Typography variant="body2" color="text.secondary">{r.label}</Typography>
+                    <Typography variant="body2" fontWeight={600} sx={r.isLong ? { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}}>{r.value}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Paper>
+            {/* DNACPR & advance decisions (Figma 6.2): one always-visible summary; the in-place warning banner above stays. */}
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: user.dnacpr_status === 'in_place' ? 'notice.warning.bg' : 'background.paper' }}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <WarningIcon sx={{ fontSize: 18, color: user.dnacpr_status === 'in_place' ? 'notice.warning.fg' : 'text.secondary' }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>DNACPR &amp; advance decisions</Typography>
+              </Stack>
+              <Stack spacing={1}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">DNACPR</Typography>
+                  <Typography variant="body2" fontWeight={600}>{user.dnacpr_status === 'in_place' ? 'In place' : user.dnacpr_status === 'not_in_place' ? 'Not in place' : user.dnacpr_status === 'discussed' ? 'Discussed' : 'Not recorded'}</Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">Advance decision</Typography>
+                  <Typography variant="body2" fontWeight={600}>{user.advance_decision ? 'Recorded' : 'None recorded'}</Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">Next review</Typography>
+                  <Typography variant="body2" fontWeight={600}>{user.dnacpr_review_date ? new Date(user.dnacpr_review_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}</Typography>
+                </Stack>
+                {user.advance_decision && (
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.secondary' }}>{user.advance_decision}</Typography>
+                )}
+                {user.dnacpr_details && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>{user.dnacpr_details}</Typography>
+                )}
+              </Stack>
+            </Paper>
+            </Stack>
           </Grid>
 
           {/* Allergies */}
@@ -953,39 +1129,6 @@ export default function PersonProfilePage() {
                 </Stack>
               </PremiumCard>
             </Grid>
-          )}
-
-          {/* DNACPR & Advance Decision */}
-          {(user.dnacpr_status || user.advance_decision) && (
-            <>
-              {user.dnacpr_status && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FFF7E6', bgcolor: user.dnacpr_status === 'in_place' ? '#FFF7E6' : '#F7FAFE' }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <WarningIcon sx={{ fontSize: 18, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: user.dnacpr_status === 'in_place' ? METICLE_COLORS.warning : 'text.secondary' }}>
-                        DNACPR — {user.dnacpr_status === 'in_place' ? 'In Place' : user.dnacpr_status === 'not_in_place' ? 'Not in Place' : 'Discussed'}
-                      </Typography>
-                    </Stack>
-                    {user.dnacpr_date && <Typography variant="caption" color="text.secondary">Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
-                    {user.dnacpr_review_date && <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>Review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
-                    {user.dnacpr_details && <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>{user.dnacpr_details}</Typography>}
-                  </Paper>
-                </Grid>
-              )}
-              {user.advance_decision && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #EAF3FF', bgcolor: 'notice.subtle.bg' }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <NoteIcon sx={{ fontSize: 18, color: '#8B7CF6' }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#8B7CF6' }}>Advance Decision / Living Will</Typography>
-                    </Stack>
-                    {user.advance_decision_date && <Typography variant="caption" color="text.secondary">Signed: {new Date(user.advance_decision_date).toLocaleDateString('en-GB')}</Typography>}
-                    <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{user.advance_decision}</Typography>
-                  </Paper>
-                </Grid>
-              )}
-            </>
           )}
 
           {/* Discharge Summary */}
@@ -1019,13 +1162,34 @@ export default function PersonProfilePage() {
         <Box sx={{ pb: { xs: 10, sm: 5 } }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Box>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Care Plans</Typography>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Care plans</Typography>
               <Typography variant="body2" color="text.secondary">Agreed support and care needs for this person.</Typography>
             </Box>
             <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setError(''); setAddPlanOpen(true) }} sx={{ textTransform: 'none', alignSelf: { xs: 'flex-start', sm: 'center' } }}>
-              Add Care Plan
+              New care plan
             </AppButton>
           </Stack>
+          {(user.care_plans?.length > 0) && (
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', rowGap: 1 }}>
+              {(['all', 'active', 'under_review', 'archived'] as const).map(status => {
+                const count = status === 'all'
+                  ? user.care_plans.length
+                  : user.care_plans.filter((cp: any) => (cp.status || 'active') === status).length
+                const label = status === 'all' ? 'All' : status === 'under_review' ? 'Under review' : status.charAt(0).toUpperCase() + status.slice(1)
+                return (
+                  <Chip
+                    key={status}
+                    label={`${label} (${count})`}
+                    size="small"
+                    onClick={() => setPlanStatusFilter(status)}
+                    color={planStatusFilter === status ? 'primary' : 'default'}
+                    variant={planStatusFilter === status ? 'filled' : 'outlined'}
+                    sx={{ fontWeight: 600 }}
+                  />
+                )
+              })}
+            </Stack>
+          )}
           {isLoading ? (
             <Grid container spacing={2} aria-label="Loading care plans">
               {[0, 1].map(index => <Grid item xs={12} md={6} key={index}>
@@ -1043,11 +1207,11 @@ export default function PersonProfilePage() {
               <Box sx={{ width: 40, height: 40, mx: 'auto', mb: 1.25, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'text.secondary' }}><AssignmentIcon fontSize="small" /></Box>
               <Typography variant="subtitle1" component="h3" fontWeight={600}>No care plans yet</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: 'auto', my: 1 }}>Create a care plan to document this person's agreed support and care needs.</Typography>
-              <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setError(''); setAddPlanOpen(true) }} sx={{ textTransform: 'none', mt: 0.5 }}>Add Care Plan</AppButton>
+              <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setError(''); setAddPlanOpen(true) }} sx={{ textTransform: 'none', mt: 0.5 }}>New care plan</AppButton>
             </Paper>
           ) : (
             <Grid container spacing={2}>
-              {user.care_plans.map((cp: any) => {
+              {(planStatusFilter === 'all' ? user.care_plans : user.care_plans.filter((cp: any) => (cp.status || 'active') === planStatusFilter)).map((cp: any) => {
                 const editPlanForCard = (plan: any) => {
                   setPlanForm({ title: plan.title, category: plan.category, description: plan.description || '', risk_assessment: plan.risk_assessment || '', review_date: plan.review_date ? toDateInput(plan.review_date) : '', mobility_level: plan.mobility_level || '', mobility_aids: plan.mobility_aids || '', communication_needs: plan.communication_needs || '', capacity_status: plan.capacity_status || '', sleep_pattern: plan.sleep_pattern || '', emergency_info: plan.emergency_info || '', personal_goals: plan.personal_goals || '', likes_dislikes: plan.likes_dislikes || '', cultural_needs: plan.cultural_needs || '', file_url: plan.file_url || '', file_name: plan.file_name || '', sections: plan.sections || { ...EMPTY_PLAN_FORM.sections } })
                   setEditPlanId(plan.id); setPlanTab(0); setError(''); setAddPlanOpen(true)
@@ -1064,6 +1228,9 @@ export default function PersonProfilePage() {
                 )
               })}
             </Grid>
+          )}
+          {planStatusFilter !== 'all' && (user.care_plans || []).filter((cp: any) => (cp.status || 'active') === planStatusFilter).length === 0 && user.care_plans?.length > 0 && (
+            <EmptyRow message={`No ${planStatusFilter === 'under_review' ? 'under review' : planStatusFilter} care plans`} />
           )}
         </Box>
       )}
@@ -1133,10 +1300,18 @@ export default function PersonProfilePage() {
       {/* Tab: Risk Assessments */}
       {tab === 4 && (
         <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Risk Assessments</Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 2 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Risk assessments</Typography>
+              {(user.risk_assessments?.length > 0) && (
+                <Typography variant="body2" color="text.secondary">
+                  {user.risk_assessments.length} assessment{user.risk_assessments.length === 1 ? '' : 's'} · {' '}
+                  {user.risk_assessments.filter((ra: any) => ra.review_date && new Date(ra.review_date) < new Date(new Date().toDateString())).length} overdue review
+                </Typography>
+              )}
+            </Box>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddRiskOpen(true)}
-              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Assessment</Button>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2, alignSelf: 'center' }}>New risk assessment</Button>
           </Stack>
           {(!user.risk_assessments || user.risk_assessments.length === 0) ? (
             <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
@@ -1185,64 +1360,57 @@ export default function PersonProfilePage() {
       {/* Tab: Family & Contacts (with portal access status) */}
       {tab === 5 && (
         <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="subtitle1" fontWeight={600}>Family & Contacts</Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600}>Family & contacts</Typography>
+              <Typography variant="body2" color="text.secondary">Invite family to the Family Portal so they can see care notes and plans securely.</Typography>
+            </Box>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }); setAddContactOpen(true) }}
-              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Contact</Button>
+              sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', alignSelf: 'center', flexShrink: 0 }}>Add contact</Button>
           </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add family members and their contact details, then invite them to the Family Portal so they can view care notes and plans securely.</Typography>
 
           {(!user.family_contacts || user.family_contacts.length === 0) ? (
             <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider', mb: 3 }}>
               <Typography color="text.muted">No family contacts added</Typography>
             </Paper>
           ) : (
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              {user.family_contacts.map((fc: any) => {
-                const portalMember = portalMembers.find((pm: any) => pm.email?.toLowerCase() === fc.email?.toLowerCase())
-                return (
-                  <Grid item xs={12} md={6} key={fc.id}>
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>{fc.name}</Typography>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            {fc.relationship && <Typography variant="caption" color="text.secondary">{fc.relationship}</Typography>}
-                            {fc.is_emergency_contact && <Chip label="Emergency" size="small" color="error" />}
-                            {fc.email && <Typography variant="caption" color="text.muted" sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fc.email}</Typography>}
-                          </Stack>
-                        </Box>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          {(() => {
-                            const tooltip = !portalMember ? 'Not invited to Family Portal'
-                              : portalMember.status === 'active' ? 'Portal access active'
-                              : portalMember.status === 'invited' ? 'Portal invite pending'
-                              : portalMember.status === 'revoked' ? 'Portal access revoked'
-                              : 'Portal access inactive'
-                            const iconColor = portalMember?.status === 'active' ? METICLE_COLORS.success
-                              : portalMember?.status === 'invited' ? METICLE_COLORS.warning
-                              : portalMember?.status === 'revoked' ? METICLE_COLORS.danger
-                              : portalMember?.status === 'inactive' ? 'text.secondary'
-                              : 'text.muted'
-                            return (
-                              <Tooltip title={tooltip}>
-                                <PeopleIcon fontSize="small" sx={{ color: iconColor }} />
-                              </Tooltip>
-                            )
-                          })()}
-                          <IconButton size="small" onClick={e => setContactMenuAnchor({ el: e.currentTarget, contact: fc })}>
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
+            <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', mb: 3, overflow: 'hidden' }}>
+              <Stack divider={<Divider />} spacing={0}>
+                {user.family_contacts.map((fc: any) => {
+                  const portalMember = portalMembers.find((pm: any) => pm.email?.toLowerCase() === fc.email?.toLowerCase())
+                  const initials = String(fc.name || '?').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase()
+                  const detailLine = [fc.phone, fc.email].filter(Boolean).join(' · ')
+                  return (
+                    <Box key={fc.id} sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'notice.muted.bg', color: METICLE_COLORS.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>
+                        {initials}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                          <Typography variant="body2" fontWeight={600}>{fc.name}{fc.relationship ? ` · ${fc.relationship}` : ''}</Typography>
+                          {fc.is_emergency_contact && <Chip label="Emergency contact" size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />}
                         </Stack>
-                      </Stack>
-                      <Stack spacing={0.5} sx={{ mt: 1 }}>
-                        {fc.phone && <Stack direction="row" spacing={1} alignItems="center"><PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} /><Typography variant="body2">{fc.phone}</Typography></Stack>}
-                      </Stack>
-                    </Paper>
-                  </Grid>
-                )
-              })}
-            </Grid>
+                        <Typography variant="caption" color="text.secondary" noWrap>{detailLine || 'No contact details'}</Typography>
+                      </Box>
+                      {portalMember?.status === 'active' ? (
+                        <Chip label="Portal: active" size="small" color="success" sx={{ flexShrink: 0 }} />
+                      ) : portalMember?.status === 'invited' ? (
+                        <Chip label="Invited" size="small" color="warning" sx={{ flexShrink: 0 }} />
+                      ) : (fc.email ? (
+                        <Button size="small" variant="outlined"
+                          onClick={() => inlineInvitePortalMutation.mutate({ name: fc.name, email: fc.email, relationship: fc.relationship || '', phone: fc.phone || '', person_id: id })}
+                          disabled={inlineInvitePortalMutation.isPending} sx={{ textTransform: 'none', flexShrink: 0 }}>
+                          Invite to portal
+                        </Button>
+                      ) : null)}
+                      <IconButton size="small" onClick={e => setContactMenuAnchor({ el: e.currentTarget, contact: fc })}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )
+                })}
+              </Stack>
+            </Paper>
           )}
 
           {/* Contact context menu */}
@@ -1352,12 +1520,31 @@ export default function PersonProfilePage() {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); updateMutation.mutate(editForm) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>Edit Person</DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Edit {user.first_name}'s profile</Typography>
+                <Typography variant="body2" color="text.secondary">Changes are saved to their record and shown in the audit trail.</Typography>
+              </Box>
+              <Button onClick={() => setEditOpen(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>Close</Button>
+            </Stack>
+          </DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            <Stack spacing={2} sx={{ mt: 1 }}>
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={12} md={4}>
+                <Tabs orientation="vertical" value={editTab} onChange={(_e, v) => setEditTab(v)}
+                  sx={{ borderRight: 1, borderColor: 'divider', '& .MuiTab-root': { alignItems: 'flex-start', textAlign: 'left', textTransform: 'none', fontWeight: 600, pr: 2 }, '& .Mui-selected': { color: 'primary.main' } }}>
+                  {['Personal details', 'Health & GP', 'Pharmacy', 'Communication', 'Admission & funding', 'Social worker', 'DNACPR & advance decisions', 'Discharge'].map(t => (
+                    <Tab key={t} label={t} sx={{ maxWidth: 'none' }} />
+                  ))}
+                </Tabs>
+              </Grid>
+              <Grid item xs={12} md={8}>
+            {editTab === 0 && (
+            <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
                 <TextField label="First Name" fullWidth value={editForm.first_name || ''} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} />
                 <TextField label="Last Name" fullWidth value={editForm.last_name || ''} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} />
@@ -1367,28 +1554,12 @@ export default function PersonProfilePage() {
                 <TextField label="NHS Number" fullWidth value={editForm.nhs_number || ''} onChange={e => setEditForm({ ...editForm, nhs_number: e.target.value })} />
                 <TextField label="Room" fullWidth value={editForm.room_number || ''} onChange={e => setEditForm({ ...editForm, room_number: e.target.value })} />
               </Stack>
-              <TextField select label="Status" fullWidth value={editForm.status || 'active'} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="discharged">Discharged</MenuItem>
-                <MenuItem value="deceased">Deceased</MenuItem>
-              </TextField>
               <TextField select label="Location" fullWidth value={editForm.location_id || ''} onChange={e => setEditForm({ ...editForm, location_id: e.target.value })}>
                 <MenuItem value="">None specified</MenuItem>
                 {locations.map((l: any) => (
                   <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
                 ))}
               </TextField>
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>GP Details</Typography>
-              <TextField label="GP Name" fullWidth value={editForm.gp_name || ''} onChange={e => setEditForm({ ...editForm, gp_name: e.target.value })} />
-              <TextField label="GP Surgery" fullWidth value={editForm.gp_surgery || ''} onChange={e => setEditForm({ ...editForm, gp_surgery: e.target.value })} />
-              <TextField label="GP Phone" fullWidth value={editForm.gp_phone || ''} onChange={e => setEditForm({ ...editForm, gp_phone: e.target.value })} />
-              <TextField label="GP Email" fullWidth value={editForm.gp_email || ''} onChange={e => setEditForm({ ...editForm, gp_email: e.target.value })} />
-              <TextField label="GP Address" fullWidth multiline rows={2} value={editForm.gp_address || ''} onChange={e => setEditForm({ ...editForm, gp_address: e.target.value })} />
-              <TextField label="Dietary Requirements" fullWidth multiline rows={2} value={editForm.dietary_requirements || ''} onChange={e => setEditForm({ ...editForm, dietary_requirements: e.target.value })} />
-              <TextField label="Allergies (comma-separated)" fullWidth value={Array.isArray(editForm.allergies) ? editForm.allergies.join(', ') : editForm.allergies || ''} onChange={e => setEditForm({ ...editForm, allergies: e.target.value.split(',').map((a: string) => a.trim()).filter(Boolean) })} />
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Personal Details</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField select label="Gender" fullWidth value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
                   <MenuItem value="">— Not specified —</MenuItem>
@@ -1412,8 +1583,54 @@ export default function PersonProfilePage() {
                 </TextField>
                 <TextField label="Religion / Faith" fullWidth placeholder="e.g. Christian, Muslim, Hindu, None" value={editForm.religion || ''} onChange={e => setEditForm({ ...editForm, religion: e.target.value })} />
               </Stack>
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Communication</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Tags / Labels</Typography>
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {['dementia', 'palliative', 'end_of_life', 'learning_disability', 'mental_health', 'autism', 'physical_disability', 'acquired_brain_injury'].map(t => (
+                  <Chip key={t} label={t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    variant={(editForm.tags || []).includes(t) ? 'filled' : 'outlined'}
+                    color={(editForm.tags || []).includes(t) ? 'primary' : 'default'}
+                    size="small" onClick={() => {
+                      const tags = editForm.tags || []
+                      setEditForm({ ...editForm, tags: tags.includes(t) ? tags.filter((x: string) => x !== t) : [...tags, t] })
+                    }} />
+                ))}
+              </Stack>
+            </Stack>
+            )}
+            {editTab === 1 && (
+            <Stack spacing={2}>
+              <TextField label="GP Name" fullWidth value={editForm.gp_name || ''} onChange={e => setEditForm({ ...editForm, gp_name: e.target.value })} />
+              <TextField label="GP Surgery" fullWidth value={editForm.gp_surgery || ''} onChange={e => setEditForm({ ...editForm, gp_surgery: e.target.value })} />
+              <TextField label="GP Phone" fullWidth value={editForm.gp_phone || ''} onChange={e => setEditForm({ ...editForm, gp_phone: e.target.value })} />
+              <TextField label="GP Email" fullWidth value={editForm.gp_email || ''} onChange={e => setEditForm({ ...editForm, gp_email: e.target.value })} />
+              <TextField label="GP Address" fullWidth multiline rows={2} value={editForm.gp_address || ''} onChange={e => setEditForm({ ...editForm, gp_address: e.target.value })} />
+              <TextField label="Dietary Requirements" fullWidth multiline rows={2} value={editForm.dietary_requirements || ''} onChange={e => setEditForm({ ...editForm, dietary_requirements: e.target.value })} />
+              <TextField label="Allergies (comma-separated)" fullWidth value={Array.isArray(editForm.allergies) ? editForm.allergies.join(', ') : editForm.allergies || ''} onChange={e => setEditForm({ ...editForm, allergies: e.target.value.split(',').map((a: string) => a.trim()).filter(Boolean) })} />
+              <Typography variant="subtitle2" fontWeight={600}>Clinical Flags</Typography>
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {['allergies', 'dnr', 'behaviour', 'falls_risk', 'mca_dols', 'choking', 'diabetic', 'epilepsy'].map(f => (
+                  <Chip key={f} label={f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    variant={(editForm.flags || []).includes(f) ? 'filled' : 'outlined'}
+                    color={(editForm.flags || []).includes(f) ? 'error' : 'default'}
+                    size="small" onClick={() => {
+                      const flags = editForm.flags || []
+                      setEditForm({ ...editForm, flags: flags.includes(f) ? flags.filter((x: string) => x !== f) : [...flags, f] })
+                    }} />
+                ))}
+              </Stack>
+            </Stack>
+            )}
+            {editTab === 2 && (
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1}>
+                <TextField label="Pharmacy Name" fullWidth value={editForm.pharmacy_name || ''} onChange={e => setEditForm({ ...editForm, pharmacy_name: e.target.value })} />
+                <TextField label="Pharmacy Phone" fullWidth value={editForm.pharmacy_phone || ''} onChange={e => setEditForm({ ...editForm, pharmacy_phone: e.target.value })} />
+              </Stack>
+              <TextField label="Pharmacy Address" fullWidth multiline rows={2} value={editForm.pharmacy_address || ''} onChange={e => setEditForm({ ...editForm, pharmacy_address: e.target.value })} />
+            </Stack>
+            )}
+            {editTab === 3 && (
+            <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
                 <TextField label="Primary Language" fullWidth placeholder="e.g. English, Polish, Urdu" value={editForm.communication_language || ''} onChange={e => setEditForm({ ...editForm, communication_language: e.target.value })} />
                 <TextField select label="Preferred Method" fullWidth value={editForm.communication_method || ''} onChange={e => setEditForm({ ...editForm, communication_method: e.target.value })}>
@@ -1429,11 +1646,13 @@ export default function PersonProfilePage() {
               </Stack>
               <Button variant={editForm.communication_interpreter ? 'contained' : 'outlined'} color="info"
                 onClick={() => setEditForm({ ...editForm, communication_interpreter: !editForm.communication_interpreter })}
-                sx={{ textTransform: 'none' }}>
+                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
                 {editForm.communication_interpreter ? '✓ Interpreter Required' : 'Interpreter Needed'}
               </Button>
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Admission & Funding</Typography>
+            </Stack>
+            )}
+            {editTab === 4 && (
+            <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
                 <TextField label="Admission Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.admission_date || ''} onChange={e => setEditForm({ ...editForm, admission_date: e.target.value })} />
                 <TextField label="Admitted From" fullWidth placeholder="e.g. Home, Hospital, Other care home" value={editForm.admission_source || ''} onChange={e => setEditForm({ ...editForm, admission_source: e.target.value })} />
@@ -1460,48 +1679,19 @@ export default function PersonProfilePage() {
                   fullWidth required helperText="How many staff are required to support this person safely at all times?"
                   value={editForm.min_staff_required || ''} onChange={e => setEditForm({ ...editForm, min_staff_required: e.target.value })} />
               )}
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Pharmacy</Typography>
-              <Stack direction="row" spacing={1}>
-                <TextField label="Pharmacy Name" fullWidth value={editForm.pharmacy_name || ''} onChange={e => setEditForm({ ...editForm, pharmacy_name: e.target.value })} />
-                <TextField label="Pharmacy Phone" fullWidth value={editForm.pharmacy_phone || ''} onChange={e => setEditForm({ ...editForm, pharmacy_phone: e.target.value })} />
-              </Stack>
-              <TextField label="Pharmacy Address" fullWidth multiline rows={2} value={editForm.pharmacy_address || ''} onChange={e => setEditForm({ ...editForm, pharmacy_address: e.target.value })} />
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Social Worker</Typography>
+            </Stack>
+            )}
+            {editTab === 5 && (
+            <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
                 <TextField label="Name" fullWidth value={editForm.social_worker_name || ''} onChange={e => setEditForm({ ...editForm, social_worker_name: e.target.value })} />
                 <TextField label="Phone" fullWidth value={editForm.social_worker_phone || ''} onChange={e => setEditForm({ ...editForm, social_worker_phone: e.target.value })} />
               </Stack>
               <TextField label="Email" fullWidth value={editForm.social_worker_email || ''} onChange={e => setEditForm({ ...editForm, social_worker_email: e.target.value })} />
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Clinical Flags</Typography>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                {['allergies', 'dnr', 'behaviour', 'falls_risk', 'mca_dols', 'choking', 'diabetic', 'epilepsy'].map(f => (
-                  <Chip key={f} label={f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    variant={(editForm.flags || []).includes(f) ? 'filled' : 'outlined'}
-                    color={(editForm.flags || []).includes(f) ? 'error' : 'default'}
-                    size="small" onClick={() => {
-                      const flags = editForm.flags || []
-                      setEditForm({ ...editForm, flags: flags.includes(f) ? flags.filter((x: string) => x !== f) : [...flags, f] })
-                    }} />
-                ))}
-              </Stack>
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Tags / Labels</Typography>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                {['dementia', 'palliative', 'end_of_life', 'learning_disability', 'mental_health', 'autism', 'physical_disability', 'acquired_brain_injury'].map(t => (
-                  <Chip key={t} label={t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    variant={(editForm.tags || []).includes(t) ? 'filled' : 'outlined'}
-                    color={(editForm.tags || []).includes(t) ? 'primary' : 'default'}
-                    size="small" onClick={() => {
-                      const tags = editForm.tags || []
-                      setEditForm({ ...editForm, tags: tags.includes(t) ? tags.filter((x: string) => x !== t) : [...tags, t] })
-                    }} />
-                ))}
-              </Stack>
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>DNACPR & Advance Decisions</Typography>
+            </Stack>
+            )}
+            {editTab === 6 && (
+            <Stack spacing={2}>
               <TextField select label="DNACPR Status" fullWidth value={editForm.dnacpr_status || ''} onChange={e => setEditForm({ ...editForm, dnacpr_status: e.target.value })}>
                 <MenuItem value="">— Not specified —</MenuItem>
                 <MenuItem value="in_place">In place</MenuItem>
@@ -1515,11 +1705,72 @@ export default function PersonProfilePage() {
               <TextField label="DNACPR Details" fullWidth multiline rows={2} value={editForm.dnacpr_details || ''} onChange={e => setEditForm({ ...editForm, dnacpr_details: e.target.value })} />
               <TextField label="Advance Decision / Living Will" fullWidth multiline rows={3} value={editForm.advance_decision || ''} onChange={e => setEditForm({ ...editForm, advance_decision: e.target.value })} />
               <TextField label="Advance Decision Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.advance_decision_date || ''} onChange={e => setEditForm({ ...editForm, advance_decision_date: e.target.value })} />
-              <Divider />
-              <Typography variant="subtitle2" fontWeight={600}>Discharge</Typography>
+            </Stack>
+            )}
+            {editTab === 7 && (
+            <Stack spacing={2}>
+              <Typography variant="body2" color="text.secondary">
+                Use this when {user.first_name} moves on. Their record is kept safe under Discharged.
+              </Typography>
+              <Button variant="outlined" color="error" onClick={() => { setEditOpen(false); setDischargeOpen(true) }}
+                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
+                Discharge {user.first_name}…
+              </Button>
+            </Stack>
+            )}
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
+              {updateMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* Move to another home Dialog */}
+      <Dialog open={roomMoveOpen} onClose={() => setRoomMoveOpen(false)} maxWidth="xs" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); moveMutation.mutate({ location_id: moveForm.location_id || null, room_number: moveForm.room_number || null }) }}>
+          <DialogTitle sx={{ fontWeight: 600 }}>Move {user.first_name} to another home</DialogTitle>
+          <DialogContent>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Choose where {user.first_name} is moving to. The rota and room board update straight away.
+              </Typography>
+              <TextField select label="Location" fullWidth value={moveForm.location_id} onChange={e => setMoveForm({ ...moveForm, location_id: e.target.value })}>
+                <MenuItem value="">None specified</MenuItem>
+                {locations.map((l: any) => (
+                  <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                ))}
+              </TextField>
+              <TextField label="Room" fullWidth value={moveForm.room_number} onChange={e => setMoveForm({ ...moveForm, room_number: e.target.value })} />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setRoomMoveOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={moveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
+              {moveMutation.isPending ? <CircularProgress size={20} /> : 'Move'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* Discharge Dialog */}
+      <Dialog open={dischargeOpen} onClose={() => setDischargeOpen(false)} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); dischargeMutation.mutate(dischargeForm) }}>
+          <DialogTitle sx={{ fontWeight: 600 }}>Discharge {user.first_name} {user.last_name}</DialogTitle>
+          <DialogContent>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Their record is kept safe under Discharged, including notes, care plans and documents.
+              </Typography>
               <Stack direction="row" spacing={1}>
-                <TextField label="Discharge Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={editForm.discharge_date || ''} onChange={e => setEditForm({ ...editForm, discharge_date: e.target.value })} />
-                <TextField select label="Destination" fullWidth value={editForm.discharge_destination || ''} onChange={e => setEditForm({ ...editForm, discharge_destination: e.target.value })}>
+                <TextField label="Discharge Date" type="date" fullWidth required InputLabelProps={{ shrink: true }} value={dischargeForm.discharge_date} onChange={e => setDischargeForm({ ...dischargeForm, discharge_date: e.target.value })} />
+                <TextField select label="Destination" fullWidth value={dischargeForm.discharge_destination} onChange={e => setDischargeForm({ ...dischargeForm, discharge_destination: e.target.value })}>
                   <MenuItem value="">— Not specified —</MenuItem>
                   <MenuItem value="home">Home</MenuItem>
                   <MenuItem value="family">Family member's home</MenuItem>
@@ -1529,14 +1780,14 @@ export default function PersonProfilePage() {
                   <MenuItem value="other">Other</MenuItem>
                 </TextField>
               </Stack>
-              <TextField label="Discharge Reason" fullWidth value={editForm.discharge_reason || ''} onChange={e => setEditForm({ ...editForm, discharge_reason: e.target.value })} />
-              <TextField label="Discharge Summary" fullWidth multiline rows={3} value={editForm.discharge_summary || ''} onChange={e => setEditForm({ ...editForm, discharge_summary: e.target.value })} />
+              <TextField label="Discharge Reason" fullWidth value={dischargeForm.discharge_reason} onChange={e => setDischargeForm({ ...dischargeForm, discharge_reason: e.target.value })} />
+              <TextField label="Discharge Summary" fullWidth multiline rows={3} value={dischargeForm.discharge_summary} onChange={e => setDischargeForm({ ...dischargeForm, discharge_summary: e.target.value })} />
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {updateMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
+          <DialogActions>
+            <Button onClick={() => setDischargeOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained" color="error" disabled={dischargeMutation.isPending} sx={{ textTransform: 'none' }}>
+              {dischargeMutation.isPending ? <CircularProgress size={20} /> : 'Discharge'}
             </Button>
           </DialogActions>
         </Box>
@@ -1552,22 +1803,23 @@ export default function PersonProfilePage() {
             addPlanMutation.mutate(planForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 600, pb: 0 }}>{editPlanId ? 'Edit Care Plan' : 'Add Care Plan'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrowFor(user, 'CARE')} title={editPlanId ? 'Edit care plan' : 'New care plan'} subtitle="Enter care plan details where you can." onClose={() => { setAddPlanOpen(false); setEditPlanId(null); setError('') }} />
           <Tabs value={planTab} onChange={(_, v) => setPlanTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 3, mb: 1 }}>
             <Tab label="Details" />
             <Tab label="Person-Centred Plan" />
           </Tabs>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>For {user.first_name} {user.last_name}</Typography>
+
             {planTab === 0 ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required value={planForm.title} onChange={e => setPlanForm({ ...planForm, title: e.target.value })} />
-              <TextField select label="Category" fullWidth required value={planForm.category} onChange={e => setPlanForm({ ...planForm, category: e.target.value })}>
-                {CATEGORY_OPTIONS.map(c => <MenuItem key={c} value={c} sx={{ textTransform: 'capitalize' }}>{c.replace(/_/g, ' ')}</MenuItem>)}
-              </TextField>
-              <TextField label="Description" fullWidth multiline rows={3} value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })} />
-              <TextField label="Risk Assessment" fullWidth multiline rows={2} value={planForm.risk_assessment} onChange={e => setPlanForm({ ...planForm, risk_assessment: e.target.value })} />
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Care area</Typography>
+                <PillOptions options={CATEGORY_OPTIONS.map(c => ({ value: c, label: c.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) }))} value={planForm.category} onChange={v => setPlanForm({ ...planForm, category: v })} />
+              </Box>
+              <TextField label={`What matters to ${user.first_name}`} fullWidth multiline rows={3} value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })} placeholder="Routines, preferences, the small things that matter." />
+              <TextField label={`How we support ${user.first_name}`} fullWidth multiline rows={2} value={planForm.risk_assessment} onChange={e => setPlanForm({ ...planForm, risk_assessment: e.target.value })} placeholder="What good support looks like, step by step." />
               <TextField label="Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={planForm.review_date} onChange={e => setPlanForm({ ...planForm, review_date: e.target.value })} />
 
               {planForm.category && CATEGORY_FIELDS[planForm.category]?.includes('mobility_level') && (
@@ -1730,13 +1982,13 @@ export default function PersonProfilePage() {
               <Stack spacing={2}>
                 {viewPlan.description && (
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight={600}>DESCRIPTION</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>WHAT MATTERS TO {user.first_name.toUpperCase()}</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.description}</Typography>
                   </Paper>
                 )}
                 {viewPlan.risk_assessment && (
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.warning.bg', borderColor: '#FFF7E6', borderRadius: 2 }}>
-                    <Typography variant="caption" color='notice.warning.fg' fontWeight={600}>RISK ASSESSMENT</Typography>
+                    <Typography variant="caption" color='notice.warning.fg' fontWeight={600}>HOW WE SUPPORT {user.first_name.toUpperCase()}</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.risk_assessment}</Typography>
                   </Paper>
                 )}
@@ -1825,6 +2077,10 @@ export default function PersonProfilePage() {
               </Stack>
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
+              <Button variant="outlined" sx={{ textTransform: 'none' }}
+                onClick={() => { updatePlanMutation.mutate({ planId: viewPlan.id, data: { review_date: localDate() } }); closeCarePlanView() }}>
+                Mark as reviewed
+              </Button>
               <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}
                 onClick={() => { closeCarePlanView(); const p = viewPlan; setTimeout(() => { setPlanForm({ title: p.title, category: p.category, description: p.description || '', risk_assessment: p.risk_assessment || '', review_date: p.review_date || '', mobility_level: p.mobility_level || '', mobility_aids: p.mobility_aids || '', communication_needs: p.communication_needs || '', capacity_status: p.capacity_status || '', sleep_pattern: p.sleep_pattern || '', emergency_info: p.emergency_info || '', personal_goals: p.personal_goals || '', likes_dislikes: p.likes_dislikes || '', cultural_needs: p.cultural_needs || '', file_url: p.file_url || '', file_name: p.file_name || '', sections: p.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(p.id); setPlanTab(0); setAddPlanOpen(true) }, 100) }}>
                 Edit Plan
@@ -2226,18 +2482,19 @@ export default function PersonProfilePage() {
             addRiskMutation.mutate(riskForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editRiskId ? 'Edit Risk Assessment' : 'Add Risk Assessment'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrowFor(user, 'CARE')} title={editRiskId ? 'Edit risk assessment' : 'New risk assessment'} subtitle="Enter risk assessment details where you can." onClose={() => { setAddRiskOpen(false); setEditRiskId(null); setError('') }} />
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField select label="Type" fullWidth required value={riskForm.type} onChange={e => setRiskForm({ ...riskForm, type: e.target.value })}>
                 {RISK_TYPES.map(t => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t.replace(/_/g, ' ')}</MenuItem>)}
               </TextField>
-              <TextField select label="Risk Level" fullWidth required value={riskForm.risk_level} onChange={e => setRiskForm({ ...riskForm, risk_level: e.target.value })}>
-                {Object.keys(RISK_COLORS).map(k => <MenuItem key={k} value={k} sx={{ textTransform: 'capitalize' }}>{k}</MenuItem>)}
-              </TextField>
-              <TextField label="Details" fullWidth multiline rows={3} value={riskForm.details} onChange={e => setRiskForm({ ...riskForm, details: e.target.value })} />
-              <TextField label="Mitigation Actions" fullWidth multiline rows={3} value={riskForm.mitigation_actions} onChange={e => setRiskForm({ ...riskForm, mitigation_actions: e.target.value })} />
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Risk level</Typography>
+                <PillOptions options={Object.keys(RISK_COLORS).map(k => ({ value: k, label: k.charAt(0).toUpperCase() + k.slice(1) }))} value={riskForm.risk_level} onChange={v => setRiskForm({ ...riskForm, risk_level: v })} />
+              </Box>
+              <TextField label="What could happen" fullWidth multiline rows={3} value={riskForm.details} onChange={e => setRiskForm({ ...riskForm, details: e.target.value })} placeholder="Falls when getting out of bed at night..." />
+              <TextField label="What we do to reduce it" fullWidth multiline rows={3} value={riskForm.mitigation_actions} onChange={e => setRiskForm({ ...riskForm, mitigation_actions: e.target.value })} placeholder="Sensor mat by the bed, night light on..." />
               <TextField label="Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={riskForm.review_date} onChange={e => setRiskForm({ ...riskForm, review_date: e.target.value })} />
               <Box>
                 <input type="file" ref={riskFileInputRef} hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={async e => {
@@ -2270,7 +2527,7 @@ export default function PersonProfilePage() {
             <Button onClick={() => { setAddRiskOpen(false); setEditRiskId(null); setError('') }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addRiskMutation.isPending || updateRiskMutation.isPending || riskFileUploading}
               sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addRiskMutation.isPending || updateRiskMutation.isPending) ? <CircularProgress size={20} /> : (editRiskId ? 'Save' : 'Add Assessment')}
+              {(addRiskMutation.isPending || updateRiskMutation.isPending) ? <CircularProgress size={20} /> : (editRiskId ? 'Save changes' : 'Save risk assessment')}
             </Button>
           </DialogActions>
         </Box>
@@ -2286,11 +2543,11 @@ export default function PersonProfilePage() {
             addContactMutation.mutate(contactForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{contactEditId ? 'Edit Contact' : 'Add Family Contact'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrowFor(user, 'PEOPLE')} title={contactEditId ? 'Edit contact' : 'Add a contact'} subtitle={`Family, friends and professionals who take part in ${user.first_name}'s life.`} onClose={() => { setAddContactOpen(false); setContactEditId(null) }} />
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label="Full Name" fullWidth required value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} />
+              <TextField label="Name" fullWidth required value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} placeholder="Helen Price" />
               <TextField label="Relationship" fullWidth value={contactForm.relationship} onChange={e => setContactForm({ ...contactForm, relationship: e.target.value })} />
               <Stack direction="row" spacing={1}>
                 <TextField label="Phone" fullWidth value={contactForm.phone} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} />
@@ -2304,11 +2561,11 @@ export default function PersonProfilePage() {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => { setAddContactOpen(false); setContactEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addContactMutation.isPending || updateContactMutation.isPending}
               sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addContactMutation.isPending || updateContactMutation.isPending) ? <CircularProgress size={20} /> : (contactEditId ? 'Save' : 'Add Contact')}
+              {(addContactMutation.isPending || updateContactMutation.isPending) ? <CircularProgress size={20} /> : (contactEditId ? 'Save changes' : 'Save contact')}
             </Button>
+            <Button onClick={() => { setAddContactOpen(false); setContactEditId(null) }} sx={{ textTransform: 'none' }}>Cancel</Button>
           </DialogActions>
         </Box>
       </Dialog>
@@ -2319,11 +2576,11 @@ export default function PersonProfilePage() {
           e.preventDefault()
           inviteFromContactMutation.mutate({ ...invitePortalForm, person_id: id })
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>Invite to Family Portal</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrowFor(user, 'PEOPLE')} title="Invite to the family portal" subtitle={`${invitePortalForm.name?.split(' ')[0] || 'They'} can use the website and app to share. ${user.first_name} has agreed to this.`} onClose={() => { setInvitePortalOpen(false); setInvitePortalError('') }} />
           <DialogContent>
             {invitePortalError && <Alert severity="error" sx={{ mb: 2 }}>{invitePortalError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">Send portal access invitation to this family member. They'll receive an email with a secure link.</Typography>
+              <Typography variant="body2" color="text.secondary">They'll receive an email with a secure link to set up their portal.</Typography>
               <TextField label="Full Name" fullWidth required value={invitePortalForm.name} onChange={e => setInvitePortalForm({ ...invitePortalForm, name: e.target.value })} />
               <TextField label="Email" fullWidth required type="email" value={invitePortalForm.email} onChange={e => setInvitePortalForm({ ...invitePortalForm, email: e.target.value })} />
               <Stack direction="row" spacing={1}>
@@ -2344,7 +2601,7 @@ export default function PersonProfilePage() {
 
       {/* View Risk Assessment Dialog */}
       <Dialog open={!!viewRisk} onClose={() => setViewRisk(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Risk Assessment</DialogTitle>
+        <FigDialogHeader eyebrow={`RISK ASSESSMENT - ${`${user.first_name} ${user.last_name}`.toUpperCase()}`} title={viewRisk?.type?.replace(/_/g, ' ') || 'Risk assessment'} subtitle={viewRisk?.review_date ? `Review date ${new Date(viewRisk.review_date).toLocaleDateString('en-GB')}` : 'No review date set'} onClose={() => setViewRisk(null)} />
         <DialogContent>
           {viewRisk && (
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2390,7 +2647,8 @@ export default function PersonProfilePage() {
             onClick={() => { const r = viewRisk; setViewRisk(null); setTimeout(() => { setRiskForm({ type: r.type, risk_level: r.risk_level, details: r.details || '', mitigation_actions: r.mitigation_actions || '', review_date: r.review_date ? r.review_date.slice(0, 10) : '', file_url: r.file_url || '', file_name: r.file_name || '' }); setEditRiskId(r.id); setAddRiskOpen(true) }, 100) }}>
             Edit
           </Button>
-          <Button onClick={() => setViewRisk(null)}>Close</Button>
+          <Button variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }} onClick={() => { if (viewRisk) updateRiskMutation.mutate({ riskId: viewRisk.id, data: { review_date: localDate() } }); setViewRisk(null) }}>Mark as reviewed</Button>
+          <Button onClick={() => setViewRisk(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
         </DialogActions>
       </Dialog>
 
@@ -2421,6 +2679,8 @@ const ASSESSMENT_STATUS_COLORS: Record<string, string> = { draft: METICLE_COLORS
 
 function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
+  const eyebrow = usePersonEyebrow(personId, 'CARE')
   const [open, setOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [selected, setSelected] = useState<any>(null)
@@ -2442,12 +2702,15 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
       return api.post(`/people/${personId}/assessments`, payload)
     },
     onSuccess: () => {
+      const started = !editAssessment
+      const label = form.assessment_type || 'Assessment'
       queryClient.invalidateQueries({ queryKey: ['assessments', personId] })
       queryClient.invalidateQueries({ queryKey: ['timeline', personId] })
       setOpen(false)
       setEditAssessment(null)
       resetForm()
       setError('')
+      showSnackbar(started ? `${label} assessment is in progress. It's saved.` : `${label} assessment is updated.`, 'success', started ? 'Assessment started' : 'Assessment updated')
     },
     onError: (err: any) => setError(err.response?.data?.message || err.message || 'Failed to save assessment'),
   })
@@ -2471,11 +2734,35 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
     setOpen(true)
   }
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
+  const downloadAssessment = () => {
+    if (!selected) return
+    const lines = [
+      `${selected.assessment_type || 'Assessment'}`,
+      `Date: ${selected.assessment_date ? new Date(selected.assessment_date).toLocaleDateString('en-GB') : '—'}`,
+      `Assessor: ${selected.assessor_name || '—'}`,
+      `Status: ${selected.status || '—'}`,
+      `Next review: ${selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}`,
+      '',
+      'Findings:',
+      selected.findings || '—',
+      '',
+      'Recommendations:',
+      selected.recommendations || '—',
+    ]
+    const fname = `${(selected.assessment_type || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`
+    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }))
+    const a = document.createElement('a')
+    a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove()
+    URL.revokeObjectURL(url)
+    showSnackbar(`${fname} is downloaded.`, 'success', 'Download started')
+  }
   if (isError) return <Alert severity="error">Failed to load assessments</Alert>
   return (
     <Box>
-      <SectionHeader title="Care Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New Assessment</Button>} />
+      <SectionHeader title="Care assessments"
+        subtitle={assessments?.length > 0 ? `${assessments.length} assessment${assessments.length === 1 ? '' : 's'} · ${assessments.filter((a: any) => a.next_review_date && new Date(a.next_review_date).getFullYear() === new Date().getFullYear() && new Date(a.next_review_date).getMonth() === new Date().getMonth()).length} due this month` : undefined}
+        action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Start assessment</Button>} />
       {(!assessments || assessments.length === 0) ? (
         <EmptyRow message="No assessments yet" />
       ) : (
@@ -2483,11 +2770,10 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Assessor</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Completed</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Next Review</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Next due</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Attachment</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
               </TableRow>
@@ -2496,8 +2782,10 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
               {assessments.map((a: any) => (
                 <TableRow key={a.id} hover sx={{ cursor: 'pointer' }} onClick={() => { setSelected(a); setViewOpen(true) }}>
                   <TableCell sx={{ fontWeight: 600 }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
-                  <TableCell>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell>{a.assessor_name || '—'}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2">{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
+                    {a.assessor_name && <Typography variant="caption" color="text.secondary">{a.assessor_name}</Typography>}
+                  </TableCell>
                   <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#51637A'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>
@@ -2521,7 +2809,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
 
       {/* View Dialog */}
       <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>{selected?.assessment_type}</DialogTitle>
+        <FigDialogHeader eyebrow={`ASSESSMENT - ${eyebrow.split(' / ')[0]}`} title={selected?.assessment_type || 'Assessment'} subtitle={selected?.assessment_date ? `Completed ${new Date(selected.assessment_date).toLocaleDateString('en-GB')}${selected.assessor_name ? ` by ${selected.assessor_name}` : ''}` : undefined} onClose={() => setViewOpen(false)} />
         <DialogContent>
           {selected && (
             <Stack spacing={2}>
@@ -2551,14 +2839,15 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
             onClick={() => { const a = selected; setViewOpen(false); setTimeout(() => openEdit(a), 100) }}>
             Edit
           </Button>
-          <Button onClick={() => setViewOpen(false)}>Close</Button>
+          <Button variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }} onClick={downloadAssessment}>Download PDF</Button>
+          <Button onClick={() => setViewOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
         </DialogActions>
       </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={open} onClose={() => { setOpen(false); setError('') }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); saveMutation.mutate() }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editAssessment ? 'Edit Assessment' : 'New Assessment'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={editAssessment ? 'Edit assessment' : 'Start an assessment'} subtitle="Choose the assessment you can start and click start to begin." onClose={() => { setOpen(false); setError('') }} />
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2606,7 +2895,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setOpen(false); setError('') }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={!form.assessment_type.trim() || saveMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {saveMutation.isPending ? <CircularProgress size={20} /> : editAssessment ? 'Update' : 'Create'}
+              {saveMutation.isPending ? <CircularProgress size={20} /> : editAssessment ? 'Save changes' : 'Start assessment'}
             </Button>
           </DialogActions>
         </Box>
@@ -2630,7 +2919,23 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   )
 }
 
+const TIMELINE_BADGES: Record<string, { label: string; color: string; bg: string }> = {
+  note: { label: 'Note', color: 'notice.info.fg', bg: 'notice.info.bg' },
+  medication: { label: 'Medication', color: '#8B7CF6', bg: '#EAF3FF' },
+  care_plan: { label: 'Care plan', color: 'notice.success.fg', bg: 'notice.success.bg' },
+  safety: { label: 'Safety', color: 'notice.warning.fg', bg: 'notice.warning.bg' },
+}
+
+const timelineBadgeFor = (t: string) => {
+  if (['daily_note', 'communication', 'memory_book', 'wellbeing'].includes(t)) return TIMELINE_BADGES.note
+  if (['health_observation', 'bowel_movement', 'dental', 'fluid_intake', 'meal', 'clinical_score'].includes(t)) return TIMELINE_BADGES.medication
+  if (['risk_assessment', 'body_map', 'incident', 'capacity'].includes(t)) return TIMELINE_BADGES.safety
+  return TIMELINE_BADGES.care_plan
+}
+
 function TimelineTab({ personId }: { personId: string }) {
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [rangeFilter, setRangeFilter] = useState('all')
   const { data: timeline = [], isLoading } = useQuery({
     queryKey: ['timeline', personId],
     queryFn: () => api.get(`/people/${personId}/timeline`).then(r => r.data),
@@ -2638,53 +2943,95 @@ function TimelineTab({ personId }: { personId: string }) {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
   const EVENT_ICONS: Record<string, any> = {
-    admission: <EventIcon sx={{ color: METICLE_COLORS.primary }} />,
+    admission: <HomeIcon sx={{ color: METICLE_COLORS.primary }} />,
     care_plan: <AssignmentIcon sx={{ color: METICLE_COLORS.success }} />,
-    daily_note: <NoteIcon sx={{ color: METICLE_COLORS.warning }} />,
-    risk_assessment: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
-    health: <HealthIcon sx={{ color: '#8B7CF6' }} />,
     assessment: <PersonIcon sx={{ color: '#046E86' }} />,
+    care_pathway: <AssignmentIcon sx={{ color: METICLE_COLORS.success }} />,
+    goal: <FlagIcon sx={{ color: METICLE_COLORS.success }} />,
+    daily_note: <NoteIcon sx={{ color: METICLE_COLORS.warning }} />,
+    communication: <ChatIcon sx={{ color: METICLE_COLORS.primary }} />,
+    memory_book: <NoteIcon sx={{ color: METICLE_COLORS.warning }} />,
+    wellbeing: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    health_observation: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    bowel_movement: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    dental: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    fluid_intake: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    meal: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    clinical_score: <HealthIcon sx={{ color: '#8B7CF6' }} />,
+    risk_assessment: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
+    body_map: <HealthIcon sx={{ color: METICLE_COLORS.danger }} />,
     incident: <WarningIcon sx={{ color: METICLE_COLORS.danger }} />,
+    capacity: <ShieldIcon sx={{ color: METICLE_COLORS.primary }} />,
     time_away: <LuggageIcon sx={{ color: METICLE_COLORS.warning }} />,
     discharge_checklist: <LuggageIcon sx={{ color: '#046E86' }} />,
   }
 
+  const eventTypes: string[] = Array.from(new Set(timeline.map((e: any) => e.event_type).filter(Boolean)))
+  const rangeDays = rangeFilter === 'all' ? null : Number(rangeFilter)
+  const cutoff = rangeDays != null ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null
+  const visible = timeline.filter((event: any) =>
+    (typeFilter === 'all' || event.event_type === typeFilter) &&
+    (cutoff == null || (event.created_at && new Date(event.created_at).getTime() >= cutoff)),
+  )
+
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 3 }}>Person Timeline</Typography>
-      {timeline.length === 0 ? (
-        <EmptyRow message="No timeline events yet" />
+      <SectionHeader title="Timeline" subtitle="Everything recorded, newest first" />
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
+        <TextField select size="small" label="Type" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} sx={{ minWidth: 200 }}>
+          <MenuItem value="all">Everything</MenuItem>
+          {eventTypes.map(t => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t.replace(/_/g, ' ')}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Period" value={rangeFilter} onChange={e => setRangeFilter(e.target.value)} sx={{ minWidth: 160 }}>
+          <MenuItem value="all">Everything</MenuItem>
+          <MenuItem value="7">Last 7 days</MenuItem>
+          <MenuItem value="30">Last 30 days</MenuItem>
+        </TextField>
+      </Stack>
+      {visible.length === 0 ? (
+        <EmptyRow message={timeline.length === 0 ? 'No timeline events yet' : 'No events match these filters'} />
       ) : (
-        <Box sx={{ position: 'relative' }}>
-          <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: 'divider' }} />
-          <Stack spacing={2}>
-            {timeline.map((event: any, i: number) => (
-              <Box key={event.id || i} sx={{ position: 'relative', pl: 6 }}>
-                <Box sx={{ position: 'absolute', left: 12, top: 4, width: 16, height: 16, borderRadius: '50%', bgcolor: 'white', border: '2px solid', borderColor: METICLE_COLORS.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: METICLE_COLORS.primary }} />
-                </Box>
-                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                    <Box sx={{ mt: 0.3 }}>{EVENT_ICONS[event.event_type] || <EventIcon />}</Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
-                          {event.event_label || event.event_type?.replace(/_/g, ' ')}
-                        </Typography>
-                        <Typography variant="caption" color="text.muted">
-                          {event.created_at ? new Date(event.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </Typography>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {visible.map((event: any, i: number) => {
+                const badge = timelineBadgeFor(event.event_type)
+                const sub = [event.description, event.performed_by ? `by ${event.performed_by}` : ''].filter(Boolean).join(' · ')
+                return (
+                  <TableRow key={event.id || i} hover>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <Typography variant="body2" fontWeight={600}>
+                        {event.created_at ? new Date(event.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </Typography>
+                      <Typography variant="caption" color="text.muted">
+                        {event.created_at ? new Date(event.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {EVENT_ICONS[event.event_type] || <EventIcon />}
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={600} noWrap>{event.event_label || event.event_type?.replace(/_/g, ' ')}</Typography>
+                          {sub && <Typography variant="caption" color="text.muted" noWrap sx={{ display: 'block', maxWidth: 420 }}>{sub}</Typography>}
+                        </Box>
                       </Stack>
-                      {event.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{event.description}</Typography>}
-                      {event.details && <Typography variant="body2" color="#3A4551" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{event.details}</Typography>}
-                      {event.performed_by && <Typography variant="caption" color="text.muted" sx={{ mt: 0.5, display: 'block' }}>by {event.performed_by}</Typography>}
-                    </Box>
-                  </Stack>
-                </Paper>
-              </Box>
-            ))}
-          </Stack>
-        </Box>
+                    </TableCell>
+                    <TableCell><Chip size="small" label={badge.label} sx={{ bgcolor: badge.bg, color: badge.color, fontWeight: 600 }} /></TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </Box>
   )
@@ -2717,13 +3064,13 @@ function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; 
 
   const addCheckMutation = useMutation({
     mutationFn: (data: any) => api.post('/room-checks', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar('Room check recorded') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar(`Room ${roomNumber} check is saved.`, 'success', 'Room check saved') },
     onError: (err: any) => setRcError(err.response?.data?.message || 'Failed to save'),
   })
 
   const updateCheckMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/room-checks/${rcEditId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar('Room check updated') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar(`Room ${roomNumber} check is updated.`, 'success', 'Room check saved') },
     onError: (err: any) => setRcError(err.response?.data?.message || 'Failed to update'),
   })
 
@@ -2762,8 +3109,8 @@ function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; 
 
   return (
     <Box>
-      <SectionHeader title={`Room Checks for Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { rcResetForm(); setRcEditId(null); setRcError(''); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Record Check</Button>} />
+      <SectionHeader title="Room checks" subtitle={`Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { rcResetForm(); setRcEditId(null); setRcError(''); setAddOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Record a check</Button>} />
       {checks.length === 0 ? (
         <EmptyRow message="No room checks recorded for this room" />
       ) : (
@@ -2867,7 +3214,7 @@ function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; 
       {/* Add / Edit Room Check Dialog */}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setRcEditId(null) }} maxWidth="xs" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); setRcError(''); const data = { ...rcForm, room_number: roomNumber, location_id: locationId || undefined }; if (rcEditId) updateCheckMutation.mutate(data); else addCheckMutation.mutate(data) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{rcEditId ? 'Edit Room Check' : 'Record Room Check'}</DialogTitle>
+          <FigDialogHeader eyebrow={`ROOM ${roomNumber || ''} / RECORDS`} title={rcEditId ? 'Edit room check' : 'Record a room check'} subtitle={`Room ${roomNumber || ''} — record each check before saving.`} onClose={() => { setAddOpen(false); setRcEditId(null) }} />
           <DialogContent>
             {rcError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{rcError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2895,7 +3242,7 @@ function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; 
             <Button onClick={() => { setAddOpen(false); setRcEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addCheckMutation.isPending || updateCheckMutation.isPending}
               sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addCheckMutation.isPending || updateCheckMutation.isPending) ? <CircularProgress size={20} /> : rcEditId ? 'Save Changes' : 'Save Check'}
+              {(addCheckMutation.isPending || updateCheckMutation.isPending) ? <CircularProgress size={20} /> : rcEditId ? 'Save changes' : 'Save check'}
             </Button>
           </DialogActions>
         </Box>
@@ -2906,6 +3253,12 @@ function RoomChecksTab({ roomNumber, locationId }: { roomNumber: string | null; 
         onConfirm={() => { if (rcDeleteTarget) deleteCheckMutation.mutate(rcDeleteTarget) }} />
     </Box>
   )
+}
+
+const SCORE_TYPE_META: Record<string, { label: string; description?: string }> = {
+  waterlow: { label: 'Waterlow', description: 'Pressure ulcer risk.' },
+  must: { label: 'MUST', description: 'Malnutrition screening.' },
+  bmi: { label: 'BMI', description: 'Body mass index.' },
 }
 
 function ClinicalScoresTab({ personId }: { personId: string }) {
@@ -2943,39 +3296,84 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
+  const latestByType: Record<string, any> = {}
+  scores.forEach((s: any) => {
+    const prev = latestByType[s.score_type]
+    if (!prev || new Date(s.recorded_date) > new Date(prev.recorded_date)) latestByType[s.score_type] = s
+  })
+  const latestScores = Object.values(latestByType)
+
   return (
     <Box>
-      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() }); setFormError(''); setAddOpen(true) }}
+      <SectionHeader title="Clinical scores" subtitle={scores.length > 0 ? 'Latest result for each score' : undefined} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: localDate() }); setFormError(''); setAddOpen(true) }}
         sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record Score</Button>} />
       {scores.length === 0 ? (
         <EmptyRow message="No clinical scores recorded" />
       ) : (
-        <Stack spacing={1.5}>
-          {scores.map((s: any) => (
-            <Paper key={s.id} onClick={() => setViewScore(s)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer',
-              '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: 1 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{s.score_type}</Typography>
-                    {s.score != null && <Chip label={`Score: ${s.score}`} size="small" variant="outlined" />}
-                    {s.risk_level && <Chip label={s.risk_level.replace(/_/g, ' ')} size="small"
-                      color={s.risk_level === 'high' || s.risk_level === 'severe' ? 'error' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? 'warning' : 'success'} />}
-                  </Stack>
-                  {s.notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{s.notes}</Typography>}
-                  <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                    <Typography variant="caption" color="text.muted">{new Date(s.recorded_date).toLocaleDateString('en-GB')}</Typography>
-                    {s.recorded_by_name && <Typography variant="caption" color="text.muted">by {s.recorded_by_name}</Typography>}
-                  </Stack>
-                </Box>
-                <Stack direction="row" spacing={0} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                  <IconButton size="small" onClick={() => { setEditId(s.id); setForm({ score_type: s.score_type, score: s.score != null ? String(s.score) : '', risk_level: s.risk_level || '', notes: s.notes || '', recorded_date: s.recorded_date?.split('T')[0] || s.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
-                </Stack>
-              </Stack>
-            </Paper>
-          ))}
+        <Stack spacing={3}>
+          <Grid container spacing={2}>
+            {latestScores.map((s: any) => {
+              const meta = SCORE_TYPE_META[s.score_type] || { label: s.score_type.replace(/_/g, ' ') }
+              return (
+                <Grid item xs={12} sm={6} md={3} key={s.score_type}>
+                  <Paper onClick={() => setViewScore(s)}
+                    sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%', cursor: 'pointer',
+                    '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: 1 } }}>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+                      {s.score != null && <Chip label={`${s.score}`} size="small" variant="outlined" sx={{ fontWeight: 700 }} />}
+                      {s.risk_level && <Chip label={s.risk_level.replace(/_/g, ' ')} size="small"
+                        color={s.risk_level === 'high' || s.risk_level === 'severe' ? 'error' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? 'warning' : 'success'}
+                        sx={{ textTransform: 'capitalize', fontWeight: 600 }} />}
+                    </Stack>
+                    <Typography variant="subtitle1" fontWeight={600}>{meta.label}</Typography>
+                    {meta.description && <Typography variant="body2" color="text.secondary">{meta.description}</Typography>}
+                    <Typography variant="caption" color="text.muted" sx={{ mt: 1, display: 'block' }}>
+                      {new Date(s.recorded_date).toLocaleDateString('en-GB')}{s.recorded_by_name ? ` · ${s.recorded_by_name}` : ''}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )
+            })}
+          </Grid>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Score history</Typography>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Taken by</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[...scores].sort((a: any, b: any) => new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime()).map((s: any) => (
+                    <TableRow key={s.id} hover onClick={() => setViewScore(s)} sx={{ cursor: 'pointer' }}>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(s.recorded_date).toLocaleDateString('en-GB')}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{(SCORE_TYPE_META[s.score_type]?.label || s.score_type.replace(/_/g, ' '))}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          {s.score != null && <Chip label={`${s.score}`} size="small" variant="outlined" sx={{ fontWeight: 700 }} />}
+                          {s.risk_level && <Chip label={s.risk_level.replace(/_/g, ' ')} size="small"
+                            color={s.risk_level === 'high' || s.risk_level === 'severe' ? 'error' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? 'warning' : 'success'}
+                            sx={{ textTransform: 'capitalize' }} />}
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{s.recorded_by_name || '—'}</TableCell>
+                      <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 260 }}>{s.notes || '—'}</Typography></TableCell>
+                      <TableCell align="right" onClick={(e: React.MouseEvent) => e.stopPropagation()} sx={{ whiteSpace: 'nowrap' }}>
+                        <IconButton size="small" onClick={() => { setEditId(s.id); setForm({ score_type: s.score_type, score: s.score != null ? String(s.score) : '', risk_level: s.risk_level || '', notes: s.notes || '', recorded_date: s.recorded_date?.split('T')[0] || s.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
         </Stack>
       )}
 
@@ -3059,6 +3457,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 }
 
 function DocumentsTab({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'RECORDS')
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: localDate() })
   const [formError, setFormError] = useState('')
@@ -3074,7 +3473,7 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/documents`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: localDate() }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: localDate() }); showSnackbar(`${variables?.title || 'Document'} is saved in ${nameFromEyebrow(eyebrow)}'s documents.`, 'success', 'Document uploaded') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to upload'),
   })
 
@@ -3084,6 +3483,12 @@ function DocumentsTab({ personId }: { personId: string }) {
     onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  const q = search.trim().toLowerCase()
+  const filtered = q
+    ? docs.filter((d: any) => [d.title, d.description, d.document_type?.replace(/_/g, ' ')].filter(Boolean).join(' ').toLowerCase().includes(q))
+    : docs
 
   const viewDocument = async (fileUrl: string) => {
     try {
@@ -3119,54 +3524,71 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Documents" action={<Button size="small" variant="contained" startIcon={<UploadIcon />} onClick={() => setAddOpen(true)}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Upload Document</Button>} />
-      {docs.length === 0 ? (
-        <EmptyRow message="No documents uploaded yet" />
-      ) : (
-        <Stack spacing={1.5}>
-          {docs.map((d: any) => (
-            <Paper key={d.id} onClick={() => viewDocument(d.file_url)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={600}>{d.title}</Typography>
-                    <Chip label={d.document_type?.replace(/_/g, ' ')} size="small" variant="outlined" />
-                  </Stack>
-                  {d.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{d.description}</Typography>}
-                  <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} alignItems="center">
-                    <Typography variant="caption" color="text.muted">{new Date(d.upload_date).toLocaleDateString('en-GB')}</Typography>
-                    {d.uploaded_by_name && <Typography variant="caption" color="text.muted">by {d.uploaded_by_name}</Typography>}
-                    <Typography variant="caption" color={METICLE_COLORS.primary} sx={{ display: 'flex', alignItems: 'center', gap: 0.3, fontWeight: 600 }}>
-                      <OpenInNewIcon sx={{ fontSize: 13 }} /> Open
-                    </Typography>
-                  </Stack>
-                </Box>
-                <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteTarget(d.id) }}><DeleteIcon fontSize="small" /></IconButton>
-              </Stack>
-            </Paper>
-          ))}
+      <SectionHeader title="Documents" subtitle="Care files and important paperwork" action={
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField size="small" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }}
+            sx={{ width: 180 }} />
+          <Button size="small" variant="contained" startIcon={<UploadIcon />} onClick={() => setAddOpen(true)}
+            sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Upload</Button>
         </Stack>
+      } />
+      {filtered.length === 0 ? (
+        <EmptyRow message={docs.length === 0 ? 'No documents uploaded yet' : 'No documents match your search'} />
+      ) : (
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Document</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Added</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map((d: any) => (
+                <TableRow key={d.id} hover sx={{ cursor: 'pointer' }} onClick={() => viewDocument(d.file_url)}>
+                  <TableCell>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileIcon sx={{ color: 'notice.error.fg', fontSize: 20 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>{d.title}</Typography>
+                        <Typography variant="caption" color="text.muted" noWrap sx={{ display: 'block' }}>
+                          {d.description || d.document_type?.replace(/_/g, ' ')}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </TableCell>
+                  <TableCell><Chip label={d.document_type?.replace(/_/g, ' ')} size="small" variant="outlined" /></TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <Typography variant="body2">{d.upload_date ? new Date(d.upload_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
+                    {d.uploaded_by_name && <Typography variant="caption" color="text.muted">by {d.uploaded_by_name}</Typography>}
+                  </TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                    <IconButton size="small" onClick={() => viewDocument(d.file_url)} aria-label="Open document"><OpenInNewIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(d.id)} aria-label="Delete document"><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (!form.file_url) { setFormError('Please upload a file first'); return } addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>Upload Document</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title="Upload a document" subtitle="Choose a file or drop it here — PDF, Word or images, up to 10 MB." onClose={() => setAddOpen(false)} />
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-              <TextField select label="Document Type" fullWidth required value={form.document_type} onChange={e => setForm({ ...form, document_type: e.target.value })}>
-                <MenuItem value="care_plan">Care Plan</MenuItem>
-                <MenuItem value="assessment">Assessment</MenuItem>
-                <MenuItem value="hospital_letter">Hospital Letter</MenuItem>
-                <MenuItem value="referral">Referral</MenuItem>
-                <MenuItem value="mental_health">Mental Health Act / Section</MenuItem>
-                <MenuItem value="legal">Legal Document</MenuItem>
-                <MenuItem value="correspondence">Correspondence</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
-              </TextField>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Type</Typography>
+                <PillOptions options={[{ value: 'care_plan', label: 'Care plan' }, { value: 'assessment', label: 'Assessment' }, { value: 'hospital_letter', label: 'Hospital letter' }, { value: 'referral', label: 'Referral' }, { value: 'mental_health', label: 'Mental Health Act' }, { value: 'legal', label: 'Legal' }, { value: 'correspondence', label: 'Correspondence' }, { value: 'other', label: 'Other' }]} value={form.document_type} onChange={v => setForm({ ...form, document_type: v })} />
+              </Box>
               <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
               <input type="file" ref={fileInputRef} hidden onChange={async e => {
                 const file = e.target.files?.[0]
@@ -3180,11 +3602,16 @@ function DocumentsTab({ personId }: { personId: string }) {
                 } catch { setFormError('Upload failed') }
                 finally { setUploading(false); e.target.value = '' }
               }} />
-              <Button variant="outlined" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                sx={{ textTransform: 'none',}}>
-                {uploading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                {form.file_url ? 'Replace File' : 'Choose File'}
-              </Button>
+              <Paper variant="outlined" onClick={() => { if (!uploading) fileInputRef.current?.click() }}
+                sx={{ p: 2.5, textAlign: 'center', borderStyle: 'dashed', cursor: uploading ? 'default' : 'pointer', bgcolor: 'notice.subtle.bg', '&:hover': { borderColor: METICLE_COLORS.primary } }}>
+                {uploading ? <CircularProgress size={24} /> : (
+                  <Stack spacing={0.5} alignItems="center">
+                    <UploadIcon sx={{ color: METICLE_COLORS.primary }} />
+                    <Typography variant="body2" fontWeight={600}>{form.file_url ? 'Replace the file' : 'Choose a file or drop it here'}</Typography>
+                    <Typography variant="caption" color="text.secondary">PDF, Word or images · up to 10 MB</Typography>
+                  </Stack>
+                )}
+              </Paper>
               {form.file_url && <Chip label={form.file_url.split('/').pop()} size="small" color="primary" variant="outlined" onDelete={() => setForm({ ...form, file_url: '' })} />}
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.upload_date} onChange={e => setForm({ ...form, upload_date: e.target.value })} />
             </Stack>
@@ -3219,6 +3646,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 }
 
 function WellbeingTabInline({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'CLINICAL')
   const [addOpen, setAddOpen] = useState(false)
   const [viewEntry, setViewEntry] = useState<any>(null)
   const [form, setForm] = useState({ domain: 'mood', score: 5, notes: '' })
@@ -3233,7 +3661,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/wellbeing`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 5, notes: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 5, notes: '' }); showSnackbar('The check-in is added to the record.', 'success', 'Check-in saved') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add entry'),
   })
 
@@ -3252,11 +3680,15 @@ function WellbeingTabInline({ personId }: { personId: string }) {
   const latestByDomain: Record<string, number> = {}
   entries.forEach((e: any) => { if (!latestByDomain[e.domain] || new Date(e.recorded_date) > new Date(latestByDomain[e.domain + '_date'])) { latestByDomain[e.domain] = e.score; latestByDomain[e.domain + '_date'] = e.recorded_date } })
   const radarData = WELLBEING_DOMAINS.filter(d => latestByDomain[d] != null).map(d => ({ domain: d.charAt(0).toUpperCase() + d.slice(1), score: latestByDomain[d], fullMark: 10 }))
+  const wellbeingWeekStart = new Date()
+  wellbeingWeekStart.setDate(wellbeingWeekStart.getDate() - ((wellbeingWeekStart.getDay() + 6) % 7))
+  wellbeingWeekStart.setHours(0, 0, 0, 0)
+  const wellbeingThisWeek = entries.filter((e: any) => new Date(e.recorded_date) >= wellbeingWeekStart).length
 
   return (
     <Box>
-      <SectionHeader title="Wellbeing" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record Entry</Button>} />
+      <SectionHeader title="Wellbeing" subtitle={entries.length > 0 ? `${entries.length} check-ins · ${wellbeingThisWeek} this week` : undefined} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add a check-in</Button>} />
       {radarData.length >= 3 && (
         <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
@@ -3274,6 +3706,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
         <EmptyRow message="No wellbeing entries recorded" />
       ) : (
         <Stack spacing={2}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Wellbeing check-ins</Typography>
           {Object.entries(grouped).map(([domain, items]) => {
             const domainColor = DOMAIN_COLORS[domain] || 'text.secondary'
             const latest = items.reduce((a: any, b: any) => new Date(a.recorded_date) > new Date(b.recorded_date) ? a : b)
@@ -3342,7 +3775,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>Record Wellbeing Entry</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title="Wellbeing check-in" subtitle={`Ask ${nameFromEyebrow(eyebrow)} how they're feeling today.`} onClose={() => setAddOpen(false)} />
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -3361,7 +3794,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {addMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
+              {addMutation.isPending ? <CircularProgress size={20} /> : 'Save check-in'}
             </Button>
           </DialogActions>
         </Box>
@@ -3381,9 +3814,11 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 }
 
 const CONTACT_METHODS = ['phone', 'email', 'letter', 'visit', 'video_call', 'other']
+const METHOD_LABELS: Record<string, string> = { phone: 'Phone call', email: 'Email', letter: 'Letter', visit: 'Visit', video_call: 'Video call', other: 'Contact' }
 const DIRECTION_OPTIONS = ['inbound', 'outbound']
 
 function CommunicationLogTabInline({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'PEOPLE')
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewEntry, setViewEntry] = useState<any>(null)
@@ -3401,7 +3836,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/communication-log`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setEditId(null); resetForm() },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setEditId(null); resetForm(); showSnackbar(`The ${(variables?.contact_method || 'contact').replace(/_/g, ' ')} with ${variables?.contact_name || 'them'} is saved in the circle of care.`, 'success', 'Contact logged') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add entry'),
   })
 
@@ -3422,56 +3857,46 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Communication Log" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); resetForm(); setFormError(''); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Entry</Button>} />
+      <SectionHeader title="Messages and calls" subtitle="With family and professionals" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); resetForm(); setFormError(''); setAddOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Log a contact</Button>} />
       {entries.length === 0 ? (
         <EmptyRow message="No communication entries recorded" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Method</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Direction</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Summary</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Recorded By</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {entries.map((e: any) => (
-                <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600}>{e.contact_name}</Typography>
-                    {e.relationship && <Typography variant="caption" color="text.secondary">{e.relationship}</Typography>}
-                  </TableCell>
-                  <TableCell><Chip label={e.contact_method?.replace(/_/g, ' ')} size="small" variant="outlined" /></TableCell>
-                  <TableCell>
-                    <Chip label={e.direction} size="small"
-                      color={e.direction === 'inbound' ? 'info' : 'primary'}
-                      variant="outlined" />
-                  </TableCell>
-                  <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>{e.summary || '—'}</Typography></TableCell>
-                  <TableCell>{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell>{e.recorded_by_name || '—'}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0} onClick={e => e.stopPropagation()}>
-                      <IconButton size="small" onClick={() => { setEditId(e.id); setForm({ contact_name: e.contact_name || '', relationship: e.relationship || '', contact_method: e.contact_method || 'phone', direction: e.direction || 'inbound', summary: e.summary || '', follow_up_actions: e.follow_up_actions || '', recorded_date: e.recorded_date?.split('T')[0] || e.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+          <Stack divider={<Divider />} spacing={0}>
+            {entries.map((e: any) => {
+              const methodLabel = METHOD_LABELS[e.contact_method] || e.contact_method?.replace(/_/g, ' ') || 'Contact'
+              const methodIcon = e.contact_method === 'email' ? <EmailIcon fontSize="small" />
+                : e.contact_method === 'letter' ? <FileIcon fontSize="small" />
+                : e.contact_method === 'video_call' ? <VideoCallIcon fontSize="small" />
+                : e.contact_method === 'visit' ? <HomeIcon fontSize="small" />
+                : <PhoneIcon fontSize="small" />
+              return (
+                <Box key={e.id} onClick={() => setViewEntry(e)} sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
+                  <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: 'notice.muted.bg', color: METICLE_COLORS.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {methodIcon}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600}>{methodLabel} with {e.contact_name}{e.relationship ? ` (${e.relationship})` : ''}</Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{e.recorded_by_name ? ` · ${e.recorded_by_name}` : ''}{e.summary ? ` — ${e.summary}` : ''}
+                    </Typography>
+                  </Box>
+                  <Chip label={e.relationship || methodLabel} size="small" variant="outlined" sx={{ flexShrink: 0, textTransform: 'capitalize' }} />
+                  <Stack direction="row" spacing={0} onClick={ev => ev.stopPropagation()} sx={{ flexShrink: 0 }}>
+                    <IconButton size="small" onClick={() => { setEditId(e.id); setForm({ contact_name: e.contact_name || '', relationship: e.relationship || '', contact_method: e.contact_method || 'phone', direction: e.direction || 'inbound', summary: e.summary || '', follow_up_actions: e.follow_up_actions || '', recorded_date: e.recorded_date?.split('T')[0] || e.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  </Stack>
+                </Box>
+              )
+            })}
+          </Stack>
+        </Paper>
       )}
 
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (editId) updateMutation.mutate({ id: editId, data: form }); else addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Communication Entry' : 'Add Communication Entry'}</DialogTitle>          <DialogContent>
+          <FigDialogHeader eyebrow={eyebrow} title={editId ? 'Edit contact log' : 'Log a contact'} subtitle={`Log calls, visits and messages about ${nameFromEyebrow(eyebrow)}.`} onClose={() => { setAddOpen(false); setEditId(null) }} />          <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1}>
@@ -3479,9 +3904,10 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                 <TextField label="Relationship" fullWidth value={form.relationship} onChange={e => setForm({ ...form, relationship: e.target.value })} />
               </Stack>
               <Stack direction="row" spacing={1}>
-                <TextField select label="Contact Method" fullWidth required value={form.contact_method} onChange={e => setForm({ ...form, contact_method: e.target.value })}>
-                  {CONTACT_METHODS.map(m => <MenuItem key={m} value={m} sx={{ textTransform: 'capitalize' }}>{m.replace(/_/g, ' ')}</MenuItem>)}
-                </TextField>
+                <Box>
+                  <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>How</Typography>
+                  <PillOptions options={CONTACT_METHODS.map(m => ({ value: m, label: METHOD_LABELS[m] || m.replace(/_/g, ' ') }))} value={form.contact_method} onChange={v => setForm({ ...form, contact_method: v })} />
+                </Box>
                 <TextField select label="Direction" fullWidth required value={form.direction} onChange={e => setForm({ ...form, direction: e.target.value })}>
                   {DIRECTION_OPTIONS.map(d => <MenuItem key={d} value={d} sx={{ textTransform: 'capitalize' }}>{d}</MenuItem>)}
                 </TextField>
@@ -3492,9 +3918,9 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save Changes' : 'Save')}
+              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save changes' : 'Save contact log')}
             </Button>
           </DialogActions>
         </Box>
@@ -3563,6 +3989,7 @@ const CAPACITY_STATUS_COLORS: Record<string, string> = {
 }
 
 function CapacityMcaTabInline({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'PEOPLE')
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ assessment_date: localDate(), decision_to_be_made: '', capacity_found: null as boolean | null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
@@ -3577,13 +4004,13 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/capacity`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); resetForm() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); resetForm(); showSnackbar('The capacity assessment for this decision is saved.', 'success', 'Assessment saved') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add assessment'),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/capacity/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); setEditId(null); resetForm() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); setEditId(null); resetForm(); showSnackbar('The capacity assessment is up to date.', 'success', 'Assessment saved') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update assessment'),
   })
 
@@ -3603,30 +4030,46 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="MCA / Capacity Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New Assessment</Button>} />
+      <SectionHeader title="Mental capacity decisions" subtitle="Each decision is assessed on its own" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New assessment</Button>} />
       {assessments.length === 0 ? (
         <EmptyRow message="No capacity assessments recorded" />
       ) : (
-        <Stack spacing={2}>
-          {assessments.map((a: any) => (
-            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box sx={{ flex: 1 }}>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                    <Typography variant="subtitle2" fontWeight={600}>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
-                    <Chip label={a.capacity_found === true ? 'Has Capacity' : a.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
-                      sx={{ bgcolor: a.capacity_found === true ? 'METICLE_COLORS.success20' : a.capacity_found === false ? 'METICLE_COLORS.danger20' : 'text.secondary20', color: a.capacity_found === true ? METICLE_COLORS.success : a.capacity_found === false ? METICLE_COLORS.danger : 'text.secondary', fontWeight: 600 }} />
-                    <Chip label={a.capacity_status?.replace(/_/g, ' ')} size="small"
-                      sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[a.capacity_status] || '#51637A'}20`, color: CAPACITY_STATUS_COLORS[a.capacity_status] || '#51637A', fontWeight: 600 }} />
-                  </Stack>
-                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Decision: {a.decision_to_be_made}</Typography>
-                  {a.best_interest_decision && <Typography variant="body2" color="text.secondary">Best Interest Decision: {a.best_interest_decision}</Typography>}
-                  {a.independent_advocate && <Typography variant="body2" color="text.secondary">Advocate: {a.independent_advocate}</Typography>}
-                  {a.review_date && <Typography variant="caption" color="text.muted" sx={{ mt: 0.5, display: 'block' }}>Review: {new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>}
-                </Box>
-                <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
-                  <IconButton size="small" onClick={() => {
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
+                <TableCell sx={{ fontWeight: 600 }}>Decision</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Outcome</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Assessed</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Review</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {assessments.map((a: any) => {
+                const outcome = a.capacity_found === true ? 'Has capacity'
+                  : a.capacity_found === false ? (a.best_interest_decision ? 'Best-interest decision' : 'Lacks capacity')
+                  : (a.capacity_status && a.capacity_status !== 'not_assessed' ? a.capacity_status.replace(/_/g, ' ') : 'Not assessed')
+                const outcomeColor = outcome === 'Has capacity' ? 'success' : outcome === 'Best-interest decision' ? 'info' : outcome === 'Lacks capacity' ? 'error' : 'default'
+                const reviewOverdue = a.review_date && new Date(a.review_date) < new Date(new Date().toDateString())
+                return (
+                  <TableRow key={a.id} hover onClick={() => setViewEntry(a)} sx={{ cursor: 'pointer' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>{a.decision_to_be_made || '—'}</TableCell>
+                    <TableCell><Chip label={outcome} size="small" color={outcomeColor} sx={{ textTransform: 'capitalize', fontWeight: 600 }} /></TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
+                      {a.independent_advocate && <Typography variant="caption" color="text.secondary">{a.independent_advocate}</Typography>}
+                    </TableCell>
+                    <TableCell>
+                      {a.review_date ? (
+                        reviewOverdue
+                          ? <><Typography variant="body2" fontWeight={600} color="error">Overdue</Typography><Typography variant="caption" color="text.secondary">{new Date(a.review_date).toLocaleDateString('en-GB')}</Typography></>
+                          : <Typography variant="body2">{new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>
+                      ) : '—'}
+                    </TableCell>
+                    <TableCell align="right" onClick={e => e.stopPropagation()} sx={{ whiteSpace: 'nowrap' }}>
+                      <IconButton size="small" onClick={() => {
                     setForm({
                       assessment_date: a.assessment_date?.split('T')[0] || localDate(),
                       decision_to_be_made: a.decision_to_be_made || '',
@@ -3638,13 +4081,15 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                       relevant_people_informed: a.relevant_people_informed || '',
                       review_date: a.review_date?.split('T')[0] || '',
                     }); setEditId(a.id); setAddOpen(true)
-                  }}><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(a.id)}><DeleteIcon fontSize="small" /></IconButton>
-                </Stack>
-              </Stack>
-            </Paper>
-          ))}
-        </Stack>
+                      }}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(a.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
@@ -3654,7 +4099,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           if (editId) updateMutation.mutate({ id: editId, data: form })
           else addMutation.mutate(form)
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Assessment' : 'New Capacity Assessment'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title="Mental Capacity assessment" subtitle={`Record the decision ${nameFromEyebrow(eyebrow)} is making and the outcome.`} onClose={() => { setAddOpen(false); setEditId(null) }} />
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -3681,7 +4126,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Add Assessment')}
+              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save changes' : 'Save assessment')}
             </Button>
           </DialogActions>
         </Box>
@@ -3803,6 +4248,7 @@ const PATHWAY_TYPE_COLORS: Record<string, string> = {
 }
 
 function CarePathwaysTabInline({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'CLINICAL')
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewId, setViewId] = useState<string | null>(null)
@@ -3820,7 +4266,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/care-pathways`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); resetForm() },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); resetForm(); const l = String(variables?.pathway_type || 'pathway').replace(/_/g, ' '); showSnackbar(`${l.charAt(0).toUpperCase() + l.slice(1)} pathway is started.`, 'success', 'Pathway started') },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Failed to add pathway'
       const fieldErrors = err.response?.data?.errors
@@ -3830,7 +4276,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/care-pathways/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); setEditId(null); resetForm() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); setEditId(null); resetForm(); showSnackbar('The pathway is up to date.', 'success', 'Pathway updated') },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Failed to update pathway'
       const fieldErrors = err.response?.data?.errors
@@ -3898,8 +4344,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Care Pathways" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Pathway</Button>} />
+      <SectionHeader title="Care pathways"
+        subtitle={pathways?.length > 0 ? `${pathways.filter((p: any) => p.status === 'active').length} active · ${pathways.filter((p: any) => p.status !== 'active').length} completed` : undefined}
+        action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New pathway</Button>} />
       {pathways.length === 0 ? (
         <EmptyRow message="No care pathways recorded" />
       ) : (
@@ -3932,13 +4380,14 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           if (editId) updateMutation.mutate({ id: editId, data: payload })
           else addMutation.mutate(payload)
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Pathway' : 'Add Care Pathway'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={editId ? 'Edit pathway' : 'Start a care pathway'} subtitle="Pathways group free-text notes for a big change in care." onClose={() => { setAddOpen(false); setEditId(null) }} />
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField select label="Pathway Type" fullWidth required value={form.pathway_type} onChange={e => setForm({ ...form, pathway_type: e.target.value })}>
-                {PATHWAY_TYPES.map(t => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t.replace(/_/g, ' ')}</MenuItem>)}
-              </TextField>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Pathway</Typography>
+                <PillOptions options={PATHWAY_TYPES.map(t => ({ value: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) }))} value={form.pathway_type} onChange={v => setForm({ ...form, pathway_type: v })} />
+              </Box>
               <TextField label="Title" fullWidth required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
               <Stack direction="row" spacing={1}>
                 <TextField label="Start Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
@@ -3981,7 +4430,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending || !form.title} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Add Pathway')}
+              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save changes' : 'Start pathway')}
             </Button>
           </DialogActions>
         </Box>
@@ -4076,6 +4525,7 @@ const TIME_AWAY_TYPES: { value: string; label: string; color: string }[] = [
 ]
 
 function TimeAwayTabInline({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'RECORDS')
   const [addOpen, setAddOpen] = useState(false)
   const [itemTarget, setItemTarget] = useState<string | null>(null)
   const [form, setForm] = useState({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' })
@@ -4094,7 +4544,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/time-away`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setAddOpen(false); setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }) },
+    onSuccess: (_d, variables: any) => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setAddOpen(false); setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }); showSnackbar(`${variables?.destination || variables?.title || 'Time away'} is recorded.`, 'success', 'Time away saved') },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add time away'),
   })
 
@@ -4126,106 +4576,77 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Time Away" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }); setFormError(''); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Add Time Away</Button>} />
+      <SectionHeader title="Time away" subtitle="Hospital stays, holidays and visits" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }); setFormError(''); setAddOpen(true) }}
+        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Record time away</Button>} />
       {records.length === 0 ? (
         <EmptyRow message="No time away planned yet. Add a weekend visit, hospital stay or short break." />
       ) : (
-        <Stack spacing={2}>
-          {records.map((record: any) => {
-            const items: any[] = record.items || []
-            const completedCount = items.filter((i: any) => i.is_complete).length
-            const pct = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
-            const type = TIME_AWAY_TYPES.find(t => t.value === record.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
-            const grouped: Record<string, any[]> = {}
-            items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
-            return (
-              <Paper key={record.id} onClick={() => setViewRecord(record)}
-                sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={1}>
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                    <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: type.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <LuggageIcon sx={{ color: 'white', fontSize: 20 }} />
-                    </Box>
-                    <Box>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                        <Typography variant="subtitle1" fontWeight={600}>{record.title}</Typography>
-                        <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 600, fontSize: 11 }} />
-                      </Stack>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
-                        {record.destination && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <PlaceIcon sx={{ fontSize: 14, color: type.color }} /> {record.destination}
-                          </Typography>
-                        )}
-                        {(record.start_date || record.end_date) && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CalendarMonthIcon sx={{ fontSize: 14, color: type.color }} />
-                            {record.start_date ? new Date(record.start_date).toLocaleDateString('en-GB') : ''}{record.start_date && record.end_date ? ' to ' : ''}{record.end_date ? new Date(record.end_date).toLocaleDateString('en-GB') : ''}
-                          </Typography>
-                        )}
-                      </Stack>
-                      {record.created_by_name && <Typography variant="caption" color="text.muted">Planned by {record.created_by_name}</Typography>}
-                    </Box>
-                  </Stack>
-                  <Stack direction="row" spacing={0.5}>
-                    <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={(e) => { e.stopPropagation(); setItemTarget(record.id); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }); setFormError(''); }} sx={{ textTransform: 'none', borderColor: '#D6E2EE', color: '#51637A' }}>Add Item</Button>
-                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteRecordTarget(record) }}><DeleteIcon fontSize="small" /></IconButton>
-                  </Stack>
-                </Stack>
-                {items.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <LinearProgress variant="determinate" value={pct}
-                      sx={{ height: 8, borderRadius: 5, bgcolor: 'divider', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? METICLE_COLORS.success : METICLE_COLORS.primary } }} />
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>{completedCount}/{items.length} ready ({pct}%)</Typography>
-                    <Stack spacing={1} sx={{ mt: 1 }}>
-                      {Object.entries(grouped).map(([category, catItems]) => (
-                        <Box key={category}>
-                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>{category.replace(/_/g, ' ')}</Typography>
-                          <Stack spacing={0.5}>
-                            {catItems.map((item: any) => (
-                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'notice.subtle.bg', borderRadius: 1, px: 1, py: 0.5 }}>
-                                <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: item.id, completed: !item.is_complete }) }} disabled={toggleMutation.isPending}>
-                                  {item.is_complete ? <CheckCircleIcon sx={{ color: METICLE_COLORS.success }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
-                                </IconButton>
-                                <Box sx={{ flex: 1 }}>
-                                  <Stack direction="row" spacing={0.5} alignItems="center">
-                                    <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? 'text.muted' : 'inherit' }}>
-                                      {item.item}
-                                    </Typography>
-                                    {item.quantity != null && item.quantity !== '' && (
-                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
-                                    )}
-                                  </Stack>
-                                  {item.is_complete && item.completed_by_name && (
-                                    <Typography variant="caption" color="text.muted">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
-                                  )}
-                                </Box>
-                                <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteItemTarget(item.id) }}><DeleteIcon fontSize="small" /></IconButton>
-                              </Stack>
-                            ))}
-                          </Stack>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Where</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Dates</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {records.map((record: any) => {
+                const type = TIME_AWAY_TYPES.find(t => t.value === record.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
+                const items: any[] = record.items || []
+                const done = items.filter((i: any) => i.is_complete).length
+                const endDay = record.end_date ? String(record.end_date).slice(0, 10) : ''
+                const backHome = endDay !== '' && endDay < localDate()
+                const fmtDay = (d: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+                return (
+                  <TableRow key={record.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewRecord(record)}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <LuggageIcon sx={{ color: type.color, fontSize: 20 }} />
                         </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                )}
-              </Paper>
-            )
-          })}
-        </Stack>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={600} noWrap>{record.destination || record.title}</Typography>
+                          <Typography variant="caption" color="text.muted" noWrap sx={{ display: 'block' }}>
+                            {record.destination ? record.title : type.label}{items.length > 0 ? ` · Checklist ${done}/${items.length}` : ''}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <Typography variant="body2">{[fmtDay(record.start_date), fmtDay(record.end_date)].filter(Boolean).join(' – ') || '—'}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 220 }}>
+                      <Typography variant="body2" noWrap>{record.notes || type.label}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={backHome ? 'Back home' : 'Planned'} color={backHome ? 'success' : 'info'} />
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <IconButton size="small" onClick={() => setViewRecord(record)} aria-label="View time away"><OpenInNewIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => setDeleteRecordTarget(record)} aria-label="Delete time away"><DeleteIcon fontSize="small" /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ title: form.title, time_away_type: form.time_away_type, destination: form.destination, start_date: form.start_date, end_date: form.end_date, notes: form.notes }) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>Add Time Away</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title="Record time away" subtitle={`Record ${nameFromEyebrow(eyebrow)}'s time away from home and when they'll be back.`} onClose={() => setAddOpen(false)} />
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required placeholder="e.g. Going to mum's house for the weekend" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-              <TextField select label="Type" fullWidth required value={form.time_away_type} onChange={e => setForm({ ...form, time_away_type: e.target.value })}>
-                {TIME_AWAY_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
-              </TextField>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Reason</Typography>
+                <PillOptions options={TIME_AWAY_TYPES.map(t => ({ value: t.value, label: t.label }))} value={form.time_away_type} onChange={v => setForm({ ...form, time_away_type: v })} />
+              </Box>
               <TextField label="Destination" fullWidth placeholder="e.g. Mum's house, Croydon" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField label="Start Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
@@ -4237,7 +4658,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>
-              {addMutation.isPending ? <CircularProgress size={20} /> : 'Add Time Away'}
+              {addMutation.isPending ? <CircularProgress size={20} /> : 'Save time away'}
             </Button>
           </DialogActions>
         </Box>
@@ -4270,52 +4691,75 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
 
       <Dialog open={!!viewRecord} onClose={() => setViewRecord(null)} maxWidth="sm" fullWidth>
         {viewRecord && (() => {
-          const type = TIME_AWAY_TYPES.find(t => t.value === viewRecord.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
-          const items: any[] = viewRecord.items || []
+          const rec = records.find((r: any) => r.id === viewRecord.id) || viewRecord
+          const type = TIME_AWAY_TYPES.find(t => t.value === rec.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
+          const items: any[] = rec.items || []
+          const grouped: Record<string, any[]> = {}
+          items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
           return (
             <>
               <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LuggageIcon sx={{ color: type.color }} /> {viewRecord.title}
+                <LuggageIcon sx={{ color: type.color }} /> {rec.title}
               </DialogTitle>
               <DialogContent>
                 <Stack spacing={1.5}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 600 }} />
-                    {viewRecord.destination && (
+                    {rec.destination && (
                       <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PlaceIcon sx={{ fontSize: 16, color: type.color }} /> {viewRecord.destination}
+                        <PlaceIcon sx={{ fontSize: 16, color: type.color }} /> {rec.destination}
                       </Typography>
                     )}
                   </Stack>
-                  {(viewRecord.start_date || viewRecord.end_date) && (
+                  {(rec.start_date || rec.end_date) && (
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarMonthIcon sx={{ fontSize: 16, color: type.color }} />
-                      {viewRecord.start_date ? new Date(viewRecord.start_date).toLocaleDateString('en-GB') : ''}{viewRecord.start_date && viewRecord.end_date ? ' to ' : ''}{viewRecord.end_date ? new Date(viewRecord.end_date).toLocaleDateString('en-GB') : ''}
+                      {rec.start_date ? new Date(rec.start_date).toLocaleDateString('en-GB') : ''}{rec.start_date && rec.end_date ? ' to ' : ''}{rec.end_date ? new Date(rec.end_date).toLocaleDateString('en-GB') : ''}
                     </Typography>
                   )}
-                  {viewRecord.created_by_name && <Typography variant="caption" color="text.muted">Planned by {viewRecord.created_by_name}</Typography>}
-                  {viewRecord.notes && (
+                  {rec.created_by_name && <Typography variant="caption" color="text.muted">Planned by {rec.created_by_name}</Typography>}
+                  {rec.notes && (
                     <Box>
                       <Typography variant="caption" color="text.secondary">Notes</Typography>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{viewRecord.notes}</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{rec.notes}</Typography>
                     </Box>
                   )}
                   <Divider />
-                  <Typography variant="subtitle2" fontWeight={600}>Checklist ({items.filter((i: any) => i.is_complete).length}/{items.length})</Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle2" fontWeight={600}>Checklist ({items.filter((i: any) => i.is_complete).length}/{items.length})</Typography>
+                    <Button size="small" startIcon={<AddIcon />} onClick={() => { setItemTarget(rec.id); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }); setFormError('') }} sx={{ textTransform: 'none' }}>Add item</Button>
+                  </Stack>
                   {items.length === 0 ? (
                     <Typography variant="body2" color="text.muted">No checklist items added yet.</Typography>
                   ) : (
-                    <Stack spacing={0.5}>
-                      {items.map((item: any) => (
-                        <Stack key={item.id} direction="row" spacing={1} alignItems="center">
-                          {item.is_complete ? <CheckCircleIcon sx={{ color: METICLE_COLORS.success, fontSize: 18 }} /> : <UncheckedIcon sx={{ color: 'text.secondary', fontSize: 18 }} />}
-                          <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? 'text.muted' : 'inherit' }}>
-                            {item.item}
-                          </Typography>
-                          {item.quantity != null && item.quantity !== '' && (
-                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
-                          )}
-                        </Stack>
+                    <Stack spacing={1}>
+                      {Object.entries(grouped).map(([category, catItems]) => (
+                        <Box key={category}>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>{category.replace(/_/g, ' ')}</Typography>
+                          <Stack spacing={0.5}>
+                            {catItems.map((item: any) => (
+                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'notice.subtle.bg', borderRadius: 1, px: 1, py: 0.5 }}>
+                                <IconButton size="small" onClick={() => toggleMutation.mutate({ id: item.id, completed: !item.is_complete })} disabled={toggleMutation.isPending}>
+                                  {item.is_complete ? <CheckCircleIcon sx={{ color: METICLE_COLORS.success }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
+                                </IconButton>
+                                <Box sx={{ flex: 1 }}>
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? 'text.muted' : 'inherit' }}>
+                                      {item.item}
+                                    </Typography>
+                                    {item.quantity != null && item.quantity !== '' && (
+                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
+                                    )}
+                                  </Stack>
+                                  {item.is_complete && item.completed_by_name && (
+                                    <Typography variant="caption" color="text.muted">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
+                                  )}
+                                </Box>
+                                <IconButton size="small" color="error" onClick={() => setDeleteItemTarget(item.id)}><DeleteIcon fontSize="small" /></IconButton>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        </Box>
                       ))}
                     </Stack>
                   )}
@@ -4378,10 +4822,24 @@ function MoodChartTabInline({ personId }: { personId: string }) {
   recentEntries.forEach((e: any) => { bandCounts[band(e.score)] += 1 })
   const pieData = Object.entries(bandCounts).filter(([, c]) => c > 0).map(([name, value]) => ({ name, value, fill: BAND_COLORS[name] }))
 
+  const moodWeekStart = new Date()
+  moodWeekStart.setDate(moodWeekStart.getDate() - ((moodWeekStart.getDay() + 6) % 7))
+  moodWeekStart.setHours(0, 0, 0, 0)
+  const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const moodThisWeek = entries.filter((e: any) => e.domain === 'mood' && new Date(e.recorded_date) >= moodWeekStart)
+  const moodByDay = WEEK_DAYS.map((day, i) => {
+    const dayEntries = moodThisWeek.filter((e: any) => (new Date(e.recorded_date).getDay() + 6) % 7 === i)
+    const latest = dayEntries.sort((a: any, b: any) => new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime())[0]
+    return { day, score: latest ? latest.score : null }
+  })
+  const lowDayEntry = moodThisWeek.length > 0
+    ? [...moodThisWeek].sort((a: any, b: any) => a.score - b.score || new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime())[0]
+    : null
+
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Mood Chart — Last 30 Days</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Mood chart</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
           <Stack direction="row" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
             <Button size="small" onClick={() => setView('chart')}
@@ -4394,10 +4852,50 @@ function MoodChartTabInline({ personId }: { personId: string }) {
             </Button>
           </Stack>
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: localDate(), notes: '' }); setFormError(''); setAddOpen(true) }}
-            sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Entry</Button>
+            sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add entry</Button>
         </Stack>
       </Stack>
 
+      {moodThisWeek.length > 0 && view !== 'table' && (
+        <Stack spacing={2} sx={{ mb: 3 }}>
+          <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle1" fontWeight={600}>Mood this week</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Evening check-ins · scored out of 10</Typography>
+            <RechartsResponsiveContainer width="100%" height={220}>
+              <BarChart data={moodByDay} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3E9F0" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#5D6E85' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 10]} tick={{ fontSize: 12, fill: '#5D6E85' }} axisLine={false} tickLine={false} />
+                <RechartsTooltip />
+                <Bar dataKey="score" radius={[6, 6, 0, 0]} maxBarSize={44}>
+                  {moodByDay.map((d: any) => <Cell key={d.day} fill={d.score == null ? 'transparent' : scoreColor(d.score)} />)}
+                </Bar>
+              </BarChart>
+            </RechartsResponsiveContainer>
+          </Paper>
+          {lowDayEntry?.notes && (
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>Notes behind the low day</Typography>
+              <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: METICLE_COLORS.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>
+                  {(lowDayEntry.recorded_by_name || '?').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase()}
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{new Date(lowDayEntry.recorded_date).toLocaleDateString('en-GB', { weekday: 'long' })}: {lowDayEntry.notes.split('\n')[0].slice(0, 80)}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {lowDayEntry.recorded_by_name ? `${lowDayEntry.recorded_by_name} · ` : ''}{new Date(lowDayEntry.recorded_date).toLocaleDateString('en-GB')}
+                  </Typography>
+                </Box>
+                <Chip label={`${lowDayEntry.score}/10 · ${band(lowDayEntry.score)}`} size="small"
+                  sx={{ bgcolor: `${scoreColor(lowDayEntry.score)}18`, color: scoreColor(lowDayEntry.score), fontWeight: 600, flexShrink: 0 }} />
+              </Stack>
+            </Paper>
+          )}
+        </Stack>
+      )}
+      {view !== 'table' && moodThisWeek.length > 0 && (
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Last 30 days</Typography>
+      )}
       {view === 'table' ? (
         <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <TableContainer>
@@ -4595,46 +5093,76 @@ function summarizeAuditData(data: any): string {
   return parts.join(' · ')
 }
 
+const timeAgo = (iso: string): string => {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (Number.isNaN(s) || s < 0) return ''
+  if (s < 60) return 'Just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d} day${d === 1 ? '' : 's'} ago`
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const auditIconFor = (action: string) => {
+  if (action === 'login') return <LoginIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+  if (action === 'logout') return <LogoutIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+  if (action === 'create') return <AddIcon sx={{ color: METICLE_COLORS.success, fontSize: 20 }} />
+  if (action === 'update') return <EditIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+  if (action === 'delete') return <DeleteIcon sx={{ color: METICLE_COLORS.danger, fontSize: 20 }} />
+  if (action === 'download' || action === 'export') return <DownloadIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+  return <FileIcon sx={{ color: METICLE_COLORS.primary, fontSize: 20 }} />
+}
+
 function AuditTrailTabInline({ personId }: { personId: string }) {
+  const [range, setRange] = useState('all')
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit-trail', personId],
     queryFn: () => api.get('/audit/logs', { params: { person_id: personId } }).then(r => r.data),
   })
   if (isLoading) return <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', mt: 4 }} />
   if (!logs.length) return <EmptyRow message="No audit trail entries" />
+  const cutoff = range === 'all' ? null : Date.now() - Number(range) * 24 * 60 * 60 * 1000
+  const visible = cutoff == null ? logs : logs.filter((log: any) => log.created_at && new Date(log.created_at).getTime() >= cutoff)
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Audit Trail</Typography>
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {logs.map((log: any) => {
-              const newData = summarizeAuditData(log.new_data)
-              const full = newData ? `${log.entity_type} — ${newData}` : `${log.entity_type} ${log.action}d`
-              return (
-                <TableRow key={log.id}>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('en-GB')}</TableCell>
-                  <TableCell>{log.user_name || log.user_id}</TableCell>
-                  <TableCell>
-                    <Chip label={log.action} size="small" color={log.action === 'create' ? 'success' : log.action === 'update' ? 'primary' : 'error'} variant="outlined" />
-                  </TableCell>
-                  <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <Tooltip title={full}><span>{full}</span></Tooltip>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <SectionHeader title="Audit trail" subtitle="Who changed what, and when" action={
+        <TextField select size="small" label="Period" value={range} onChange={e => setRange(e.target.value)} sx={{ minWidth: 160 }}>
+          <MenuItem value="all">Everything</MenuItem>
+          <MenuItem value="7">Last 7 days</MenuItem>
+          <MenuItem value="30">Last 30 days</MenuItem>
+        </TextField>
+      } />
+      {visible.length === 0 ? (
+        <EmptyRow message="No entries in this period" />
+      ) : (
+        <Stack spacing={1.5}>
+          {visible.map((log: any) => {
+            const newData = summarizeAuditData(log.new_data)
+            const full = newData ? `${log.entity_type} — ${newData}` : `${log.entity_type} ${log.action}d`
+            const verb = log.action === 'login' ? 'logged in' : log.action === 'logout' ? 'logged out' : `${log.action}d`
+            return (
+              <Paper key={log.id} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {auditIconFor(log.action)}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600} noWrap>{log.user_name || log.user_id} {verb}</Typography>
+                    <Tooltip title={full}>
+                      <Typography variant="caption" color="text.muted" noWrap sx={{ display: 'block' }}>
+                        {timeAgo(log.created_at)}{full ? ` · ${full}` : ''}
+                      </Typography>
+                    </Tooltip>
+                  </Box>
+                </Stack>
+              </Paper>
+            )
+          })}
+        </Stack>
+      )}
     </Box>
   )
 }
@@ -4678,12 +5206,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Billing & Rates</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Client billing rates for {personName}</Typography>
-        </Box>
-      </Stack>
+      <SectionHeader title="Billing & rates" subtitle={`Client billing rates for ${personName}`} />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}

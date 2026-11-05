@@ -49,7 +49,7 @@ export class DashboardRepository {
   }
 
   static async getWidgets(orgId: string, userId: string) {
-    const [dbsResult, trainingResult, leaveResult, overdueResult, competencyResult, belowThresholdResult, openIncidentsResult] = await Promise.all([
+    const [dbsResult, trainingResult, leaveResult, overdueResult, missedCountResult, competencyResult, belowThresholdResult, openIncidentsResult] = await Promise.all([
       query(`
         SELECT COUNT(DISTINCT d.staff_id)::int as count FROM documents d
         JOIN staff_profiles sp ON d.staff_id = sp.id
@@ -80,6 +80,16 @@ export class DashboardRepository {
           AND mi.is_active = TRUE
           AND a.status = 'pending'
           AND a.scheduled_time < CURRENT_TIMESTAMP - interval '30 minutes'
+      `, [orgId]),
+      query(`
+        SELECT COUNT(*)::int AS count
+        FROM emedication_administrations a
+        JOIN emedication_items mi ON a.emedication_item_id = mi.id
+        JOIN emedication_records r ON mi.emedication_record_id = r.id
+        WHERE r.organization_id = $1
+          AND r.status = 'active'
+          AND mi.is_active = TRUE
+          AND a.status = 'missed'
       `, [orgId]),
       query(`
         SELECT COUNT(*)::int as count
@@ -141,6 +151,43 @@ export class DashboardRepository {
       [orgId],
     );
 
+    // Who the missed medication belongs to.
+    //
+    // The widget has always reported a count, and a count cannot be opened: the
+    // dashboard reminder had nowhere to send a manager except the medication
+    // page. A missed dose is about a resident's chart, so the same read names
+    // the latest uncontrolled dose per resident (overdue pending or recorded
+    // missed, most recent first — the chart the reminder opens shows the rest).
+    // The future slot is deliberately off it: a pending dose that is not yet
+    // due is not a miss. The filters are the count's filters character for
+    // character — a list that disagreed with the number above it is the kind of
+    // drift that makes both look wrong.
+    const missedDetailResult = await query(
+      `SELECT * FROM (
+         SELECT DISTINCT ON (r.person_id)
+                p.id AS resident_id,
+                TRIM(p.first_name || ' ' || p.last_name) AS person_name,
+                a.id AS administration_id,
+                a.scheduled_time,
+                a.status AS administration_status,
+                r.id AS record_id
+         FROM emedication_administrations a
+         JOIN emedication_items mi ON a.emedication_item_id = mi.id
+         JOIN emedication_records r ON mi.emedication_record_id = r.id
+         JOIN people p ON p.id = r.person_id
+         WHERE r.organization_id = $1
+           AND r.status = 'active'
+           AND mi.is_active = TRUE
+           AND (a.status = 'missed'
+             OR (a.status = 'pending'
+               AND a.scheduled_time < CURRENT_TIMESTAMP - interval '30 minutes'))
+         ORDER BY r.person_id, a.scheduled_time DESC
+       ) sub
+       ORDER BY scheduled_time DESC
+       LIMIT 5`,
+      [orgId],
+    );
+
     // Satisfaction average
     const satResult = await query(
       `SELECT ROUND(AVG(rating)::numeric, 1) as avg_rating, COUNT(*)::int as total
@@ -173,6 +220,8 @@ export class DashboardRepository {
       pending_leave_requests: leaveResult.rows[0]?.count ?? 0,
       unread_notifications: notifResult.rows[0]?.count ?? 0,
       overdue_medications: overdueResult.rows[0]?.count ?? 0,
+      missed_medications: missedCountResult.rows[0]?.count ?? 0,
+      missed_detail: missedDetailResult.rows,
       competency_due: competencyResult.rows[0]?.count ?? 0,
       staff_below_threshold: belowThresholdResult.rows[0]?.count ?? 0,
       open_severe_incidents: openIncidentsResult.rows[0]?.count ?? 0,

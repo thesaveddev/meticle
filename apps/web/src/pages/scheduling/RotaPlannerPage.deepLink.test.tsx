@@ -85,15 +85,17 @@ describe('RotaPlannerPage deep links', () => {
     expect(await screen.findByText('Shift Detail')).toBeInTheDocument()
     // The grid behind it opened on the linked week rather than on today's. The whole
     // range, not a bare "12 Oct": the day is also written on the shift itself, so a
-    // loose match would pass on a grid showing the wrong week.
-    expect(screen.getByText('12 Oct - 18 Oct 2026')).toBeInTheDocument()
+    // loose match would pass on a grid showing the wrong week. The range is the
+    // week picker's selected value since 4.1 replaced the heading with a dropdown.
+    expect(screen.getByText('12 Oct – 18 Oct 2026')).toBeInTheDocument()
   })
 
   it('opens nothing when the week does not hold the shift the link names', async () => {
     renderRota(`/scheduling?week=${WEEK}&shift=no-such-shift`)
 
     // The rota itself loaded — the shift reached the page and the grid is drawn.
-    expect(await screen.findByText(/Oak House: /)).toBeInTheDocument()
+    // The location row of the week board names the location (4.1 matrix).
+    expect(await screen.findByText('Oak House')).toBeInTheDocument()
     await waitFor(() =>
       expect(vi.mocked(api.get).mock.calls.some(([u]) => String(u).startsWith('/shifts?'))).toBe(true),
     )
@@ -105,7 +107,7 @@ describe('RotaPlannerPage deep links', () => {
   it('opens no record when the route carries no link at all', async () => {
     renderRota(`/scheduling?week=${WEEK}`)
 
-    expect(await screen.findByText(/Oak House: /)).toBeInTheDocument()
+    expect(await screen.findByText('Oak House')).toBeInTheDocument()
     expect(screen.queryByText('Shift Detail')).not.toBeInTheDocument()
   })
 

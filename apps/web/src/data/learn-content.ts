@@ -406,17 +406,17 @@ const s: LearnSection[] = [
 { id:'training-matrix', title:'Training Matrix — Full Guide',
   content:
     h2('Training Compliance Matrix') +
-    p('Accessible from Compliance or directly at /training. Four tabs manage all aspects of staff training.') +
-    h2('Tab 1 — Dashboard') +
-    p('Shows training KPIs:') +
-    ul(['Overall completion % (completed ÷ total)','Staff count and module count','Bar chart by staff role','Table by module showing completion counts','CQC-mandated training rate (completion rate for modules tagged as CQC-mandated)']) +
-    h2('Tab 2 — Compliance Grid') +
-    p('A matrix of Staff (rows) × Modules (columns). Each cell shows a clickable chip: Green (completed), Amber (incomplete), Red (expired). CQC-mandated modules have a <strong>⚑ flag</strong> in the column header. Click any cell to mark training as complete or incomplete. Bulk assign option available.') +
-    h2('Tab 3 — Modules Management') +
-    p('Full CRUD for training modules:') +
-    ul(['<strong>Create Module:</strong> Name, Category (dropdown: Mandatory, Clinical, Safeguarding, Health & Safety, Fire Safety, Infection Control, Manual Handling, Food Hygiene, Medication, First Aid, Dementia, Autism, Mental Health, Other), Description, Frequency (days), Mandatory toggle, Requires Competency toggle, CQC-Mandated toggle with multi-select role picker','<strong>CQC-Mandated:</strong> When enabled, you can select which staff roles this training is mandatory for. Modules tagged this way get the ⚑ badge on the grid and a separate CQC-mandated training rate feeds into the CQC Safe domain.','<strong>Auto-Assign by Role:</strong> Click the "Auto-Assign by Role" button. The system queries all CQC-mandated modules and automatically creates training records for staff whose role matches the module\'s target roles. Records are created with status "incomplete".']) +
-    h2('Tab 4 — Expiring Soon') +
-    p('Shows training records expiring within a configurable look-ahead (default 30 days). Each record shows: Staff name, Module name, Days until expiry (color-coded chip), Expiry date. Paginated.') +
+    p('Accessible from Compliance or directly at /training. Three tabs organise training — <strong>Courses</strong>, <strong>Assigned</strong> and <strong>Completed</strong> — with the full records workspace one click away on “Training records”.') +
+    h2('Courses tab') +
+    p('Shows training KPIs: mandatory course count, active staff count, and overall completion % (completed ÷ course places, where one place is one mandatory course for one staff member). Each course card shows its completion bar, how many staff finished it, and an “Assign to staff” action. Add, edit and delete courses from here.') +
+    h2('Assigned and Completed tabs') +
+    p('Record lists with staff, course, dates and expiry. Mark assigned courses complete from the Assigned list.') +
+    h2('Training records workspace') +
+    p('Completion analytics (overall %, bar chart by staff role, table by module including the CQC-mandated training rate that feeds the CQC Safe domain), plus:') +
+    ul(['A matrix of Staff (rows) × Modules (columns). Each cell shows a clickable chip: Green (completed), Amber (incomplete), Red (expired). CQC-mandated modules have a <strong>⚑ flag</strong> in the column header. Click any cell to mark training as complete.','Expiring and expired training within a configurable look-ahead (default 30 days), with days-until-expiry chips.']) +
+    h2('Assigning training') +
+    p('Managers assign from the “Assign training” button (one person and any set of courses) or from a course card. “Auto-assign by role” in the same dialog creates records for every staff member whose role matches a CQC-mandated module\'s target roles. Course setup is full CRUD:') +
+    ul(['<strong>Create Course:</strong> Name, Category (dropdown: Mandatory, Clinical, Safeguarding, Health & Safety, Fire Safety, Infection Control, Manual Handling, Food Hygiene, Medication, First Aid, Dementia, Autism, Mental Health, Other), Description, Frequency (days), Mandatory toggle, Requires Competency toggle, CQC-Mandated toggle with multi-select role picker','<strong>CQC-Mandated:</strong> When enabled, you can select which staff roles this training is mandatory for. Modules tagged this way get the ⚑ badge on the grid and a separate CQC-mandated training rate feeds into the CQC Safe domain.']) +
     h2('Manager Notification') +
     p('When a staff member completes mandatory training, their location manager (if assigned) receives an in-app notification. This ensures managers are aware of completed training without having to check the matrix.') +
     h3('Training Record Management') +

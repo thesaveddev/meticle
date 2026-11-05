@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Button, Stack, Grid, TextField, MenuItem, Rating, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Alert, FormControl, InputLabel, Select } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
-import { PageHeader } from '../../components/ui'
-import { Add as AddIcon, Favorite as HeartIcon, Send as SendIcon } from '@mui/icons-material'
+import { Add as AddIcon, Send as SendIcon, Forum as ForumIcon, BarChart as ChartIcon, Assignment as SurveysSentIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -47,6 +46,19 @@ export default function SatisfactionSurveysPage() {
     }
   })
 
+  // Figma 5.11: "Surveys sent" is live — every emailed invite is stored, so
+  // count them. Care roles cannot read invitations (403); they see a dash
+  // rather than a wrong zero.
+  const { data: invitations } = useQuery({
+    queryKey: ['satisfaction-invitations'],
+    queryFn: async () => {
+      const res = await api.get('/surveys/invitations?type=satisfaction')
+      return res.data as any[]
+    },
+    retry: false,
+  })
+  const sentCount = Array.isArray(invitations) ? invitations.length : undefined
+
   const { data: people } = useQuery({
     queryKey: ['people-survey'],
     queryFn: async () => {
@@ -83,6 +95,7 @@ export default function SatisfactionSurveysPage() {
     mutationFn: async (data: any) => api.post('/surveys/satisfaction/invite', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['satisfaction-surveys'] })
+      queryClient.invalidateQueries({ queryKey: ['satisfaction-invitations'] })
       setInviteOpen(false)
       setInviteForm({ email: '', recipient_type: 'email', staff_id: '', person_id: '', person_name: '' })
       setFeedback({ type: 'success', message: 'Survey invitation sent!' })
@@ -115,59 +128,71 @@ export default function SatisfactionSurveysPage() {
     <PageContainer>
 
       {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{feedback.message}</Alert>}
-      <PageHeader
-        title="Satisfaction Feedback"
-        subtitle="Collect and review service feedback."
-        actions={
-          <>
-            <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setInviteOpen(true)}>Email Feedback Request</Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Record Feedback</Button>
-          </>
-        }
-      />
+      {/* ── Breadcrumb + header (Figma 5.11) ── */}
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em' }}>
+        COMPLIANCE &amp; SAFETY / COMPLIANCE / SATISFACTION
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mt: 0.5, mb: 3, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Satisfaction</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            What people, families and visitors think of the service.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Record feedback
+          </Button>
+          <Button variant="contained" endIcon={<SendIcon />} onClick={() => setInviteOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Send a survey
+          </Button>
+        </Stack>
+      </Stack>
 
-      {aggregate && aggregate.total > 0 && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E3E9F0' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <HeartIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
-                <Typography variant="h4" fontWeight={600}>{aggregate.average_rating?.toFixed(1) || '—'}</Typography>
-                <Typography variant="body2" color="text.secondary">Average / 5</Typography>
+      {/* ── Metric cards (Figma 5.11): always visible, live values ── */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {[{
+          label: 'Responses', value: aggregate?.total ?? 0, icon: <ForumIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+        }, {
+          label: 'Average rating',
+          value: aggregate?.average_rating != null ? Number(aggregate.average_rating).toFixed(1) : '—',
+          icon: <ChartIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+        }, {
+          label: 'Surveys sent', value: sentCount ?? '—', icon: <SurveysSentIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+        }].map((c) => (
+          <Grid item xs={12} sm={4} key={c.label}>
+            <Card sx={{ border: '1px solid #E3E9F0' }}>
+              <CardContent>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">{c.label}</Typography>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: 'notice.info.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {c.icon}
+                  </Box>
+                </Stack>
+                <Typography variant="h4" fontWeight={600}>{c.value}</Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E3E9F0' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{aggregate.total}</Typography>
-                <Typography variant="body2" color="text.secondary">Responses</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.warning.bg', border: '1px solid #E3E9F0' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={600} color='notice.warning.fg'>{aggregate.positive_count}</Typography>
-                <Typography variant="body2" color="text.secondary">Positive (4-5★)</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: 'notice.error.bg', border: '1px solid #E3E9F0' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h4" fontWeight={600} color='notice.error.fg'>{aggregate.negative_count}</Typography>
-                <Typography variant="body2" color="text.secondary">Negative (1-2★)</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
+        ))}
+      </Grid>
 
-      {(!aggregate || aggregate.total === 0) && (
-        <EmptyState title="No feedback yet" description="Record manually or email a survey link to get genuine feedback from carers and families" variant="default" />
-      )}
-
+      {(surveys?.length ?? 0) === 0 && !search && !startDate && !endDate ? (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>Surveys</Typography>
+          <Box sx={{ textAlign: 'center', py: 5 }}>
+            <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.info.bg', mb: 2 }}>
+              <ForumIcon sx={{ color: 'notice.info.fg', fontSize: 26 }} />
+            </Box>
+            <Typography sx={{ fontWeight: 700, mb: 0.75 }}>No feedback yet</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480, mx: 'auto', mb: 2.5 }}>
+              Send a short survey to people you support and their families.<br />Inspectors look for feedback that is asked for and acted on.
+            </Typography>
+            <Button variant="contained" startIcon={<SendIcon />} onClick={() => setInviteOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+              Send a survey
+            </Button>
+          </Box>
+        </Paper>
+      ) : (
       <Paper sx={{ p: 3 }}>
         <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center">
           <Typography variant="h6" sx={{ flex: 1 }}>All Feedback</Typography>
@@ -217,6 +242,7 @@ export default function SatisfactionSurveysPage() {
           <TablePagination component="div" count={surveys.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} rowsPerPageOptions={[10]} />
         )}
       </Paper>
+      )}
 
       {/* Record Feedback Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>

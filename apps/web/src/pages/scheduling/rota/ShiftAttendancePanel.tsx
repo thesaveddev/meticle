@@ -30,6 +30,7 @@ import {
   flushPendingShiftActions, newActionKey, pendingActionsForShift, queueShiftAction,
   type PendingShiftAction,
 } from './pendingShiftActions'
+import ContactStaffDialog, { type ContactStaffTarget } from './ContactStaffDialog'
 
 interface ShiftAttendancePanelProps {
   shiftId: string
@@ -64,6 +65,7 @@ export default function ShiftAttendancePanel({ shiftId, isAssignedToMe, isManage
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
   const [queued, setQueued] = useState<PendingShiftAction[]>([])
+  const [contactRow, setContactRow] = useState<ContactStaffTarget | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [composing, setComposing] = useState(false)
   const [form, setForm] = useState({ what_happened: '', outstanding: '', who_is_aware: '' })
@@ -117,6 +119,13 @@ export default function ShiftAttendancePanel({ shiftId, isAssignedToMe, isManage
 
   // The API marks the caller's own roster row and whether they wrote the
   // current handover, so nothing here has to guess at who is signed in.
+  // Managers reach a rostered worker who has not clocked in from the shift
+  // itself (Figma 8): only before the shift ends, and never the worker who is
+  // already on duty. Agency or former-user rows carry no user id, so there
+  // is no direct message to open for them.
+  const shiftEnded = attendance?.end_time ? new Date(attendance.end_time) < new Date() : false
+  const contactable = (row: any) => isManager && !!row.user_id && !row.on_duty && !shiftEnded
+
   const myRow = useMemo(() => (attendance?.rostered || []).find((row: any) => row.is_me) || null, [attendance])
   const anyoneOnDuty = useMemo(
     () => (attendance?.rostered || []).some((row: any) => row.on_duty),
@@ -269,6 +278,21 @@ export default function ShiftAttendancePanel({ shiftId, isAssignedToMe, isManage
                     ? `${fmtTime(row.clocked_on_at)}${row.clocked_off_at ? ` – ${fmtTime(row.clocked_off_at)}` : ' – now'}${row.worked_minutes ? ` · ${formatMinutes(row.worked_minutes)}` : ''}`
                     : 'No record'}
                 </Typography>
+                {contactable(row) && (
+                  <Button
+                    size="small"
+                    onClick={() => setContactRow({
+                      userId: row.user_id,
+                      firstName: row.first_name || '',
+                      lastName: row.last_name || '',
+                      onDuty: !!row.on_duty,
+                      clockedOnAt: row.clocked_on_at || null,
+                    })}
+                    sx={{ ml: 'auto', minWidth: 0, py: 0.25, px: 1, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' }}
+                  >
+                    Contact
+                  </Button>
+                )}
               </Stack>
             ))}
           </Stack>
@@ -425,6 +449,16 @@ export default function ShiftAttendancePanel({ shiftId, isAssignedToMe, isManage
           </Stack>
         )}
       </Box>
+
+      <ContactStaffDialog
+        open={contactRow !== null}
+        onClose={() => setContactRow(null)}
+        staff={contactRow}
+        locationName={attendance?.location_name || 'this location'}
+        shiftStart={attendance?.start_time || ''}
+        shiftEnd={attendance?.end_time || ''}
+        shiftType={attendance?.shift_type}
+      />
 
       {notice && (
         <Typography variant="caption" sx={{ color: 'notice.warning.fg', fontWeight: 600 }}>{notice}</Typography>

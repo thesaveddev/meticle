@@ -209,9 +209,14 @@ const aggregationSchema = z.object({
   field: z.string().min(1).max(64).optional(),
 });
 
+export const customReportVisibilitySchema = z.enum(['managers', 'team', 'me']);
+
+export type CustomReportVisibility = z.infer<typeof customReportVisibilitySchema>;
+
 export const customReportConfigSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).default(''),
+  visibility: customReportVisibilitySchema.default('managers'),
   dataset: z.string().min(1).max(32),
   columns: z.array(z.string().min(1).max(64)).min(1).max(20),
   filters: z.array(filterConditionSchema).max(20).default([]),
@@ -481,6 +486,7 @@ export interface SavedCustomReport {
   organization_id: string;
   name: string;
   description: string;
+  visibility: CustomReportVisibility;
   dataset: string;
   columns: string[];
   filters: Array<{ field: string; op: string; value?: any }>;
@@ -495,7 +501,7 @@ export interface SavedCustomReport {
   updated_at: string;
 }
 
-const SAVED_SELECT = `id, organization_id, name, description, dataset, columns, filters,
+const SAVED_SELECT = `id, organization_id, name, description, visibility, dataset, columns, filters,
   group_by, aggregations, sort_by, sort_dir, row_limit, chart_type, created_by, created_at, updated_at`;
 
 export async function listSavedReports(orgId: string): Promise<SavedCustomReport[]> {
@@ -513,10 +519,10 @@ export async function getSavedReport(orgId: string, id: string, db: DbExecutor =
 
 export async function createSavedReport(orgId: string, userId: string, config: CustomReportConfig): Promise<SavedCustomReport> {
   const result = await query(
-    `INSERT INTO custom_reports (organization_id, name, description, dataset, columns, filters, group_by, aggregations, sort_by, sort_dir, row_limit, chart_type, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `INSERT INTO custom_reports (organization_id, name, description, visibility, dataset, columns, filters, group_by, aggregations, sort_by, sort_dir, row_limit, chart_type, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING ${SAVED_SELECT}`,
-    [orgId, config.name, config.description || '', config.dataset, JSON.stringify(config.columns), JSON.stringify(config.filters),
+    [orgId, config.name, config.description || '', config.visibility || 'managers', config.dataset, JSON.stringify(config.columns), JSON.stringify(config.filters),
       config.group_by || null, JSON.stringify(config.aggregations), config.sort_by || null, config.sort_dir, config.row_limit, config.chart_type, userId],
   );
   return result.rows[0];
@@ -524,14 +530,76 @@ export async function createSavedReport(orgId: string, userId: string, config: C
 
 export async function updateSavedReport(orgId: string, id: string, config: CustomReportConfig): Promise<SavedCustomReport | null> {
   const result = await query(
-    `UPDATE custom_reports SET name = $3, description = $4, dataset = $5, columns = $6, filters = $7,
-      group_by = $8, aggregations = $9, sort_by = $10, sort_dir = $11, row_limit = $12, chart_type = $13, updated_at = NOW()
+    `UPDATE custom_reports SET name = $3, description = $4, visibility = $5, dataset = $6, columns = $7, filters = $8,
+      group_by = $9, aggregations = $10, sort_by = $11, sort_dir = $12, row_limit = $13, chart_type = $14, updated_at = NOW()
      WHERE organization_id = $1 AND id = $2
      RETURNING ${SAVED_SELECT}`,
-    [orgId, id, config.name, config.description || '', config.dataset, JSON.stringify(config.columns), JSON.stringify(config.filters),
+    [orgId, id, config.name, config.description || '', config.visibility || 'managers', config.dataset, JSON.stringify(config.columns), JSON.stringify(config.filters),
       config.group_by || null, JSON.stringify(config.aggregations), config.sort_by || null, config.sort_dir, config.row_limit, config.chart_type],
   );
   return result.rows[0] || null;
+}
+
+// ─── Who-can-view ──────────────────────────────────────────
+//
+// The save dialog (Figma 10.2) offers All managers / My team / Only me.
+// 'managers' is the previous behaviour: everyone on /reporting/custom.
+// 'team' adds the managers in the creator's department; 'me' is the
+// creator alone. ORG_ADMINs see everything — they already administer every
+// report, schedule and acknowledgement in the product.
+
+export interface ReportViewer {
+  userId: string;
+  isAdmin: boolean;
+  departmentId: string | null;
+}
+
+export async function getReportViewer(orgId: string, userId: string, role: string): Promise<ReportViewer> {
+  const result = await query(
+    `SELECT sp.department_id FROM staff_profiles sp JOIN users u ON sp.user_id = u.id
+     WHERE u.id = $1 AND u.organization_id = $2`,
+    [userId, orgId],
+  );
+  return { userId, isAdmin: role === 'ORG_ADMIN', departmentId: result.rows[0]?.department_id ?? null };
+}
+
+export async function canViewReport(saved: SavedCustomReport, viewer: ReportViewer): Promise<boolean> {
+  if (saved.visibility === 'managers') return true;
+  if (saved.created_by === viewer.userId || viewer.isAdmin) return true;
+  if (saved.visibility === 'me' || !saved.created_by) return false;
+  if (!viewer.departmentId) return false;
+  const creator = await query('SELECT department_id FROM staff_profiles WHERE user_id = $1', [saved.created_by]);
+  const creatorDept = creator.rows[0]?.department_id ?? null;
+  return !!creatorDept && creatorDept === viewer.departmentId;
+}
+
+/** A restricted report can only be changed by its owner or an admin; a
+ *  managers-visible report stays editable by every manager (the previous
+ *  behaviour), so existing libraries keep working. */
+export function canEditReport(saved: SavedCustomReport, viewer: ReportViewer): boolean {
+  if (saved.visibility === 'managers') return true;
+  return saved.created_by === viewer.userId || viewer.isAdmin;
+}
+
+/** List-time scoping: the same rule as canViewReport, with one batched
+ *  department lookup for every restricted report instead of one per row. */
+export async function filterVisibleReports(
+  reports: SavedCustomReport[], viewer: ReportViewer,
+): Promise<SavedCustomReport[]> {
+  const open = reports.filter((r) => r.visibility === 'managers');
+  const mine = reports.filter((r) => r.visibility !== 'managers' && (r.created_by === viewer.userId || viewer.isAdmin));
+  const mineIds = new Set(mine.map((r) => r.id));
+  const teamCandidates = reports.filter(
+    (r) => r.visibility === 'team' && !mineIds.has(r.id) && r.created_by && viewer.departmentId,
+  );
+  if (teamCandidates.length === 0) return reports.filter((r) => open.includes(r) || mineIds.has(r.id));
+  const creatorIds = [...new Set(teamCandidates.map((r) => r.created_by as string))];
+  const depts = await query('SELECT user_id, department_id FROM staff_profiles WHERE user_id = ANY($1)', [creatorIds]);
+  const deptByUser = new Map(depts.rows.map((row: any) => [row.user_id, row.department_id]));
+  const shared = new Set(
+    teamCandidates.filter((r) => deptByUser.get(r.created_by as string) === viewer.departmentId).map((r) => r.id),
+  );
+  return reports.filter((r) => open.includes(r) || mineIds.has(r.id) || shared.has(r.id));
 }
 
 export async function deleteSavedReport(orgId: string, id: string): Promise<boolean> {

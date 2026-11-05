@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import { Box, Paper, Stack, Avatar, Typography, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert, Menu } from '@mui/material'
-import { Groups as GroupsIcon, Forum as ForumIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { Box, Paper, Stack, Avatar, Badge, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert, Menu } from '@mui/material'
+import { CheckCircle as SuccessIcon, Error as ErrorIcon } from '@mui/icons-material'
 import { useChat } from './hooks/useChat'
 import { getChannelName, getChannelAvatar, EMOJIS, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE } from './utils'
 import ChannelSidebar from './components/ChannelSidebar'
@@ -10,17 +10,25 @@ import SharedFiles from './components/SharedFiles'
 import CreateGroupDialog from './components/CreateGroupDialog'
 import StartDMDialog from './components/StartDMDialog'
 import MemberListDialog from './components/MemberListDialog'
+import ShareFileDialog from './components/ShareFileDialog'
+
+const ROLE_LABELS: Record<string, string> = {
+  ORG_ADMIN: 'Admin', MANAGER: 'Manager', CARE_WORKER: 'Care Worker', COMPLIANCE_OFFICER: 'Compliance',
+}
 
 export default function ChatPage() {
   const chat = useChat()
-  const [drawerOpen, setDrawerOpen] = useState(true)
   const [activeTab, setActiveTab] = useState(0)
   const [showMembers, setShowMembers] = useState(false)
   const [groupDialog, setGroupDialog] = useState(false)
   const [dmDialog, setDmDialog] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null)
   const [leaveConfirm, setLeaveConfirm] = useState(false)
+  const [shareDialog, setShareDialog] = useState(false)
+  const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null)
   const [reactionPicker, setReactionPicker] = useState<{ msgId: string; anchor: HTMLElement } | null>(null)
+
+  const showToast = useCallback((message: string, kind: 'success' | 'error') => setToast({ message, kind }), [])
 
   const activeChannelData = chat.activeChannelData
   const channelType = activeChannelData?.type || ''
@@ -30,6 +38,22 @@ export default function ChatPage() {
     : { initials: '?', avatar: '' }
 
   const getOnlineCount = useCallback((ch: any) => ch?.members ? ch.members.filter((m: any) => chat.onlineUsers.has(m.user_id)).length : 0, [chat.onlineUsers])
+
+  const dmOther = channelType === 'dm' && activeChannelData?.members
+    ? activeChannelData.members.find((m: any) => m.user_id !== chat.currentUserId)
+    : null
+  const dmOnline = dmOther ? chat.onlineUsers.has(dmOther.user_id) : false
+  const dmRoleValue = (dmOther as any)?.role as string | undefined
+  const dmRole = dmRoleValue ? ROLE_LABELS[dmRoleValue] || dmRoleValue.replace(/_/g, ' ') : ''
+  const memberCount = activeChannelData?.members?.length || 0
+  const headerSubtitle = channelType === 'dm'
+    ? `${dmOnline ? 'Online' : 'Away'}${dmRole ? ` · ${dmRole}` : ''}`
+    : (channelType === 'general' || channelType === 'group')
+      ? `${memberCount} ${memberCount === 1 ? 'person' : 'people'} · ${getOnlineCount(activeChannelData)} online`
+      : ''
+  const emptySubtitle = channelType === 'dm' && dmOther
+    ? `Say hello to ${(dmOther.first_name || 'them').trim()}. Messages here are only seen by the two of you.`
+    : undefined
 
   const handleDownload = useCallback(async (url: string, name: string) => {
     try {
@@ -52,51 +76,77 @@ export default function ChatPage() {
     await chat.handleFileUpload(file)
   }, [chat.handleFileUpload])
 
-  const handleAttachFile = useCallback((file: File) => {
-    chat.handleAttachFile(file)
-  }, [chat.handleAttachFile])
+  const handleRemoveMember = useCallback(async (userId: string) => {
+    try {
+      await chat.handleRemoveMember(userId)
+    } catch {
+      showToast('Could not remove member. Try again.', 'error')
+    }
+  }, [chat.handleRemoveMember, showToast])
+
+  const handleAddMembers = useCallback(async (userIds: string[]): Promise<number> => {
+    try {
+      const added = await chat.handleAddMembers(userIds)
+      showToast(added > 0 ? `${added} ${added === 1 ? 'person' : 'people'} added to the group` : 'Everyone selected is already in this group', 'success')
+      return added
+    } catch {
+      showToast('Could not add members. Try again.', 'error')
+      return 0
+    }
+  }, [chat.handleAddMembers, showToast])
+
+  const handleStartDM = useCallback(async (userId: string) => {
+    try {
+      await chat.handleStartDM(userId)
+    } catch {
+      showToast('Could not start conversation. Try again.', 'error')
+    }
+  }, [chat.handleStartDM, showToast])
 
   return (
-    <Box sx={{ display: 'flex', height: 'calc(100vh - 112px)', overflow: 'hidden', bgcolor: BONE, boxSizing: 'border-box' }}>
-      <Paper elevation={0} sx={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden', borderRadius: 0, border: 'none' }}>
-
-        {/* Sidebar */}
-        {drawerOpen && (
-          <ChannelSidebar
-            channels={chat.channels} activeChannel={chat.activeChannel}
-            onSelectChannel={id => { chat.setActiveChannel(id); setActiveTab(0) }}
-            orgMembers={chat.orgMembers} onlineUsers={chat.onlineUsers}
-            totalUnread={chat.totalUnread} searchQuery={chat.searchQuery}
-            onSearchChange={chat.setSearchQuery} searchResults={chat.searchResults}
-            searching={chat.searching} currentUserId={chat.currentUserId}
-            onNewDM={() => setDmDialog(true)} onNewGroup={() => setGroupDialog(true)}
-          />
-        )}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 112px)', overflow: 'hidden', gap: 2 }}>
+      <Box>
+        <Typography variant="caption" sx={{ color: NAVY, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Communication / Chat
+        </Typography>
+        <Typography variant="h5" fontWeight={600} sx={{ mt: 0.5 }}>Communication</Typography>
+        <Typography variant="body2" color="text.secondary">Messages between the team, in groups or one to one.</Typography>
+      </Box>
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', gap: 2, overflow: 'hidden' }}>
+        <ChannelSidebar
+          channels={chat.channels} activeChannel={chat.activeChannel}
+          onSelectChannel={id => { chat.setActiveChannel(id); setActiveTab(0) }}
+          orgMembers={chat.orgMembers} onlineUsers={chat.onlineUsers}
+          totalUnread={chat.totalUnread} searchQuery={chat.searchQuery}
+          onSearchChange={chat.setSearchQuery} searchResults={chat.searchResults}
+          searching={chat.searching} currentUserId={chat.currentUserId}
+          onNewDM={() => setDmDialog(true)} onNewGroup={() => setGroupDialog(true)}
+        />
 
         {/* Main area */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: WHITE }}>
+        <Paper elevation={0} sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: WHITE, borderRadius: 3, border: `1px solid ${HAIRLINE}` }}>
           {/* Header */}
           <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: WHITE, minHeight: 52, boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
-              {!drawerOpen && (
-                <IconButton size="small" onClick={() => setDrawerOpen(true)} sx={{ color: NAVY }}>
-                  <ArrowBackIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-              )}
               {(channelType === 'general' || channelType === 'group') ? (
                 <Avatar sx={{
-                  bgcolor: channelType === 'general' ? NAVY : BONE,
-                  color: channelType === 'general' ? WHITE : NAVY,
-                  border: `1px solid ${channelType === 'general' ? NAVY_DEEP : HAIRLINE}`,
-                  width: 34, height: 34, fontSize: 14,
+                  bgcolor: NAVY, color: WHITE, borderRadius: 1.5,
+                  border: `1px solid ${NAVY_DEEP}`,
+                  width: 38, height: 38, fontSize: 16,
                 }}>
-                  {channelType === 'general' ? '#' : channelInitials}
+                  #
                 </Avatar>
               ) : (
-                <Avatar src={channelAvatar || undefined}
-                  sx={{ bgcolor: BONE, color: NAVY, border: `1px solid ${HAIRLINE}`, width: 34, height: 34, fontSize: 14 }}>
-                  {channelInitials}
-                </Avatar>
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={dmOther && dmOnline ? <Box sx={{ width: 11, height: 11, bgcolor: EMERALD, borderRadius: '50%', border: `2px solid ${WHITE}` }} /> : null}
+                >
+                  <Avatar src={channelAvatar || undefined}
+                    sx={{ bgcolor: BONE, color: NAVY, border: `1px solid ${HAIRLINE}`, width: 38, height: 38, fontSize: 14 }}>
+                    {channelInitials}
+                  </Avatar>
+                </Badge>
               )}
               <Box>
                 <Stack direction="row" spacing={0.75} alignItems="center">
@@ -111,51 +161,26 @@ export default function ChatPage() {
                   )}
                 </Stack>
                 <Typography variant="caption" sx={{ fontSize: 11, color: MIST }}>
-                  {channelType === 'general' ? 'General channel' : channelType === 'group' ? `${chat.channelMembers.length} members` : channelType === 'dm' ? 'Direct message' : ''}
+                  {channelName ? headerSubtitle : 'Choose a conversation to get started'}
                 </Typography>
               </Box>
             </Stack>
 
             <Stack direction="row" spacing={0.75} alignItems="center">
-              {/* Stacked avatars for groups */}
-              {(channelType === 'group' || channelType === 'general') && chat.channelMembers.length > 0 && (
-                <Stack direction="row" spacing={-0.5} alignItems="center" sx={{ mr: 0.5 }}>
-                  {chat.channelMembers.slice(0, 5).map((m, i) => (
-                    <Tooltip key={m.user_id} title={`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}>
-                      <Avatar sx={{
-                        width: 26, height: 26, fontSize: 10, bgcolor: BONE, color: NAVY,
-                        border: `2px solid ${WHITE}`, ml: i === 0 ? 0 : -0.5, zIndex: 5 - i,
-                      }}>
-                        {(m.first_name?.[0] || m.email?.[0] || '?').toUpperCase()}
-                      </Avatar>
-                    </Tooltip>
-                  ))}
-                  {chat.channelMembers.length > 5 && (
-                    <Avatar sx={{ width: 26, height: 26, fontSize: 9, bgcolor: NAVY, color: WHITE, border: `2px solid ${WHITE}`, ml: -0.5 }}>
-                      +{chat.channelMembers.length - 5}
-                    </Avatar>
-                  )}
-                </Stack>
+              {(channelType === 'group' || channelType === 'general') && chat.activeChannel && (
+                <Button variant="outlined" size="small"
+                  onClick={() => { setShowMembers(true); chat.loadChannelMembers(chat.activeChannel!) }}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+                  Members
+                </Button>
               )}
-
-              {channelType !== 'dm' && (
-                <IconButton size="small" onClick={() => { setShowMembers(true); chat.loadChannelMembers(chat.activeChannel!) }}
-                  disabled={!chat.activeChannel}
-                  sx={{ color: MIST, width: 32, height: 32, border: `1px solid ${OUTLINE}`, borderRadius: 1.5, '&:hover': { bgcolor: BONE, color: NAVY, borderColor: NAVY } }}>
-                  <GroupsIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              )}
-              <IconButton size="small" onClick={() => setDrawerOpen(prev => !prev)}
-                sx={{ color: MIST, width: 32, height: 32, border: `1px solid ${OUTLINE}`, borderRadius: 1.5, '&:hover': { bgcolor: BONE, color: NAVY, borderColor: NAVY } }}>
-                <ForumIcon sx={{ fontSize: 18 }} />
-              </IconButton>
             </Stack>
           </Box>
 
           {/* Tabs */}
           {chat.activeChannel && (
             <Box sx={{ borderBottom: `1px solid ${OUTLINE}`, px: 2, display: 'flex', gap: 0 }}>
-              {['Messages', `Files (${chat.sharedFiles.length})`].map((label, i) => (
+              {['Messages', `Files ${chat.sharedFiles.length}`].map((label, i) => (
                 <Box key={i} onClick={() => { setActiveTab(i); if (i === 1) chat.loadSharedFiles(chat.activeChannel!) }}
                   sx={{
                     py: 1, px: 2, cursor: 'pointer', fontSize: 13, fontWeight: activeTab === i ? 700 : 500,
@@ -170,6 +195,17 @@ export default function ChatPage() {
           )}
 
           {/* Content */}
+          {chat.sendError && (
+            <Box sx={{ mx: 2, mt: 1.5, p: 1.5, borderRadius: 2, bgcolor: '#EAF2FB', borderLeft: `3px solid ${NAVY}`, display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" fontWeight={700}>You're offline</Typography>
+                <Typography variant="caption" color="text.secondary">Your message is saved here. It will send when you're back online, or tap Try again.</Typography>
+              </Box>
+              <Button size="small" variant="outlined" onClick={() => chat.handleSend()} sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0, borderRadius: 2 }}>
+                Try again
+              </Button>
+            </Box>
+          )}
           {activeTab === 0 ? (
             <>
               <MessageList
@@ -191,16 +227,16 @@ export default function ChatPage() {
                 typingText={chat.typingText} messagesEndRef={chat.messagesEndRef}
                 containerRef={chat.msgContainerRef}
                 isMessageSeen={chat.isMessageSeen} getSeenByNames={chat.getSeenByNames}
+                emptySubtitle={emptySubtitle}
               />
               <ChatComposer
                 messageText={chat.messageText} onTextChange={chat.setMessageText}
                 onSend={chat.handleSend} onKeyDown={chat.handleKeyDown}
                 onTyping={chat.handleTyping} sending={chat.sending}
                 sendError={chat.sendError}
-                activeChannel={chat.activeChannel} onFileSelect={handleAttachFile}
+                activeChannel={chat.activeChannel} onAttachClick={() => setShareDialog(true)}
                 inputLinkPreview={chat.inputLinkPreview} inputLinkLoading={chat.inputLinkLoading}
                 replyTo={chat.replyTo} onCancelReply={() => chat.setReplyTo(null)}
-                pendingFile={chat.pendingFile} onCancelFile={() => chat.setPendingFile(null)}
                 currentUserId={chat.currentUserId}
               />
             </>
@@ -211,24 +247,33 @@ export default function ChatPage() {
               onOpenFile={openFilePreview} onDownload={handleDownload}
             />
           )}
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
 
       {/* Dialogs */}
       <CreateGroupDialog open={groupDialog} onClose={() => setGroupDialog(false)}
-        orgMembers={chat.orgMembers} currentUserId={chat.currentUserId} onCreate={chat.handleCreateGroup} />
+        orgMembers={chat.orgMembers} currentUserId={chat.currentUserId} onCreate={chat.handleCreateGroup}
+        onCreated={() => showToast('Group created', 'success')}
+        onFailed={() => showToast('Group failed to create. Try again.', 'error')} />
 
       <StartDMDialog open={dmDialog} onClose={() => setDmDialog(false)}
         orgMembers={chat.orgMembers} currentUserId={chat.currentUserId}
-        onlineUsers={chat.onlineUsers} onStartDM={chat.handleStartDM} />
+        onlineUsers={chat.onlineUsers} onStartDM={handleStartDM} />
+
+      <ShareFileDialog open={shareDialog} onClose={() => setShareDialog(false)}
+        channelName={channelName} onSendFile={chat.handleSendFile}
+        onSent={() => showToast('File shared', 'success')}
+        onFailed={() => showToast('File failed to share. Try again.', 'error')} />
 
       {showMembers && (
         <MemberListDialog open={showMembers} onClose={() => setShowMembers(false)}
           channelName={channelName} members={chat.channelMembers}
+          orgMembers={chat.orgMembers}
           currentUserId={chat.currentUserId} channelType={channelType}
           onlineUsers={chat.onlineUsers}
-          onStartDM={id => { chat.handleStartDM(id); setShowMembers(false) }}
-          onRemoveMember={chat.handleRemoveMember}
+          onStartDM={id => { handleStartDM(id); setShowMembers(false) }}
+          onRemoveMember={handleRemoveMember}
+          onAddMembers={handleAddMembers}
           onLeaveGroup={() => { setLeaveConfirm(true) }} />
       )}
 
@@ -281,6 +326,22 @@ export default function ChatPage() {
       <Snackbar open={!!chat.uploadError} autoHideDuration={4000} onClose={() => chat.setUploadError('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity="error" onClose={() => chat.setUploadError('')} variant="filled">{chat.uploadError}</Alert>
+      </Snackbar>
+
+      {/* Success / failure toasts (Figma 7.4) */}
+      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 1,
+          bgcolor: NAVY_DEEP, color: WHITE, borderRadius: 999,
+          px: 2, py: 1, fontSize: 13, fontWeight: 600,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+        }}>
+          {toast?.kind === 'success'
+            ? <SuccessIcon sx={{ fontSize: 18, color: EMERALD }} />
+            : <ErrorIcon sx={{ fontSize: 18, color: '#FCA5A5' }} />}
+          {toast?.message}
+        </Box>
       </Snackbar>
     </Box>
   )

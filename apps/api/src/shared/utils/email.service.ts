@@ -438,6 +438,15 @@ export class EmailService {
     return micaRecordUrl(ref, baseUrl());
   }
 
+  /**
+   * Policies are not a Mica record kind (they open a whole page, not a dialog
+   * on a tabbed page), so they get their own absolute-URL helper rather than a
+   * `MicaRecordRef` that would pretend otherwise.
+   */
+  static policyUrl(policyId: string): string {
+    return `${baseUrl().replace(/\/+$/, '')}/policies/${policyId}`;
+  }
+
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
     await sendMail(email, 'Verify your Meticle Care email address',
@@ -845,6 +854,45 @@ export class EmailService {
         `<p><strong>Priority:</strong> ${escapeHtml(task.priority)}.${due}</p>` +
         `<p>Open the task to see who it is for and to record what you did.</p>`,
         { label: 'Open the task', url: link }), 'notifications');
+  }
+
+  // ── Policies ──
+  static async sendPolicySharedEmail(
+    email: string,
+    policy: { title: string; category: string },
+    senderName: string,
+    message: string | undefined,
+    link: string,
+  ) {
+    // A manager's explicit share, not a recurring alert: the recipient asked for
+    // nothing, but neither did they subscribe to something — one-off shares
+    // carry the notifications scope like the task-assignment mail above.
+    await sendNotificationMail(email, `Policy shared — ${policy.title}`,
+      buildEmailHtml('Policy shared', 'Hi there,',
+        `<p><strong>${escapeHtml(senderName)}</strong> has shared the <strong>${escapeHtml(policy.title)}</strong> policy (${escapeHtml(policy.category)}) with you.</p>` +
+        (message ? `<p style="font-style:italic">“${escapeHtml(message)}”</p>` : '') +
+        `<p>You need a MeticleCare login to open it.</p>`,
+        { label: 'Open the policy', url: link }), 'notifications');
+  }
+
+  static async sendPolicyReadRequestEmail(
+    email: string,
+    recipientName: string,
+    policy: { title: string },
+    senderName: string,
+    readBy: string | undefined,
+    message: string | undefined,
+    link: string,
+    options: { reminder?: boolean } = {},
+  ) {
+    const due = readBy ? ` Please read it by ${fmtDate(readBy)}.` : '';
+    const verb = options.reminder ? 'is reminding you to read' : 'has asked you to read';
+    await sendNotificationMail(email, `Please read — ${policy.title}`,
+      buildEmailHtml('Policy read request', `Hi ${escapeHtml(recipientName) || 'there'},`,
+        `<p><strong>${escapeHtml(senderName)}</strong> ${verb} the <strong>${escapeHtml(policy.title)}</strong> policy.${due}</p>` +
+        (message ? `<p style="font-style:italic">“${escapeHtml(message)}”</p>` : '') +
+        `<p>Open the policy below and use Mark as read once you have read it.</p>`,
+        { label: 'Open the policy', url: link }), 'notifications');
   }
 
   // ── MFA ──

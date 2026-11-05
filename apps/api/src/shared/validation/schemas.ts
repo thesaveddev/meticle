@@ -1765,6 +1765,19 @@ export const updatePolicySchema = z.object({
   version: z.string().max(50).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
   review_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  what_changed: z.string().max(2000).optional(),
+});
+
+export const sharePolicySchema = z.object({
+  emails: z.array(z.string().email().max(254)).min(1).max(20),
+  message: z.string().max(2000).optional(),
+});
+
+export const policyReadRequestsSchema = z.object({
+  mode: z.enum(['all', 'unsigned', 'selected']),
+  user_ids: z.array(z.string().uuid()).max(200).optional(),
+  read_by: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  message: z.string().max(2000).optional(),
 });
 
 // === Appointments ===
@@ -1781,6 +1794,9 @@ export const createAppointmentSchema = z.object({
   end_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)).optional(),
   status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'no-show']).optional(),
   location_id: z.string().uuid().optional().nullable(),
+  where_text: z.string().max(255).optional().nullable(),
+  cancellation_reason: z.string().max(50).optional().nullable(),
+  cancellation_note: z.string().max(2000).optional().nullable(),
 });
 
 export const updateAppointmentSchema = z.object({
@@ -1794,6 +1810,9 @@ export const updateAppointmentSchema = z.object({
   end_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)).optional().nullable(),
   status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'no-show']).optional(),
   location_id: z.string().uuid().optional().nullable(),
+  where_text: z.string().max(255).optional().nullable(),
+  cancellation_reason: z.string().max(50).optional().nullable(),
+  cancellation_note: z.string().max(2000).optional().nullable(),
 });
 
 // === Person Goals ===
