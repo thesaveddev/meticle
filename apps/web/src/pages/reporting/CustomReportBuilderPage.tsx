@@ -205,7 +205,6 @@ export default function CustomReportBuilderPage() {
       .catch((e: any) => { if (active) setError(e.response?.data?.message || 'Could not load the report builder.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedId])
 
   useEffect(() => {

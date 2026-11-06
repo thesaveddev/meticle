@@ -26,8 +26,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
-import { HAIRLINE, INK, MUTED, NAVY, bumpVersion, reminderForReviewDate, type Policy } from './policyShared'
-import { CATEGORIES } from './policyShared'
+import { HAIRLINE, INK, MUTED, NAVY, CATEGORIES, bumpVersion, reminderForReviewDate, type Policy } from './policyShared'
 
 const initialForm = {
   title: '',

@@ -700,7 +700,7 @@ once — the first declaration wins at runtime.
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 4 |
-| audited / updated / tested | 18 / 112 / 37 |
+| audited / updated / tested | 18 / 111 / 37 |
 | Fully signed off (all three) | 3 |
 | Gaps (any of the three missing) | 122 |
 
@@ -736,7 +736,7 @@ once — the first declaration wins at runtime.
 | `/compliance/evidence` | `pages/compliance/EvidencePacksPage.tsx` | no | yes | no |
 | `/compliance/handovers` | `pages/handovers/ShiftHandoversPage.tsx` | no | yes | no |
 | `/compliance/homecare` | `pages/compliance/HomecareCompliancePage.tsx` | no | yes | no |
-| `/compliance/identity` | `pages/compliance/IdentityMonitoringPage.tsx` | no | yes | no |
+| `/compliance/identity` | `pages/compliance/IdentityMonitoringPage.tsx` | no | no | no |
 | `/compliance/readiness` | `pages/compliance/CqcReadinessPage.tsx` | no | yes | no |
 | `/compliance/records` | `pages/compliance/ComplianceRecordsPage.tsx` | no | yes | no |
 | `/compliance/satisfaction` | `pages/compliance/SatisfactionSurveysPage.tsx` | no | yes | no |

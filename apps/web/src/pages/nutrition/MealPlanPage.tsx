@@ -267,7 +267,6 @@ export default function MealPlanPage() {
     const list = (templates as any[]).filter(t => t.day_of_week && (!locationFilter || !t.location_id || t.location_id === locationFilter));
     // Attach location names for the cell labels.
     return list.map(t => ({ ...t, location_name: t.location_id ? locationName(t.location_id) : null }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates, locationFilter, locations]);
 
   const weekStart = mondayOfThisWeek();

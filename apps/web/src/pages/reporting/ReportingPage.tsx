@@ -118,7 +118,6 @@ export default function ReportingPage() {
   const availableReports = useMemo(() => {
     const source = isDomiciliary ? reports.filter(r => domiciliaryReportIds.has(r.id)) : reports
     return source.map(reportForOrganisation)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports, isDomiciliary])
 
   const metricCards = useMemo(() => {
