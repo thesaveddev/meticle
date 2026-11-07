@@ -700,7 +700,7 @@ once — the first declaration wins at runtime.
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 2 |
-| audited / updated / tested | 18 / 124 / 37 |
+| audited / updated / tested | 18 / 124 / 38 |
 | Fully signed off (all three) | 13 |
 | Gaps (any of the three missing) | 111 |
 
@@ -718,7 +718,7 @@ once — the first declaration wins at runtime.
 | `/app` | `pages/marketing/DownloadPageNew.tsx` | no | yes | no |
 | `/appointments` | `pages/appointments/AppointmentsPage.tsx` | no | yes | yes |
 | `/availability` | `pages/homecare/AvailabilityPage.tsx` | no | yes | yes |
-| `/billing` | `pages/billing/BillingPage.tsx` | no | yes | no |
+| `/billing` | `pages/billing/BillingPage.tsx` | no | yes | yes |
 | `/blog` | `pages/marketing/PublicBlogPage.tsx` | no | yes | no |
 | `/blog/:slug` | `pages/marketing/PublicBlogPage.tsx` | no | yes | no |
 | `/call-assignment` | `pages/homecare/CallAssignmentBoard.tsx` | no | yes | yes |
