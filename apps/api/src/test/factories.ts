@@ -138,18 +138,19 @@ export async function createLocation(overrides: Record<string, any> = {}) {
   return result.rows[0]
 }
 
-/** Create a department. Returns the full row. */
+/** Create a department. Returns the full row.
+ *  Departments are scoped through their location, not a direct organisation
+ *  column: schema.sql defines only id, location_id, name and timestamps. */
 export async function createDepartment(overrides: Record<string, any> = {}) {
   const id = overrides.id || uuidv4()
-  const organizationId = overrides.organization_id || overrides.organizationId
+  const locationId = overrides.location_id || overrides.locationId || null
   const name = overrides.name || `Test Dept ${id.slice(0, 8)}`
-  const description = overrides.description || 'Test department description'
 
   const result = await query(
-    `INSERT INTO departments (id, organization_id, name, description)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO departments (id, location_id, name)
+     VALUES ($1, $2, $3)
      RETURNING *`,
-    [id, organizationId, name, description]
+    [id, locationId, name]
   )
   return result.rows[0]
 }

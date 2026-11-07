@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, createStaffProfile, createDepartment, generateToken } from '../../test/factories'
+import { createOrg, createUser, createStaffProfile, createLocation, createDepartment, generateToken } from '../../test/factories'
 
 let app: Express
 
@@ -23,8 +23,10 @@ const STAFF_CONFIG = {
 async function setup() {
   const org = await createOrg()
   const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-  const deptA = await createDepartment({ organization_id: org.id, name: `Dept A ${suffix}` })
-  const deptB = await createDepartment({ organization_id: org.id, name: `Dept B ${suffix}` })
+  // Departments hang off a location, which is what gives them an organisation.
+  const location = await createLocation({ organization_id: org.id })
+  const deptA = await createDepartment({ location_id: location.id, name: `Dept A ${suffix}` })
+  const deptB = await createDepartment({ location_id: location.id, name: `Dept B ${suffix}` })
   const admin = await createUser({ email: `vis-admin-${suffix}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
   const mgrA = await createUser({ email: `vis-mgra-${suffix}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
   const mgrA2 = await createUser({ email: `vis-mgra2-${suffix}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
