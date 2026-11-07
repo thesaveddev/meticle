@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
+import { getAddon } from '../../modules/billing/billing.addons';
 
 dotenv.config();
 
@@ -244,5 +245,74 @@ export async function getOrCreatePrice(plan: string): Promise<string | null> {
   process.env[envKey] = price.id;
   if (!cachedPrices) cachedPrices = {};
   cachedPrices[billingPlan] = price.id;
+  return price.id;
+}
+
+let cachedAddonPrices: Record<string, string> | null = null;
+
+export function isExpectedAddonPrice(
+  slug: string,
+  price: Pick<Stripe.Price, 'active' | 'currency' | 'unit_amount' | 'recurring'>,
+): boolean {
+  const addon = getAddon(slug);
+  if (!addon || !price.active) return false;
+  return price.currency === addon.currency
+    && price.unit_amount === addon.amount
+    && price.recurring?.interval === addon.interval
+    && (price.recurring?.interval_count ?? 1) === 1;
+}
+
+/**
+ * Resolve the Stripe price for a catalogued add-on. Mirrors the plan price
+ * flow: a pinned environment price is verified against the catalogued
+ * amount before it is ever charged, and outside production a matching
+ * price is found or created so a misconfigured dashboard cannot silently
+ * bill the wrong amount.
+ */
+export async function getOrCreateAddonPrice(slug: string): Promise<string | null> {
+  const s = getStripe();
+  if (!s) return null;
+  const addon = getAddon(slug);
+  if (!addon) throw new Error(`Unsupported billing add-on: ${slug}`);
+
+  const envVal = process.env[addon.envKey];
+  if (envVal) {
+    const configuredPrice = await s.prices.retrieve(envVal);
+    console.log(`[stripe] Add-on price lookup: ${addon.envKey}=${envVal}, actual_amount=${configuredPrice.unit_amount}, actual_currency=${configuredPrice.currency}, actual_interval=${configuredPrice.recurring?.interval}, active=${configuredPrice.active}`);
+    if (!isExpectedAddonPrice(slug, configuredPrice)) {
+      console.error(`[stripe] REJECTED: ${addon.envKey}=${envVal} has amount=${configuredPrice.unit_amount} but expected ${addon.amount} (${addon.currency} ${addon.amount / 100} per ${addon.interval})`);
+      throw new Error(`${addon.envKey} does not match ${slug}: expected ${addon.currency.toUpperCase()} ${addon.amount / 100} per ${addon.interval}, but Stripe price ${envVal} is ${configuredPrice.currency} ${(configuredPrice.unit_amount || 0) / 100} per ${configuredPrice.recurring?.interval || 'unknown'}`);
+    }
+    return configuredPrice.id;
+  }
+  if (process.env.NODE_ENV === 'production') throw new Error(`${addon.envKey} must be configured in production`);
+
+  if (cachedAddonPrices?.[slug]) return cachedAddonPrices[slug]!;
+
+  const productName = `Meticle ${addon.name}`;
+  const products = await s.products.list({ active: true, limit: 100 });
+  let product = products.data.find(p => p.name === productName);
+  if (!product) {
+    product = await s.products.create({ name: productName, description: `${addon.name} monthly add-on` });
+  }
+
+  const prices = await s.prices.list({ product: product.id, active: true, limit: 100, type: 'recurring' });
+  const matchingPrice = prices.data.find(price => isExpectedAddonPrice(slug, price));
+  if (matchingPrice) {
+    process.env[addon.envKey] = matchingPrice.id;
+    if (!cachedAddonPrices) cachedAddonPrices = {};
+    cachedAddonPrices[slug] = matchingPrice.id;
+    return matchingPrice.id;
+  }
+
+  const price = await s.prices.create({
+    product: product.id,
+    unit_amount: addon.amount,
+    currency: addon.currency,
+    recurring: { interval: addon.interval },
+  });
+  process.env[addon.envKey] = price.id;
+  if (!cachedAddonPrices) cachedAddonPrices = {};
+  cachedAddonPrices[slug] = price.id;
   return price.id;
 }

@@ -179,6 +179,9 @@ function BillingPageInner() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [billingConfig, setBillingConfig] = useState<BillingConfig | null>(null)
   const [savingBillingConfig, setSavingBillingConfig] = useState(false)
+  const [addons, setAddons] = useState<{ catalog: { slug: string; name: string; description: string; amountDisplay: string }[]; active: string[] } | null>(null)
+  const [addonBusy, setAddonBusy] = useState<string | null>(null)
+  const [addonConfirm, setAddonConfirm] = useState<string | null>(null)
   const [isDomiciliary, setIsDomiciliary] = useState(false)
   const [billingAddress, setBillingAddress] = useState<BillingAddress>({ line1: '', line2: '', city: '', postal_code: '', country: 'GB' })
   const [savingAddress, setSavingAddress] = useState(false)
@@ -206,6 +209,10 @@ function BillingPageInner() {
     try {
       const pmRes = await api.get('/billing/payment-methods')
       setPaymentMethods(pmRes.data)
+    } catch { /* non-critical */ }
+    try {
+      const addonRes = await api.get('/billing/addons')
+      setAddons(addonRes.data)
     } catch { /* non-critical */ }
     if (isOrgAdmin) {
       try {
@@ -310,6 +317,32 @@ function BillingPageInner() {
       setMessage('Card removed.')
     } catch (err: any) { setMessage(err.response?.data?.message || 'Failed to remove card.') }
     setRemoveCardDialog('')
+  }
+
+  const handleAddonPurchase = async () => {
+    const slug = addonConfirm
+    if (!slug) return
+    setAddonBusy(slug); setAddonConfirm(null)
+    try {
+      const { data } = await api.post('/billing/addons/purchase', { addon: slug })
+      setMessage(data?.message || 'Add-on added.')
+      await loadBillingData()
+      window.dispatchEvent(new Event('subscriptionUpdated'))
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Could not add the add-on.')
+    } finally { setAddonBusy(null) }
+  }
+
+  const handleAddonCancel = async (slug: string) => {
+    setAddonBusy(slug)
+    try {
+      const { data } = await api.post('/billing/addons/cancel', { addon: slug })
+      setMessage(data?.message || 'Add-on cancelled.')
+      await loadBillingData()
+      window.dispatchEvent(new Event('subscriptionUpdated'))
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Could not cancel the add-on.')
+    } finally { setAddonBusy(null) }
   }
 
   const handleUpgradeClick = (planId: string) => { setSelectedPlan(planId); setConfirmOpen(true) }
@@ -638,6 +671,57 @@ function BillingPageInner() {
         </Stack>
       </Paper>}
 
+      {/* Add-ons */}
+      {!isDomiciliary && (
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Add-ons</Typography>
+          <Typography variant="body2" color="#51637A" sx={{ mt: 0.5, mb: 3 }}>
+            Optional extras, billed monthly together with your plan from the next billing date.
+          </Typography>
+          {!addons ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress /></Box>
+          ) : addons.catalog.length === 0 ? (
+            <EmptyState title="No add-ons available" description="Optional extras will appear here" variant="default" />
+          ) : (
+            <Stack spacing={2}>
+              {addons.catalog.map((addon) => {
+                const active = addons.active.includes(addon.slug)
+                const busy = addonBusy === addon.slug
+                return (
+                  <Stack key={addon.slug} direction={{ xs: 'column', sm: 'row' }} spacing={2}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: active ? '#0164C8' : '#E3E9F0' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="subtitle1" fontWeight={600}>{addon.name}</Typography>
+                        {active && <Chip label="Active" color="success" size="small" sx={{ fontWeight: 600 }} />}
+                      </Stack>
+                      <Typography variant="body2" color="#51637A" sx={{ mt: 0.5 }}>{addon.description}</Typography>
+                      <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5, color: '#0164C8' }}>{addon.amountDisplay}</Typography>
+                    </Box>
+                    {isOrgAdmin && (active ? (
+                      <Button variant="outlined" color="error" disabled={busy}
+                        onClick={() => handleAddonCancel(addon.slug)} sx={{ textTransform: 'none', alignSelf: { xs: 'stretch', sm: 'center' } }}>
+                        {busy ? <CircularProgress size={18} /> : 'Cancel'}
+                      </Button>
+                    ) : (
+                      <Button variant="contained" disabled={busy || !isActive}
+                        onClick={() => setAddonConfirm(addon.slug)}
+                        sx={{ bgcolor: '#0164C8', textTransform: 'none', alignSelf: { xs: 'stretch', sm: 'center' } }}>
+                        {busy ? <CircularProgress size={18} color="inherit" /> : 'Purchase'}
+                      </Button>
+                    ))}
+                  </Stack>
+                )
+              })}
+              {!isActive && (
+                <Typography variant="caption" color="text.secondary">Add-ons need an active plan subscription — renew your plan first.</Typography>
+              )}
+            </Stack>
+          )}
+        </Paper>
+      )}
+
       {isDomiciliary && isOrgAdmin && <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />}
 
       {/* Billing History */}
@@ -676,6 +760,21 @@ function BillingPageInner() {
           </TableContainer>
         )}
       </Paper>
+
+      {/* Add-on Purchase Confirmation */}
+      <Dialog open={!!addonConfirm} onClose={() => setAddonConfirm(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Add {addons?.catalog.find(a => a.slug === addonConfirm)?.name}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="#51637A">
+            Add this to your subscription for {addons?.catalog.find(a => a.slug === addonConfirm)?.amountDisplay}?
+            It is billed together with your plan from the next billing date.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddonConfirm(null)}>Cancel</Button>
+          <Button onClick={handleAddonPurchase} variant="contained" disabled={!!addonBusy}>{addonBusy ? 'Adding...' : 'Confirm'}</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Remove Card Confirmation */}
       <Dialog open={!!removeCardDialog} onClose={() => setRemoveCardDialog('')} maxWidth="xs" fullWidth>

@@ -1143,6 +1143,10 @@ export const updatePlanSchema = z.object({
   plan: z.enum(['starter', 'professional']),
 });
 
+export const purchaseAddonSchema = z.object({
+  addon: z.string().min(1).max(64),
+});
+
 export const addPaymentMethodSchema = z.object({
   payment_method_id: z.string().min(1),
   cardholder_name: z.string().max(255).optional(),
