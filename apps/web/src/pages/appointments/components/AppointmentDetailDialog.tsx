@@ -47,7 +47,7 @@ export default function AppointmentDetailDialog({ appointment: a, onClose, onEdi
             <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 700, letterSpacing: '0.08em' }}>
               APPOINTMENTS
             </Typography>
-            <Typography role="button" tabIndex={0} onClick={onClose}
+            <Typography role="button" tabIndex={0} aria-label="Close appointment details" onClick={onClose}
               onKeyDown={e => { if (e.key === 'Enter') onClose() }}
               sx={{ fontSize: 13, fontWeight: 600, color: '#0164C8', cursor: 'pointer' }}>
               Close

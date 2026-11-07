@@ -227,7 +227,7 @@ export default function PolicyAskReadDialog({ open, policy, signedUserIds, onClo
           Cancel
         </Button>
         <Button variant="contained" onClick={handleSend} disabled={sending} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-          {sending ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Send requests'}
+          {sending ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Send requests'}
         </Button>
       </DialogActions>
     </Dialog>

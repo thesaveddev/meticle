@@ -1030,7 +1030,7 @@ export default function RotaPlannerPage() {
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
           <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Select size="small" variant="standard" disableUnderline value={selectedLocationId}
             onChange={e => setSelectedLocationId(e.target.value)}
@@ -1043,7 +1043,7 @@ export default function RotaPlannerPage() {
             ))}
           </Select>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
           <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Select size="small" variant="standard" disableUnderline value={toLocalDateStr(weekStart)}
             onChange={e => setWeekStart(new Date(`${e.target.value}T00:00:00`))}
@@ -1066,15 +1066,15 @@ export default function RotaPlannerPage() {
 
           {/* All-short banner — Figma 4.1 */}
           {boardMetrics.allShort && (
-            <Paper sx={{ mb: 2, p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#FECACA', bgcolor: '#FDEDEC' }}>
+            <Paper sx={{ mb: 2, p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#FAD4D4', bgcolor: '#FEF0F0' }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5}>
                 <Stack direction="row" spacing={1.5} alignItems="flex-start">
                   <WarningIcon sx={{ color: '#B42318', mt: 0.25 }} />
                   <Box>
-                    <Typography variant="body2" fontWeight={700} sx={{ color: '#7F1D1D' }}>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: '#B42318' }}>
                       Every location is short every day this week
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#7F1D1D' }}>
+                    <Typography variant="body2" sx={{ color: '#B42318' }}>
                       {boardMetrics.uniformNeed > 0
                         ? `Each location needs ${boardMetrics.uniformNeed} people a day and has no shifts yet. Generating a draft is the quickest way to start — you can edit it before publishing.`
                         : 'Each location needs its minimum cover a day and has no shifts yet. Generating a draft is the quickest way to start — you can edit it before publishing.'}
@@ -1213,7 +1213,7 @@ export default function RotaPlannerPage() {
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>{card.label}</Typography>
                       <Box sx={{
                         width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%',
-                        bgcolor: card.alert ? '#FDEDEC' : card.label === 'Open calls' || card.label === 'Overtime claims' ? '#EAF3FF' : '#F0F5FC',
+                        bgcolor: card.alert ? '#FEF0F0' : card.label === 'Open calls' || card.label === 'Overtime claims' ? '#EAF3FF' : '#F0F5FC',
                         color: card.alert ? '#EF4444' : card.label === 'Open calls' || card.label === 'Overtime claims' ? '#0164C8' : '#51637A',
                       }}>{card.icon}</Box>
                     </Stack>

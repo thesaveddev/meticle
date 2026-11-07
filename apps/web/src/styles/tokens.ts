@@ -64,6 +64,10 @@ export const P = {
   primary:      '#0164C8',
   primaryHover: '#0251B3',
   primaryDeep:  '#014FB5',
+  /* Third, darker stop of the Mission Control attention banner's 135deg
+     gradient, and the ink on its white action button. Named here so the page
+     imports it rather than retyping a near-miss navy. */
+  primaryGradientDeep: '#013F7E',
 
   /* Dark sections */
   dark:       '#0C1B2E',

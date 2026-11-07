@@ -16,7 +16,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
-import { formatDateOnly } from '../../utils/dateFormat'
+import { formatDateOnly, localToday } from '../../utils/dateFormat'
 import { useSnackbar } from '../../context/SnackbarContext'
 import PersonAvatar from '../../components/PersonAvatar'
 import { PremiumCard, StatusBadge } from '../../components/design/PremiumCard'
@@ -199,7 +199,7 @@ export default function PersonDirectoryPage() {
   const riskCount = allPeople.filter((u: any) => (u.open_risks || 0) > 0).length
   // Figma 6.1 "Open tasks": still open and due today or overdue. The directory
   // has no task data of its own, so this is counted from the tasks list.
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localToday()
   // A non-array tasks payload must not white-screen the whole directory.
   const taskList: any[] = Array.isArray(tasks) ? tasks : []
   const openTaskCount = taskList.filter((t: any) => t.status !== 'completed' && t.due_date && String(t.due_date).slice(0, 10) <= todayStr).length

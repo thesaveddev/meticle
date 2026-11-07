@@ -4877,7 +4877,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
             <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>Notes behind the low day</Typography>
               <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: METICLE_COLORS.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>
+                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: METICLE_COLORS.primary, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}>
                   {(lowDayEntry.recorded_by_name || '?').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase()}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>

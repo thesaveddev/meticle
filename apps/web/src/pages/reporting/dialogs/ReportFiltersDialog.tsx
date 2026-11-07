@@ -135,8 +135,8 @@ export default function ReportFiltersDialog({ open, onClose, onCreate, locations
                 return (
                   <Chip key={o.value} label={o.label} clickable onClick={() => toggleStatus(o.value)}
                     color={selected ? 'primary' : 'default'} variant={selected ? 'filled' : 'outlined'}
-                    icon={selected ? <CheckIcon sx={{ color: '#fff !important' }} /> : undefined}
-                    sx={selected ? { fontWeight: 600, bgcolor: '#0164C8', color: '#fff', '&:hover': { bgcolor: '#0164C8' } } : { fontWeight: 500 }} />
+                    icon={selected ? <CheckIcon sx={{ color: '#FFFFFF !important' }} /> : undefined}
+                    sx={selected ? { fontWeight: 600, bgcolor: '#0164C8', color: '#FFFFFF', '&:hover': { bgcolor: '#0164C8' } } : { fontWeight: 500 }} />
                 )
               })}
             </Box>

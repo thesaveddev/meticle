@@ -921,7 +921,7 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, locati
                         <TableRow key={s.userId} hover>
                           <TableCell>
                             <Stack direction="row" spacing={1.25} alignItems="center">
-                              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#0164C8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#0164C8', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                                 {s.name.split(' ').map((part: string) => part[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'}
                               </Box>
                               <Box>

@@ -365,7 +365,7 @@ export default function IdentityMonitoringPage() {
       <TableContainer>
         <Table>
           <TableHead>
-            <TableRow sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#F8FAFC' }}>
+            <TableRow sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#F7FAFE' }}>
               <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary }}>Staff</TableCell>
               {showNations && <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary }}>Nation</TableCell>}
               {columns.map(t => (
@@ -385,7 +385,7 @@ export default function IdentityMonitoringPage() {
               <TableRow key={s.id} hover>
                 <TableCell>
                   <Stack direction="row" spacing={1.25} alignItems="center">
-                    <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#0164C8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                    <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#0164C8', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                       {initials(s)}
                     </Box>
                     <Box>

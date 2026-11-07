@@ -189,7 +189,7 @@ export default function IncidentDirectoryPage() {
           <>
             <TextField select size="small" value={locationFilter}
               onChange={e => setLocationFilter(e.target.value)} aria-label="Filter by location"
-              sx={{ minWidth: 140, bgcolor: '#fff', '& .MuiOutlinedInput-root': { borderRadius: 6 } }}>
+              sx={{ minWidth: 140, bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 6 } }}>
               <MenuItem value="">All locations</MenuItem>
               {(locationOptions as string[]).map((l: string) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
             </TextField>
@@ -201,10 +201,10 @@ export default function IncidentDirectoryPage() {
 
       {/* Triage banner — oldest reported incident nobody has picked up yet */}
       {awaitingTriage && (
-        <Paper sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#FDEDED', borderLeft: '4px solid #EF4444' }}>
+        <Paper sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#FEF0F0', borderLeft: '4px solid #EF4444' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1}>
             <Stack direction="row" spacing={1.5} alignItems="flex-start">
-              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#EF4444', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#EF4444', color: '#FFFFFF', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                 <ClockIcon fontSize="small" />
               </Box>
               <Box>
@@ -270,7 +270,7 @@ export default function IncidentDirectoryPage() {
           ] as const).map(pill => (
             <Chip key={pill.key} label={pill.label} size="small" onClick={() => setStatusGroup(pill.key)}
               sx={statusGroup === pill.key
-                ? { bgcolor: 'text.primary', color: '#fff', fontWeight: 600 }
+                ? { bgcolor: 'text.primary', color: '#FFFFFF', fontWeight: 600 }
                 : { bgcolor: '#F0F5FC', color: 'text.secondary', fontWeight: 600, '&:hover': { bgcolor: '#E3E9F0' } }} />
           ))}
         </Stack>

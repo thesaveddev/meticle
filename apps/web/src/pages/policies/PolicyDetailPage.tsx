@@ -320,7 +320,7 @@ export default function PolicyDetailPage() {
                   </Button>
                 )}
                 <Button variant="contained" onClick={handleMarkAsRead} disabled={marking} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-                  {marking ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : haveRead ? 'Mark as read again' : 'Mark as read'}
+                  {marking ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : haveRead ? 'Mark as read again' : 'Mark as read'}
                 </Button>
               </Stack>
             </Stack>
@@ -426,7 +426,7 @@ export default function PolicyDetailPage() {
             Archive instead
           </Button>
           <Button variant="contained" onClick={handleDelete} disabled={deleting} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-            {deleting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Delete policy'}
+            {deleting ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Delete policy'}
           </Button>
         </DialogActions>
       </Dialog>

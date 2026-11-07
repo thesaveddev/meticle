@@ -480,7 +480,7 @@ export default function ShiftMarketplacePage() {
           <Typography variant="h5" sx={{ fontWeight: 600 }}>{marketplaceTitle}</Typography>
           <Typography variant="body2" color="text.secondary">{marketplaceDescription}.</Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
           <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Select size="small" variant="standard" disableUnderline value={selectedLocation}
             onChange={e => setSelectedLocation(e.target.value)}
@@ -497,16 +497,16 @@ export default function ShiftMarketplacePage() {
 
       {/* Live banner — Figma 4.2: shown once calls are posted */}
       {shifts.length > 0 && (
-        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#BBF7D0', bgcolor: '#F0FDF4' }}>
+        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#D2F3E3', bgcolor: '#EAFBF5' }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#fff', color: '#16A34A', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#FFFFFF', color: '#10B981', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               <CheckCircle sx={{ fontSize: 18 }} />
             </Box>
             <Box>
-              <Typography variant="body2" fontWeight={700} sx={{ color: '#166534' }}>
+              <Typography variant="body2" fontWeight={700} sx={{ color: '#087A55' }}>
                 {shifts.length} open call{shifts.length === 1 ? ' is' : 's are'} live
               </Typography>
-              <Typography variant="body2" sx={{ color: '#166534' }}>
+              <Typography variant="body2" sx={{ color: '#087A55' }}>
                 Staff with matching skills have been told. We’ll let you know as soon as someone claims a shift.
               </Typography>
             </Box>
@@ -596,7 +596,7 @@ export default function ShiftMarketplacePage() {
             <Typography variant="caption" color="text.secondary">{dateRangeLabel}</Typography>
           </Box>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pb: 1.5, flexWrap: 'wrap', gap: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
               <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <Select size="small" variant="standard" disableUnderline value={selectedLocation}
                 onChange={e => setSelectedLocation(e.target.value)}
@@ -605,13 +605,13 @@ export default function ShiftMarketplacePage() {
                 {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
               </Select>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
               <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <TextField variant="standard" type="date" value={openDateFrom}
                 onChange={e => setOpenDateFrom(e.target.value)} InputProps={{ disableUnderline: true }}
                 inputProps={{ 'aria-label': 'From date' }} sx={{ width: 128, '& input': { fontSize: '0.8rem', fontWeight: 600 } }} />
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 1 }}>
               <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <TextField variant="standard" type="date" value={openDateTo}
                 onChange={e => setOpenDateTo(e.target.value)} InputProps={{ disableUnderline: true }}
@@ -638,7 +638,7 @@ export default function ShiftMarketplacePage() {
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 700 }}>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>Shift</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>{isDomiciliary ? 'Area' : 'Location'}</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>Role</TableCell>
@@ -669,7 +669,7 @@ export default function ShiftMarketplacePage() {
                           {pending ? (
                             <>
                               <Chip label="Claimed — needs approval" size="small"
-                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#DCFCE7', color: '#166534' }} />
+                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EAFBF5', color: '#087A55' }} />
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, whiteSpace: 'nowrap' }}>
                                 Claimed by {claimant}
                               </Typography>

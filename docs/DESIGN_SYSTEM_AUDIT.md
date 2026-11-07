@@ -700,9 +700,9 @@ once — the first declaration wins at runtime.
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
 | Page-tree modules the router does not reach | 4 |
-| audited / updated / tested | 18 / 111 / 37 |
-| Fully signed off (all three) | 3 |
-| Gaps (any of the three missing) | 122 |
+| audited / updated / tested | 18 / 125 / 37 |
+| Fully signed off (all three) | 13 |
+| Gaps (any of the three missing) | 112 |
 
 **Structural wrapper routes** — guards and layouts that render no page of their own:
 `(root)`.
@@ -736,7 +736,7 @@ once — the first declaration wins at runtime.
 | `/compliance/evidence` | `pages/compliance/EvidencePacksPage.tsx` | no | yes | no |
 | `/compliance/handovers` | `pages/handovers/ShiftHandoversPage.tsx` | no | yes | no |
 | `/compliance/homecare` | `pages/compliance/HomecareCompliancePage.tsx` | no | yes | no |
-| `/compliance/identity` | `pages/compliance/IdentityMonitoringPage.tsx` | no | no | no |
+| `/compliance/identity` | `pages/compliance/IdentityMonitoringPage.tsx` | no | yes | no |
 | `/compliance/readiness` | `pages/compliance/CqcReadinessPage.tsx` | no | yes | no |
 | `/compliance/records` | `pages/compliance/ComplianceRecordsPage.tsx` | no | yes | no |
 | `/compliance/satisfaction` | `pages/compliance/SatisfactionSurveysPage.tsx` | no | yes | no |
@@ -747,7 +747,7 @@ once — the first declaration wins at runtime.
 | `/dashboard` | `pages/dashboard/DashboardPage.tsx` | no | yes | no |
 | `/delete-account` | `pages/legal/AccountDeletionPage.tsx` | no | yes | no |
 | `/download` | `pages/marketing/DownloadPageNew.tsx` | no | yes | no |
-| `/emedication` | `pages/emedication/EMedicationPage.tsx` | yes | no | yes |
+| `/emedication` | `pages/emedication/EMedicationPage.tsx` | yes | yes | yes |
 | `/emedication/archived` | `pages/emedication/ArchivedMarPage.tsx` | no | yes | no |
 | `/expenses` | `pages/expenses/ExpensesPage.tsx` | no | yes | no |
 | `/family-portal/:token` | `pages/FamilyPortalPage.tsx` | no | yes | no |
@@ -757,8 +757,8 @@ once — the first declaration wins at runtime.
 | `/forgot-password` | `pages/auth/ForgotPasswordPage.tsx` | no | yes | no |
 | `/homecare` | `pages/homecare/HomecarePage.tsx` | no | yes | yes |
 | `/how-it-works` | `pages/marketing/HowItWorksPage.tsx` | no | yes | no |
-| `/incidents` | `pages/incidents/IncidentDirectoryPage.tsx` | no | no | no |
-| `/incidents/:id` | `pages/incidents/IncidentDetailPage.tsx` | no | no | no |
+| `/incidents` | `pages/incidents/IncidentDirectoryPage.tsx` | no | yes | no |
+| `/incidents/:id` | `pages/incidents/IncidentDetailPage.tsx` | no | yes | no |
 | `/insights` | `pages/insights/InsightsPage.tsx` | no | yes | no |
 | `/intelligence` | `pages/insights/IntelligencePage.tsx` | no | yes | no |
 | `/invoice/:token` | `pages/homecare/PublicClientInvoicePage.tsx` | no | yes | no |
@@ -771,18 +771,18 @@ once — the first declaration wins at runtime.
 | `/manager-briefing` | `pages/insights/ManagerBriefingPage.tsx` | no | yes | no |
 | `/marketplace` | `pages/marketplace/MarketplacePage.tsx` | no | yes | yes |
 | `/meal-plans` | `pages/nutrition/MealPlanPage.tsx` | no | yes | no |
-| `/medications` | `pages/emedication/EMedicationPage.tsx` | yes | no | yes |
+| `/medications` | `pages/emedication/EMedicationPage.tsx` | yes | yes | yes |
 | `/mfa-challenge` | `pages/auth/MfaChallengePage.tsx` | no | yes | no |
 | `/mfa-setup` | `pages/auth/MfaSetupPage.tsx` | no | yes | no |
 | `/mileage` | `pages/homecare/MileagePage.tsx` | no | yes | yes |
 | `/mission-control` † | `pages/mission-control/MissionControlWorkspace.tsx` | no | yes | yes |
 | `/mission-control/alerts` | `pages/mission-control/MissionControlPage.tsx` | no | yes | no |
-| `/mission-control/calls` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
-| `/mission-control/care` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
-| `/mission-control/compliance` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
-| `/mission-control/incidents` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
-| `/mission-control/staffing` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
-| `/mission-control/today` | `pages/mission-control/MissionControlViews.tsx` | yes | no | yes |
+| `/mission-control/calls` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
+| `/mission-control/care` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
+| `/mission-control/compliance` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
+| `/mission-control/incidents` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
+| `/mission-control/staffing` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
+| `/mission-control/today` | `pages/mission-control/MissionControlViews.tsx` | yes | yes | yes |
 | `/mobile` | `pages/marketing/DownloadPageNew.tsx` | no | yes | no |
 | `/mobile/check-in` | `pages/mobile/CheckInPage.tsx` | no | yes | no |
 | `/mobile/voice-notes` | `pages/mobile/MobileNotesPage.tsx` | no | yes | no |
@@ -817,12 +817,12 @@ once — the first declaration wins at runtime.
 | `/reset-password` | `pages/auth/ResetPasswordPage.tsx` | no | yes | no |
 | `/reset-success` | `pages/auth/ResetSuccessPage.tsx` | no | yes | no |
 | `/room-checks` | `pages/room-checks/RoomChecksPage.tsx` | no | yes | no |
-| `/schedule` | `pages/scheduling/RotaPlannerPage.tsx` | yes | no | yes |
-| `/scheduling` | `pages/scheduling/RotaPlannerPage.tsx` | yes | no | yes |
+| `/schedule` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
+| `/scheduling` | `pages/scheduling/RotaPlannerPage.tsx` | yes | yes | yes |
 | `/scheduling/overtime-claims` | `pages/scheduling/OvertimeClaimsPage.tsx` | no | yes | yes |
 | `/security` | `pages/marketing/SecurityPage.tsx` | no | yes | no |
 | `/settings` | `pages/settings/SettingsPage.tsx` | no | yes | no |
-| `/shift-marketplace` | `pages/shift-marketplace/ShiftMarketplacePage.tsx` | no | no | no |
+| `/shift-marketplace` | `pages/shift-marketplace/ShiftMarketplacePage.tsx` | no | yes | no |
 | `/signup` | `pages/auth/SignupPage.tsx` | no | yes | no |
 | `/solutions/:slug` | `pages/marketing/SolutionsPage.tsx` | no | yes | no |
 | `/staff` | `pages/staff/StaffDirectoryPage.tsx` | yes | yes | no |

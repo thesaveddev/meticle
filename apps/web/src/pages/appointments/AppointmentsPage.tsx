@@ -533,7 +533,7 @@ export default function AppointmentsPage() {
                     : `${new Date(row.days[0] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} - ${new Date(row.days[row.days.length - 1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
                   return (
                     <Box key={i} onClick={() => { if (row.items.length) { setDateFilter(row.days[0]); setView('day') } }}
-                      sx={{ py: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', cursor: row.items.length ? 'pointer' : 'default', '&:hover': row.items.length ? { bgcolor: '#F7FAFE' } : undefined, borderRadius: 1, px: 0.5 }}>
+                      sx={{ py: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', cursor: row.items.length ? 'pointer' : 'default', '&:hover': row.items.length ? { bgcolor: 'notice.subtle.bg' } : undefined, borderRadius: 1, px: 0.5 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography fontWeight={600} variant="body2">{label}</Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>

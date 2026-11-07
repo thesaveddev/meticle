@@ -211,7 +211,7 @@ export default function ReportingPage() {
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <TextField select size="small" value={locationFilter} onChange={e => changeLocation(e.target.value)}
-            aria-label="Location" sx={{ minWidth: 150, bgcolor: '#fff', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+            aria-label="Location" sx={{ minWidth: 150, bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
             <MenuItem value="">All locations</MenuItem>
             {locations.map(l => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
           </TextField>
@@ -315,11 +315,11 @@ export default function ReportingPage() {
                       '&:hover': { bgcolor: selected ? 'notice.info.bg' : 'var(--mc-surface-hover)' },
                     }}
                   >
-                    <Avatar sx={{ width: 28, height: 28, bgcolor: selected ? '#fff' : `${cat.color}15`, color: selected ? 'notice.info.fg' : cat.color, fontSize: 16 }}>
+                    <Avatar sx={{ width: 28, height: 28, bgcolor: selected ? '#FFFFFF' : `${cat.color}15`, color: selected ? 'notice.info.fg' : cat.color, fontSize: 16 }}>
                       {ICON_MAP[cat.icon] || <AssessIcon />}
                     </Avatar>
                     <Typography variant="body2" sx={{ fontWeight: selected ? 700 : 500, flex: 1 }}>{cat.label}</Typography>
-                    <Chip label={count} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, bgcolor: selected ? '#fff' : 'notice.subtle.bg' }} />
+                    <Chip label={count} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, bgcolor: selected ? '#FFFFFF' : 'notice.subtle.bg' }} />
                   </Box>
                 )
               })}
@@ -337,7 +337,7 @@ export default function ReportingPage() {
             <TextField
               size="small" placeholder="Search reports..." value={search} onChange={e => setSearch(e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
-              sx={{ width: { xs: '100%', sm: 220 }, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fff' } }}
+              sx={{ width: { xs: '100%', sm: 220 }, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
             />
           </Stack>
 

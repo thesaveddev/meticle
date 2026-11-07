@@ -67,9 +67,9 @@ export function PillOptions<T extends string>({ options, value, onChange, color 
             onClick={() => onChange(o.value)}
             color={selected ? 'primary' : 'default'}
             variant={selected ? 'filled' : 'outlined'}
-            icon={selected && showCheck ? <CheckIcon sx={{ color: '#fff !important' }} /> : undefined}
+            icon={selected && showCheck ? <CheckIcon sx={{ color: '#FFFFFF !important' }} /> : undefined}
             sx={selected
-              ? { fontWeight: 600, bgcolor: color, color: '#fff', '&:hover': { bgcolor: color } }
+              ? { fontWeight: 600, bgcolor: color, color: '#FFFFFF', '&:hover': { bgcolor: color } }
               : { fontWeight: 500 }}
           />
         )

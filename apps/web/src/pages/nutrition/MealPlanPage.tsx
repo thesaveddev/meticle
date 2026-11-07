@@ -424,7 +424,7 @@ export default function MealPlanPage() {
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <TextField select size="small" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-            aria-label="Location" sx={{ minWidth: 150, bgcolor: '#fff', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+            aria-label="Location" sx={{ minWidth: 150, bgcolor: '#FFFFFF', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
             <MenuItem value="">All locations</MenuItem>
             {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
           </TextField>
@@ -766,7 +766,7 @@ export default function MealPlanPage() {
                 {BUDGETS.map(b => (
                   <Chip key={b} label={`£${b}`} clickable onClick={() => setBudget(b)}
                     color={budget === b ? 'primary' : 'default'} variant={budget === b ? 'filled' : 'outlined'}
-                    sx={budget === b ? { fontWeight: 600, bgcolor: '#0164C8', color: '#fff', '&:hover': { bgcolor: '#0164C8' } } : { fontWeight: 500 }} />
+                    sx={budget === b ? { fontWeight: 600, bgcolor: '#0164C8', color: '#FFFFFF', '&:hover': { bgcolor: '#0164C8' } } : { fontWeight: 500 }} />
                 ))}
               </Stack>
             </Box>

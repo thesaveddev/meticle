@@ -88,7 +88,7 @@ export default function WeekBoardMatrix({
                       <Stack spacing={0.5} alignItems="flex-start">
                         {shortBy > 0 && (
                           <Chip label={`${shortBy} short`} size="small"
-                            sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: '#FDEDEC', color: '#B42318' }} />
+                            sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: '#FEF0F0', color: '#B42318' }} />
                         )}
                         {cellShifts.length === 0 ? (
                           <Typography variant="caption" color="text.secondary">No shifts</Typography>

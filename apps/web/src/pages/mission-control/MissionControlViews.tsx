@@ -33,6 +33,7 @@ import { Card, SectionError, StatusBadge } from '../../components/ui'
 import { categoryLabel } from './alertLabels'
 import api from '../../services/api'
 import { METICLE_COLORS } from '../../context/ThemeContext'
+import { P } from '../../styles/tokens'
 import {
   formatDate, formatTime, statusTitle, useMissionControlContext,
   type HomecareData, type PulseData, type SupportedLivingData,
@@ -685,7 +686,7 @@ function TodayHero({ critical, high, other, total, attentionRef }: {
     <Box
       sx={{
         position: 'relative', overflow: 'hidden', borderRadius: 4, px: { xs: 2.5, md: 4 }, py: { xs: 2.5, md: 3.5 },
-        background: 'linear-gradient(135deg, #0251B3 0%, #0164C8 55%, #013F7E 100%)',
+        background: `linear-gradient(135deg, ${P.primaryHover} 0%, ${P.primary} 55%, ${P.primaryGradientDeep} 100%)`,
         color: '#FFFFFF',
       }}
     >
@@ -705,7 +706,7 @@ function TodayHero({ critical, high, other, total, attentionRef }: {
               variant="contained"
               onClick={() => attentionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               endIcon={<NextIcon fontSize="small" />}
-              sx={{ mt: 2, bgcolor: '#FFFFFF', color: '#013F7E', fontWeight: 700, borderRadius: 999, textTransform: 'none', px: 2.5, py: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.92)' } }}
+              sx={{ mt: 2, bgcolor: '#FFFFFF', color: P.primaryGradientDeep, fontWeight: 700, borderRadius: 999, textTransform: 'none', px: 2.5, py: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.92)' } }}
             >
               Review now
             </Button>

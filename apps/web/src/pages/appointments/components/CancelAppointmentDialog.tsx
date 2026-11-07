@@ -32,7 +32,7 @@ export default function CancelAppointmentDialog({ appointment: a, confirming, on
             <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 700, letterSpacing: '0.08em' }}>
               APPOINTMENTS
             </Typography>
-            <Typography role="button" tabIndex={0} onClick={onClose}
+            <Typography role="button" tabIndex={0} aria-label="Close cancellation" onClick={onClose}
               onKeyDown={e => { if (e.key === 'Enter') onClose() }}
               sx={{ fontSize: 13, fontWeight: 600, color: '#0164C8', cursor: 'pointer' }}>
               Close
@@ -55,7 +55,7 @@ export default function CancelAppointmentDialog({ appointment: a, confirming, on
                   <Chip key={r} label={r} clickable onClick={() => setReason(r)}
                     icon={selected ? <CheckIcon sx={{ fontSize: '16px !important' }} /> : undefined}
                     sx={selected
-                      ? { bgcolor: '#0164C8', color: '#fff', fontWeight: 700, '& .MuiChip-icon': { color: '#fff' } }
+                      ? { bgcolor: '#0164C8', color: '#FFFFFF', fontWeight: 700, '& .MuiChip-icon': { color: '#FFFFFF' } }
                       : { bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }} />
                 )
               })}

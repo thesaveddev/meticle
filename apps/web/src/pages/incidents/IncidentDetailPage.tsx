@@ -56,7 +56,7 @@ function openFileInNewTab(url: string) {
 function NextStepCard({ onSubmit, submitting, variant = 'submit', onAssign }: { onSubmit: () => void; submitting?: boolean; variant?: 'submit' | 'assign'; onAssign?: () => void }) {
   const isAssign = variant === 'assign'
   return (
-    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#DBEAFE', bgcolor: '#F0F5FC' }}>
+    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#D4E6FF', bgcolor: '#F0F5FC' }}>
       <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Next step</Typography>
       <Typography variant="body2" fontWeight={700} sx={{ mt: 1 }}>
         {isAssign ? 'Confirm the severity and choose who will investigate.' : 'Submit for triage so an investigator can be assigned.'}
@@ -338,8 +338,8 @@ export default function IncidentDetailPage() {
 
       {/* Submitted banner — Figma 3.4 */}
       {incident.status === 'submitted' && (
-        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#99F6E4', bgcolor: '#F0FDFA', display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#14B8A6', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#D2FBF4', bgcolor: '#E9FDF9', display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#03C6B1', color: '#FFFFFF', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <CheckIcon fontSize="small" />
           </Box>
           <Box>
@@ -359,10 +359,10 @@ export default function IncidentDetailPage() {
                   width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
                   fontSize: 13, fontWeight: 700,
                   ...(i < stepIndex
-                    ? { bgcolor: '#0164C8', color: '#fff' }
+                    ? { bgcolor: '#0164C8', color: '#FFFFFF' }
                     : i === stepIndex
-                    ? { bgcolor: '#0164C8', color: '#fff' }
-                    : { border: '2px solid #CBD5E1', color: '#94A3B8', bgcolor: '#fff' }),
+                    ? { bgcolor: '#0164C8', color: '#FFFFFF' }
+                    : { border: '2px solid #C3D2E2', color: '#B0BFD2', bgcolor: '#FFFFFF' }),
                 }}>{i < stepIndex ? '✓' : i + 1}</Box>
                 <Typography variant="body2" fontWeight={600} sx={{ mt: 1, color: i <= stepIndex ? '#0164C8' : 'text.secondary', textAlign: 'center' }}>{s.label}</Typography>
                 <Typography variant="caption" sx={{ color: i === stepIndex && stepIndex === 0 && daysOpen > 0 ? '#EF4444' : 'text.secondary', textAlign: 'center' }}>
@@ -930,7 +930,7 @@ export default function IncidentDetailPage() {
                       const state = i < stepIndex ? 'done' : i === stepIndex ? (i === 0 ? 'done' : 'waiting') : 'todo'
                       return (
                         <Box key={s.title} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.5, ...(i < arr.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
-                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: state === 'todo' ? '#F0F5FC' : '#EAF3FF', color: state === 'todo' ? '#94A3B8' : '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{s.icon}</Box>
+                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: state === 'todo' ? '#F0F5FC' : '#EAF3FF', color: state === 'todo' ? '#B0BFD2' : '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{s.icon}</Box>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography variant="body2" fontWeight={700}>{i + 1} · {s.title}</Typography>
                             <Typography variant="caption" color="text.secondary">{s.sub}</Typography>

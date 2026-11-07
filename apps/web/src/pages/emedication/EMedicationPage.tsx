@@ -2386,7 +2386,7 @@ export default function EMedicationPage() {
 
       {/* Overdue banner */}
       {overdueCount > 0 && tab === 0 && (
-        <Box sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: '#FDEDED', borderLeft: `4px solid ${METICLE_COLORS.danger}` }}>
+        <Box sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: '#FEF0F0', borderLeft: `4px solid ${METICLE_COLORS.danger}` }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1}>
             <Stack direction="row" spacing={1.5} alignItems="flex-start">
               <WarningIcon sx={{ color: METICLE_COLORS.danger, mt: 0.25 }} />
@@ -2973,7 +2973,7 @@ export default function EMedicationPage() {
           </Stack>
 
           {/* Filter bar */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: 'notice.muted.bg', borderRadius: 2 }}>
               <TextField size="small" placeholder="Search" value={stockSearch}
                 onChange={(e) => { setStockSearch(e.target.value); setStockPage(0) }}
                 sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -3183,7 +3183,7 @@ export default function EMedicationPage() {
                       Log delivery
                     </Button>
                   </Stack>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: 'notice.muted.bg', borderRadius: 2 }}>
                     <TextField size="small" placeholder="Search" value={deliverySearch}
                       onChange={(e) => { setDeliverySearch(e.target.value); setDeliveryPage(0) }}
                       sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -3387,7 +3387,7 @@ export default function EMedicationPage() {
                     </Stack>
                   </Stack>
                   {countPerson && !countLoading && !countNoRecords && countMedications.length > 0 && (
-                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 1.5, p: 1, bgcolor: '#F4F9FC', borderRadius: 2 }} flexWrap="wrap" useFlexGap>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 1.5, p: 1, bgcolor: 'notice.muted.bg', borderRadius: 2 }} flexWrap="wrap" useFlexGap>
                       <TextField select label="Count type" size="small" sx={{ minWidth: 160, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
                         onChange={(e) => { setCountSession(e.target.value); loadCountData(countPerson, countDate, e.target.value) }}>
@@ -3410,7 +3410,7 @@ export default function EMedicationPage() {
                   {countNoRecords && !countLoading && countPerson && (
                     <Alert severity="info" sx={{ mb: 1.5 }}>No active MAR records found for this person.</Alert>
                   )}
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: 'notice.muted.bg', borderRadius: 2 }}>
                     <TextField size="small" placeholder="Search" value={countHistorySearch}
                       onChange={(e) => { setCountHistorySearch(e.target.value); setCountPage(0) }}
                       sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -3655,7 +3655,7 @@ export default function EMedicationPage() {
                       Export CSV
                     </Button>
                   </Stack>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: '#F4F9FC', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', p: 1, mb: 1.5, bgcolor: 'notice.muted.bg', borderRadius: 2 }}>
                     <TextField size="small" placeholder="Search" value={auditSearch}
                       onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(0) }}
                       sx={{ minWidth: 140, flex: 1, bgcolor: METICLE_COLORS.surface, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}

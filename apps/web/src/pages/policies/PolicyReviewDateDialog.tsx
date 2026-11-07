@@ -20,7 +20,6 @@ import {
   INK,
   MUTED,
   NAVY,
-  addMonthsToDateString,
   formatDate,
   reminderForReviewDate,
   todayPlusMonths,
@@ -55,7 +54,7 @@ export default function PolicyReviewDateDialog({ open, policy, onClose, onSaved 
 
   const choosePreset = (value: Preset) => {
     setPreset(value)
-    if (value !== 'custom') setDate(addMonthsToDateString(new Date().toISOString().slice(0, 10), value))
+    if (value !== 'custom') setDate(todayPlusMonths(value))
   }
 
   const handleSave = async () => {
@@ -149,7 +148,7 @@ export default function PolicyReviewDateDialog({ open, policy, onClose, onSaved 
           Cancel
         </Button>
         <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-          {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Save'}
+          {saving ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>

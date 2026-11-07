@@ -517,7 +517,7 @@ export default function TasksPage() {
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{viewing.title} will be removed for everyone, along with its notes.</Typography>
             <Paper sx={{ display: 'flex', gap: 1.5, p: 2, bgcolor: '#EAF2FB', borderRadius: 2 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#fff', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><AssignmentIcon fontSize="small" /></Box>
+              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#FFFFFF', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><AssignmentIcon fontSize="small" /></Box>
               <Box>
                 <Typography variant="body2" fontWeight={700}>Might it be needed again?</Typography>
                 <Typography variant="body2" color="text.secondary">Cancel it instead. It moves to the Cancelled tab and keeps a record of what was stopped.</Typography>
