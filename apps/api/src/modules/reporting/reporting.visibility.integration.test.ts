@@ -91,7 +91,10 @@ describe('Reporting — custom report visibility', () => {
 
   it('lets only the owner or an admin change or delete a restricted report', async () => {
     const { tokenA, tokenA2, adminToken } = await setup()
-    const created = await request(app).post('/reporting/custom').set('Authorization', `Bearer ${tokenA}`).send({ ...STAFF_CONFIG, name: 'Owned report', visibility: 'me' })
+    // A team report is visible to a colleague in the same department, so this
+    // reaches the edit check. A "me" report would correctly 404 before it, to
+    // avoid disclosing that the report exists at all.
+    const created = await request(app).post('/reporting/custom').set('Authorization', `Bearer ${tokenA}`).send({ ...STAFF_CONFIG, name: 'Owned report', visibility: 'team' })
     const id = created.body.report.id
 
     const forbidden = await request(app).put(`/reporting/custom/${id}`).set('Authorization', `Bearer ${tokenA2}`).send({ ...STAFF_CONFIG, name: 'Hijacked' })
@@ -99,7 +102,7 @@ describe('Reporting — custom report visibility', () => {
     const delForbidden = await request(app).delete(`/reporting/custom/${id}`).set('Authorization', `Bearer ${tokenA2}`)
     expect(delForbidden.status).toBe(403)
 
-    const adminUpdate = await request(app).put(`/reporting/custom/${id}`).set('Authorization', `Bearer ${adminToken}`).send({ ...STAFF_CONFIG, name: 'Renamed', visibility: 'me' })
+    const adminUpdate = await request(app).put(`/reporting/custom/${id}`).set('Authorization', `Bearer ${adminToken}`).send({ ...STAFF_CONFIG, name: 'Renamed', visibility: 'team' })
     expect(adminUpdate.status).toBe(200)
     expect(adminUpdate.body.report.name).toBe('Renamed')
   })
