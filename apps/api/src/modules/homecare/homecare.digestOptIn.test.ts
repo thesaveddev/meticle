@@ -149,9 +149,11 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // and again on 161-167 (incident form/severity/workflow engines, submit
     // link, lifecycle, closeout and action suggestions), and again on 168
     // (per-organisation compliance files), and again on 169-171 (saved
-    // custom reports, delivery schedules and run history), which is the
-    // latest run registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_171\]\)/)
+    // custom reports, delivery schedules and run history), and again on
+    // 172-176 (shift handover checks, policy versions, appointment where/
+    // cancellation, custom report visibility, meal-plan location tags),
+    // which is the latest run registered.
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_176\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

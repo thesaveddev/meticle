@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, generateToken } from '../../test/factories'
+import { createOrg, createUser, createStaffProfile, generateToken } from '../../test/factories'
 
 let app: Express
 
@@ -72,6 +72,10 @@ describe('Policies — versions, sharing and read requests (5.10)', () => {
 
   it('lets a manager ask unsigned staff to read, and skips those who signed', async () => {
     const { admin, carer, other, policyId } = await setup()
+    // Read requests file a task only for recipients with a staff profile —
+    // createUser deliberately makes a bare user. The assertion below is about
+    // that task, so the fixture has to model an actual staff member.
+    await createStaffProfile({ user_id: other.id })
     await request(app).post(`/policies/${policyId}/acknowledge`).set('Authorization', `Bearer ${generateToken(carer)}`)
     const res = await request(app)
       .post(`/policies/${policyId}/read-requests`)

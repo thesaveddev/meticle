@@ -61,14 +61,14 @@ describe('Reporting — custom report visibility', () => {
     expect(mine.status).toBe(201)
 
     // Same department sees the team report; the other department does not.
-    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${tokenA2}`)).status.toBe(200)
-    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${tokenB}`)).status.toBe(404)
+    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${tokenA2}`)).status).toBe(200)
+    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${tokenB}`)).status).toBe(404)
 
     // Only the owner (and admins) see the me report.
-    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${tokenA2}`)).status.toBe(404)
-    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${tokenB}`)).status.toBe(404)
-    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${adminToken}`)).status.toBe(200)
-    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${adminToken}`)).status.toBe(200)
+    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${tokenA2}`)).status).toBe(404)
+    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${tokenB}`)).status).toBe(404)
+    expect((await request(app).get(`/reporting/custom/${mine.body.report.id}`).set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
+    expect((await request(app).get(`/reporting/custom/${team.body.report.id}`).set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
 
     // The library lists only what each viewer may see.
     const listB = await request(app).get('/reporting/custom').set('Authorization', `Bearer ${tokenB}`)
