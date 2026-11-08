@@ -56,11 +56,14 @@ CONTAINERS = {
     "redis": {"role": "Redis cache", "critical": True},
 }
 
-# Health endpoints to probe
+# Health endpoints to probe. The host port bindings are 127.0.0.1-only, so probe
+# the numeric address rather than "localhost": in a cron environment where
+# localhost resolves to ::1 first, the probe can fail against an IPv4-only
+# binding even while the service is healthy.
 HEALTH_PROBES = [
-    {"name": "API health/live", "url": "http://localhost:3002/health/live", "timeout": 10},
-    {"name": "API health/ready", "url": "http://localhost:3002/health/ready", "timeout": 10},
-    {"name": "Web frontend", "url": "http://localhost:3000/", "timeout": 10},
+    {"name": "API health/live", "url": "http://127.0.0.1:3002/health/live", "timeout": 10},
+    {"name": "API health/ready", "url": "http://127.0.0.1:3002/health/ready", "timeout": 10},
+    {"name": "Web frontend", "url": "http://127.0.0.1:3000/", "timeout": 10},
 ]
 
 # Cooldown: dont re-alert for the same issue within this many seconds
@@ -93,9 +96,18 @@ def load_state():
 
 
 def save_state(state):
-    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
+    # This write is what makes the 30-minute alert cooldown real. If it throws
+    # (cron user without write access, full disk), the exception used to escape
+    # run_checks, the in-memory "already alerted" marks were lost with it, and
+    # the next run re-emailed every still-failing probe — an email every 5
+    # minutes instead of one per 30. A failed write must be a log line, never
+    # a lost cooldown.
+    try:
+        os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+        with open(STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        log(f"WARNING: could not persist monitor state to {STATE_FILE}: {e}")
 
 
 def check_container(service):

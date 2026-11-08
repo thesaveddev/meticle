@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { CalendarMonth as CalendarIcon, ChevronLeft as PreviousIcon, ChevronRight as NextIcon } from '@mui/icons-material'
-import { Box, Button, IconButton, Skeleton, Stack, Typography } from '@mui/material'
+import { CalendarMonth as CalendarIcon, ChevronLeft as PreviousIcon, ChevronRight as NextIcon, ExpandMore as ExpandIcon, LocationOn as LocationIcon } from '@mui/icons-material'
+import { Box, Button, Chip, IconButton, Skeleton, Stack, Typography } from '@mui/material'
 import { NavLink, Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { SectionError } from '../../components/ui'
 import PageContainer from '../../components/design/PageContainer'
@@ -34,6 +34,7 @@ export interface SupportedLivingData {
     staff_on_duty: number
     compliance_rate: number
     open_incidents: number
+    locations: number
   }
   rota: Array<{ id: string; start_time: string; end_time: string; status: string; location_name: string; assigned_staff: string }>
   reviews: Array<{ id: string; person: string; item_name: string; due_date: string; entity_type: string; status?: string }>
@@ -41,6 +42,8 @@ export interface SupportedLivingData {
     dbs_expiring_soon: number
     training_expiring_soon: number
     overdue_medications: number
+    missed_medications: number
+    missed_detail: Array<{ resident_id: string; person_name: string; administration_id: string; scheduled_time: string; administration_status: string; record_id: string }>
     competency_due: number
     open_severe_incidents: number
     staff_below_threshold: number
@@ -103,16 +106,39 @@ export function resolveOperationalDate(param: string | null, today: string): str
   return param && DATE_PATTERN.test(param) && param <= today ? param : today
 }
 
+export function LocationFilterPill() {
+  return (
+    <Button
+      startIcon={<LocationIcon fontSize="small" />}
+      endIcon={<ExpandIcon fontSize="small" />}
+      aria-label="Location filter: all locations"
+      sx={{
+        textTransform: 'none', fontWeight: 600, color: 'text.primary',
+        bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+        borderRadius: 999, px: 1.75, py: 0.8, whiteSpace: 'nowrap',
+        '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+      }}
+    >All locations</Button>
+  )
+}
+
 function DateControls({ date, today, onChange }: { date: string; today: string; onChange: (date: string) => void }) {
   const same = date === today
   return (
-    <Stack direction="row" alignItems="center" spacing={0.5} aria-label="Operational date controls">
+    <Stack
+      direction="row" alignItems="center" spacing={0.25}
+      aria-label="Operational date controls"
+      sx={{
+        bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+        borderRadius: 999, px: 0.5, py: 0.25,
+      }}
+    >
       <IconButton aria-label="Previous operational day" size="small" onClick={() => onChange(shiftDate(date, -1))}><PreviousIcon fontSize="small" /></IconButton>
       <Button
         aria-label={`Operational date: ${formatDate(date)}. Select date`}
         startIcon={<CalendarIcon fontSize="small" />}
         onClick={() => onChange(today)}
-        sx={{ color: 'text.primary', textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
+        sx={{ color: 'text.primary', textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap', px: 1 }}
       >{same ? 'Today' : formatDate(date)}</Button>
       <IconButton aria-label="Next operational day" size="small" disabled={date >= today} onClick={() => onChange(shiftDate(date, 1))}><NextIcon fontSize="small" /></IconButton>
     </Stack>
@@ -124,10 +150,14 @@ function DateControls({ date, today, onChange }: { date: string; today: string; 
  * matching route only, so exactly one tab is active and the styling follows
  * the URL rather than local state.
  */
-function MissionControlTabs({ search, serviceModel }: { search: string; serviceModel: ServiceModel }) {
+export interface MissionControlTabCounts { compliance?: number; care?: number; incidents?: number }
+
+function MissionControlTabs({ search, serviceModel, counts }: { search: string; serviceModel: ServiceModel; counts?: MissionControlTabCounts }) {
   return (
     <Box component="nav" aria-label="Mission Control sections" sx={{ display: 'flex', gap: 0.5, overflowX: 'auto', mb: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-      {MISSION_CONTROL_TABS.map(tab => (
+      {MISSION_CONTROL_TABS.map(tab => {
+        const badge = tab.key === 'compliance' ? counts?.compliance : tab.key === 'care' ? counts?.care : tab.key === 'incidents' ? counts?.incidents : undefined
+        return (
         <Button
           key={tab.key}
           component={NavLink}
@@ -142,8 +172,10 @@ function MissionControlTabs({ search, serviceModel }: { search: string; serviceM
             '&[aria-current="page"]': { color: METICLE_COLORS.primary, fontWeight: 700, borderBottomColor: METICLE_COLORS.primary, bgcolor: METICLE_COLORS.infoSoft },
             '&:focus-visible': { outline: '2px solid', outlineColor: METICLE_COLORS.primary, outlineOffset: 2 },
           }}
-        >{tab.key === 'calls' && serviceModel === 'supported_living' ? 'Rota' : tab.label}</Button>
-      ))}
+        >{tab.key === 'calls' && serviceModel === 'supported_living' ? 'Rota' : tab.label}{typeof badge === 'number' && badge > 0 ? (
+            <Chip label={badge} size="small" sx={{ ml: 1, height: 20, minWidth: 20, fontSize: 11, fontWeight: 700, bgcolor: 'action.selected', color: 'text.secondary' }} />
+          ) : null}</Button>
+      )})}
     </Box>
   )
 }
@@ -219,18 +251,37 @@ export default function MissionControlLayout({ serviceModel }: { serviceModel: S
 
   useEffect(() => { void load() }, [load])
 
+  const tabCounts: MissionControlTabCounts = data?.supported
+    ? {
+        compliance: data.supported.widgets.staff_below_threshold,
+        care: data.supported.stats.active_people,
+        incidents: data.supported.stats.open_incidents,
+      }
+    : data?.homecare
+      ? {
+          compliance: (data.homecare.training_expiring ?? 0) + (data.homecare.docs_expiring ?? 0),
+          care: data.homecare.people_supported,
+          incidents: data.homecare.open_incidents,
+        }
+      : {}
+  const eyebrow = new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
+
   return (
     <PageContainer>
       <PageMeta title="Mission Control" description="Daily operations, staffing, compliance and exceptions." />
       <Box sx={{ minWidth: 0, maxWidth: 1440, mx: 'auto', pb: 4 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1.5} sx={{ mb: 1.5 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-end' }} gap={1.5} sx={{ mb: 1 }}>
           <Box>
-            <Typography component="h1" variant="h4" sx={{ fontWeight: 700, letterSpacing: '-0.025em' }}>Mission Control</Typography>
-            <Typography variant="body2" color="text.secondary">Daily operations, staffing, compliance and exceptions.</Typography>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: '0.08em' }}>{eyebrow}</Typography>
+            <Typography component="h1" variant="h4" sx={{ fontWeight: 700, fontSize: { xs: 24, md: 28 }, lineHeight: 1.2 }}>Mission Control</Typography>
+            <Typography variant="body1" color="text.secondary">Daily operations, staffing, compliance and exceptions.</Typography>
           </Box>
-          <DateControls date={date} today={today} onChange={setDate} />
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+            <LocationFilterPill />
+            <DateControls date={date} today={today} onChange={setDate} />
+          </Stack>
         </Stack>
-        <MissionControlTabs search={search} serviceModel={serviceModel} />
+        <MissionControlTabs search={search} serviceModel={serviceModel} counts={tabCounts} />
         {loading && !data ? (
           <Stack spacing={1.5} role="status" aria-label="Loading Mission Control">
             <Skeleton variant="rounded" height={88} />

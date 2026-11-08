@@ -57,15 +57,15 @@ export class MealPlanRepository {
   static async createTemplate(orgId: string, data: any) {
     const result = await query(
       `INSERT INTO meal_plan_templates
-        (organization_id, name, description, meal_type, day_of_week, is_active, created_by, generated_by_ai)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        (organization_id, name, description, meal_type, day_of_week, is_active, created_by, generated_by_ai, location_id, dietary_tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [orgId, data.name, data.description || null, data.meal_type,
        data.day_of_week || null, data.is_active !== false, data.created_by || null,
        // Only TRUE is accepted from the client, and only the AI route sends it.
        // A hand-written plan cannot be marked generated_by_ai=true through this
        // path, so the provenance flag cannot be forged the other way — and a
        // falsy value becomes NULL ("not recorded"), not FALSE ("asserted human").
-       data.generated_by_ai === true ? true : null]);
+       data.generated_by_ai === true ? true : null, data.location_id || null, data.dietary_tags || []]);
     return result.rows[0];
   }
 
@@ -78,7 +78,7 @@ export class MealPlanRepository {
       // is set once, at creation, by the route that knows how the plan was made;
       // letting a general update flip it would let an AI plan be quietly
       // re-labelled as human-written (or the reverse) after the fact.
-      if (['name', 'description', 'meal_type', 'day_of_week', 'is_active'].includes(key)) {
+      if (['name', 'description', 'meal_type', 'day_of_week', 'is_active', 'location_id', 'dietary_tags'].includes(key)) {
         if (val !== undefined) { fields.push(`${key} = $${idx++}`); values.push(val); }
       }
     }
@@ -144,6 +144,8 @@ export class MealPlanRepository {
       description: source.description,
       meal_type: source.meal_type,
       day_of_week: newDayOfWeek || source.day_of_week,
+      location_id: source.location_id,
+      dietary_tags: source.dietary_tags,
     });
     if (source.items) {
       for (const item of source.items) {

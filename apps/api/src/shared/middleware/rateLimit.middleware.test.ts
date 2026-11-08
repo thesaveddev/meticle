@@ -9,9 +9,9 @@ vi.mock('../redis', () => ({
 // this file would otherwise share one bucket — a longer window set by an
 // earlier test silently governs a later one. Each test gets its own path.
 let pathCounter = 0;
-function mockReqRes() {
+function mockReqRes(headers: Record<string, string> = {}) {
   pathCounter += 1;
-  const req: any = { ip: '127.0.0.1', path: `/test-${pathCounter}` };
+  const req: any = { ip: '127.0.0.1', path: `/test-${pathCounter}`, headers };
   // Mirrors the express Response chaining used by the middleware:
   // `res.status(429).set(...).json(...)`.
   const res: any = {
@@ -55,6 +55,42 @@ describe('rateLimit middleware', () => {
     const body = res.json.mock.calls[0][0];
     expect(body.retryAfterSeconds).toBeGreaterThan(0);
     expect(body.retryAfterSeconds).toBeLessThanOrEqual(60);
+  });
+
+  // Behind Cloudflare every request arrives with the same `req.ip` (one
+  // trusted proxy hop against three real ones), so callers that share it must
+  // still get their own bucket via `CF-Connecting-IP` — otherwise ten
+  // sign-ins anywhere lock the whole site out of /auth/login for 15 minutes.
+  it('should isolate buckets by CF-Connecting-IP when req.ip is shared', async () => {
+    const handler = rateLimit(1, 60_000);
+    const first = mockReqRes({ 'cf-connecting-ip': '203.0.113.7' });
+    const second = mockReqRes({ 'cf-connecting-ip': '198.51.100.9' });
+    // Same req.ip and path on purpose: only the header differs.
+    second.req.path = first.req.path;
+
+    await handler(first.req, first.res, first.next);
+    expect(first.next).toHaveBeenCalledTimes(1);
+
+    await handler(second.req, second.res, second.next);
+    expect(second.next).toHaveBeenCalledTimes(1);
+
+    await handler(first.req, first.res, first.next);
+    expect(first.res.status).toHaveBeenCalledWith(429);
+  });
+
+  // A forged header must not mint unlimited buckets: anything that is not a
+  // plausible address falls back to `req.ip`, i.e. the previous behaviour.
+  it('should ignore a malformed CF-Connecting-IP rather than trusting it', async () => {
+    const handler = rateLimit(1, 60_000);
+    const bad = mockReqRes({ 'cf-connecting-ip': 'not-an-ip' });
+    const plain = mockReqRes();
+    plain.req.path = bad.req.path;
+
+    await handler(bad.req, bad.res, bad.next);
+    expect(bad.next).toHaveBeenCalledTimes(1);
+
+    await handler(plain.req, plain.res, plain.next);
+    expect(plain.res.status).toHaveBeenCalledWith(429);
   });
 
   // The in-memory branch knows the exact window end, so the hint must track

@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Typography, Avatar, Paper, IconButton, Tooltip, Stack, Chip } from '@mui/material'
+import { Box, Typography, Avatar, Paper, IconButton, Stack, Chip } from '@mui/material'
 import {
   Mood as MoodIcon, Delete as DeleteIcon, Edit as EditIcon,
-  Check as CheckIcon, DoneAll as DoneAllIcon, OpenInNew as OpenInNewIcon,
-  Description as FileIcon, AttachFile as AttachFileIcon,
+  Check as CheckIcon, Description as FileIcon,
   Reply as ReplyIcon,
 } from '@mui/icons-material'
 import { type ChatMessage } from '../hooks/useChat'
-import { renderMessageText, formatTime, getMemberName, getMemberInitial, FILE_PREVIEW_TYPES, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE, DANGER } from '../utils'
+import { renderMessageText, formatChatTime, getMemberName, getMemberInitial, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE, DANGER } from '../utils'
 import SecureImg from './SecureImg'
 import LinkPreview from './LinkPreview'
 
@@ -37,9 +36,8 @@ interface Props {
 
 export default function MessageBubble({
   msg, isMine, showAvatar, seen, seenBy, editingId, editText,
-  onEditTextChange, onStartEdit, onSaveEdit, onCancelEdit, onDelete,
-  onReact, onOpenReactionPicker, onOpenFile, onReply, user,
-  channelType, otherLastRead, memberReads,
+  onEditTextChange, onStartEdit, onSaveEdit, onCancelEdit,  onDelete, onReact, onOpenReactionPicker, onOpenFile, onReply, user,
+  channelType, otherLastRead,
 }: Props) {
   const [hovered, setHovered] = useState(false)
   const navigate = useNavigate()
@@ -83,41 +81,28 @@ export default function MessageBubble({
 
   const renderFile = () => {
     if (!msg.file_url) return null
-    const isPreviewable = FILE_PREVIEW_TYPES.has(msg.file_type || '') || msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf)$/i)
     const isImage = msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i)
-
-    if (isPreviewable) {
+    if (isImage) {
       return (
         <Box sx={{ mt: msg.content ? 0.75 : 0, cursor: 'pointer' }} onClick={() => onOpenFile(msg.file_url!, msg.file_name || 'File')}>
-          {isImage ? (
-            <SecureImg src={msg.file_url} alt={msg.file_name || ''}
-              sx={{ maxWidth: 240, maxHeight: 180, borderRadius: 1.5, objectFit: 'cover', display: 'block' }} />
-          ) : (
-            <Stack direction="row" spacing={0.75} alignItems="center" sx={{
-              bgcolor: isMine ? 'rgba(255,255,255,0.12)' : BONE,
-              borderRadius: 1.5, p: 1, border: isMine ? 'none' : `1px solid ${HAIRLINE}`,
-            }}>
-              <FileIcon sx={{ fontSize: 22, color: isMine ? WHITE : NAVY }} />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', color: isMine ? WHITE : INK }} noWrap>{msg.file_name || 'File'}</Typography>
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <OpenInNewIcon sx={{ fontSize: 11, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }} />
-                  <Typography variant="caption" sx={{ fontSize: 10, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }}>Preview</Typography>
-                </Stack>
-              </Box>
-            </Stack>
-          )}
+          <SecureImg src={msg.file_url} alt={msg.file_name || ''}
+            sx={{ maxWidth: 240, maxHeight: 180, borderRadius: 1.5, objectFit: 'cover', display: 'block' }} />
         </Box>
       )
     }
-
+    const ext = (msg.file_name?.split('.').pop() || msg.file_type?.split('/').pop() || 'File').toUpperCase()
     return (
-      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: msg.content ? 0.5 : 0 }}>
-        <AttachFileIcon sx={{ fontSize: 14, color: isMine ? 'rgba(255,255,255,0.6)' : MIST }} />
-        <Typography variant="caption" component="a" href={msg.file_url} target="_blank" rel="noopener"
-          sx={{ color: isMine ? WHITE : NAVY, textDecoration: 'underline', fontWeight: 500, fontSize: 12 }}>
-          {msg.file_name || 'File'}
-        </Typography>
+      <Stack direction="row" spacing={0.75} alignItems="center" onClick={() => onOpenFile(msg.file_url!, msg.file_name || 'File')}
+        sx={{
+          mt: msg.content ? 0.75 : 0, cursor: 'pointer',
+          bgcolor: isMine ? 'rgba(255,255,255,0.12)' : WHITE,
+          borderRadius: 1.5, p: 1, border: isMine ? 'none' : '1px solid #E3E9F0',
+        }}>
+        <FileIcon sx={{ fontSize: 22, color: isMine ? WHITE : NAVY }} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: isMine ? WHITE : INK }} noWrap>{msg.file_name || 'File'}</Typography>
+          <Typography variant="caption" sx={{ fontSize: 10, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }}>{ext}</Typography>
+        </Box>
       </Stack>
     )
   }
@@ -146,12 +131,6 @@ export default function MessageBubble({
         )}
 
         <Box sx={{ maxWidth: '100%' }}>
-          {showAvatar && (
-            <Typography variant="caption" sx={{ display: 'block', mb: 0.25, textAlign: isMine ? 'right' : 'left', fontWeight: 600, fontSize: 11.5, color: isMine ? NAVY : INK }}>
-              {isMine ? 'You' : getMemberName(msg)}
-            </Typography>
-          )}
-
           {isEditing ? (
             <Stack direction="row" spacing={0.5} alignItems="flex-start">
               <Box component="textarea" autoFocus value={editText} onChange={e => onEditTextChange(e.target.value)}
@@ -170,9 +149,9 @@ export default function MessageBubble({
             <Paper sx={{
               px: msg.content ? 1.75 : 1, py: msg.content ? 0.875 : 0.625,
               borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-              bgcolor: isMine ? NAVY : WHITE,
+              bgcolor: isMine ? NAVY : BONE,
               color: isMine ? WHITE : INK,
-              border: isMine ? 'none' : `1px solid ${HAIRLINE}`,
+              border: 'none',
               boxShadow: isMine ? '0 1px 3px rgba(15,76,129,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
               position: 'relative',
             }} elevation={0}>
@@ -248,18 +227,14 @@ export default function MessageBubble({
             </Stack>
           )}
 
-          {/* Time + read receipts */}
+          {/* Sender, time and read state sit under the bubble. */}
           {!isEditing && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25, justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-              <Typography variant="caption" sx={{ fontSize: 10, color: MIST }}>{formatTime(msg.created_at)}</Typography>
-              {isMine && seen && (
-                <Tooltip title={seenBy}>
-                  <DoneAllIcon sx={{ fontSize: 13, color: EMERALD }} />
-                </Tooltip>
-              )}
-              {isMine && !seen && (channelType === 'dm' ? otherLastRead : memberReads.length > 0) && (
-                <CheckIcon sx={{ fontSize: 13, color: MIST }} />
-              )}
+              <Typography variant="caption" sx={{ fontSize: 10.5, color: MIST }} title={isMine ? seenBy : undefined}>
+                {isMine
+                  ? (seen ? (channelType === 'dm' && otherLastRead ? `Seen ${formatChatTime(otherLastRead)}` : 'Seen') : `You ${formatChatTime(msg.created_at)}`)
+                  : `${getMemberName(msg)} ${formatChatTime(msg.created_at)}`}
+              </Typography>
             </Stack>
           )}
         </Box>

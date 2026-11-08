@@ -6,6 +6,7 @@ import { PremiumCard } from '../../components/design/PremiumCard'
 import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { EmptyState } from '../../components/design/EmptyState'
 import { X as DX } from '../../styles/export-tokens'
 // The pack is named for the day the manager made it in their own timezone, not
@@ -23,6 +24,7 @@ const CQC_DOMAINS = [
 ]
 
 export default function EvidencePacksPage() {
+  const { showSnackbar } = useSnackbar()
   const [includeSections, setIncludeSections] = useState<Record<Section, boolean>>({
     training: true, documents: true, competency: true
   })
@@ -170,9 +172,12 @@ export default function EvidencePacksPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `evidence-pack-${localDate()}.html`
+    const filename = `evidence-pack-${localDate()}.html`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
+    // Figma 5.12: every download announces itself the same way — what started, and which file.
+    showSnackbar(`${filename} is downloading.`, 'success', 'Download started')
   }
 
   const handlePrint = () => {
@@ -195,9 +200,11 @@ export default function EvidencePacksPage() {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
-      a.download = `evidence-pack-${localDate()}.pdf`
+      const filename = `evidence-pack-${localDate()}.pdf`
+      a.download = filename
       a.click()
       URL.revokeObjectURL(url)
+      showSnackbar(`${filename} is downloading.`, 'success', 'Download started')
     } catch { /* ignore */ }
     finally { setPdfLoading(false) }
   }

@@ -1,18 +1,19 @@
 import React, { useState } from 'react'
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip } from '@mui/material'
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip, Tabs, Tab } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
 import { useTheme } from '@mui/material/styles'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
-import { Assignment as CompetencyIcon, Description as DocIcon, Assessment as ReadinessIcon, Verified as ComplianceIcon, People as PeopleIcon, Warning as WarningIcon, School as TrainingIcon, History as AuditIcon, TrendingUp as TrendIcon, Favorite as FavoriteIcon, Group as EngagementIcon, Search as SearchIcon, ExpandMore as ExpandMoreIcon, CheckCircle, Error as ErrorIcon, Security as ShieldIcon, VerifiedUser as DbsIcon, Refresh as PollIcon, Send as SubmitIcon, Add as AddIcon, Edit as EditIcon } from '@mui/icons-material'
+import { Description as DocIcon, Assessment as ReadinessIcon, Verified as ComplianceIcon, People as PeopleIcon, Warning as WarningIcon, School as TrainingIcon, History as AuditIcon, TrendingUp as TrendIcon, Favorite as FavoriteIcon, Group as EngagementIcon, Search as SearchIcon, ExpandMore as ExpandMoreIcon, CheckCircle, Error as ErrorIcon, Security as ShieldIcon, VerifiedUser as DbsIcon, Refresh as PollIcon, Send as SubmitIcon, Add as AddIcon, Edit as EditIcon, LocationOn as LocationIcon, ArrowForward as ArrowIcon, Download as DownloadIcon } from '@mui/icons-material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import api from '../../services/api'
-import { PremiumCard, StatCard, StatusBadge as DesignStatusBadge } from '../../components/design/PremiumCard'
+import { PremiumCard, StatusBadge as DesignStatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 import { IDENTITY_DOCUMENT_TYPES } from '../../data/identityDocuments'
 import RegulatorRegistrationsPanel from '../../components/compliance/RegulatorRegistrationsPanel'
 import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { formatDateOnly, localToday } from '../../utils/dateFormat'
 import { staffRecordPath } from '../../utils/staffRecordLink'
 import {
@@ -38,6 +39,62 @@ const QUALITY_RATINGS = [
 
 function getRating(score: number) {
   return QUALITY_RATINGS.find(r => score >= r.min) || QUALITY_RATINGS[2]
+}
+
+function MetricCard({ value, valueColor, title, subtitle, icon, iconColor, onClick, progress }: {
+  value: string | number; valueColor?: string; title: string; subtitle: string;
+  icon: React.ReactNode; iconColor: string; onClick?: () => void; progress?: number
+}) {
+  const theme = useTheme()
+  return (
+    <PremiumCard
+      noBorder
+      sx={{
+        p: { xs: 2.25, sm: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column',
+        cursor: onClick ? 'pointer' : 'default',
+        '&:hover': onClick ? { borderColor: theme.palette.mode === 'dark' ? '#354357' : '#C3D2E2' } : {},
+        '&:focus-visible': onClick ? { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 } : {},
+      }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick() } } : undefined}
+    >
+      {/* Figma 5.5: title left, icon tile right on the top row; value then subtitle below */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+        <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.85rem' }}>
+          {title}
+        </Typography>
+        {progress !== undefined ? (
+          <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+            <Box
+              sx={{
+                width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `conic-gradient(${iconColor} ${Math.max(0, Math.min(100, progress)) * 3.6}deg, ${theme.palette.mode === 'dark' ? '#2A3C54' : '#EDF1F6'} 0deg)`,
+              }}
+            >
+              <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {icon}
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{
+            width: 32, height: 32, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.16)' : `${iconColor}14`, color: iconColor,
+          }}>
+            {icon}
+          </Box>
+        )}
+      </Stack>
+      <Typography variant="h4" sx={{ fontWeight: 700, color: valueColor || theme.palette.text.primary, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', fontSize: '1.75rem' }}>
+        {value}
+      </Typography>
+      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, mt: 0.5, fontSize: '0.78rem' }}>
+        {subtitle}
+      </Typography>
+    </PremiumCard>
+  )
 }
 
 const MODULE_COLORS: Record<string, string> = {
@@ -100,6 +157,52 @@ export default function CompliancePage() {
     }
   })
 
+  const [locationId, setLocationId] = useState<string>('all')
+
+  const { data: locationsData } = useQuery({
+    queryKey: ['settings-locations'],
+    queryFn: async () => {
+      const res = await api.get('/settings/locations')
+      return res.data as any[]
+    }
+  })
+  const locations: any[] = Array.isArray(locationsData) ? locationsData : []
+
+  // Module badges share the same query keys as the sections below, so they
+  // read from the same cache rather than firing duplicate requests.
+  const { data: trainingDash } = useQuery({
+    queryKey: ['training-dashboard'],
+    queryFn: async () => (await api.get('/training/dashboard')).data,
+  })
+  const { data: competencyPending } = useQuery({
+    queryKey: ['competency-pending'],
+    queryFn: async () => (await api.get('/competency/pending')).data,
+  })
+  const { data: satisfactionAgg } = useQuery({
+    queryKey: ['satisfaction-aggregate'],
+    queryFn: async () => (await api.get('/surveys/satisfaction/aggregate')).data,
+  })
+  const { data: engagementAgg } = useQuery({
+    queryKey: ['engagement-aggregate'],
+    queryFn: async () => (await api.get('/surveys/engagement/aggregate')).data,
+  })
+  const { data: readinessData } = useQuery({
+    queryKey: ['cqc-readiness'],
+    queryFn: async () => (await api.get('/cqc/readiness')).data?.data,
+  })
+  const { data: dbsChecksTop } = useQuery({
+    queryKey: ['dbs-checks'],
+    queryFn: async () => (await api.get('/dbs/checks')).data as any[],
+  })
+  const { data: dbsStatsTop } = useQuery({
+    queryKey: ['dbs-stats'],
+    queryFn: async () => (await api.get('/dbs/checks/stats')).data as any,
+  })
+  const { data: updateServiceStats } = useQuery({
+    queryKey: ['dbs-update-service-stats'],
+    queryFn: async () => (await api.get('/dbs/update-service/stats')).data as any,
+  })
+
   const isLoading = configsLoading || recordsLoading || membersLoading || docsLoading
   const isError = configsError || recordsError || membersError || docsError
 
@@ -109,27 +212,54 @@ export default function CompliancePage() {
   ].filter((m: any) => m.status === 'active')
 
   const totalRequirements = configs?.length || 0
-  const totalStaff = allMembers.length
-  const completedRecords = records?.filter((r: any) => r.status === 'complete').length || 0
-  const totalRecords = records?.length || 0
-  const overallCompliance = totalRecords > 0 ? Math.round((completedRecords / totalRecords) * 1000) / 10 : 0
   const pendingDocs = docs.filter((d: any) => d.status === 'pending').length || 0
-
-  const incompleteRequirements = (configs || []).filter(cfg => {
-    const cfgRecords = (records || []).filter((r: any) => r.requirement_id === cfg.id)
-    if (cfgRecords.length === 0) return true
-    return cfgRecords.some((r: any) => r.status !== 'complete')
-  }).length
-
-  const staffWithGaps = new Set((records || []).filter((r: any) => r.status !== 'complete').map((r: any) => r.staff_id)).size
-
-  const rating = getRating(overallCompliance)
 
   const nutritionPeople = (nutritionData || []).filter((n: any) => n.dietary_type)
   const totalNutritionPeople = nutritionPeople.length
   const nutritionConcerns = nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0 || (n.refused_today || 0) > 0).length
   const nutritionCompliant = totalNutritionPeople > 0 ? Math.round(((totalNutritionPeople - nutritionConcerns) / totalNutritionPeople) * 100) : 100
   const nutritionRating = nutritionCompliant >= 80 ? { color: '#10B981', label: 'Good' } : nutritionCompliant >= 60 ? { color: '#F59E0B', label: 'Watch' } : { color: '#EF4444', label: 'Concern' }
+
+  // ── Figma 5.1 header scope: the location filter narrows staff-derived
+  // numbers (staff, records, requirements). Documents carry no location, so
+  // document counts stay global rather than pretending to filter.
+  const visibleMembers = locationId === 'all'
+    ? allMembers
+    : allMembers.filter((m: any) => m.location_id && String(m.location_id) === String(locationId))
+  const visibleStaffIds = new Set(visibleMembers.map((m: any) => m.staff_id || m.id))
+  const visibleRecords = (records || []).filter((r: any) => visibleStaffIds.has(r.staff_id))
+  const totalStaffV = visibleMembers.length
+  const completedRecordsV = visibleRecords.filter((r: any) => r.status === 'complete').length
+  const totalRecordsV = visibleRecords.length
+  const overallV = totalRecordsV > 0 ? Math.round((completedRecordsV / totalRecordsV) * 1000) / 10 : 0
+  const overallVRounded = Math.round(overallV)
+  const incompleteRequirementsV = (configs || []).filter(cfg => {
+    const cfgRecords = visibleRecords.filter((r: any) => r.requirement_id === cfg.id)
+    if (cfgRecords.length === 0) return true
+    return cfgRecords.some((r: any) => r.status !== 'complete')
+  }).length
+  const staffWithGapsV = new Set(visibleRecords.filter((r: any) => r.status !== 'complete').map((r: any) => r.staff_id)).size
+  const ratingV = getRating(overallV)
+
+  // ── Module badges (live values, same shape as the Figma 5.1 frame) ──
+  const trainingPct = typeof trainingDash?.overall?.percentage === 'number' ? trainingDash.overall.percentage : undefined
+  const competencyPendingCount = Array.isArray(competencyPending) ? competencyPending.length : undefined
+  const dbsTrackedIds = new Set((dbsChecksTop || []).map((c: any) => c.staff_id).filter(Boolean))
+  const dbsMissing = visibleMembers.filter((m: any) => m.staff_id && !dbsTrackedIds.has(m.staff_id)).length
+  const readinessPct = typeof readinessData?.overall === 'number' ? readinessData.overall : undefined
+  const satisfactionTotal = typeof satisfactionAgg?.total === 'number' ? satisfactionAgg.total : undefined
+  const engagementTotal = typeof engagementAgg?.total === 'number' ? engagementAgg.total : undefined
+
+  // ── Documents at a glance (global: documents carry no location) ──
+  const identityUploaded = docsData?.total ?? docs.length
+  const dbsTracked = (dbsChecksTop || []).length || dbsStatsTop?.total || 0
+  const updateChecked = updateServiceStats?.checks_last_30_days ?? 0
+  const nowMs = Date.now()
+  const expiringSoon = docs.filter((d: any) => {
+    if (!d.expiry_date) return false
+    const t = new Date(d.expiry_date).getTime()
+    return t > nowMs && t <= nowMs + 30 * 24 * 60 * 60 * 1000
+  }).length
 
   if (isLoading) {
     return (
@@ -145,240 +275,267 @@ export default function CompliancePage() {
 
   return (
     <PageContainer>
-      {/* ── Header ── */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
+      {/* ── Header (Figma 5.1: breadcrumb, title, actions, location filter) ── */}
+      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, letterSpacing: '0.08em' }}>
+        COMPLIANCE & SAFETY / COMPLIANCE
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mt: 0.5, mb: 2, gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Compliance Dashboard</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Compliance</Typography>
           <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-            Monitor staff compliance, training and regulatory readiness
+            Monitor staff compliance, training and inspection readiness.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
           <PortalAccessManager orgId="" />
           <Button variant="outlined" startIcon={<AuditIcon />} onClick={() => setAuditOpen(true)} size="small"
             sx={{ textTransform: 'none', fontWeight: 600, borderColor: theme.palette.divider, color: theme.palette.text.primary }}>
             Audit Trail
           </Button>
+          <Button variant="contained" startIcon={<TrainingIcon />} onClick={() => navigate('/compliance/training')} size="small"
+            sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Assign training
+          </Button>
         </Stack>
       </Stack>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+        <LocationIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
+        <TextField
+          select
+          size="small"
+          value={locationId}
+          onChange={(e) => setLocationId(e.target.value)}
+          aria-label="Filter by location"
+          sx={{ minWidth: 180, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+        >
+          <MenuItem value="all">All locations</MenuItem>
+          {locations.map((l: any) => (
+            <MenuItem key={l.id} value={String(l.id)}>{l.name}</MenuItem>
+          ))}
+        </TextField>
+      </Stack>
 
-      {/* ── Top section: Compliance ring + stats ── */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={5}>
-          <PremiumCard noBorder sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography variant="overline" sx={{ letterSpacing: 1.5, mb: 1, color: theme.palette.text.secondary, fontWeight: 700, fontSize: '0.65rem' }}>
-              OVERALL COMPLIANCE
-            </Typography>
-            <Box sx={{ position: 'relative', display: 'inline-flex', my: 1 }}>
-              <CircularProgress
-                variant="determinate"
-                value={100}
-                size={140}
-                thickness={5}
-                sx={{ color: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE' }}
-              />
-              <CircularProgress
-                variant="determinate"
-                value={overallCompliance}
-                size={140}
-                thickness={5}
-                sx={{
-                  color: rating.color,
-                  position: 'absolute',
-                  left: 0,
-                  '& .MuiCircularProgress-circle': { strokeLinecap: 'round' },
-                }}
-              />
-              <Box sx={{
-                position: 'absolute', top: 0, left: 0, bottom: 0, right: 0,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: rating.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
-                  {overallCompliance.toFixed(1)}%
-                </Typography>
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, mt: 0.25, fontWeight: 600 }}>
-                  COMPLIANT
-                </Typography>
-              </Box>
-            </Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: rating.color, mt: 1 }}>{rating.label}</Typography>
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-              {completedRecords} of {totalRecords} records completed
-            </Typography>
-          </PremiumCard>
+      {/* ── Metric cards (Figma 5.5: title top-left, icon tile top-right, value, subtitle) ── */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={6} sm={4} md>
+          <MetricCard
+            value={`${overallVRounded}%`}
+            valueColor={ratingV.color}
+            title="Overall compliance"
+            subtitle={`${ratingV.label} - target 80%`}
+            icon={<ErrorIcon sx={{ fontSize: 16 }} />}
+            iconColor={ratingV.color}
+            progress={overallVRounded}
+            onClick={() => navigate('/compliance/readiness')}
+          />
         </Grid>
-        <Grid item xs={12} md={7}>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <StatCard
-                label="Active Staff"
-                value={totalStaff}
-                icon={<PeopleIcon sx={{ fontSize: 22 }} />}
-                color="#004085"
-                onClick={() => navigate('/staff')}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatCard
-                label="Requirements"
-                value={totalRequirements}
-                icon={<ComplianceIcon sx={{ fontSize: 22 }} />}
-                color={overallCompliance >= 80 ? '#10B981' : '#F59E0B'}
-                onClick={() => { setExpandedSection('requirements'); navigate('/compliance/training') }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatCard
-                label="Pending Documents"
-                value={pendingDocs}
-                icon={<DocIcon sx={{ fontSize: 22 }} />}
-                color={pendingDocs > 0 ? '#F59E0B' : '#10B981'}
-                onClick={() => navigate('/compliance/identity')}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatCard
-                label="Staff With Gaps"
-                value={staffWithGaps}
-                icon={<WarningIcon sx={{ fontSize: 22 }} />}
-                color={staffWithGaps > 0 ? '#EF4444' : '#10B981'}
-                onClick={() => navigate('/compliance/records')}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatCard
-                label="Nutrition"
-                value={`${nutritionCompliant}%`}
-                icon={<FavoriteIcon sx={{ fontSize: 22 }} />}
-                color={nutritionRating.color}
-                onClick={() => navigate('/nutrition')}
-              />
-            </Grid>
-          </Grid>
+        <Grid item xs={6} sm={4} md>
+          <MetricCard
+            value={totalStaffV}
+            title="Active staff"
+            subtitle={locations.length === 1 ? 'Across 1 location' : `Across ${locations.length} locations`}
+            icon={<PeopleIcon sx={{ fontSize: 20 }} />}
+            iconColor="#0164C8"
+            onClick={() => navigate('/staff')}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4} md>
+          <MetricCard
+            value={totalRequirements}
+            title="Requirements"
+            subtitle="Mandatory for all staff"
+            icon={<DocIcon sx={{ fontSize: 20 }} />}
+            iconColor="#0164C8"
+            onClick={() => { setExpandedSection('requirements'); navigate('/compliance/training') }}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4} md>
+          <MetricCard
+            value={pendingDocs}
+            title="Pending documents"
+            subtitle="Waiting for review"
+            icon={<DocIcon sx={{ fontSize: 20 }} />}
+            iconColor={pendingDocs > 0 ? '#F59E0B' : '#10B981'}
+            onClick={() => navigate('/compliance/identity')}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4} md>
+          <MetricCard
+            value={`${nutritionCompliant}%`}
+            title="Nutrition"
+            subtitle="Meal records complete"
+            icon={<FavoriteIcon sx={{ fontSize: 20 }} />}
+            iconColor={nutritionRating.color}
+            onClick={() => navigate('/nutrition')}
+          />
         </Grid>
       </Grid>
 
       {/* ── Alert banner ── */}
-      {overallCompliance < 80 || pendingDocs > 0 || incompleteRequirements > 0 || nutritionConcerns > 0 ? (
-        <PremiumCard noBorder sx={{ p: 2, mb: 3 }}>
+      {overallV < 80 || pendingDocs > 0 || incompleteRequirementsV > 0 || nutritionConcerns > 0 ? (
+        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'notice.error.bg', border: 'none' }}>
           <Stack spacing={1.5}>
-            {overallCompliance < 80 && (
-              <Box sx={{ bgcolor: 'notice.error.bg', borderRadius: 2, p: 1.5 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ErrorIcon sx={{ color: '#EF4444', fontSize: 18 }} />
+            {overallV < 80 && (
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ErrorIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>Overall compliance is {overallCompliance}% — below 80% target</Typography>
-                    <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Review the Readiness Score for detailed gap analysis</Typography>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>Overall compliance is {overallVRounded}% — below your 80% target</Typography>
+                    <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>
+                      {incompleteRequirementsV === totalRequirements && totalRequirements > 0
+                        ? `None of the ${totalRequirements} requirements has been met by any of your ${totalStaffV} staff yet. The gaps list shows who is missing what.`
+                        : `${incompleteRequirementsV} of ${totalRequirements} requirements have gaps across ${staffWithGapsV} staff. Select one below to see who is missing it.`}
+                    </Typography>
                   </Box>
                 </Stack>
-                <Button size="small" variant="contained" onClick={() => navigate('/compliance/readiness')}
-                  sx={{ textTransform: 'none', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>View Gaps</Button>
+                <Button size="small" variant="contained" onClick={() => { setExpandedSection('requirements'); requestAnimationFrame(() => document.getElementById('compliance-requirements')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }}
+                  sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0, ml: 2 }}>View gaps</Button>
               </Stack>
-              </Box>
             )}
             {pendingDocs > 0 && (
-              <Box sx={{ bgcolor: 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <DocIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DocIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{pendingDocs} document{pendingDocs > 1 ? 's' : ''} pending review</Typography>
-                    <Typography variant="caption" sx={{ color: 'notice.warning.fg' }}>Review and approve or reject uploaded identity documents</Typography>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{pendingDocs} document{pendingDocs > 1 ? 's' : ''} pending review</Typography>
+                    <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Review and approve or reject uploaded identity documents</Typography>
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => navigate('/compliance/identity')}
-                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.warning.fg', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>Review</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
               </Stack>
-              </Box>
             )}
-            {incompleteRequirements > 0 && (
-              <Box sx={{ bgcolor: 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <WarningIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
+            {incompleteRequirementsV > 0 && (
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <WarningIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{incompleteRequirements} requirement{incompleteRequirements > 1 ? 's' : ''} with gaps</Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
-                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }}>Click a requirement below to see which staff are missing it.</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/training')}>Assign training</Button>
-                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }} aria-hidden>·</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/competency')}>Run assessments</Button>
-                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }} aria-hidden>·</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/identity')}>Upload docs</Button>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{incompleteRequirementsV} requirement{incompleteRequirementsV > 1 ? 's' : ''} with gaps</Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                      <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Click a requirement below to see which staff are missing it.</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/training')}>Assign training</Button>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/competency')}>Run assessments</Button>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/identity')}>Upload docs</Button>
                     </Stack>
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => { setExpandedSection('requirements'); navigate('/compliance/records') }}
-                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.warning.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap', flexShrink: 0 }}>View All Records</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
               </Stack>
-              </Box>
             )}
             {nutritionConcerns > 0 && (
-              <Box sx={{ bgcolor: nutritionRating.color === '#EF4444' ? 'notice.error.bg' : 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: nutritionRating.color === '#EF4444' ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FavoriteIcon sx={{ color: nutritionRating.color, fontSize: 18 }} />
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }}>
                       {nutritionConcerns} person{nutritionConcerns > 1 ? 's' : ''} with nutrition concerns in the last 7 days
                     </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
-                      <Typography variant="caption" sx={{ color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }}>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                      <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>
                         {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 &&
                           `${nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length} refused meals today`}
                         {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 && nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 && ' · '}
                         {nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 &&
                           `${nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length} staff-flagged concerns`}
                       </Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }} onClick={() => navigate('/nutrition')}>View Nutrition</Button>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/nutrition')}>View Nutrition</Button>
                     </Stack>
                   </Box>
                 </Stack>
               </Stack>
-              </Box>
             )}
           </Stack>
         </PremiumCard>
       ) : (
         <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CheckCircle sx={{ color: 'notice.success.fg', fontSize: 18 }} />
           </Box>
           <Typography sx={{ fontWeight: 700, color: 'notice.success.fg' }}>All compliance areas are on track, including nutrition.</Typography>
         </PremiumCard>
       )}
 
-      {/* ── Module grid ── */}
+      {/* ── Compliance modules (Figma 5.1) ── */}
       <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
-        <Typography variant="overline" sx={{ mb: 2, color: theme.palette.text.secondary, fontWeight: 700, fontSize: '0.65rem', letterSpacing: 1.5, display: 'block' }}>COMPLIANCE MODULES</Typography>
-        <Grid container spacing={1.5}>
-          {[
-            { label: 'Training Matrix', icon: <TrainingIcon sx={{ fontSize: 20 }} />, path: '/compliance/training', key: 'training' },
-            { label: 'Competency', icon: <CompetencyIcon sx={{ fontSize: 20 }} />, path: '/compliance/competency', key: 'competency' },
-            { label: 'DBS & Identity', icon: <ComplianceIcon sx={{ fontSize: 20 }} />, path: '/compliance/identity', key: 'dbs' },
-            { label: 'Evidence Packs', icon: <DocIcon sx={{ fontSize: 20 }} />, path: '/compliance/evidence', key: 'evidence' },
-            { label: 'Readiness Score', icon: <ReadinessIcon sx={{ fontSize: 20 }} />, path: '/compliance/readiness', key: 'readiness' },
-            { label: 'Satisfaction', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/compliance/satisfaction', key: 'satisfaction' },
-            { label: 'Staff Engagement', icon: <EngagementIcon sx={{ fontSize: 20 }} />, path: '/compliance/engagement', key: 'engagement' },
-            { label: 'NHS DSPT', icon: <ShieldIcon sx={{ fontSize: 20 }} />, path: '/compliance/dspt', key: 'dspt' },
-            { label: 'Nutrition', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/nutrition', key: 'nutrition' },
-          ].map((a) => {
+        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>Compliance modules</Typography>
+        <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 2 }}>
+          Open a module to see the detail behind each score
+        </Typography>
+        <Grid container spacing={2}>
+          {([
+
+            {
+              key: 'training', title: 'Training matrix', desc: 'Who has completed each course and when it expires.',
+              path: '/compliance/training', icon: <TrainingIcon sx={{ fontSize: 20 }} />,
+              badge: trainingPct !== undefined ? `${Math.round(trainingPct)}%` : undefined, badgeTone: 'blue',
+              progress: trainingPct !== undefined ? Math.round(trainingPct) : undefined,
+            },
+            {
+              key: 'competency', title: 'Competency', desc: 'Observed assessments, templates and records.',
+              path: '/compliance/competency', icon: <CheckCircle sx={{ fontSize: 20 }} />,
+              badge: competencyPendingCount !== undefined ? `${competencyPendingCount} pending` : undefined, badgeTone: 'muted',
+            },
+            {
+              key: 'dbs', title: 'DBS & identity', desc: 'DBS, passport, visa and right-to-work documents.',
+              path: '/compliance/identity', icon: <DbsIcon sx={{ fontSize: 20 }} />,
+              badge: dbsMissing > 0 ? `${dbsMissing} missing` : 'All tracked', badgeTone: dbsMissing > 0 ? 'red' : 'green',
+            },
+            {
+              key: 'evidence', title: 'Evidence packs', desc: 'Inspection-ready bundles mapped to the key questions.',
+              path: '/compliance/evidence', icon: <DocIcon sx={{ fontSize: 20 }} />,
+              badge: undefined, badgeTone: 'muted',
+            },
+            {
+              key: 'readiness', title: 'Readiness score', desc: 'How ready you are against the CQC framework.',
+              path: '/compliance/readiness', icon: <ReadinessIcon sx={{ fontSize: 20 }} />,
+              badge: readinessPct !== undefined ? `${Math.round(readinessPct)}%` : undefined, badgeTone: 'blue',
+              progress: readinessPct !== undefined ? Math.round(readinessPct) : undefined,
+            },
+            {
+              key: 'satisfaction', title: 'Satisfaction', desc: 'Feedback from people supported and families.',
+              path: '/compliance/satisfaction', icon: <FavoriteIcon sx={{ fontSize: 20 }} />,
+              badge: satisfactionTotal !== undefined ? (satisfactionTotal > 0 ? `${satisfactionTotal} responses` : 'No surveys') : undefined, badgeTone: 'muted',
+            },
+            {
+              key: 'engagement', title: 'Staff engagement', desc: 'Team surveys and supervision.',
+              path: '/compliance/engagement', icon: <EngagementIcon sx={{ fontSize: 20 }} />,
+              badge: engagementTotal !== undefined ? (engagementTotal > 0 ? `${engagementTotal} responses` : 'No surveys') : undefined, badgeTone: 'muted',
+            },
+            {
+              key: 'dspt', title: 'NHS DSPT', desc: 'Data Security and Protection Toolkit.',
+              path: '/compliance/dspt', icon: <ShieldIcon sx={{ fontSize: 20 }} />,
+              badge: undefined, badgeTone: 'muted',
+            },
+            {
+              key: 'nutrition', title: 'Nutrition', desc: 'Meal plans and hydration records.',
+              path: '/nutrition', icon: <FavoriteIcon sx={{ fontSize: 20 }} />,
+              badge: `${nutritionCompliant}%`, badgeTone: 'green',
+            },
+          ] as { key: string; title: string; desc: string; path: string; icon: React.ReactNode; badge: string | undefined; badgeTone: 'blue' | 'muted' | 'red' | 'green'; progress?: number }[]).map((a) => {
             const color = MODULE_COLORS[a.key] || '#0164C8'
+            const badgeStyles = {
+              blue: { color: '#0164C8', bgcolor: '#EAF3FF' },
+              muted: { color: '#51637A', bgcolor: '#F0F5FC' },
+              red: { color: '#B42318', bgcolor: '#FEF0F0' },
+              green: { color: '#087A55', bgcolor: '#EAFBF5' },
+            }[a.badgeTone]
             return (
-              <Grid item key={a.label}>
+              <Grid item xs={12} sm={6} md={4} key={a.key}>
                 <Box
                   onClick={() => navigate(a.path)}
                   sx={{
-                    px: 2.5, py: 1.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.25,
+                    p: 2.5, height: '100%', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 1,
                     borderRadius: 2, border: `1px solid ${theme.palette.divider}`,
                     transition: 'all 0.15s',
                     '&:hover': {
@@ -388,8 +545,27 @@ export default function CompliancePage() {
                     },
                   }}
                 >
-                  <Box sx={{ color, display: 'flex' }}>{a.icon}</Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{a.label}</Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                    <Box sx={{
+                      width: 36, height: 36, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      bgcolor: theme.palette.mode === 'dark' ? `${color}22` : `${color}12`, color,
+                    }}>
+                      {a.icon}
+                    </Box>
+                    {a.badge ? (
+                      <Chip label={a.badge} size="small" sx={{ ...badgeStyles, fontWeight: 700, fontSize: '0.7rem', height: 22, flexShrink: 0, borderRadius: '999px' }} />
+                    ) : <Box sx={{ width: 22 }} />}
+                  </Stack>
+                  <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>{a.title}</Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontSize: '0.85rem', flex: 1 }}>{a.desc}</Typography>
+                  {a.progress !== undefined && (
+                    <Box sx={{ height: 6, borderRadius: 3, bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#EDF1F6', overflow: 'hidden' }}>
+                      <Box sx={{ width: `${a.progress}%`, height: 6, borderRadius: 3, bgcolor: color }} />
+                    </Box>
+                  )}
+                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: '#0164C8', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Open <ArrowIcon sx={{ fontSize: 16 }} />
+                  </Stack>
                 </Box>
               </Grid>
             )
@@ -397,14 +573,45 @@ export default function CompliancePage() {
         </Grid>
       </PremiumCard>
 
-      {/* ── Collapsible Sections ── */}
-      <RequirementsSectionWithCollapse
-        configs={configs || []}
-        records={records || []}
-        membersData={membersData}
-        expanded={expandedSection === 'requirements'}
-        onToggle={() => setExpandedSection(expandedSection === 'requirements' ? '' : 'requirements')}
-      />
+      {/* ── Requirements + Documents side-by-side (Figma 5.5) ── */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={8}>
+          <Box id="compliance-requirements" sx={{ scrollMarginTop: 88 }}>
+            <RequirementsSectionWithCollapse
+              configs={configs || []}
+              records={records || []}
+              membersData={membersData}
+              locationId={locationId}
+              expanded={expandedSection === 'requirements'}
+              onToggle={() => setExpandedSection(expandedSection === 'requirements' ? '' : 'requirements')}
+            />
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <PremiumCard noBorder sx={{ p: 3, mb: { xs: 3, md: 0 }, height: '100%' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em', mb: 2 }}>Documents at a glance</Typography>
+            <Stack spacing={0}>
+              {[
+                { label: 'Identity documents', value: `${identityUploaded} uploaded` },
+                { label: 'DBS tracking', value: `${dbsTracked} tracked` },
+                { label: 'DBS Update Service', value: `${updateChecked} checked` },
+                { label: 'Expiring in 30 days', value: expiringSoon > 0 ? `${expiringSoon} due soon` : 'None' },
+              ].map((row, i, arr) => (
+                <Stack
+                  key={row.label}
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ py: 1.5, borderBottom: i < arr.length - 1 ? `1px solid ${theme.palette.divider}` : 'none' }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.label}</Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{row.value}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </PremiumCard>
+        </Grid>
+      </Grid>
 
       <DocumentsSectionWithCollapse
         expanded={expandedSection === 'documents'}
@@ -426,11 +633,29 @@ export default function CompliancePage() {
         onToggle={() => setExpandedSection(expandedSection === 'trend' ? '' : 'trend')}
       />
 
-      {/* Registrations sit below the trends rather than in the module grid: it is
-          the one compliance thing a provider is asked for by an inspector and
-          was previously nowhere in the product. */}
-      <Box sx={{ mt: 3 }}>
+      {/* Regulator registration (Figma 5.1) sits below the trends: the one
+          compliance thing an inspector asks for first. */}
+      <Box sx={{ mt: 3 }} id="regulator-registration" >
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>Regulator registration</Typography>
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+              Your registration number with each regulator you are registered with
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => document.getElementById('regulator-registration')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0 }}
+          >
+            Add a regulator
+          </Button>
+        </Stack>
         <RegulatorRegistrationsPanel />
+        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 1.5 }}>
+          Live data. All UK regulators are listed above with their recorded status.{trainingPct !== undefined ? ` Training matrix shows ${Math.round(trainingPct)}% because it counts completed courses; this page counts requirements met by every staff member.` : ''}
+        </Typography>
       </Box>
 
       <AuditTrailDialog open={auditOpen} onClose={() => setAuditOpen(false)} />
@@ -462,24 +687,39 @@ function SectionHeader({ label, count, expanded, onToggle, icon }: { label: stri
   )
 }
 
-function RequirementsSectionWithCollapse({ configs, records, membersData, expanded, onToggle }: { configs: any[]; records: any[]; membersData: any; expanded: boolean; onToggle: () => void }) {
+function RequirementsSectionWithCollapse({ configs, records, membersData, locationId, expanded, onToggle }: { configs: any[]; records: any[]; membersData: any; locationId?: string; expanded: boolean; onToggle: () => void }) {
   const theme = useTheme()
   const navigate = useNavigate()
+  const { showSnackbar } = useSnackbar()
   const [selectedReq, setSelectedReq] = useState<any>(null)
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [gapsTab, setGapsTab] = useState<'requirement' | 'person'>('requirement')
+  const [personPage, setPersonPage] = useState(0)
 
   const allMembers: any[] = [
     ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
-  ].filter((m: any) => m.status === 'active')
+  ]
+    .filter((m: any) => m.status === 'active')
+    .filter((m: any) => !locationId || locationId === 'all' || (m.location_id && String(m.location_id) === String(locationId)))
+    .filter((m: any) => roleFilter === 'all' || m.role === roleFilter)
+  const roleOptions: string[] = Array.from(new Set([
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
+    ...(membersData?.staff || [])
+  ].map((m: any) => m.role).filter(Boolean)))
 
   const staffToUserMap = new Map(allMembers.map((m: any) => [m.staff_id || m.id, m.id]))
   const staffNameMap = new Map(allMembers.map((m: any) => [m.staff_id || m.id, `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email]))
   interface StaffEntry { name: string; userId: string }
   const recordMap: Record<string, { complete: number; total: number; completeStaff: StaffEntry[]; incompleteStaff: StaffEntry[] }> = {}
+  const visibleStaffIds = new Set(allMembers.map((m: any) => m.staff_id || m.id))
 
   if (records) {
     for (const r of records) {
+      // Scope counts to staff in the current location/role filter. Records for
+      // staff outside the filter (or no longer active) do not move the numbers.
+      if (!visibleStaffIds.has(r.staff_id)) continue
       if (!recordMap[r.requirement_id]) {
         recordMap[r.requirement_id] = { complete: 0, total: 0, completeStaff: [], incompleteStaff: [] }
       }
@@ -509,13 +749,71 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
 
   const selectedStats = selectedReq && recordMap[selectedReq.id] ? recordMap[selectedReq.id] : null
 
+  // Figma 5.11 — By person: invert the requirement map so each staff member
+  // reads as done/missing across the same live requirements. Staff with no
+  // records at all are missing everything, mirroring the By requirement
+  // fallback above.
+  const staffUserId = (m: any) => staffToUserMap.get(m.staff_id || m.id) || m.staff_id || m.id
+  const staffGaps = allMembers.map((m: any) => {
+    const userId = staffUserId(m)
+    const name = staffNameMap.get(m.staff_id || m.id) || `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email
+    const missing: string[] = []
+    let done = 0
+    for (const cfg of configs) {
+      const stats = recordMap[cfg.id]
+      if (stats && stats.completeStaff.some((s: StaffEntry) => s.userId === userId)) done += 1
+      else missing.push(cfg.name)
+    }
+    return { member: m, userId, name, done, total: configs.length, missing }
+  }).filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))
+
+  const exportGapsCsv = () => {
+    const rows = [['Staff member', 'Done', 'Missing']]
+    for (const s of staffGaps) rows.push([s.name, `${s.done} of ${s.total}`, s.missing.join('; ')])
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'compliance-gaps-by-person.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+    // Figma 5.12: every download announces itself the same way — what started, and which file.
+    showSnackbar('compliance-gaps-by-person.csv is downloading.', 'success', 'Download started')
+  }
+
+  const gapsCount = (configs || []).length
   return (
-    <PremiumCard noBorder sx={{ mb: 3, overflow: 'hidden' }}>
+    <PremiumCard noBorder sx={{ mb: { xs: 3, md: 0 }, overflow: 'hidden', height: '100%' }}>
       <Box sx={{ px: 3 }}>
-        <SectionHeader label="Compliance Requirements" count={configs?.length} expanded={expanded} onToggle={onToggle} icon={<ComplianceIcon />} />
+        <SectionHeader label="Requirements" count={configs?.length} expanded={expanded} onToggle={onToggle} icon={<ComplianceIcon />} />
       </Box>
       <Collapse in={expanded}>
         <Box sx={{ px: 3, pb: 3 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+              {gapsCount} requirements with gaps - select one to see who is missing it
+            </Typography>
+            <Button size="small" onClick={() => navigate('/compliance/records')}
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', color: theme.palette.primary.main }}
+              endIcon={<ArrowIcon sx={{ fontSize: 16 }} />}>
+              View all records
+            </Button>
+          </Stack>
+          {/* Figma 5.11: the same live gaps read two ways — by requirement, or
+              by person with an export. The requirement list below is unchanged. */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+            <Tabs value={gapsTab} onChange={(_, v) => { setGapsTab(v); setPersonPage(0) }}>
+              <Tab value="requirement" label="By requirement" sx={{ textTransform: 'none', fontWeight: 600 }} />
+              <Tab value="person" label="By person" sx={{ textTransform: 'none', fontWeight: 600 }} />
+            </Tabs>
+            {gapsTab === 'person' && (
+              <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={exportGapsCsv}
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8rem' }}>
+                Export list
+              </Button>
+            )}
+          </Stack>
+          {gapsTab === 'requirement' ? (<>
           {configs.length === 0 && (
             <EmptyState title="No compliance requirements" description="Set up requirements to track staff compliance" variant="default" />
           )}
@@ -524,16 +822,31 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
           )}
           {items.length > 0 && (
             <>
-              <TextField
-                size="small"
-                placeholder="Search requirements..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                sx={{ mb: 2, minWidth: 280, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} /></InputAdornment>,
-                }}
-              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+                <TextField
+                  size="small"
+                  placeholder="Search requirements..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  sx={{ minWidth: 220, flex: 1, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} /></InputAdornment>,
+                  }}
+                />
+                <TextField
+                  select
+                  size="small"
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  aria-label="Filter by role"
+                  sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                >
+                  <MenuItem value="all">All roles</MenuItem>
+                  {roleOptions.map((role: string) => (
+                    <MenuItem key={role} value={role}>{capitalise(role.replace(/_/g, ' '))}</MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
               <Stack spacing={1}>
                 {items.map((r) => (
                   <Box key={r.id} onClick={() => setSelectedReq(r)}
@@ -545,8 +858,11 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
                     }}>
                     <Box sx={{ flex: 1, mr: 2 }}>
                       <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>{r.name}</Typography>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
-                        <Box sx={{ flex: 1, maxWidth: 200 }}>
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                        {r.is_mandatory !== false ? 'Mandatory - all staff' : 'Optional'}
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
+                        <Box sx={{ flex: 1, maxWidth: 200, minWidth: 120 }}>
                           <LinearProgress variant="determinate" value={r.pct} sx={{
                             height: 6, borderRadius: 3,
                             bgcolor: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE',
@@ -554,13 +870,95 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
                           }} />
                         </Box>
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>{r.complete}/{r.total} staff · {r.pct}%</Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={(e) => { e.stopPropagation(); navigate('/compliance/training') }}
+                          sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.72rem', borderRadius: '8px', py: 0.25 }}
+                        >
+                          Assign
+                        </Button>
                       </Stack>
                     </Box>
                     <DesignStatusBadge variant={r.pct === 100 ? 'completed' : r.pct >= 80 ? 'in-progress' : 'missed'} label={`${r.pct}%`} />
                   </Box>
                 ))}
               </Stack>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
+                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                  {configs.length} requirement{configs.length === 1 ? '' : 's'} - {configs.length > 0 ? Math.round(items.reduce((sum, r) => sum + r.pct, 0) / items.length) : 0}% complete
+                </Typography>
+                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>Live data</Typography>
+              </Stack>
             </>
+          )}
+          </>
+          ) : (
+          <Box>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                {staffGaps.length} staff · {configs.length} requirement{configs.length === 1 ? '' : 's'} each
+              </Typography>
+            </Stack>
+            {staffGaps.length === 0 ? (
+              <EmptyState title="No staff found" description="Try a different search term" variant="search" />
+            ) : (
+              <>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'notice.muted.bg' }}>
+                        {['Staff member', 'Done', 'Missing'].map((heading) => (
+                          <TableCell key={heading} sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary }}>
+                            {heading}
+                          </TableCell>
+                        ))}
+                        <TableCell />
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {staffGaps.slice(personPage * 8, personPage * 8 + 8).map((s) => (
+                        <TableRow key={s.userId} hover>
+                          <TableCell>
+                            <Stack direction="row" spacing={1.25} alignItems="center">
+                              <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#0164C8', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                                {s.name.split(' ').map((part: string) => part[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'}
+                              </Box>
+                              <Box>
+                                <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', lineHeight: 1.2 }}>{s.name}</Typography>
+                                {s.member.role && <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{String(s.member.role).replace(/_/g, ' ')}</Typography>}
+                              </Box>
+                            </Stack>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            {s.done} of {s.total}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                              {s.missing.length > 0 ? s.missing.join(', ') : '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button size="small" variant="outlined" onClick={() => navigate(`/staff/${s.userId}`)}
+                              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}>
+                              Open
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <TablePagination component="div" count={staffGaps.length} page={personPage} onPageChange={(_, p) => setPersonPage(p)} rowsPerPage={8} rowsPerPageOptions={[8]} />
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
+                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                    {staffGaps.length} staff · {configs.length} requirement{configs.length === 1 ? '' : 's'} each
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>Live data</Typography>
+                </Stack>
+              </>
+            )}
+          </Box>
           )}
         </Box>
       </Collapse>
@@ -601,6 +999,10 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
   const [rowsPerPage] = useState(10)
   const { register, handleSubmit, reset, setValue } = useForm()
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const { showSnackbar } = useSnackbar()
+  // Figma 5.8: the file-too-large state lives inside the dialog so the
+  // uploader learns the 10 MB limit before the request fails.
+  const [fileTooLarge, setFileTooLarge] = useState(false)
 
   const { data: docsRes, isLoading } = useQuery({
     queryKey: ['documents', page, rowsPerPage],
@@ -635,17 +1037,32 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
         headers: { 'Content-Type': 'multipart/form-data' }
       })
     },
-    onSuccess: () => {
+    onSuccess: (_res, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
       setPage(0)
       setOpen(false)
       reset()
       setSelectedStaff(null)
+      setFileTooLarge(false)
+      const staffName = selectedStaff ? `${selectedStaff.first_name || ''} ${selectedStaff.last_name || ''}`.trim() : ''
+      showSnackbar(
+        staffName ? `${staffName}'s ${variables?.type || 'document'} is saved.` : 'The document is saved and pending review.',
+        'success',
+        'Document uploaded',
+      )
     }
   })
 
   const handleFormSubmit = handleSubmit((data) => {
     if (!selectedStaff) return
+    const file = data.document?.[0]
+    // Figma 5.8: files must be under 10 MB — reject client-side with the
+    // frame's copy instead of letting the request fail.
+    if (file && file.size > 10 * 1024 * 1024) {
+      setFileTooLarge(true)
+      return
+    }
+    setFileTooLarge(false)
     uploadMutation.mutate({ ...data, staffId: selectedStaff.staff_id || selectedStaff.id })
   })
 
@@ -719,8 +1136,22 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
           )}
 
           <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
-            <DialogTitle sx={{ fontWeight: 800 }}>Upload Document</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 800 }}>Upload a document</DialogTitle>
             <DialogContent>
+              {(fileTooLarge || (uploadMutation.error as any)?.response?.status === 413) && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFileTooLarge(false)}>
+                  That file is too large. Files must be under 10 MB. Try a smaller or lower-res version.
+                </Alert>
+              )}
+              {uploadMutation.isPending && (
+                <Box sx={{ mb: 2 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>Uploading...</Typography>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>Sending</Typography>
+                  </Stack>
+                  <LinearProgress />
+                </Box>
+              )}
               <Stack spacing={3} sx={{ mt: 1 }}>
                 <TextField select label="Document Type" fullWidth {...register('type', { required: true })}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
@@ -1169,6 +1600,7 @@ export function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boole
 export function UpdateServiceSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   const theme = useTheme()
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
 
   // Every failure in this section happens inside a dialog, so the error lives
   // there and not here — a message behind the dialog that caused it is a message
@@ -1258,7 +1690,18 @@ export function UpdateServiceSectionWithCollapse({ expanded, onToggle }: { expan
 
   const checkMutation = useMutation({
     mutationFn: async (payload: any) => api.post(`/dbs/update-service/${detailId}/checks`, payload),
-    onSuccess: () => { invalidate(); setCheckOpen(false); setSuccess('Status check recorded') },
+    // Figma 5.12: the check completes with a toast, not an alert behind the
+    // closed dialog — the frame's copy names the outcome, so a "no change"
+    // result says so instead of the generic "recorded".
+    onSuccess: (_data, variables: any) => {
+      invalidate(); setCheckOpen(false)
+      const message = variables?.outcome === 'no_change'
+        ? 'No new information since the certificate was issued.'
+        : variables?.outcome === 'changed'
+          ? 'The certificate has changed — a renewal is now needed.'
+          : 'The check could not be completed — the attempt is recorded.'
+      showSnackbar(message, 'success', 'Check complete')
+    },
     onError: (err: any) => setDialogError(err.response?.data?.message || 'Failed to record the check'),
   })
 
@@ -1613,9 +2056,12 @@ export function UpdateServiceSectionWithCollapse({ expanded, onToggle }: { expan
             </DialogActions>
           </Dialog>
 
-          {/* — Record a status check — */}
+          {/* — Figma 5.12 "Check the Update Service": one check for one
+              certificate — the number is kept, never the result. The dialog
+              keeps the live fields (outcome, level, workforce, notes) the
+              frame's single-button version does not have. — */}
           <Dialog open={checkOpen} onClose={() => setCheckOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
-            <DialogTitle sx={{ fontWeight: 800 }}>Record a status check</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 800 }}>Check the Update Service</DialogTitle>
             <DialogContent>
               {dialogError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setDialogError('')}>{dialogError}</Alert>}
               <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 2 }}>
@@ -1648,7 +2094,7 @@ export function UpdateServiceSectionWithCollapse({ expanded, onToggle }: { expan
               <Button onClick={() => setCheckOpen(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button variant="contained" onClick={handleRecordCheck} disabled={checkMutation.isPending}
                 sx={{ textTransform: 'none', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
-                {checkMutation.isPending ? 'Recording...' : 'Record check'}
+                {checkMutation.isPending ? 'Checking...' : 'Check now'}
               </Button>
             </DialogActions>
           </Dialog>
@@ -1780,8 +2226,12 @@ function TrendSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; o
 
 function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const theme = useTheme()
+  const { showSnackbar } = useSnackbar()
   const [page, setPage] = useState(0)
   const [rowsPerPage] = useState(10)
+  // Figma 5.12: the audit trail exports what it shows — a date window and an
+  // Export CSV that downloads exactly the filtered rows.
+  const [range, setRange] = useState<'all' | '7' | '30'>('all')
 
   const { data: logs, isError: auditError } = useQuery({
     queryKey: ['auditLogs'],
@@ -1792,10 +2242,41 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
     enabled: open,
   })
 
+  const now = Date.now()
+  const rangeMs = range === '7' ? 7 * 86400000 : range === '30' ? 30 * 86400000 : 0
+  const filteredLogs = (logs || []).filter((log: any) => !rangeMs || (new Date(log.created_at).getTime() >= now - rangeMs))
+
+  const exportAuditCsv = () => {
+    const rows = [['Action', 'Entity', 'User', 'Date']]
+    for (const log of filteredLogs) rows.push([log.action, log.entity_type, log.user_name || log.user_email || log.user_id || '', new Date(log.created_at).toLocaleString()])
+    const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'compliance-audit-trail.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+    showSnackbar('compliance-audit-trail.csv is downloading.', 'success', 'Download started')
+  }
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
       <DialogTitle sx={{ fontWeight: 800 }}>Audit Trail</DialogTitle>
       <DialogContent>
+        <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 2 }}>
+          Every action on this page, with who did it and when.
+        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+          <Tabs value={range} onChange={(_, v) => { setRange(v); setPage(0) }}>
+            <Tab value="all" label="All time" sx={{ textTransform: 'none', fontWeight: 600 }} />
+            <Tab value="7" label="Last 7 days" sx={{ textTransform: 'none', fontWeight: 600 }} />
+            <Tab value="30" label="Last 30 days" sx={{ textTransform: 'none', fontWeight: 600 }} />
+          </Tabs>
+          <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={exportAuditCsv} disabled={!filteredLogs.length}
+            sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Export CSV
+          </Button>
+        </Stack>
         <TableContainer>
           <Table>
             <TableHead>
@@ -1809,7 +2290,7 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
             <TableBody>
               {auditError ? (
                 <TableRow><TableCell colSpan={4} sx={{ borderBottom: 'none' }}><Alert severity="warning" sx={{ borderRadius: 2, m: 1 }}>Audit trail requires ORG_ADMIN or SUPER_ADMIN access.</Alert></TableCell></TableRow>
-              ) : logs?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((log: any) => (
+              ) : filteredLogs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((log: any) => (
                 <TableRow key={log.id} sx={{ '&:last-child td': { borderBottom: 'none' } }}>
                   <TableCell sx={{ borderBottom: `1px solid ${theme.palette.divider}`, fontWeight: 600 }}>{log.action}</TableCell>
                   <TableCell sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>{log.entity_type}</TableCell>
@@ -1817,7 +2298,7 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
                   <TableCell sx={{ borderBottom: `1px solid ${theme.palette.divider}`, color: theme.palette.text.secondary, fontSize: '0.85rem' }}>{new Date(log.created_at).toLocaleString()}</TableCell>
                 </TableRow>
               ))}
-              {!auditError && (!logs || logs.length === 0) && (
+              {!auditError && filteredLogs.length === 0 && (
                 <TableRow><TableCell colSpan={4} sx={{ borderBottom: 'none' }}><EmptyState title="No audit logs" description="Audit logs will appear here as actions are recorded" variant="default" /></TableCell></TableRow>
               )}
             </TableBody>
@@ -1825,7 +2306,7 @@ function AuditTrailDialog({ open, onClose }: { open: boolean; onClose: () => voi
         </TableContainer>
         <TablePagination
           component="div"
-          count={logs?.length || 0}
+          count={filteredLogs.length}
           page={page}
           onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[10]}

@@ -4,6 +4,8 @@ import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import FigDialogHeader, { PillOptions } from '../people/dialogHeader'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { EmptyRow } from '../../components/ui'
 
 interface Milestone { id: string; title: string; description?: string; is_completed: boolean; completed_at?: string; sort_order: number }
@@ -78,6 +80,8 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
   const [progressValue, setProgressValue] = useState(50)
   const [progressNote, setProgressNote] = useState('')
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null)
+  const { showSnackbar } = useSnackbar()
+  const eyebrow = preselectedPersonName ? `${preselectedPersonName.toUpperCase()} / CARE` : 'GOAL / CARE'
   const carePlanList = carePlans || []
 
   const fetchGoals = async () => {
@@ -144,6 +148,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
       if (editing) { await api.patch(`/goals/${editing.id}`, payload) }
       else { await api.post('/goals', payload) }
       setDialogOpen(false); fetchGoals()
+      showSnackbar(editing ? 'The goal is updated.' : `${form.title} is set as a goal.`, 'success', editing ? 'Goal updated' : 'Goal added')
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Failed to save goal'
       const fieldErrors = e?.response?.data?.errors
@@ -207,6 +212,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
       setProgressHistory(prev => ({ ...prev, [progressGoalId]: pRes.data }))
       setGoals(gRes.data)
       setProgressDialogOpen(false); setProgressNote('')
+      showSnackbar('The goal is updated with the latest progress.', 'success', 'Progress saved')
     } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to record progress') }
   }
 
@@ -227,7 +233,14 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
     <PageContainer>
 
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
+        <Box>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Goals</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {goals.filter(g => g.status === 'active').length} active · {goals.filter(g => g.status === 'completed').length} completed
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} alignItems="center">
         <FormControl size="small" sx={{ width: 180 }}>
           <InputLabel>Status Filter</InputLabel>
           <Select value={statusFilter} label="Status Filter" onChange={e => setStatusFilter(e.target.value)}>
@@ -235,7 +248,8 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
             {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </Select>
         </FormControl>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0164C8' }}>Add Goal</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>New goal</Button>
+        </Stack>
       </Stack>
 
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
@@ -353,12 +367,12 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>{editing ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
+        <FigDialogHeader eyebrow={eyebrow} title={editing ? 'Edit goal' : 'Add a goal'} subtitle="Enter goals and actions to contribute." onClose={() => setDialogOpen(false)} />
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 2 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Title" fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-            <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            <TextField label="Goal" fullWidth required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Walk to the corner shop with support, twice a week" />
+            <TextField label="Steps" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Practise the route with staff, build up to going with one person nearby." />
             {preselectedSu && preselectedPersonName ? (
               <TextField label="Person" fullWidth value={preselectedPersonName} disabled InputProps={{ readOnly: true }} />
             ) : (
@@ -416,13 +430,10 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                 </Select>
               </FormControl>
             )}
-            <FormControl fullWidth>
-              <InputLabel>CQC Domain</InputLabel>
-              <Select value={form.cqc_domain} label="CQC Domain" onChange={e => setForm(f => ({ ...f, cqc_domain: e.target.value }))}>
-                <MenuItem value="">None</MenuItem>
-                {CQC_DOMAINS.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-              </Select>
-            </FormControl>
+            <Box>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Effectiveness</Typography>
+              <PillOptions options={[{ value: '', label: 'None' }, ...CQC_DOMAINS.map(d => ({ value: d, label: d }))]} value={form.cqc_domain} onChange={v => setForm(f => ({ ...f, cqc_domain: v }))} />
+            </Box>
             <Divider />
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Outcome Tracking (optional)</Typography>
             <Stack direction="row" spacing={2}>
@@ -438,7 +449,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.person_id}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.person_id}>{saving ? <CircularProgress size={20} /> : 'Save goal'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -457,17 +468,18 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Progress Record Dialog */}
       <Dialog open={progressDialogOpen} onClose={() => setProgressDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Record Progress</DialogTitle>
+        <FigDialogHeader eyebrow={eyebrow} title="Update goal progress" subtitle={goals.find(g => g.id === progressGoalId)?.title} onClose={() => setProgressDialogOpen(false)} />
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: fetchError ? 0 : 1 }}>
+            <PillOptions options={[{ value: '0', label: 'Not started' }, { value: '25', label: 'Getting started' }, { value: '50', label: 'Halfway' }, { value: '75', label: 'Nearly there' }, { value: '100', label: 'Achieved' }]} value={String(progressValue)} onChange={v => setProgressValue(Number(v))} />
             <TextField label="Progress (%)" type="number" fullWidth inputProps={{ min: 0, max: 100 }} value={progressValue} onChange={e => setProgressValue(parseInt(e.target.value) || 0)} />
             <TextField label="Note (optional)" fullWidth multiline rows={2} value={progressNote} onChange={e => setProgressNote(e.target.value)} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setProgressDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleRecordProgress}>Record</Button>
+          <Button variant="contained" onClick={handleRecordProgress}>Save progress</Button>
         </DialogActions>
       </Dialog>
 

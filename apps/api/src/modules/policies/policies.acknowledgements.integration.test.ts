@@ -73,4 +73,18 @@ describe('Policies — acknowledgements (blueprint §9.7)', () => {
     expect(asCarer.body).toHaveLength(1)
     expect(asCarer.body[0].user_id).toBe(carer.id)
   })
+
+  it('carries each policy\u2019s acknowledgement count on the list for the Read by column', async () => {
+    const { admin, carer, other, policyId } = await setup()
+    await request(app).post(`/policies/${policyId}/acknowledge`).set('Authorization', `Bearer ${generateToken(carer)}`)
+    await request(app).post(`/policies/${policyId}/acknowledge`).set('Authorization', `Bearer ${generateToken(other)}`)
+
+    const res = await request(app)
+      .get('/policies')
+      .set('Authorization', `Bearer ${generateToken(admin)}`)
+    expect(res.status).toBe(200)
+    const row = (res.body as any[]).find((policy: any) => policy.id === policyId)
+    expect(row).toBeDefined()
+    expect(row.acknowledged_count).toBe(2)
+  })
 })

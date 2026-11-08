@@ -28,7 +28,7 @@
  * application page) carries the restrictions of every declaration, because for an
  * offer the safe reading is the restrictive one.
  *
- * 131 routes, 85 of them authenticated.
+ * 132 routes, 86 of them authenticated.
  */
 
 // The enum itself, not its names as strings: this file is generated from text,
@@ -70,6 +70,7 @@ export const PAGE_ACCESS: Readonly<Record<string, PageAccess>> = {
   '/compliance/dspt': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
   '/compliance/engagement': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
   '/compliance/evidence': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
+  '/compliance/handovers': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
   '/compliance/homecare': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
   '/compliance/identity': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },
   '/compliance/readiness': { authenticated: true, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], module: 'compliance' },

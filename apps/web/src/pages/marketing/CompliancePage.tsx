@@ -627,13 +627,13 @@ function RegulatorEvidence({ r }: { r: (typeof regulators)[number] }) {
     <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#FFFFFF' }}>
       <Container maxWidth="lg">
         <Box sx={{ mb: { xs: 4, md: 6 } }}>
-          <EyebrowPill>Evidence categories</EyebrowPill>
+          <Eyebrow>Evidence categories</Eyebrow>
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark, maxWidth: 640 }}>
             How MeticleCare supports {r.code} evidence.
           </Typography>
         </Box>
         {isMobile ? (
-          <Stack>
+          <Box sx={{ bgcolor: '#FFFFFF', border: `1px solid ${M.faint}`, borderRadius: M.r.lg, px: 2.5, py: 0.5 }}>
             {evidenceAreas.map((e, i) => {
               const Icon = regulatorIcons[i % regulatorIcons.length]
               return (
@@ -648,7 +648,7 @@ function RegulatorEvidence({ r }: { r: (typeof regulators)[number] }) {
                 </Stack>
               )
             })}
-          </Stack>
+          </Box>
         ) : (
           <Grid container spacing={2.5}>
             {evidenceAreas.map((e, i) => {
@@ -777,7 +777,7 @@ export function RegulatorPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 8 }} sx={{ mb: { xs: 4, md: 6 } }}>
             <Grid item xs={12} md={6}>
-              <EyebrowPill>Key guidance for {r.nation}</EyebrowPill>
+              <Eyebrow>Key guidance for {r.nation}</Eyebrow>
               <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: 700, letterSpacing: '-0.025em', color: M.dark }}>
                 What this regulatory context requires.
               </Typography>

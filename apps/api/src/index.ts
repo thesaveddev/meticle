@@ -461,7 +461,12 @@ databaseReadyPromise.then(() => {
 const COMPLIANCE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
 databaseReadyPromise.then(() => setTimeout(() => {
   ComplianceNotificationService.runAllChecksForAllOrgs().catch(err => logger.error(err, 'Compliance startup check failed'));
-  setInterval(() => ComplianceNotificationService.runAllChecksForAllOrgs(), COMPLIANCE_CHECK_INTERVAL);
+  // The .catch on the interval is load-bearing: without it a single transient
+  // failure (DB blip, SMTP timeout) in this 6-hour sweep becomes an unhandled
+  // rejection, and the process-level handler exits the API — every login and
+  // probe fails until the container restarts.
+  setInterval(() => ComplianceNotificationService.runAllChecksForAllOrgs()
+    .catch(err => logger.error(err, 'Compliance scheduled check failed')), COMPLIANCE_CHECK_INTERVAL);
 }, 10_000));
 
 // Run shift-start notifications every 5 minutes
@@ -679,6 +684,29 @@ function runDbsRetentionCheck() {
 }
 databaseReadyPromise.then(() => setTimeout(runDbsRetentionCheck, 25_000));
 setInterval(runDbsRetentionCheck, DBS_RETENTION_CHECK_INTERVAL);
+
+// Policy reminders (5.10) — the two promises the dialogs make that need a
+// clock: the gentle read-request reminder two days before the read-by date,
+// and the review-date reminder to managers a month before a review falls due.
+//
+// Nightly and date-keyed like the retention purge above: both rules are
+// calendar dates, and the equality conditions (due in exactly two days,
+// due in exactly thirty) fire on one day only, so an hourly tick costs one
+// indexed read and can never double-notify.
+import { runPolicyReminderSweeps } from './modules/policies/policies.reminders';
+const POLICY_REMINDER_CHECK_INTERVAL = 60 * 60 * 1000; // every hour
+let lastPolicyReminderDate = '';
+function runPolicyReminderCheck() {
+  if (!databaseReady) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (today === lastPolicyReminderDate) return;
+  lastPolicyReminderDate = today;
+  runPolicyReminderSweeps()
+    .then(result => { if (result.readReminded > 0 || result.reviewReminded > 0 || result.failed > 0) logger.info(result, 'Policy reminder check complete') })
+    .catch(err => logger.error(err, 'Policy reminder check failed'));
+}
+databaseReadyPromise.then(() => setTimeout(runPolicyReminderCheck, 30_000));
+setInterval(runPolicyReminderCheck, POLICY_REMINDER_CHECK_INTERVAL);
 
 // The heartbeat check: is the retention job still running at all?
 //

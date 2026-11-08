@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
 import AlertTitle from '@mui/material/AlertTitle'
+import Button from '@mui/material/Button'
 import { setOnApiError } from '../services/api'
 
 type Severity = 'error' | 'warning' | 'info' | 'success'
@@ -40,7 +41,14 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>
       {children}
-      <Snackbar open={state.open} autoHideDuration={6000} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+      {/* Figma 5.8: toasts sit bottom-centre, auto-dismiss after 4 s; Dismiss closes now. Tone: say what happened, then what happens next. */}
+      <Snackbar
+        open={state.open}
+        autoHideDuration={4000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        action={<Button color="inherit" size="small" onClick={() => handleClose(undefined, 'dismiss')}>Dismiss</Button>}
+      >
         <Alert onClose={handleClose} severity={state.severity} variant="filled" sx={{ width: '100%', minWidth: 300 }}>
           {state.title && <AlertTitle>{state.title}</AlertTitle>}
           {state.message}

@@ -225,6 +225,63 @@ export class ShiftHandoverRepository {
     };
   }
 
+  /**
+   * Recent handovers with their shift, author and senior check, newest first.
+   * One query serves the Shift handovers page's three tabs: the page files
+   * rows into to-check / checked client-side from `checked_at`, so a handover
+   * checked today still reads under both "checked this week" and "all".
+   */
+  static async listRecent(orgId: string, days = 7, locationId?: string) {
+    const windowDays = Math.min(Math.max(Math.trunc(days) || 7, 1), 30);
+    const params: any[] = [orgId];
+    let locationFilter = '';
+    if (locationId) {
+      params.push(locationId);
+      locationFilter = `AND s.location_id = $${params.length}`;
+    }
+    params.push(windowDays);
+    const result = await query(
+      `SELECT h.id, h.shift_id, h.author_id, ${AUTHOR_NAME} AS author_name,
+              h.what_happened, h.outstanding, h.who_is_aware, h.version,
+              h.recorded_at, h.created_at, h.updated_at,
+              h.checked_by, h.checked_at,
+              COALESCE(NULLIF(TRIM(csp.first_name || ' ' || csp.last_name), ''), cu.email, 'Former user') AS checked_by_name,
+              (SELECT COUNT(*)::int FROM shift_handover_acknowledgements a WHERE a.handover_id = h.id) AS acknowledgement_count,
+              s.start_time AS shift_start_time, s.end_time AS shift_end_time,
+              s.location_id, l.name AS location_name
+       FROM shift_handovers h
+       JOIN shifts s ON s.id = h.shift_id
+       JOIN locations l ON l.id = s.location_id
+       LEFT JOIN staff_profiles sp ON sp.user_id = h.author_id
+       LEFT JOIN users u ON u.id = h.author_id
+       LEFT JOIN users cu ON cu.id = h.checked_by
+       LEFT JOIN staff_profiles csp ON csp.user_id = h.checked_by
+       WHERE h.organization_id = $1 ${locationFilter}
+         AND h.recorded_at > CURRENT_TIMESTAMP - make_interval(days => $${params.length}::int)
+       ORDER BY h.recorded_at DESC
+       LIMIT 200`,
+      params
+    );
+    return result.rows;
+  }
+
+  /**
+   * A senior verifies the handover's current wording. Refreshes the stamp when
+   * run twice: the page asks who last checked it, not how many times.
+   */
+  static async check(args: { orgId: string; shiftId: string; userId: string }) {
+    const result = await query(
+      `UPDATE shift_handovers
+       SET checked_by = $3, checked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE shift_id = $1 AND organization_id = $2
+       RETURNING id, shift_id, checked_by, checked_at`,
+      [args.shiftId, args.orgId, args.userId]
+    );
+    const row = result.rows[0];
+    if (!row) throw new AppError(404, 'There is no handover on this shift to check');
+    return row;
+  }
+
   /** The acknowledgement row for a named user on a handover. */
   static async getAcknowledgement(handoverId: string, userId: string): Promise<ShiftHandoverAcknowledgement> {
     const result = await query(

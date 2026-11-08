@@ -4,24 +4,25 @@ import {
   Box, Typography, Paper, Button, Stack, Chip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel,
   FormControlLabel, Checkbox, LinearProgress, Skeleton,
-  Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip,
-  Card, CardContent, CircularProgress, ToggleButton, ToggleButtonGroup,
+  Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Card, CardContent, CircularProgress, Tabs, Tab,
   Autocomplete,
 } from '@mui/material'
 import {
-  ChevronLeft, ChevronRight, Add as AddIcon,
+  Add as AddIcon,
   Delete as DeleteIcon,
-  Warning as WarningIcon, CheckCircle as CheckIcon,
+  Warning as WarningIcon,
   ArrowBack as ArrowBackIcon,
   AutoAwesome as AutoAwesomeIcon,
-  Today as TodayIcon,
   ViewWeek as ViewWeekIcon, ViewTimeline as ViewTimelineIcon, Group as GroupIcon,
+  Place as PlaceIcon, CalendarMonth as CalendarIcon, Flag as FlagIcon,
+  Layers as LayersIcon, AccessTime as ClockIcon,
 } from '@mui/icons-material'
 import { UserRole, MICA_RECORD_PARAMS } from '@meticle/shared'
 import api from '../../services/api'
 import { fetchUserPermissions } from '../../utils/permissions'
 import { localDate } from '../../utils/dateFormat'
-import DayBoardView from './rota/DayBoardView'
+import WeekBoardMatrix from './rota/WeekBoardMatrix'
 import TimelineView from './rota/TimelineView'
 import RosterView from './rota/RosterView'
 import ShiftDetailDialog from './rota/ShiftDetailDialog'
@@ -127,6 +128,9 @@ export default function RotaPlannerPage() {
   const [assignShiftId, setAssignShiftId] = useState('')
   const [assignStaffId, setAssignStaffId] = useState('')
   const [viewMode, setViewMode] = useState<RotaViewMode>('board')
+  const [openCalls, setOpenCalls] = useState<any[]>([])
+  const [roleFilter, setRoleFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   const [detailShift, setDetailShift] = useState<any>(null)
   const [pendingClaims, setPendingClaims] = useState<any[]>([])
   const [selectedLocationId, setSelectedLocationId] = useState('')
@@ -595,6 +599,72 @@ export default function RotaPlannerPage() {
       })
     }), [weekDates, locations, staffCountByDayLoc, minStaffById, careNeedsByLoc])
 
+  // Figma 4.1 week metrics + board scope. Gaps come from the same staffing
+  // counts the matrix reads, so the cards, the banner and the footer agree.
+  const boardMetrics = useMemo(() => {
+    const needByLoc = new Map<string, number>()
+    for (const day of weekDayStats) for (const x of day) if (!needByLoc.has(x.loc.id)) needByLoc.set(x.loc.id, x.need)
+    const needTotal = locations.reduce((sum: number, l: any) => sum + (needByLoc.get(l.id) ?? 1) * 7, 0)
+    const daysCovered = weekDayStats.filter(day => day.length > 0 && day.every(x => x.ok)).length
+    const dayGaps = weekDayStats.reduce((sum, day) => sum + day.filter(x => !x.ok).length, 0)
+    const needs = Array.from(new Set(needByLoc.values()))
+    const uniformNeed = needs.length === 1 ? needs[0] : 0
+    const allShort = locations.length > 0 && normalizedShifts.length === 0 &&
+      weekDayStats.length > 0 && weekDayStats.every(day => day.length > 0 && day.every(x => !x.ok))
+    return { needTotal, daysCovered, dayGaps, uniformNeed, allShort }
+  }, [weekDayStats, locations, normalizedShifts])
+
+  const boardLocations = useMemo(() =>
+    selectedLocationId ? locations.filter((l: any) => l.id === selectedLocationId) : locations,
+  [locations, selectedLocationId])
+
+  const boardGaps = useMemo(() =>
+    weekDayStats.reduce((sum, day) => sum + day.filter((x: any) => !x.ok && boardLocations.some((l: any) => l.id === x.loc.id)).length, 0),
+  [weekDayStats, boardLocations])
+
+  const boardShifts = useMemo(() => viewShifts.filter((s: any) => {
+    if (typeFilter && (s.shift_type || 'day') !== typeFilter) return false
+    if (roleFilter) {
+      const assignees = s.assignments || []
+      if (assignees.length === 0) return false
+      const match = assignees.some((a: any) => {
+        const st = staffList.find((x: any) => x.staff_id === a.staff_id || x.id === a.staff_id)
+        return st && st.role === roleFilter
+      })
+      if (!match) return false
+    }
+    return true
+  }), [viewShifts, roleFilter, typeFilter, staffList])
+
+  const roleOptions = useMemo(
+    () => Array.from(new Set(staffList.map((s: any) => s.role).filter(Boolean))).sort(),
+  [staffList])
+
+  const weekOptions = useMemo(() => {
+    const mondayOf = (d: Date) => {
+      const c = new Date(d)
+      const day = c.getDay()
+      c.setDate(c.getDate() - day + (day === 0 ? -6 : 1))
+      c.setHours(0, 0, 0, 0)
+      return c
+    }
+    const labelFor = (d0: Date) => {
+      const d6 = new Date(d0)
+      d6.setDate(d6.getDate() + 6)
+      return `${d0.getDate()} ${d0.toLocaleDateString('en-GB', { month: 'short' })} – ${d6.getDate()} ${d6.toLocaleDateString('en-GB', { month: 'short' })} ${d6.getFullYear()}`
+    }
+    const anchor = mondayOf(new Date())
+    const opts: { value: string; label: string }[] = []
+    for (let off = -1; off <= 6; off++) {
+      const d0 = new Date(anchor)
+      d0.setDate(d0.getDate() + off * 7)
+      opts.push({ value: toLocalDateStr(d0), label: labelFor(d0) })
+    }
+    const cur = toLocalDateStr(weekStart)
+    if (!opts.some(o => o.value === cur)) opts.unshift({ value: cur, label: labelFor(new Date(weekStart)) })
+    return opts
+  }, [weekStart])
+
   const fetchData = async () => {
     if (!hasLoadedRef.current) setLoading(true)
     else setRefreshing(true)
@@ -619,12 +689,14 @@ export default function RotaPlannerPage() {
       }
 
       // Always refresh shifts + pending claims
-      const [shiftsData, pendingData] = await Promise.all([
+      const [shiftsData, pendingData, marketData] = await Promise.all([
         safeGet(`/shifts?startDate=${localDateToISOStartEncoded(weekStart)}&endDate=${localDateToISOStartEncoded(weekEnd)}`, []),
         isAdminOrManager ? safeGet('/shifts/pending-claims', []) : Promise.resolve(null),
+        safeGet('/marketplace/shifts', []),
       ])
       if (shiftsData) setShifts(shiftsData)
       if (pendingData) setPendingClaims(pendingData)
+      if (Array.isArray(marketData)) setOpenCalls(marketData)
 
       // Location logic — use state variables (populated on first load)
       const locData = locations
@@ -973,23 +1045,25 @@ export default function RotaPlannerPage() {
 
   return (
     <PageContainer>
+      <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Staffing / Rota Planner
+      </Typography>
       <PageHeader
         title="Rota Planner"
         subtitle="Weekly rota, staffing coverage and shift actions."
         actions={
           <>
-            {!isReadOnly && (rawUser.role === 'ORG_ADMIN' || rawUser.role === 'SUPER_ADMIN' || managedLocationIds.length > 0) && <Button variant="outlined" startIcon={<AddIcon />} onClick={() => openShiftDialog()}>Add Shift</Button>}
-            {isAdminOrManager && <Button variant="outlined" color="info" onClick={() => window.location.href = '/scheduling/overtime-claims'}>Overtime Claims</Button>}
             {!isReadOnly && canEdit && <Button variant="outlined" color="secondary" onClick={openStaffingDialog}>Staffing Rules</Button>}
-            <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ color: '#03C6B1' }} />} onClick={runAiAnalysis} sx={{ borderColor: '#D6E2EE', color: '#0164C8', '&:hover': { borderColor: '#0164C8', bgcolor: '#EAF3FF' } }}>
-              {aiLoading ? <CircularProgress size={16} sx={{ color: '#0164C8', mr: 0.5 }} /> : null}
-              AI Analyze
-            </Button>
+            {!isReadOnly && (rawUser.role === 'ORG_ADMIN' || rawUser.role === 'SUPER_ADMIN' || managedLocationIds.length > 0) && <Button variant="outlined" startIcon={<AddIcon />} onClick={() => openShiftDialog()}>Add Shift</Button>}
             {isAdminOrManager && (
               <Button variant="contained" startIcon={<AutoAwesomeIcon />} onClick={() => { setGenResult(null); setGenError(''); setGenPeriod('week'); setGenDialogOpen(true) }}>
                 Generate Rota
               </Button>
             )}
+            <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ color: '#03C6B1' }} />} onClick={runAiAnalysis} sx={{ borderColor: '#D6E2EE', color: '#0164C8', '&:hover': { borderColor: '#0164C8', bgcolor: '#EAF3FF' } }}>
+              {aiLoading ? <CircularProgress size={16} sx={{ color: '#0164C8', mr: 0.5 }} /> : null}
+              AI Analyze
+            </Button>
           </>
         }
       />
@@ -997,48 +1071,32 @@ export default function RotaPlannerPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-      <PremiumCard noBorder sx={{ mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 3, py: 2 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <IconButton onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setWeekStart(d) }}>
-              <ChevronLeft />
-            </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {weekDates[0].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {weekDates[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </Typography>
-            <IconButton onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }}>
-              <ChevronRight />
-            </IconButton>
-            <Tooltip title="Jump to this week">
-              <IconButton size="small" onClick={() => {
-                const now = new Date()
-                const day = now.getDay()
-                const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-                const d = new Date(now)
-                d.setDate(diff)
-                d.setHours(0, 0, 0, 0)
-                setWeekStart(d)
-              }}>
-                <TodayIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <Select value={selectedLocationId} onChange={e => setSelectedLocationId(e.target.value)}
-              displayEmpty>
-              <MenuItem value="">{rawUser.role === 'MANAGER' ? 'My Location(s)' : 'All Locations'}</MenuItem>
-              {locations.filter((l: any) => rawUser.role !== 'MANAGER' || managedLocationIds.includes(l.id) || true).map((l: any) => (
-                <MenuItem key={l.id} value={l.id}>
-                  {l.name}{rawUser.role === 'MANAGER' && !managedLocationIds.includes(l.id) ? ' (read-only)' : ''}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {isReadOnly && rawUser.role === 'MANAGER' && (
-            <Chip label="Read-only" size="small" variant="outlined" sx={{ borderColor: '#E3E9F0', color: '#9A6700' }} />
-          )}
-        </Stack>
-      </PremiumCard>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+          <PlaceIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Select size="small" variant="standard" disableUnderline value={selectedLocationId}
+            onChange={e => setSelectedLocationId(e.target.value)}
+            sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+            <MenuItem value="">{rawUser.role === 'MANAGER' ? 'My Location(s)' : 'All Locations'}</MenuItem>
+            {locations.filter((l: any) => rawUser.role !== 'MANAGER' || managedLocationIds.includes(l.id) || true).map((l: any) => (
+              <MenuItem key={l.id} value={l.id}>
+                {l.name}{rawUser.role === 'MANAGER' && !managedLocationIds.includes(l.id) ? ' (read-only)' : ''}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, bgcolor: '#FFFFFF', border: '1px solid #E3E9F0', borderRadius: 6, pl: 1.25, pr: 0.5 }}>
+          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Select size="small" variant="standard" disableUnderline value={toLocalDateStr(weekStart)}
+            onChange={e => setWeekStart(new Date(`${e.target.value}T00:00:00`))}
+            sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+            {weekOptions.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+          </Select>
+        </Box>
+        {isReadOnly && rawUser.role === 'MANAGER' && (
+          <Chip label="Read-only" size="small" variant="outlined" sx={{ borderColor: '#E3E9F0', color: '#9A6700' }} />
+        )}
+      </Stack>
 
       {loading ? (
         <RotaSkeleton />
@@ -1048,25 +1106,31 @@ export default function RotaPlannerPage() {
             <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: 'notice.info.bg', '& .MuiLinearProgress-bar': { bgcolor: '#0164C8' } }} />
           )}
 
-          {/* Staffing level summary row */}
-          {locations.length > 0 && (
-            <Box sx={{ mb: 2 }}>
-              <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-                {locations.map(loc => {
-                  const stats = weekDayStats.map(d => d.find(x => x.loc.id === loc.id)!)
-                  const required = stats[0]?.need ?? 1
-                  const allAbove = stats.every(x => x.ok)
-                  const shortDays = stats.filter(x => !x.ok).length
-                  return (
-                    <Chip key={loc.id} size="small" icon={allAbove ? <CheckIcon /> : <WarningIcon />}
-                      label={allAbove
-                        ? `${loc.name}: Covered (need ${required}/day${stats[0]?.care > stats[0]?.min ? ` incl. ${stats[0]?.care} care-needs` : ''})`
-                        : `${loc.name}: ${shortDays} day${shortDays > 1 ? 's' : ''} short (need ${required}/day${stats[0]?.care > stats[0]?.min ? ` incl. ${stats[0]?.care} care-needs` : ''})`}
-                      color={allAbove ? 'success' : 'warning'} variant="outlined" />
-                  )
-                })}
+          {/* All-short banner — Figma 4.1 */}
+          {boardMetrics.allShort && (
+            <Paper sx={{ mb: 2, p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#FAD4D4', bgcolor: '#FEF0F0' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5}>
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <WarningIcon sx={{ color: '#B42318', mt: 0.25 }} />
+                  <Box>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: '#B42318' }}>
+                      Every location is short every day this week
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#B42318' }}>
+                      {boardMetrics.uniformNeed > 0
+                        ? `Each location needs ${boardMetrics.uniformNeed} people a day and has no shifts yet. Generating a draft is the quickest way to start — you can edit it before publishing.`
+                        : 'Each location needs its minimum cover a day and has no shifts yet. Generating a draft is the quickest way to start — you can edit it before publishing.'}
+                    </Typography>
+                  </Box>
+                </Stack>
+                {isAdminOrManager && (
+                  <Button variant="contained" onClick={() => { setGenResult(null); setGenError(''); setGenPeriod('week'); setGenDialogOpen(true) }}
+                    sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600, flexShrink: 0 }}>
+                    Generate rota
+                  </Button>
+                )}
               </Stack>
-            </Box>
+            </Paper>
           )}
 
           {isAdminOrManager && pendingClaims.length > 0 && (
@@ -1147,52 +1211,116 @@ export default function RotaPlannerPage() {
             </PremiumCard>
           )}
 
-          {/* View switcher */}
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <ToggleButtonGroup
-              size="small"
-              value={viewMode}
-              exclusive
-              onChange={(_, v) => { if (v) setViewMode(v) }}
-              sx={{ '& .MuiToggleButton-root': { px: 1.25, py: 0.5, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none' } }}
-            >
-              <ToggleButton value="board" sx={{ '&.Mui-selected': { bgcolor: '#0164C8', color: '#FFFFFF' } }}>
-                <ViewWeekIcon sx={{ fontSize: 15, mr: 0.5 }} />Board
-              </ToggleButton>
-              <ToggleButton value="timeline" sx={{ '&.Mui-selected': { bgcolor: '#0164C8', color: '#FFFFFF' } }}>
-                <ViewTimelineIcon sx={{ fontSize: 15, mr: 0.5 }} />Timeline
-              </ToggleButton>
-              <ToggleButton value="roster" sx={{ '&.Mui-selected': { bgcolor: '#0164C8', color: '#FFFFFF' } }}>
-                <GroupIcon sx={{ fontSize: 15, mr: 0.5 }} />Roster
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Stack>
+          {/* View tabs — Figma 4.1 */}
+          <Tabs value={viewMode} onChange={(_, v) => { if (v) setViewMode(v) }}
+            sx={{ borderBottom: 1, borderColor: '#E3E9F0', mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40 } }}>
+            <Tab value="board" icon={<ViewWeekIcon sx={{ fontSize: 15 }} />} iconPosition="start" label="Board" />
+            <Tab value="timeline" icon={<ViewTimelineIcon sx={{ fontSize: 15 }} />} iconPosition="start" label="Timeline" />
+            <Tab value="roster" icon={<GroupIcon sx={{ fontSize: 15 }} />} iconPosition="start" label="Roster" />
+          </Tabs>
+
+          {/* Week metric cards — Figma 4.1 */}
+          {(() => {
+            const cards = [
+              {
+                label: 'Shifts this week', value: `${normalizedShifts.length}`,
+                detail: `Need ${boardMetrics.needTotal} to cover all ${locations.length} location${locations.length === 1 ? '' : 's'}`,
+                icon: <CalendarIcon fontSize="small" />,
+                alert: normalizedShifts.length === 0 && boardMetrics.needTotal > 0,
+              },
+              {
+                label: 'Days fully covered', value: `${boardMetrics.daysCovered} of 7`,
+                detail: 'Across all locations',
+                icon: <CalendarIcon fontSize="small" />,
+                alert: boardMetrics.daysCovered < 7 && boardMetrics.needTotal > 0,
+              },
+              {
+                label: 'Open calls', value: `${openCalls.length}`,
+                detail: openCalls.length === 0 ? 'Nothing posted to Shift Marketplace' : 'Waiting to be claimed',
+                icon: <FlagIcon fontSize="small" />,
+                alert: false,
+              },
+              {
+                label: 'Overtime claims', value: `${pendingClaims.length}`,
+                detail: 'Waiting for approval',
+                icon: <ClockIcon fontSize="small" />,
+                alert: false,
+              },
+            ]
+            return (
+              <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                {cards.map(card => (
+                  <Paper key={card.label} sx={{ flex: '1 1 160px', p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>{card.label}</Typography>
+                      <Box sx={{
+                        width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: '50%',
+                        bgcolor: card.alert ? '#FEF0F0' : card.label === 'Open calls' || card.label === 'Overtime claims' ? '#EAF3FF' : '#F0F5FC',
+                        color: card.alert ? '#EF4444' : card.label === 'Open calls' || card.label === 'Overtime claims' ? '#0164C8' : '#51637A',
+                      }}>{card.icon}</Box>
+                    </Stack>
+                    <Typography variant="h4" sx={{ mt: 0.5, fontWeight: 600, lineHeight: 1.1, ...(card.alert ? { color: '#EF4444' } : {}) }}>{card.value}</Typography>
+                    <Typography variant="caption" color="text.secondary">{card.detail}</Typography>
+                  </Paper>
+                ))}
+              </Stack>
+            )
+          })()}
 
           {viewMode === 'board' && (
-            <DayBoardView
-              weekDates={weekDates}
-              shifts={viewShifts}
-              staffList={staffList}
-              locations={locations}
-              weekDayStats={weekDayStats}
-              selectedLocationId={selectedLocationId}
-              canEdit={canEdit}
-              isReadOnly={isReadOnly}
-              canClaim={canClaim}
-              currentStaffId={currentStaffId}
-              canEditLocation={canEditLocation}
-              assignedStaffIdsByDate={assignedStaffIdsByDate}
-              onOpenShiftDialog={openShiftDialog}
-              onOpenShiftDialogAt={openShiftDialogAt}
-              onAssign={openAssignDialog}
-              onDeleteShift={handleDeleteShift}
-              onToggleCoverage={handleToggleCoverage}
-              onClaimShift={handleClaimShift}
-              onUnassign={handleUnassign}
-              onSwap={openSwapDialog}
-              onDropShift={handleDropShift}
-              onOpenDetail={setDetailShift}
-            />
+
+            <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden', mb: 2 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ p: 2, pb: 1 }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>Week board</Typography>
+                  <Typography variant="caption" color="text.secondary">Who is working where. Select a day to add a shift.</Typography>
+                </Box>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {isAdminOrManager && (
+                    <Button size="small" variant="outlined"
+                      onClick={() => window.location.href = '/scheduling/overtime-claims'}
+                      sx={{ textTransform: 'none' }}>
+                      Overtime claims{pendingClaims.length > 0 ? ` (${pendingClaims.length})` : ''}
+                    </Button>
+                  )}
+                  <Button size="small" onClick={() => window.location.href = '/shift-marketplace'}
+                    sx={{ textTransform: 'none', color: '#0164C8', fontWeight: 600 }}>
+                    Open Shift Marketplace →
+                  </Button>
+                </Stack>
+              </Stack>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 2, pb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <Select value={roleFilter} displayEmpty onChange={e => setRoleFilter(e.target.value)} sx={{ fontSize: '0.8rem' }}>
+                    <MenuItem value="">All roles</MenuItem>
+                    {roleOptions.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <Select value={typeFilter} displayEmpty onChange={e => setTypeFilter(e.target.value)} sx={{ fontSize: '0.8rem' }}>
+                    <MenuItem value="">All shift types</MenuItem>
+                    <MenuItem value="day">Day</MenuItem>
+                    <MenuItem value="wake_night">Wake night</MenuItem>
+                    <MenuItem value="sleep">Sleep</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+              <WeekBoardMatrix
+                weekDates={weekDates}
+                locations={boardLocations}
+                shifts={boardShifts}
+                weekDayStats={weekDayStats}
+                canAdd={canEdit && !isReadOnly}
+                onAddDay={(d) => openShiftDialog(d)}
+                onOpenDetail={(s) => setDetailShift(s)}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderTop: '1px solid #E3E9F0' }}>
+                <Typography variant="caption" color="text.secondary">
+                  {boardLocations.length} location{boardLocations.length === 1 ? '' : 's'} · {boardShifts.length} shift{boardShifts.length === 1 ? '' : 's'} · {boardGaps} day-gap{boardGaps === 1 ? '' : 's'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">Live data</Typography>
+              </Box>
+            </Paper>
           )}
           {viewMode === 'timeline' && (
             <TimelineView
@@ -1245,6 +1373,46 @@ export default function RotaPlannerPage() {
               onDropShift={handleDropShift}
               onOpenDetail={setDetailShift}
             />
+          )}
+          {/* What happens next — Figma 4.1, shown until the first shift exists */}
+          {normalizedShifts.length === 0 && (
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>What happens next</Typography>
+              {[
+                {
+                  icon: <LayersIcon sx={{ fontSize: 18 }} />, title: 'Generate a draft rota',
+                  sub: 'We fill each day using your staffing rules. Nothing is published until you review it.',
+                  btn: isAdminOrManager ? 'Generate rota' : '', contained: true,
+                  onClick: () => { setGenResult(null); setGenError(''); setGenPeriod('week'); setGenDialogOpen(true) },
+                },
+                {
+                  icon: <FlagIcon sx={{ fontSize: 18 }} />, title: 'Post gaps to Shift Marketplace',
+                  sub: 'Staff with matching skills can claim open shifts as overtime.',
+                  btn: isAdminOrManager ? 'Post open call' : '', contained: false,
+                  onClick: () => window.location.href = '/shift-marketplace',
+                },
+                {
+                  icon: <GroupIcon sx={{ fontSize: 18 }} />, title: 'Book agency cover',
+                  sub: 'Use an approved agency when your own team cannot cover.',
+                  btn: isAdminOrManager ? 'Book agency cover' : '', contained: false,
+                  onClick: () => window.location.href = '/agencies',
+                },
+              ].map((r, i, arr) => (
+                <Box key={r.title} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.5, ...(i < arr.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#F0F5FC', color: '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{r.icon}</Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={700}>{r.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{r.sub}</Typography>
+                  </Box>
+                  {r.btn && (
+                    <Button size="small" variant={r.contained ? 'contained' : 'outlined'} onClick={r.onClick}
+                      sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0, ...(r.contained ? { bgcolor: '#0164C8' } : {}) }}>
+                      {r.btn}
+                    </Button>
+                  )}
+                </Box>
+              ))}
+            </Paper>
           )}
         </>
       )}

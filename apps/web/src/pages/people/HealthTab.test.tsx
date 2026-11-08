@@ -41,7 +41,10 @@ describe('HealthTab inner tabs', () => {
     expect(screen.getByRole('tab', { name: /Dental/i })).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText('Health Observations')).toBeInTheDocument()
+      // The section heading was shortened to "Observations" in the Figma pass;
+      // the tab carries the same word, so scope the assertion to the heading.
+      expect(screen.getByRole('heading', { name: 'Observations' })).toBeInTheDocument()
+      expect(screen.getByText('No observations recorded')).toBeInTheDocument()
     })
   })
 

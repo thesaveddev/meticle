@@ -1,6 +1,4 @@
 import { Box, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
-import BrandWordmark from '../BrandWordmark'
 import { M } from '../../styles/marketing-tokens'
 import NotesIcon from '@mui/icons-material/Notes'
 import PersonIcon from '@mui/icons-material/Person'
@@ -40,8 +38,6 @@ export default function AuthBrandPanel({
   supporting: string
   features: BrandFeature[]
 }) {
-  const navigate = useNavigate()
-
   return (
     <Box
       sx={{
@@ -66,12 +62,6 @@ export default function AuthBrandPanel({
       <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 340, height: 340, left: -120, bottom: -60, bgcolor: 'var(--mc-info-soft)' }} />
       <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 220, height: 220, left: 140, bottom: 10, bgcolor: 'var(--mc-shape-cyan)', opacity: 0.85 }} />
       <Box aria-hidden sx={{ ...SOFT_SHAPES, width: 150, height: 150, right: -40, bottom: 80, bgcolor: 'var(--mc-success-soft)' }} />
-
-      {/* Wordmark — shared BrandWordmark so weight matches every other surface */}
-      <BrandWordmark size={22} onClick={() => navigate('/')} />
-      <Typography variant="body2" sx={{ color: 'var(--mc-text-muted)', mt: 0.5, fontWeight: 500 }}>
-        Care operations, unified.
-      </Typography>
 
       {/* Headline + supporting copy */}
       <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 520 }}>

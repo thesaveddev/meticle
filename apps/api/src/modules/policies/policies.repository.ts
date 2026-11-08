@@ -37,7 +37,11 @@ export class PolicyRepository {
   private static readonly POLICY_UPDATE_COLUMNS = new Set(['title', 'category', 'content', 'version', 'status', 'review_due_at', 'updated_by']);
 
   static async findAll(orgId: string, category?: string, search?: string) {
-    let sql = `SELECT p.*, u.email as updated_by_name FROM policies p LEFT JOIN users u ON p.updated_by = u.id WHERE p.organization_id = $1`;
+    // acknowledged_count serves the policies table's "Read by" column: one
+    // correlated count beats a request per policy from the client.
+    let sql = `SELECT p.*, u.email as updated_by_name,
+      (SELECT COUNT(*)::int FROM policy_acknowledgements a WHERE a.policy_id = p.id) AS acknowledged_count
+      FROM policies p LEFT JOIN users u ON p.updated_by = u.id WHERE p.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (category) { sql += ` AND p.category = $${idx++}`; params.push(category); }
@@ -155,5 +159,61 @@ export class PolicyRepository {
       seeded++;
     }
     return { seeded };
+  }
+
+  /**
+   * A snapshot of one saved version. Versions are append-only history: the
+   * Edit dialog writes the new row after saving, and nothing ever updates one.
+   * `ON CONFLICT DO NOTHING` keeps a retried save from failing on the unique
+   * (policy_id, version) pair — the history still has the version exactly once.
+   */
+  static async createVersion(data: {
+    organization_id: string; policy_id: string; version: string; title: string;
+    category: string; content: string; status: string; what_changed?: string | null;
+    created_by?: string | null;
+  }) {
+    const result = await query(
+      `INSERT INTO policy_versions (organization_id, policy_id, version, title, category, content, status, what_changed, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (policy_id, version) DO NOTHING
+       RETURNING *`,
+      [data.organization_id, data.policy_id, data.version, data.title, data.category,
+       data.content, data.status, data.what_changed || null, data.created_by || null]
+    );
+    return result.rows[0] || null;
+  }
+
+  /** Version history for one policy, newest version first. */
+  static async versions(policyId: string, orgId: string) {
+    const result = await query(
+      `SELECT v.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS created_by_name
+       FROM policy_versions v
+       LEFT JOIN users u ON v.created_by = u.id
+       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       WHERE v.policy_id = $1 AND v.organization_id = $2
+       ORDER BY v.created_at DESC`,
+      [policyId, orgId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Everyone who can be asked to read a policy: active users in the
+   * organisation with their staff-profile id attached, so the caller can file
+   * the matching task. Users without a staff profile (e.g. platform-managed
+   * accounts) still get the notification — they just get no task row.
+   */
+  static async readAudience(orgId: string) {
+    const result = await query(
+      `SELECT u.id AS user_id, u.email,
+              COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name,
+              sp.id AS staff_profile_id
+       FROM users u
+       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+       ORDER BY name`,
+      [orgId]
+    );
+    return result.rows as { user_id: string; email: string; name: string; staff_profile_id: string | null }[];
   }
 }

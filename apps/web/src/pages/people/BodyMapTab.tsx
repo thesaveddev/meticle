@@ -1,14 +1,16 @@
 import { useRef, useState } from 'react'
 import {
   Box, Typography, Paper, Stack, Chip, Button, CircularProgress, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  IconButton, Tabs, Tab,
+  Dialog, DialogContent, DialogActions, TextField, MenuItem,
+  IconButton, Tabs, Tab, Grid, Divider,
 } from '@mui/material'
 import { Delete as DeleteIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import { localDate } from '../../utils/dateFormat'
+import FigDialogHeader, { PillOptions, nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
+import { useSnackbar } from '../../context/SnackbarContext'
 import bodyMapUrl from './body-map.svg'
 
 const CONDITION_COLORS: Record<string, string> = {
@@ -172,6 +174,8 @@ function zoneCenter(z: Zone): { cx: number; cy: number } {
 
 export default function BodyMapTab({ personId }: { personId: string }) {
   const qc = useQueryClient()
+  const eyebrow = usePersonEyebrow(personId, 'PEOPLE')
+  const { showSnackbar } = useSnackbar()
   const [view, setView] = useState<'front' | 'back'>('front')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<BodyMapEntry | null>(null)
@@ -195,12 +199,12 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
   const createM = useMutation({
     mutationFn: (d: any) => api.post(`/people/${personId}/body-map`, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
+    onSuccess: (_d: any, variables: any) => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false); showSnackbar(`The ${String(variables?.condition_type || variables?.p?.condition_type || 'mark').replace(/_/g, ' ')} is on ${nameFromEyebrow(eyebrow)}'s body map.`, 'success', 'Mark saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed'),
   })
   const updateM = useMutation({
     mutationFn: (d: { id: string; p: any }) => api.patch(`/people/body-map/${d.id}`, d.p),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
+    onSuccess: (_d: any, variables: any) => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false); showSnackbar(`The ${String(variables?.condition_type || variables?.p?.condition_type || 'mark').replace(/_/g, ' ')} is on ${nameFromEyebrow(eyebrow)}'s body map.`, 'success', 'Mark saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed'),
   })
   const deleteM = useMutation({
@@ -225,15 +229,39 @@ export default function BodyMapTab({ personId }: { personId: string }) {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
   const viewEntries = entries.filter(e => e.body_view === view)
+  const currentMarks = entries.filter(e => e.status !== 'resolved')
+  const healedMarks = entries.filter(e => e.status === 'resolved')
+  const zoneLabel = (id: string) => ALL_ZONES.find(z => z.id === id)?.label || id.replace(/_/g, ' ')
+  const renderMarkRow = (e: any) => {
+    const color = CONDITION_COLORS[e.condition_type] || '#51637A'
+    return (
+      <Box key={e.id} onClick={() => openEdit(e)}
+        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
+        <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.7rem', flexShrink: 0 }}>
+          {e.condition_type.slice(0, 2).toUpperCase()}
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{e.condition_type.replace(/_/g, ' ')} on {zoneLabel(e.body_zone)}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {e.recorded_date ? new Date(e.recorded_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{e.created_by_name ? ` · by ${e.created_by_name}` : ''} · <span style={{ textTransform: 'capitalize' }}>{e.status}</span>
+          </Typography>
+        </Box>
+        <Chip label={e.status} size="small" variant="outlined"
+          color={e.status === 'active' ? 'error' : e.status === 'healing' ? 'warning' : 'success'} sx={{ textTransform: 'capitalize', flexShrink: 0 }} />
+      </Box>
+    )
+  }
   const zones = view === 'front' ? FRONT_ZONES : BACK_ZONES
   const zoneCounts: Record<string, number> = {}
   viewEntries.forEach(e => { zoneCounts[e.body_zone] = (zoneCounts[e.body_zone] || 0) + 1 })
 
   return (
     <Box>
-      <SectionHeader title="Body Map" action={<Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />} />
+      <SectionHeader title={`Body map — ${view}`} subtitle="Select a body part to add a mark" action={<Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />} />
 
-      <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', mb: 3, overflow: 'hidden' }}>
+      <Grid container spacing={2} alignItems="flex-start">
+        <Grid item xs={12} md={7}>
+      <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden' }}>
         <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E3E9F0' }}>
           <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 600 }} />
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 600 }} />
@@ -337,71 +365,70 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         </Box>
       </Paper>
 
-      {/* Entries list */}
-      {entries.length === 0 ? (
-        <EmptyRow message="No body map entries yet. Click a body zone above to add one." />
-      ) : (
-        <Stack spacing={1.5}>
-          {entries.map(e => (
-            <Paper key={e.id} onClick={() => openEdit(e)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', cursor: 'pointer', transition: 'border-color 160ms ease, box-shadow 160ms ease', '&:hover': { borderColor: '#C3D2E2', boxShadow: 'var(--shadow-sm)' } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Chip label={e.condition_type.replace(/_/g, ' ')} size="small"
-                    sx={{ bgcolor: `${CONDITION_COLORS[e.condition_type] || '#51637A'}20`, color: CONDITION_COLORS[e.condition_type] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
-                  <Chip label={e.severity} size="small"
-                    sx={{ bgcolor: `${SEVERITY_COLORS[e.severity] || '#51637A'}20`, color: SEVERITY_COLORS[e.severity] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
-                  <Chip label={e.status} size="small" variant="outlined"
-                    color={e.status === 'active' ? 'error' : e.status === 'healing' ? 'warning' : 'success'} sx={{ textTransform: 'capitalize' }} />
-                </Stack>
-                <Typography variant="caption" color="#51637A">{e.recorded_date ? new Date(e.recorded_date + 'T00:00:00').toLocaleDateString('en-GB') : ''}</Typography>
-              </Stack>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
-                <Typography variant="body2" fontWeight={600} color="#3A4551" sx={{ textTransform: 'capitalize' }}>{e.body_zone?.replace(/_/g, ' ')}</Typography>
-                {e.created_by_name && <Typography variant="caption" color="#5D6E85">{e.created_by_name}</Typography>}
-              </Stack>
-              {e.description && <Typography variant="body2" color="#51637A" sx={{ mt: 0.5, fontStyle: 'italic' }}>{e.description}</Typography>}
-            </Paper>
-          ))}
-        </Stack>
-      )}
+        </Grid>
+        <Grid item xs={12} md={5}>
+          <Stack spacing={2}>
+            {entries.length === 0 ? (
+              <EmptyRow message="No body map entries yet. Click a body zone to add one." />
+            ) : (
+              <>
+                <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden' }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ px: 2, pt: 2, pb: 1 }}>Current marks</Typography>
+                  {currentMarks.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 2 }}>No current marks</Typography>
+                  ) : (
+                    <Stack divider={<Divider />} spacing={0}>{currentMarks.map(renderMarkRow)}</Stack>
+                  )}
+                </Paper>
+                <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden' }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ px: 2, pt: 2, pb: 1 }}>Healed</Typography>
+                  {healedMarks.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 2 }}>Nothing healed yet</Typography>
+                  ) : (
+                    <Stack divider={<Divider />} spacing={0}>{healedMarks.map(renderMarkRow)}</Stack>
+                  )}
+                </Paper>
+              </>
+            )}
+          </Stack>
+        </Grid>
+      </Grid>
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={save}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{selectedEntry ? 'Edit Entry' : `New — ${selectedZone?.label || ''}`}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={selectedEntry ? 'Edit body map mark' : 'Add a body map mark'} subtitle={`Tap the body diagram to place the mark${selectedZone?.label ? ` — ${selectedZone.label}` : ''}, then describe it.`} onClose={() => setDialogOpen(false)} />
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Type</Typography>
+                <PillOptions options={Object.keys(CONDITION_COLORS).map(k => ({ value: k, label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))} value={form.condition_type} onChange={v => setForm(f => ({ ...f, condition_type: v }))} />
+              </Box>
               <Stack direction="row" spacing={1}>
-                <TextField select label="Condition" fullWidth required value={form.condition_type}
-                  onChange={e => setForm(f => ({ ...f, condition_type: e.target.value }))}>
-                  {Object.entries(CONDITION_COLORS).map(([k]) => <MenuItem key={k} value={k} sx={{ textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</MenuItem>)}
-                </TextField>
                 <TextField select label="Severity" fullWidth value={form.severity}
                   onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>
                   {Object.entries(SEVERITY_COLORS).map(([k]) => <MenuItem key={k} value={k} sx={{ textTransform: 'capitalize' }}>{k}</MenuItem>)}
                 </TextField>
-              </Stack>
-              <TextField label="Description" fullWidth multiline rows={3} value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Size, colour, shape, treatment..." />
-              <Stack direction="row" spacing={1}>
                 <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.recorded_date}
                   onChange={e => setForm(f => ({ ...f, recorded_date: e.target.value }))} />
-                {selectedEntry && (
-                  <TextField select label="Status" fullWidth value={form.status}
-                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                    {Object.entries(STATUS_COLORS).map(([k]) => <MenuItem key={k} value={k} sx={{ textTransform: 'capitalize' }}>{k}</MenuItem>)}
-                  </TextField>
-                )}
               </Stack>
+              <TextField label="What you saw and what happened" fullWidth multiline rows={3} value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Size, colour, shape, what happened..." />
+              <Typography variant="caption" color="text.secondary">Not sure how it happened? Tell the manager on call today, in line with the safeguarding policy.</Typography>
+              {selectedEntry && (
+                <TextField select label="Status" fullWidth value={form.status}
+                  onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                  {Object.entries(STATUS_COLORS).map(([k]) => <MenuItem key={k} value={k} sx={{ textTransform: 'capitalize' }}>{k}</MenuItem>)}
+                </TextField>
+              )}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             {selectedEntry && <IconButton onClick={() => setDeleteTarget(selectedEntry.id)} color="error" sx={{ mr: 'auto' }}><DeleteIcon /></IconButton>}
             <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createM.isPending || updateM.isPending} sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
-              {createM.isPending || updateM.isPending ? <CircularProgress size={20} /> : 'Save'}
+              {createM.isPending || updateM.isPending ? <CircularProgress size={20} /> : 'Save mark'}
             </Button>
           </DialogActions>
         </Box>

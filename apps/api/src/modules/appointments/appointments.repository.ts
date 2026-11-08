@@ -17,8 +17,8 @@ export interface AppointmentRow {
 }
 
 export class AppointmentRepository {
-  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['person_id', 'staff_id', 'title', 'description', 'notes', 'recurrence', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
-  static async findAll(orgId: string, date?: string) {
+  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['person_id', 'staff_id', 'title', 'description', 'notes', 'recurrence', 'start_time', 'end_time', 'status', 'location_id', 'where_text', 'cancellation_reason', 'cancellation_note', 'created_by']);
+  static async findAll(orgId: string, date?: string, from?: string, to?: string) {
     let sql = `
       SELECT a.*,
         (SELECT first_name || ' ' || last_name FROM people WHERE id = a.person_id) AS person_name,
@@ -28,7 +28,10 @@ export class AppointmentRepository {
       LEFT JOIN locations l ON l.id = a.location_id
       WHERE a.organization_id = $1`;
     const params: any[] = [orgId];
-    if (date) {
+    if (from && to) {
+      sql += ` AND a.start_time >= $2::date AND a.start_time < $3::date + interval '1 day'`;
+      params.push(from, to);
+    } else if (date) {
       sql += ` AND a.start_time >= $2::date AND a.start_time < $2::date + interval '1 day'`;
       params.push(date);
     }
@@ -51,11 +54,11 @@ export class AppointmentRepository {
   }
 
   static async create(data: Partial<AppointmentRow>) {
-    const { organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, created_by } = data as any;
+    const { organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, where_text, cancellation_reason, cancellation_note, created_by } = data as any;
     const result = await query(
-      `INSERT INTO appointments (organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-      [organization_id, person_id || null, staff_id || null, title, description || null, notes || null, recurrence || 'once', start_time, end_time, status || 'scheduled', location_id || null, created_by]
+      `INSERT INTO appointments (organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, where_text, cancellation_reason, cancellation_note, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [organization_id, person_id || null, staff_id || null, title, description || null, notes || null, recurrence || 'once', start_time, end_time, status || 'scheduled', location_id || null, where_text || null, cancellation_reason || null, cancellation_note || null, created_by]
     );
     return result.rows[0];
   }

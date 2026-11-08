@@ -11,11 +11,15 @@ import {
   CUSTOM_DATASETS,
   CustomReportConfig,
   buildCustomQuery,
+  canEditReport,
+  canViewReport,
   createReportSchedule,
   createSavedReport,
   customReportConfigSchema,
   deleteReportSchedule,
   deleteSavedReport,
+  filterVisibleReports,
+  getReportViewer,
   getSavedReport,
   listReportSchedules,
   listSavedReports,
@@ -83,7 +87,18 @@ export class ReportingController {
 
   static async listCustomReports(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    res.json({ reports: await listSavedReports(orgId) });
+    const viewer = await getReportViewer(orgId, req.user!.userId, req.user!.role);
+    res.json({ reports: await filterVisibleReports(await listSavedReports(orgId), viewer) });
+  }
+
+  /** Fetch a saved report or 404 — including when it exists but this viewer
+   *  may not see it, so restricted names never leak through fishing for ids. */
+  static async visibleSavedReport(orgId: string, id: string, req: Request) {
+    const saved = await getSavedReport(orgId, id);
+    if (!saved) throw new AppError(404, 'Saved report not found.');
+    const viewer = await getReportViewer(orgId, req.user!.userId, req.user!.role);
+    if (!(await canViewReport(saved, viewer))) throw new AppError(404, 'Saved report not found.');
+    return { saved, viewer };
   }
 
   static async getCustomDatasets(req: Request, res: Response) {
@@ -99,8 +114,7 @@ export class ReportingController {
 
   static async getCustomReport(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const saved = await getSavedReport(orgId, req.params.id);
-    if (!saved) throw new AppError(404, 'Saved report not found.');
+    const { saved } = await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     res.json({ report: saved });
   }
 
@@ -121,8 +135,8 @@ export class ReportingController {
 
   static async updateCustomReport(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    const { existing, viewer } = await ReportingController.visibleSavedReport(orgId, req.params.id, req).then(({ saved, viewer }) => ({ existing: saved, viewer }));
+    if (!canEditReport(existing, viewer)) throw new AppError(403, 'Only the report owner or an admin can change a restricted report.');
     const parsed = customReportConfigSchema.safeParse(req.body);
     if (!parsed.success) throw new AppError(400, `Invalid report configuration: ${parsed.error.issues[0]?.message || 'check the fields and try again.'}`);
     buildCustomQuery(parsed.data);
@@ -143,8 +157,7 @@ export class ReportingController {
 
   static async listReportSchedules(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     res.json({ schedules: await listReportSchedules(orgId, req.params.id) });
   }
 
@@ -155,8 +168,7 @@ export class ReportingController {
 
   static async createReportSchedule(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     const parsed = reportScheduleSchema.safeParse(req.body);
     if (!parsed.success) throw new AppError(400, `Invalid schedule: ${parsed.error.issues[0]?.message || 'check the fields and try again.'}`);
     try {
@@ -174,8 +186,7 @@ export class ReportingController {
 
   static async updateReportSchedule(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     const parsed = reportScheduleSchema.safeParse(req.body);
     if (!parsed.success) throw new AppError(400, `Invalid schedule: ${parsed.error.issues[0]?.message || 'check the fields and try again.'}`);
     try {
@@ -195,8 +206,7 @@ export class ReportingController {
 
   static async listScheduleDeliveries(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     const schedules = await listReportSchedules(orgId, req.params.id);
     if (!schedules.some((s) => s.id === req.params.scheduleId)) throw new AppError(404, 'Schedule not found.');
     const limit = req.query.limit ? Number(req.query.limit) : 10;
@@ -208,8 +218,7 @@ export class ReportingController {
 
   static async deleteReportSchedule(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    await ReportingController.visibleSavedReport(orgId, req.params.id, req);
     const deleted = await deleteReportSchedule(orgId, req.params.scheduleId);
     if (!deleted) throw new AppError(404, 'Schedule not found.');
     await AuditRepository.log({
@@ -222,9 +231,8 @@ export class ReportingController {
   /** Immediate send of a saved report to the requesting user (a preview of what the schedule delivers). */
   static async sendReportScheduleNow(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
-    const config = await ReportingController.resolveRunConfig(orgId, { saved_id: req.params.id });
+    const { saved: existing } = await ReportingController.visibleSavedReport(orgId, req.params.id, req);
+    const config = await ReportingController.resolveRunConfig(orgId, { saved_id: req.params.id }, req);
     try {
       const data = await runCustomReport(orgId, config);
       const csv = generateCsv(data);
@@ -256,8 +264,8 @@ export class ReportingController {
 
   static async deleteCustomReport(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const existing = await getSavedReport(orgId, req.params.id);
-    if (!existing) throw new AppError(404, 'Saved report not found.');
+    const { existing, viewer } = await ReportingController.visibleSavedReport(orgId, req.params.id, req).then(({ saved, viewer }) => ({ existing: saved, viewer }));
+    if (!canEditReport(existing, viewer)) throw new AppError(403, 'Only the report owner or an admin can delete a restricted report.');
     await deleteSavedReport(orgId, req.params.id);
     await AuditRepository.log({
       user_id: req.user!.userId, action: 'delete', entity_type: 'custom_report', entity_id: req.params.id,
@@ -267,10 +275,14 @@ export class ReportingController {
   }
 
   /** Resolve a run/export body to an executable config: inline or saved. */
-  static async resolveRunConfig(orgId: string, body: any): Promise<CustomReportConfig> {
+  static async resolveRunConfig(orgId: string, body: any, req?: Request): Promise<CustomReportConfig> {
     if (body?.saved_id) {
       const saved = await getSavedReport(orgId, body.saved_id);
       if (!saved) throw new AppError(404, 'Saved report not found.');
+      if (req) {
+        const viewer = await getReportViewer(orgId, req.user!.userId, req.user!.role);
+        if (!(await canViewReport(saved, viewer))) throw new AppError(404, 'Saved report not found.');
+      }
       const parsed = customReportConfigSchema.safeParse({
         name: saved.name,
         description: saved.description,
@@ -294,7 +306,7 @@ export class ReportingController {
 
   static async runCustomReport(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const config = await ReportingController.resolveRunConfig(orgId, req.body);
+    const config = await ReportingController.resolveRunConfig(orgId, req.body, req);
     try {
       res.json(await runCustomReport(orgId, config));
     } catch (e: any) {
@@ -306,7 +318,7 @@ export class ReportingController {
     const orgId = req.user!.organizationId!;
     const format = (req.body?.format as string) || 'csv';
     if (format !== 'csv') throw new AppError(400, `Unsupported export format: ${format}. Use csv.`);
-    const config = await ReportingController.resolveRunConfig(orgId, req.body);
+    const config = await ReportingController.resolveRunConfig(orgId, req.body, req);
     try {
       const data = await runCustomReport(orgId, config);
       const csv = generateCsv(data);

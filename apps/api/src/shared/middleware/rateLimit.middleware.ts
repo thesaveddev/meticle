@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getRedisClient } from '../redis';
+import { getClientIp } from './clientIp';
 
 const inMemoryStore = new Map<string, { count: number; resetAt: number }>();
 const CLEANUP_INTERVAL = 60_000;
@@ -30,7 +31,12 @@ async function redisCheck(windowMs: number, key: string, maxRequests: number): P
 
 export const rateLimit = (maxRequests: number, windowMs: number) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const key = `rl:${req.ip}:${req.path}`;
+    // `req.ip` alone collapses behind the deployment's proxies (Cloudflare +
+    // host reverse proxy + container nginx with `trust proxy, 1`), so every
+    // caller shares one bucket. The login limit then reads as the site being
+    // broken after ~10 sign-ins in 15 minutes. `getClientIp` prefers
+    // Cloudflare's own connecting address instead.
+    const key = `rl:${getClientIp(req)}:${req.path}`;
     const now = Date.now();
 
     // Seconds until this window resets, for `Retry-After`. Rounded up and

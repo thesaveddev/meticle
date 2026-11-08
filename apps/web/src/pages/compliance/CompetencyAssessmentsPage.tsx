@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { Box, Typography, Tabs, Tab, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, TablePagination, IconButton, CircularProgress, Autocomplete, Accordion, AccordionSummary, AccordionDetails, Alert, Tooltip, Divider, Rating } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandMore as ExpandMoreIcon, Checklist as RubricIcon, CheckCircle as CheckCircleIcon, UploadFile as UploadFileIcon } from '@mui/icons-material'
+import { useMemo, useState } from 'react'
+import { Box, Typography, Tabs, Tab, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, TablePagination, IconButton, CircularProgress, Autocomplete, Accordion, AccordionSummary, AccordionDetails, Alert, Tooltip, Divider, Rating, Grid } from '@mui/material'
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandMore as ExpandMoreIcon, Checklist as RubricIcon, CheckCircle as CheckCircleIcon, UploadFile as UploadFileIcon, Schedule as ScheduleIcon, Description as TemplateIcon, Layers as RecordsIcon, PendingActions as PendingIcon, TrackChanges as TargetIcon } from '@mui/icons-material'
+import { useTheme } from '@mui/material/styles'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { EmptyState } from '../../components/design/EmptyState'
 import PageContainer from '../../components/design/PageContainer'
-import { PageHeader } from '../../components/ui'
+import { PremiumCard } from '../../components/design/PremiumCard'
 import { localToday } from '../../utils/dateFormat'
 
 const CATEGORIES = ['Medication', 'Manual Handling', 'Clinical Procedures', 'Safeguarding', 'Emergency Response', 'Communication', 'Dementia Care', 'End of Life', 'Other']
@@ -22,25 +24,143 @@ const CQC_STATEMENTS = [
 ]
 
 export default function CompetencyAssessmentsPage() {
+  const theme = useTheme()
   const [tab, setTab] = useState(0)
+  const [locationId, setLocationId] = useState<string>('all')
+
+  const { data: pendingData } = useQuery({
+    queryKey: ['competency-pending'],
+    queryFn: async () => (await api.get('/competency/pending')).data,
+  })
+  const { data: templatesData } = useQuery({
+    queryKey: ['competency-templates'],
+    queryFn: async () => (await api.get('/competency/templates')).data,
+  })
+  const { data: assessmentsData } = useQuery({
+    queryKey: ['competency-assessments'],
+    queryFn: async () => (await api.get('/competency/assessments')).data,
+  })
+  const { data: locationsData } = useQuery({
+    queryKey: ['settings-locations'],
+    queryFn: async () => (await api.get('/settings/locations')).data,
+  })
+  const { data: membersData } = useQuery({
+    queryKey: ['org-members'],
+    queryFn: async () => (await api.get('/staff/org-members')).data,
+  })
+  const locations: any[] = Array.isArray(locationsData) ? locationsData : []
+  const staffLocation = useMemo(() => {
+    const map = new Map<string, string>()
+    const all = [
+      ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
+      ...(membersData?.staff || []),
+    ]
+    for (const m of all) {
+      if (m.staff_id && m.location_id) map.set(String(m.staff_id), String(m.location_id))
+      if (m.id && m.location_id) map.set(String(m.id), String(m.location_id))
+    }
+    return map
+  }, [membersData])
+
+  const inLocation = (staffId: string) =>
+    locationId === 'all' || !staffId || staffLocation.get(String(staffId)) === String(locationId) || !staffLocation.has(String(staffId))
+
+  const pendingList: any[] = Array.isArray(pendingData) ? pendingData.filter((p: any) => inLocation(p.staff_id)) : []
+  const pendingStaff = new Set(pendingList.map((p: any) => p.staff_id).filter(Boolean)).size
+  const templatesList: any[] = Array.isArray(templatesData) ? templatesData : []
+  const recordsList: any[] = Array.isArray(assessmentsData) ? assessmentsData : []
+  const passedCount = recordsList.filter((a: any) => a.passed).length
+  const passRate = recordsList.length > 0 ? Math.round((passedCount / recordsList.length) * 100) : 0
+
+  const cards = [
+    { title: 'Pass rate', value: `${passRate}%`, valueColor: recordsList.length === 0 ? '#EF4444' : passRate >= 80 ? undefined : '#F59E0B', subtitle: recordsList.length === 0 ? 'No assessments yet · target 80%' : `${passedCount} of ${recordsList.length} passed · target 80%`, icon: <TargetIcon sx={{ fontSize: 20 }} />, iconColor: '#EF4444' },
+    { title: 'Pending', value: pendingList.length, valueColor: undefined, subtitle: `Across ${pendingStaff} staff`, icon: <PendingIcon sx={{ fontSize: 20 }} />, iconColor: '#0164C8' },
+    { title: 'Templates', value: templatesList.length, valueColor: undefined, subtitle: 'Ready to use', icon: <TemplateIcon sx={{ fontSize: 20 }} />, iconColor: '#0164C8' },
+  ]
+
   return (
     <PageContainer>
+      {/* ── Breadcrumb + header (Figma 5.6) ── */}
+      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, letterSpacing: '0.08em' }}>
+        COMPLIANCE &amp; SAFETY / COMPLIANCE / COMPETENCY
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mt: 0.5, mb: 2, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Competency assessments</Typography>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
+            Observed checks that show staff can do the job safely.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+          <TextField
+            select
+            size="small"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            aria-label="Filter by location"
+            sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+          >
+            <MenuItem value="all">All locations</MenuItem>
+            {locations.map((l: any) => (
+              <MenuItem key={l.id} value={String(l.id)}>{l.name}</MenuItem>
+            ))}
+          </TextField>
+          <Button variant="outlined" size="small" onClick={() => setTab(1)}
+            sx={{ textTransform: 'none', fontWeight: 600 }}>
+            New template
+          </Button>
+          <Button variant="contained" size="small" startIcon={<ScheduleIcon />} onClick={() => setTab(0)}
+            sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Schedule assessment
+          </Button>
+        </Stack>
+      </Stack>
 
-      <PageHeader title="Competency Assessments" subtitle="Track assessments, templates and records." />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Pending Assessments" />
-        <Tab label="Assessment Templates" />
-        <Tab label="All Records" />
+        <Tab icon={<PendingIcon fontSize="small" />} iconPosition="start" label={`Pending assessments · ${pendingList.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab icon={<TemplateIcon fontSize="small" />} iconPosition="start" label={`Assessment templates · ${templatesList.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab icon={<RecordsIcon fontSize="small" />} iconPosition="start" label={`All records · ${recordsList.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
-      {tab === 0 && <PendingView />}
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {cards.map((c) => (
+          <Grid item xs={12} sm={4} key={c.title}>
+            <PremiumCard noBorder sx={{ p: 2.5, height: '100%' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.85rem' }}>
+                  {c.title}
+                </Typography>
+                <Box sx={{
+                  width: 32, height: 32, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(1,100,200,0.16)' : `${c.iconColor}14`, color: c.iconColor,
+                }}>
+                  {c.icon}
+                </Box>
+              </Stack>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: c.valueColor || theme.palette.text.primary, letterSpacing: '-0.03em', fontSize: '1.75rem' }}>
+                {c.value}
+              </Typography>
+              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, mt: 0.5, fontSize: '0.78rem' }}>
+                {c.subtitle}
+              </Typography>
+            </PremiumCard>
+          </Grid>
+        ))}
+      </Grid>
+
+      {tab === 0 && <PendingView locationId={locationId} onBrowseTemplates={() => setTab(1)} />}
       {tab === 1 && <TemplatesView />}
-      {tab === 2 && <RecordsView />}
+      {tab === 2 && <RecordsView onBrowseTemplates={() => setTab(1)} />}
+      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 2 }}>
+        Live: {pendingList.length} pending, {recordsList.length} records. The readiness score lists this as a high-priority gap.
+      </Typography>
     </PageContainer>
   )
 }
 
-function PendingView() {
+function PendingView({ locationId, onBrowseTemplates }: { locationId?: string; onBrowseTemplates?: () => void }) {
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
   const [assessOpen, setAssessOpen] = useState(false)
   const [selectedPending, setSelectedPending] = useState<any>(null)
   const [form, setForm] = useState({ passed: true, assessed_at: localToday(), reassessment_date: '', assessor_id: '', involved_parties: '', notes: '' })
@@ -69,10 +189,19 @@ function PendingView() {
     ...(membersData?.staff || [])
   ].filter((m: any) => m.status === 'active')
 
+  const staffLocation = new Map<string, string>()
+  for (const m of members) {
+    if (m.staff_id && m.location_id) staffLocation.set(String(m.staff_id), String(m.location_id))
+    if (m.id && m.location_id) staffLocation.set(String(m.id), String(m.location_id))
+  }
   const grouped: Record<string, { staff_name: string; staff_id: string; items: any[] }> = {}
-  const filtered = (data || []).filter((p: any) =>
-    !search || `${p.first_name} ${p.last_name} ${p.template_name} ${p.category || ''}`.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = (data || []).filter((p: any) => {
+    if (locationId && locationId !== 'all' && p.staff_id) {
+      const loc = staffLocation.get(String(p.staff_id))
+      if (loc && loc !== String(locationId)) return false
+    }
+    return !search || `${p.first_name} ${p.last_name} ${p.template_name} ${p.category || ''}`.toLowerCase().includes(search.toLowerCase())
+  })
   filtered.forEach((p: any) => {
     const key = p.staff_id
     if (!grouped[key]) grouped[key] = { staff_name: `${p.first_name} ${p.last_name}`, staff_id: p.staff_id, items: [] }
@@ -117,6 +246,7 @@ function PendingView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['competency-pending'] })
       queryClient.invalidateQueries({ queryKey: ['competency-assessments'] })
+      showSnackbar('The result is recorded and the pending list is up to date.', 'success', 'Assessment recorded')
       setAssessOpen(false)
       setSelectedPending(null)
       setRubricScores({})
@@ -138,13 +268,30 @@ function PendingView() {
         <Typography variant="body2" color="text.secondary">
           {totalPending} pending {totalPending === 1 ? 'assessment' : 'assessments'} across {Object.keys(grouped).length} staff
         </Typography>
-        <TextField size="small" placeholder="Search staff or assessment..." value={search} onChange={e => setSearch(e.target.value)} sx={{ width: 280 }} />
+        <TextField id="competency-pending-search" size="small" placeholder="Search staff or assessment..." value={search} onChange={e => setSearch(e.target.value)} sx={{ width: 280 }} />
       </Stack>
 
       {isLoading ? (
         <Typography>Loading...</Typography>
       ) : Object.entries(grouped).length === 0 ? (
-        <EmptyState title="No pending assessments" description="All competency assessments are up to date" variant="default" />
+        <Paper sx={{ p: { xs: 4, sm: 6 }, textAlign: 'center', borderRadius: 3 }}>
+          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#EAF3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+            <CheckCircleIcon sx={{ color: '#0164C8', fontSize: 28 }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>No assessments are waiting</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+            Nobody has been assessed yet, so nothing is pending. Schedule a first round so every staff member is observed at least once.
+          </Typography>
+          <Stack direction="row" spacing={1.5} justifyContent="center">
+            <Button variant="outlined" onClick={() => onBrowseTemplates?.()} sx={{ textTransform: 'none', fontWeight: 600 }}>
+              View templates
+            </Button>
+            <Button variant="contained" startIcon={<ScheduleIcon />} sx={{ textTransform: 'none', fontWeight: 600 }}
+              onClick={() => document.getElementById('competency-pending-search')?.focus()}>
+              Schedule assessment
+            </Button>
+          </Stack>
+        </Paper>
       ) : (
         Object.entries(grouped).map(([staffId, group]) => (
           <Accordion key={staffId} expanded={expanded === staffId} onChange={(_, isExp) => setExpanded(isExp ? staffId : false)} sx={{ mb: 1 }}>
@@ -305,6 +452,7 @@ function PendingView() {
 
 function TemplatesView() {
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
   const [open, setOpen] = useState(false)
   const [editTemplate, setEditTemplate] = useState<any>(null)
   const [form, setForm] = useState({ name: '', category: '', description: '', criteria: '', requires_reassessment_days: '365', cqc_statement_id: '', required_for_roles: [] as string[] })
@@ -334,6 +482,8 @@ function TemplatesView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['competency-templates'] })
+      // Figma 5.12: saving a template confirms it by name — it is ready to use.
+      showSnackbar(`${editTemplate?.name || form.name} is ready to use.`, 'success', 'Template saved')
       setOpen(false); setEditTemplate(null)
       setForm({ name: '', category: '', description: '', criteria: '', requires_reassessment_days: '365', cqc_statement_id: '', required_for_roles: [] })
       setRubricItems([])
@@ -469,7 +619,7 @@ function TemplatesView() {
   )
 }
 
-function RecordsView() {
+function RecordsView({ onBrowseTemplates }: { onBrowseTemplates?: () => void }) {
   const [page, setPage] = useState(0)
   const [rowsPerPage] = useState(10)
   const [search, setSearch] = useState('')
@@ -485,6 +635,33 @@ function RecordsView() {
   const filtered = (data || []).filter((a: any) =>
     !search || `${a.first_name} ${a.last_name} ${a.template_name} ${a.assessor_first_name || ''} ${a.assessor_last_name || ''}`.toLowerCase().includes(search.toLowerCase())
   )
+
+  // Figma 5.11: the All records tab reads as a card with its own header, and
+  // the empty state explains where records come from with a way back to
+  // templates — the live tab was an empty table with generic copy.
+  if (!isLoading && filtered.length === 0 && !search) {
+    return (
+      <Paper variant="outlined" sx={{ borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 2 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>All records</Typography>
+        </Box>
+        <Box sx={{ px: 3, pb: 5, pt: 2, textAlign: 'center' }}>
+          <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.info.bg', mb: 2 }}>
+            <CheckCircleIcon sx={{ color: 'notice.info.fg', fontSize: 26 }} />
+          </Box>
+          <Typography sx={{ fontWeight: 700, mb: 0.75 }}>No competency records yet</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480, mx: 'auto', mb: 2.5 }}>
+            When a manager observes someone and signs them off, the record is kept here with the date and the result.
+          </Typography>
+          {onBrowseTemplates && (
+            <Button variant="outlined" onClick={onBrowseTemplates} sx={{ textTransform: 'none', fontWeight: 600 }}>
+              View templates
+            </Button>
+          )}
+        </Box>
+      </Paper>
+    )
+  }
 
   return (
     <Box>

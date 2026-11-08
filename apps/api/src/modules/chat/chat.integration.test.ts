@@ -85,4 +85,69 @@ describe('Chat — channels, groups, messages, reactions', () => {
     const res = await request(app).get('/chat/channels')
     expect(res.status).toBe(401)
   })
+
+  it('should add members to a group and expose member profile fields', async () => {
+    const org = await createOrg()
+    const creator = await createUser({ email: `ch-add-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const joiner = await createUser({ email: `ch-add2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const outsider = await createUser({ email: `ch-add3-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const creatorToken = generateToken(creator)
+    const outsiderToken = generateToken(outsider)
+
+    const group = await request(app)
+      .post('/chat/groups')
+      .set('Authorization', `Bearer ${creatorToken}`)
+      .send({ name: 'Add Squad', memberIds: [] })
+    expect(group.status).toBe(201)
+    const channelId = group.body.id
+
+    // Outsider (not a member) cannot add
+    const forbidden = await request(app)
+      .post(`/chat/channels/${channelId}/members`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .send({ memberIds: [joiner.id] })
+    expect(forbidden.status).toBe(403)
+
+    const added = await request(app)
+      .post(`/chat/channels/${channelId}/members`)
+      .set('Authorization', `Bearer ${creatorToken}`)
+      .send({ memberIds: [joiner.id] })
+    expect(added.status).toBe(201)
+    expect(added.body.added).toBe(1)
+
+    // Re-adding is idempotent
+    const repeat = await request(app)
+      .post(`/chat/channels/${channelId}/members`)
+      .set('Authorization', `Bearer ${creatorToken}`)
+      .send({ memberIds: [joiner.id] })
+    expect(repeat.status).toBe(201)
+    expect(repeat.body.added).toBe(0)
+
+    const members = await request(app)
+      .get(`/chat/channels/${channelId}/members`)
+      .set('Authorization', `Bearer ${creatorToken}`)
+    expect(members.status).toBe(200)
+    const row = members.body.find((m: any) => m.user_id === joiner.id)
+    expect(row).toBeDefined()
+    expect(row).toHaveProperty('first_name')
+    expect(row).toHaveProperty('role')
+    expect(row).toHaveProperty('location_name')
+
+    const orgMembers = await request(app)
+      .get('/chat/org-members')
+      .set('Authorization', `Bearer ${creatorToken}`)
+    expect(orgMembers.status).toBe(200)
+    expect(orgMembers.body.some((m: any) => m.id === joiner.id && 'location_name' in m)).toBe(true)
+
+    // DMs stay closed
+    const dm = await request(app)
+      .post(`/chat/channels/dm/${joiner.id}`)
+      .set('Authorization', `Bearer ${creatorToken}`)
+    expect(dm.status).toBe(201)
+    const dmAdd = await request(app)
+      .post(`/chat/channels/${dm.body.id}/members`)
+      .set('Authorization', `Bearer ${creatorToken}`)
+      .send({ memberIds: [outsider.id] })
+    expect(dmAdd.status).toBe(400)
+  })
 })

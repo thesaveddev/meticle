@@ -247,10 +247,11 @@ describe('CustomReportBuilderPage', () => {
 
     await user.click(screen.getByRole('button', { name: /^save$/i }))
     const dialog = await screen.findByRole('dialog')
-    await user.type(within(dialog).getByLabelText('Name'), 'My staff list')
-    await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
+    await user.type(within(dialog).getByPlaceholderText(/Active staff by location/), 'My staff list')
+    await user.click(within(dialog).getByText('Only me'))
+    await user.click(within(dialog).getByRole('button', { name: 'Save report' }))
 
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/reporting/custom', expect.objectContaining({ name: 'My staff list' })))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/reporting/custom', expect.objectContaining({ name: 'My staff list', visibility: 'me' })))
     expect(await screen.findByText('My staff list')).toBeInTheDocument()
   })
 })

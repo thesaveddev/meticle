@@ -19,6 +19,8 @@ router.get('/min-staff', asyncHandler(SchedulingController.getMinStaffCounts));
 router.get('/templates', asyncHandler(SchedulingController.getTemplates));
 router.post('/templates', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), validate(createTemplateSchema), asyncHandler(SchedulingController.createTemplate));
 router.get('/my-shifts', asyncHandler(SchedulingController.getMyShifts));
+// Before `/:id`: Express matches in order and would read "handovers" as a shift id.
+router.get('/handovers', asyncHandler(SchedulingController.listHandovers));
 router.get('/my-claims', asyncHandler(SchedulingController.getMyClaims));
 router.get('/pending-claims', asyncHandler(SchedulingController.getPendingClaims));
 router.get('/all-claims', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(SchedulingController.getAllClaims));
@@ -46,6 +48,7 @@ router.post('/:id/clock-off', validate(shiftClockOffSchema), asyncHandler(Schedu
 router.get('/:id/handover', asyncHandler(SchedulingController.getHandover));
 router.post('/:id/handover', validate(shiftHandoverSchema), asyncHandler(SchedulingController.recordHandover));
 router.post('/:id/handover/acknowledge', validate(shiftHandoverAcknowledgementSchema), asyncHandler(SchedulingController.acknowledgeHandover));
+router.post('/:id/handover/check', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(SchedulingController.checkHandover));
 router.post('/:id/offline/:action(clock-on|clock-off|handover)', validate(shiftOfflineActionSchema), asyncHandler(SchedulingController.offlineShiftAction));
 router.post('/:id/assign', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), validate(assignStaffSchema), asyncHandler(SchedulingController.assignStaff));
 router.post('/:id/claim', asyncHandler(SchedulingController.claimOpenShift));

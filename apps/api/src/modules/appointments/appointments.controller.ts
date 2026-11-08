@@ -12,9 +12,15 @@ export class AppointmentController {
 
   static async list(req: Request, res: Response) {
     const orgId = AppointmentController.getOrgId(req);
-    const { date } = req.query as any;
-    const appointments = await AppointmentRepository.findAll(orgId, date);
+    const { date, from, to } = req.query as any;
+    const appointments = await AppointmentRepository.findAll(orgId, date, from, to);
     res.json(appointments);
+  }
+
+  static async listLocations(req: Request, res: Response) {
+    const orgId = AppointmentController.getOrgId(req);
+    const result = await query('SELECT id, name FROM locations WHERE organization_id = $1 ORDER BY name', [orgId]);
+    res.json(result.rows);
   }
 
   static async getById(req: Request, res: Response) {

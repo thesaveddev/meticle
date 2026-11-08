@@ -12,6 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/today-stats', asyncHandler(AppointmentController.getTodayStats));
+router.get('/locations', asyncHandler(AppointmentController.listLocations));
 router.get('/', asyncHandler(AppointmentController.list));
 router.get('/:id', asyncHandler(AppointmentController.getById));
 router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createAppointmentSchema), asyncHandler(AppointmentController.create));

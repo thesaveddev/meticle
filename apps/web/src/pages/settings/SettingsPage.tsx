@@ -2803,6 +2803,7 @@ function NotificationPreferencesSection() {
   const [loading, setLoading] = useState(false)
   const [digestLoading, setDigestLoading] = useState(false)
   const [prefError, setPrefError] = useState('')
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     let mounted = true
@@ -2818,6 +2819,8 @@ function NotificationPreferencesSection() {
       setPrefError('')
       await api.patch('/notifications/preferences', { notification_type: type, enabled })
       setPrefs(p => p.map(pt => pt.notification_type === type ? { ...pt, enabled } : pt))
+      // Figma 9: changing alert settings confirms with a toast.
+      showSnackbar('Your notification preferences have been saved.', 'success', 'Alerts updated')
     } catch {
       setPrefError(`Could not update "${labels[type] || type}". Please try again.`)
     }

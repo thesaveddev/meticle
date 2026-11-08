@@ -13,15 +13,19 @@ import {
   OpenInNew as OpenInNewIcon, UploadFile as UploadFileIcon,
   SmartToy as AIIcon, Schedule as OverdueIcon, Event as TimelineIcon,
   Person as PersonIcon, Assignment as ActionIcon, Schedule as VisitIcon,
+  Group as GroupIcon, FavoriteBorder as HeartIcon, ChatBubbleOutline as ChatIcon,
+  Flag as FlagIcon, Description as DocIcon, AccessTime as ClockIcon, Security as ShieldIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
-import { PageHeader, StatusBadge, ConfirmDialog, EmptyRow, NAVY } from '../../components/ui'
+import { localToday } from '../../utils/dateFormat'
+import { StatusBadge, ConfirmDialog, EmptyRow, NAVY } from '../../components/ui'
 import IncidentWorkflowBoard from './IncidentWorkflowBoard'
 import IncidentLifecycleBoard from './IncidentLifecycleBoard'
 import IncidentCloseoutBoard from './IncidentCloseoutBoard'
 import IncidentSuggestedActions from './IncidentSuggestedActions'
+import { useSnackbar } from '../../context/SnackbarContext'
 
 const SEVERITY_TONE: Record<string, 'success' | 'warning' | 'error' | 'purple'> = {
   low: 'success', medium: 'warning', high: 'error', critical: 'purple',
@@ -49,10 +53,50 @@ function openFileInNewTab(url: string) {
   }).catch(() => {})
 }
 
+function NextStepCard({ onSubmit, submitting, variant = 'submit', onAssign }: { onSubmit: () => void; submitting?: boolean; variant?: 'submit' | 'assign'; onAssign?: () => void }) {
+  const isAssign = variant === 'assign'
+  return (
+    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#D4E6FF', bgcolor: '#F0F5FC' }}>
+      <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Next step</Typography>
+      <Typography variant="body2" fontWeight={700} sx={{ mt: 1 }}>
+        {isAssign ? 'Confirm the severity and choose who will investigate.' : 'Submit for triage so an investigator can be assigned.'}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {isAssign ? 'The person you choose is notified straight away, and the incident moves to Investigating.' : 'Triage confirms the severity, owner and whether the regulator needs to be told.'}
+      </Typography>
+      <Button fullWidth variant="contained" size="small" disabled={isAssign ? false : submitting} onClick={isAssign ? onAssign : onSubmit}
+        sx={{ mt: 2, bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>
+        {!isAssign && submitting ? 'Submitting…' : isAssign ? 'Assign investigator →' : 'Submit for triage →'}
+      </Button>
+    </Paper>
+  )
+}
+
+function DetailSummaryCard({ peopleCount, actionsDone, actionsTotal, regulator, reported }: { peopleCount: number; actionsDone: number; actionsTotal: number; regulator: string; reported: string }) {
+  const rows: Array<[string, string]> = [
+    ['People involved', `${peopleCount}`],
+    ['Actions', `${actionsDone} of ${actionsTotal} done`],
+    ['Regulator notification', regulator],
+    ['Reported', reported],
+  ]
+  return (
+    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Summary</Typography>
+      {rows.map(([k, v], i) => (
+        <Box key={k} sx={{ display: 'flex', justifyContent: 'space-between', py: 1, ...(i < rows.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
+          <Typography variant="body2" color="text.secondary">{k}</Typography>
+          <Typography variant="body2" fontWeight={600} sx={{ color: v === 'Not set' ? 'text.secondary' : 'text.primary' }}>{v}</Typography>
+        </Box>
+      ))}
+    </Paper>
+  )
+}
+
 export default function IncidentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
   const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const isOrgAdmin = currentUser.role === 'ORG_ADMIN'
   // Support workers can raise an incident and follow it, but triage and
@@ -111,12 +155,18 @@ export default function IncidentDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/incidents/${id}`),
-    onSuccess: () => navigate('/incidents'),
+    // Figma 9: the toast is shown before leaving, so the confirmation is read
+    // on the screen that follows rather than dying with this one.
+    onSuccess: () => { showSnackbar('The incident record has been removed.', 'success', 'Incident deleted'); navigate('/incidents') },
   })
 
   const submitMutation = useMutation({
     mutationFn: () => api.post(`/incidents/${id}/submit`, {}),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); queryClient.invalidateQueries({ queryKey: ['incident-timeline', id] }) },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', id] }); queryClient.invalidateQueries({ queryKey: ['incident-timeline', id] })
+      // Figma 9: submitting confirms with a toast — what happened, then what happens next.
+      showSnackbar('The incident is with the triage team. Confirm the severity and choose who will investigate.', 'success', 'Submitted for triage')
+    },
   })
 
   const reopenMutation = useMutation({
@@ -191,6 +241,26 @@ export default function IncidentDetailPage() {
   const completedActions = incidentActions.filter((a: any) => a.completed_at).length || 0
   const totalActions = incidentActions.length || 0
   const actionProgress = totalActions > 0 ? (completedActions / totalActions) * 100 : 0
+  const todayKey = localToday()
+  const daysOpen = Math.max(0, Math.floor((new Date(`${todayKey}T12:00:00`).getTime() - new Date(`${String(incident.incident_date).slice(0, 10)}T12:00:00`).getTime()) / 86400000))
+  const reportedLabel = new Date(incident.incident_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const categoryLabel = incident.category_name || 'No category'
+  const notTriaged = ['draft', 'reported', 'submitted'].includes(incident.status)
+  const severityLabel = incident.severity ? `${String(incident.severity)[0].toUpperCase()}${String(incident.severity).slice(1)} severity` : 'No severity'
+  const stepIndex = ['draft', 'reported', 'reopened'].includes(incident.status) ? 0
+    : ['submitted', 'triaging'].includes(incident.status) ? 1
+    : incident.status === 'investigating' ? 2
+    : ['actioning', 'verifying'].includes(incident.status) ? 3 : 4
+  const inTriagePhase = ['submitted', 'triaging'].includes(incident.status)
+  const needsInvestigator = ['submitted', 'triaging', 'investigating', 'actioning', 'verifying'].includes(incident.status) && !(incident as any).investigator_name
+  const statusLabel = inTriagePhase ? 'Triage' : incident.status
+  const steps = [
+    { label: 'Reported', sub: 'reported' },
+    { label: 'Triage', sub: 'Severity and owner confirmed' },
+    { label: 'Investigating', sub: 'Root cause and notes' },
+    { label: 'Actions agreed', sub: 'Follow-ups assigned' },
+    { label: 'Closed', sub: 'Lessons learned recorded' },
+  ]
   const overdueActions = incidentActions.filter((a: any) => !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date())
   const linkedVisit = incident.linked_visit_id ? {
     id: incident.linked_visit_id,
@@ -211,45 +281,104 @@ export default function IncidentDetailPage() {
   return (
     <PageContainer>
 
-      {/* Header */}
-      <PageHeader
-        title={incident.title}
-        actions={
-          <Stack direction="row" spacing={1}>
-            {(incident.status === 'draft' || incident.status === 'reported') && (
-              <Button variant="contained" size="small" disabled={submitMutation.isPending}
-                onClick={() => submitMutation.mutate()}
-                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-                {submitMutation.isPending ? 'Submitting…' : 'Submit for triage'}
-              </Button>
-            )}
-            {canTriage && (incident.status === 'closed' || incident.status === 'resolved') && (
-              <Button variant="outlined" size="small"
-                onClick={() => { setReopenReason(''); setReopenOpen(true) }}
-                sx={{ textTransform: 'none' }}>Reopen</Button>
-            )}
-            {isOrgAdmin && (
-              <Button variant="outlined" color="error" size="small" startIcon={<DeleteIcon />}
-                onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none' }}>Delete</Button>
-            )}
-            {canTriage && (
-              <Button variant="outlined" size="small" startIcon={<EditIcon />}
-                onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
-                sx={{ textTransform: 'none' }}>Edit</Button>
-            )}
-          </Stack>
-        }
-      />
-      {submitMutation.isError && <Alert severity="error" sx={{ mb: 2 }}>Submit failed — the incident may already have moved; refresh and retry.</Alert>}
-
-      {/* Status chips */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
-        <StatusBadge label={incident.severity} tone={SEVERITY_TONE[incident.severity] || 'neutral'} />
-        <StatusBadge label={incident.status} tone={STATUS_TONE[incident.status] || 'neutral'} />
+      {/* Header — Figma 3.3/3.4: back link, breadcrumb, title + actions, meta, badges */}
+      <Button component={RouterLink} to="/incidents" size="small"
+        sx={{ textTransform: 'none', color: '#0164C8', fontWeight: 600, px: 0, minWidth: 0, mb: 0.5, justifyContent: 'flex-start', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}>
+        ‹ All incidents
+      </Button>
+      <Typography variant="caption" sx={{ color: '#0164C8', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Incidents / {incident.title}
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mt: 0.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600 }}>{incident.title}</Typography>
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+          {canTriage && (
+            <Button variant="outlined" size="small" startIcon={<EditIcon />}
+              onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
+              sx={{ textTransform: 'none' }}>Edit</Button>
+          )}
+          {isOrgAdmin && (
+            <Button variant="outlined" color="error" size="small"
+              onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none' }}>Delete</Button>
+          )}
+          {(incident.status === 'draft' || incident.status === 'reported') && (
+            <Button variant="contained" size="small" disabled={submitMutation.isPending}
+              onClick={() => submitMutation.mutate()}
+              sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>
+              {submitMutation.isPending ? 'Submitting…' : 'Submit for triage →'}
+            </Button>
+          )}
+          {canTriage && inTriagePhase && (
+            <Button variant="contained" size="small"
+              onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
+              sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>
+              Assign investigator →
+            </Button>
+          )}
+          {canTriage && (incident.status === 'closed' || incident.status === 'resolved') && (
+            <Button variant="outlined" size="small"
+              onClick={() => { setReopenReason(''); setReopenOpen(true) }}
+              sx={{ textTransform: 'none' }}>Reopen</Button>
+          )}
+        </Stack>
+      </Stack>
+      {submitMutation.isError && <Alert severity="error" sx={{ mt: 1, mb: 0 }}>Submit failed — the incident may already have moved; refresh and retry.</Alert>}
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {categoryLabel} · Reported {reportedLabel} · Open for {daysOpen} day{daysOpen === 1 ? '' : 's'}
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+        <StatusBadge label={severityLabel} tone="neutral" />
+        <StatusBadge label={statusLabel} tone={inTriagePhase ? 'info' : STATUS_TONE[incident.status] || 'neutral'} />
+        {needsInvestigator && <StatusBadge label="Needs an investigator" tone="neutral" />}
+        {notTriaged && <StatusBadge label="Not triaged" tone="error" />}
         {incident.is_cqc_reportable && <StatusBadge label="CQC Reportable" tone="error" />}
         {incident.is_near_miss && <StatusBadge label="Near Miss" tone="purple" />}
         {incident.is_confidential && <StatusBadge label="Confidential" tone="neutral" />}
       </Stack>
+
+      {/* Submitted banner — Figma 3.4 */}
+      {incident.status === 'submitted' && (
+        <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: '1px solid', borderColor: '#D2FBF4', bgcolor: '#E9FDF9', display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#03C6B1', color: '#FFFFFF', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <CheckIcon fontSize="small" />
+          </Box>
+          <Box>
+            <Typography variant="body2" fontWeight={700}>Submitted for triage</Typography>
+            <Typography variant="body2" color="text.secondary">We&apos;ve let the team know. Next, confirm the severity and choose who will investigate.</Typography>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Progress stepper */}
+      <Paper sx={{ p: 2.5, mb: 0, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflowX: 'auto' }}>
+        <Stack direction="row" alignItems="flex-start" sx={{ minWidth: 640 }}>
+          {steps.map((s, i) => (
+            <Box key={s.label} sx={{ flex: 1, display: 'flex', alignItems: 'flex-start' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 88 }}>
+                <Box sx={{
+                  width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                  fontSize: 13, fontWeight: 700,
+                  ...(i < stepIndex
+                    ? { bgcolor: '#0164C8', color: '#FFFFFF' }
+                    : i === stepIndex
+                    ? { bgcolor: '#0164C8', color: '#FFFFFF' }
+                    : { border: '2px solid #C3D2E2', color: '#B0BFD2', bgcolor: '#FFFFFF' }),
+                }}>{i < stepIndex ? '✓' : i + 1}</Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mt: 1, color: i <= stepIndex ? '#0164C8' : 'text.secondary', textAlign: 'center' }}>{s.label}</Typography>
+                <Typography variant="caption" sx={{ color: i === stepIndex && stepIndex === 0 && daysOpen > 0 ? '#EF4444' : 'text.secondary', textAlign: 'center' }}>
+                  {i < stepIndex ? (i === 0 ? `Done · ${reportedLabel}` : 'Done')
+                    : i === stepIndex
+                    ? (stepIndex === 0 ? `${daysOpen} day${daysOpen === 1 ? '' : 's'} at this step` : 'In progress')
+                    : s.sub}
+                </Typography>
+              </Box>
+              {i < steps.length - 1 && (
+                <Box sx={{ flex: 1, height: 2, mt: '13px', mx: 1, bgcolor: i < stepIndex ? '#0164C8' : '#E3E9F0' }} />
+              )}
+            </Box>
+          ))}
+        </Stack>
+      </Paper>
 
       {/* Metadata strip */}
       <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
@@ -322,11 +451,11 @@ export default function IncidentDetailPage() {
       )}
 
       {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: '#E3E9F0', mb: 3 }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: '#E3E9F0', mb: 3 }}>
         <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 600 }} />
-        <Tab label={`People${involvedPeople.length ? ` (${incident.involved.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
-        <Tab label={`Actions${totalActions ? ` (${totalActions})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
-        <Tab label={`Evidence${incidentAttachments.length ? ` (${incident.attachments.length})` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`People ${involvedPeople.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`Actions ${totalActions}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label={`Evidence${incidentAttachments.length ? ` ${incidentAttachments.length}` : ''}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Workflow" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Timeline" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Related" sx={{ textTransform: 'none', fontWeight: 600 }} />
@@ -336,8 +465,29 @@ export default function IncidentDetailPage() {
       {tab === 0 && (
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
+            <Stack spacing={3}>
             <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Investigation Details</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>What happened</Typography>
+              <Typography variant="body2" color={incident.description ? 'text.primary' : 'text.secondary'} sx={{ mt: 1, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                {incident.description || 'No description recorded.'}
+              </Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                {[
+                  ['Date', reportedLabel],
+                  ['Category', categoryLabel],
+                  ['Severity', incident.severity ? `${String(incident.severity)[0].toUpperCase()}${String(incident.severity).slice(1)}` : 'Not set'],
+                  ['Location', incident.location || 'Not set'],
+                ].map(([k, v]) => (
+                  <Grid item xs={6} sm={3} key={k}>
+                    <Typography variant="caption" color="text.secondary">{k}</Typography>
+                    <Typography variant="body2" fontWeight={600} sx={{ color: v === 'Not set' ? 'text.secondary' : 'text.primary' }}>{v}</Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+            <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+              <Typography variant="subtitle2" fontWeight={600}>Investigation details</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Filled in once the incident has been triaged.</Typography>
               <Stack spacing={2}>
                 {[
                   { label: 'Root Cause', value: incident.root_cause },
@@ -345,11 +495,17 @@ export default function IncidentDetailPage() {
                   { label: 'Lessons Learned', value: incident.lessons_learned },
                   { label: 'Outcomes', value: incident.outcomes },
                 ].map((r, i) => (
-                  <Box key={i}>
-                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>{r.label}</Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap', color: r.value ? 'text.primary' : 'text.secondary' }}>
-                      {r.value || 'Not recorded'}
-                    </Typography>
+                  <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'none', letterSpacing: '0.05em' }}>{r.label}</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap', color: r.value ? 'text.primary' : 'text.secondary' }}>
+                        {r.value || 'Not recorded'}
+                      </Typography>
+                    </Box>
+                    {!r.value && canTriage && (
+                      <Button size="small" onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
+                        sx={{ textTransform: 'none', color: '#0164C8', fontWeight: 600, flexShrink: 0 }}>Add</Button>
+                    )}
                   </Box>
                 ))}
               </Stack>
@@ -371,9 +527,16 @@ export default function IncidentDetailPage() {
                 </Stack>
               )}
             </Paper>
+            </Stack>
           </Grid>
           <Grid item xs={12} md={4}>
             <Stack spacing={3}>
+              {(incident.status === 'draft' || incident.status === 'reported') && (
+                <NextStepCard onSubmit={() => submitMutation.mutate()} submitting={submitMutation.isPending} />
+              )}
+              {inTriagePhase && (
+                <NextStepCard variant="assign" onSubmit={() => submitMutation.mutate()} onAssign={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }} />
+              )}
               {/* Summary card */}
               <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>Summary</Typography>
@@ -446,20 +609,36 @@ export default function IncidentDetailPage() {
         </Grid>
       )}
 
-      {/* Tab: Involved People */}
+      {/* Tab: Involved People — extended view */}
       {tab === 1 && (
-        <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600}>Involved People</Typography>
-            {canTriage && (
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
-                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Person</Button>
-            )}
-          </Stack>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Stack spacing={3}>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>People involved</Typography>
+                    <Typography variant="caption" color="text.secondary">{involvedPeople.length} {involvedPeople.length === 1 ? 'person' : 'people'}</Typography>
+                  </Box>
+                  {canTriage && involvedPeople.length > 0 && (
+                    <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
+                      sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>Add person</Button>
+                  )}
+                </Stack>
           {(!incident.involved || incident.involved.length === 0) ? (
-            <EmptyRow message="No people linked to this incident" action={
-              canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)} sx={{ textTransform: 'none' }}>Add Person</Button>
-            } />
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'inline-grid', placeItems: 'center', mb: 1.5 }}>
+                  <GroupIcon />
+                </Box>
+                <Typography variant="body2" fontWeight={700}>No one has been added yet</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 420, mx: 'auto' }}>
+                  Add the person supported, the staff on shift and any witnesses, so whoever investigates has the full picture.
+                </Typography>
+                {canTriage && (
+                  <Button size="small" variant="contained" onClick={() => setAddResidentOpen(true)}
+                    sx={{ mt: 2, bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>Add person</Button>
+                )}
+              </Box>
           ) : (
             <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Table size="small">
@@ -491,26 +670,72 @@ export default function IncidentDetailPage() {
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
-          )}
-        </Box>
+              </TableContainer>
+              )}
+              </Paper>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Who to add</Typography>
+                {[
+                  { icon: <HeartIcon sx={{ fontSize: 18 }} />, title: 'Person supported', sub: 'Who the incident happened to' },
+                  { icon: <GroupIcon sx={{ fontSize: 18 }} />, title: 'Staff on shift', sub: 'Who was there and who reported it' },
+                  { icon: <ChatIcon sx={{ fontSize: 18 }} />, title: 'Witnesses and family', sub: 'Anyone who saw it or needs to be told' },
+                ].map((r, i, arr) => (
+                  <Box key={r.title} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.5, ...(i < arr.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
+                    <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#F0F5FC', color: '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{r.icon}</Box>
+                    <Box>
+                      <Typography variant="body2" fontWeight={700}>{r.title}</Typography>
+                      <Typography variant="caption" color="text.secondary">{r.sub}</Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Paper>
+            </Stack>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Stack spacing={3}>
+              {(incident.status === 'draft' || incident.status === 'reported') && (
+                <NextStepCard onSubmit={() => submitMutation.mutate()} submitting={submitMutation.isPending} />
+              )}
+              {inTriagePhase && (
+                <NextStepCard variant="assign" onSubmit={() => submitMutation.mutate()} onAssign={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }} />
+              )}
+              <DetailSummaryCard peopleCount={involvedPeople.length} actionsDone={completedActions} actionsTotal={totalActions} regulator={incident.reported_to_cqc_at ? 'Notified' : 'Not set'} reported={reportedLabel} />
+            </Stack>
+          </Grid>
+        </Grid>
       )}
 
-      {/* Tab: Actions */}
+      {/* Tab: Actions — extended view */}
       {tab === 2 && (
-        <Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Stack spacing={3}>
           {id && <IncidentSuggestedActions incidentId={id} canTriage={canTriage} />}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600}>Action Items</Typography>
-            {canTriage && (
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
-                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>Add Action</Button>
-            )}
-          </Stack>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>Actions</Typography>
+                    <Typography variant="caption" color="text.secondary">{completedActions} of {totalActions} done</Typography>
+                  </Box>
+                  {canTriage && totalActions > 0 && (
+                    <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
+                      sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>Add action</Button>
+                  )}
+                </Stack>
           {(!incident.actions || incident.actions.length === 0) ? (
-            <EmptyRow message="No actions recorded" action={
-              canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)} sx={{ textTransform: 'none' }}>Add Action</Button>
-            } />
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'inline-grid', placeItems: 'center', mb: 1.5 }}>
+                  <CheckIcon />
+                </Box>
+                <Typography variant="body2" fontWeight={700}>No actions agreed yet</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 440, mx: 'auto' }}>
+                  Actions are agreed after triage — for example a medication review or a refresher course. Each one gets an owner and a due date.
+                </Typography>
+                {canTriage && (
+                  <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
+                    sx={{ mt: 2, textTransform: 'none', fontWeight: 600 }}>Add action</Button>
+                )}
+              </Box>
           ) : (
             <Stack spacing={1.5}>
               {incidentActions.map((a: any) => {
@@ -573,30 +798,58 @@ export default function IncidentDetailPage() {
                   </Paper>
                 )
               })}
+                </Stack>
+              )}
+              </Paper>
             </Stack>
-          )}
-        </Box>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Stack spacing={3}>
+              {(incident.status === 'draft' || incident.status === 'reported') && (
+                <NextStepCard onSubmit={() => submitMutation.mutate()} submitting={submitMutation.isPending} />
+              )}
+              {inTriagePhase && (
+                <NextStepCard variant="assign" onSubmit={() => submitMutation.mutate()} onAssign={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }} />
+              )}
+              <DetailSummaryCard peopleCount={involvedPeople.length} actionsDone={completedActions} actionsTotal={totalActions} regulator={incident.reported_to_cqc_at ? 'Notified' : 'Not set'} reported={reportedLabel} />
+            </Stack>
+          </Grid>
+        </Grid>
       )}
 
-      {/* Tab: Evidence */}
+      {/* Tab: Evidence — extended view */}
       {tab === 3 && (
-        <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600}>Evidence Attachments</Typography>
-            <Button size="small" variant="contained" component="label" startIcon={<UploadFileIcon />}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 600 }}>
-              {uploading ? <CircularProgress size={18} color="inherit" /> : 'Upload Evidence'}
-              <input type="file" hidden onChange={e => handleUpload(e.target.files?.[0] || null)} />
-            </Button>
-          </Stack>
-          {uploadError && <Alert severity="error" sx={{ mb: 2 }}>{uploadError}</Alert>}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Stack spacing={3}>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>Evidence</Typography>
+                    <Typography variant="caption" color="text.secondary">{incidentAttachments.length} {incidentAttachments.length === 1 ? 'file' : 'files'}</Typography>
+                  </Box>
+                  <Button size="small" variant="contained" component="label" startIcon={<UploadFileIcon />}
+                    sx={{ bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>
+                    {uploading ? <CircularProgress size={18} color="inherit" /> : 'Upload evidence'}
+                    <input type="file" hidden onChange={e => handleUpload(e.target.files?.[0] || null)} />
+                  </Button>
+                </Stack>
+                {uploadError && <Alert severity="error" sx={{ mt: 2 }}>{uploadError}</Alert>}
           {(!incident.attachments || incident.attachments.length === 0) ? (
-            <EmptyRow message="No evidence attached" action={
-              <Button size="small" variant="outlined" component="label" startIcon={<UploadFileIcon />} sx={{ textTransform: 'none' }}>
-                Upload Evidence
-                <input type="file" hidden onChange={e => handleUpload(e.target.files?.[0] || null)} />
-              </Button>
-            } />
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#EAF3FF', color: '#0164C8', display: 'inline-grid', placeItems: 'center', mb: 1.5 }}>
+                    <DocIcon />
+                  </Box>
+                  <Typography variant="body2" fontWeight={700}>No evidence uploaded</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 440, mx: 'auto' }}>
+                    Upload photos, MAR chart extracts, body maps or written statements. Files stay with this incident record.
+                  </Typography>
+                  <Button size="small" variant="contained" component="label"
+                    sx={{ mt: 2, bgcolor: '#0164C8', textTransform: 'none', fontWeight: 600 }}>
+                    Upload evidence
+                    <input type="file" hidden onChange={e => handleUpload(e.target.files?.[0] || null)} />
+                  </Button>
+                </Box>
           ) : (
             <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
               <Table size="small">
@@ -626,14 +879,95 @@ export default function IncidentDetailPage() {
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
-          )}
-        </Box>
+              </TableContainer>
+              )}
+              </Paper>
+              <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Good to know</Typography>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#F0F5FC', color: '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <DocIcon sx={{ fontSize: 18 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" fontWeight={700}>Photos, PDFs and documents</Typography>
+                    <Typography variant="caption" color="text.secondary">Up to 25 MB each · only people with access to this incident can see them.</Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            </Stack>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Stack spacing={3}>
+              {(incident.status === 'draft' || incident.status === 'reported') && (
+                <NextStepCard onSubmit={() => submitMutation.mutate()} submitting={submitMutation.isPending} />
+              )}
+              {inTriagePhase && (
+                <NextStepCard variant="assign" onSubmit={() => submitMutation.mutate()} onAssign={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }} />
+              )}
+              <DetailSummaryCard peopleCount={involvedPeople.length} actionsDone={completedActions} actionsTotal={totalActions} regulator={incident.reported_to_cqc_at ? 'Notified' : 'Not set'} reported={reportedLabel} />
+            </Stack>
+          </Grid>
+        </Grid>
       )}
 
-      {/* Tab: Workflow — severity head, tasks, history, then investigation + closeout */}
+      {/* Tab: Workflow — extended view */}
       {tab === 4 && id && (
         <Stack spacing={3}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={8}>
+              <Stack spacing={3}>
+                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                  <Typography variant="subtitle1" fontWeight={600}>Workflow</Typography>
+                  <Typography variant="caption" color="text.secondary">Where this incident is in the process</Typography>
+                  <Stack sx={{ mt: 1 }}>
+                    {[
+                      { icon: <FlagIcon sx={{ fontSize: 18 }} />, title: 'Reported', sub: reportedLabel },
+                      { icon: <ClockIcon sx={{ fontSize: 18 }} />, title: 'Triage', sub: 'Severity and owner not confirmed yet' },
+                      { icon: <DocIcon sx={{ fontSize: 18 }} />, title: 'Investigating', sub: 'Root cause and notes' },
+                      { icon: <CheckIcon sx={{ fontSize: 18 }} />, title: 'Actions agreed', sub: 'Follow-ups assigned' },
+                      { icon: <ShieldIcon sx={{ fontSize: 18 }} />, title: 'Closed', sub: 'Lessons learned recorded' },
+                    ].map((s, i, arr) => {
+                      const state = i < stepIndex ? 'done' : i === stepIndex ? (i === 0 ? 'done' : 'waiting') : 'todo'
+                      return (
+                        <Box key={s.title} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.5, ...(i < arr.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
+                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: state === 'todo' ? '#F0F5FC' : '#EAF3FF', color: state === 'todo' ? '#B0BFD2' : '#0164C8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{s.icon}</Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" fontWeight={700}>{i + 1} · {s.title}</Typography>
+                            <Typography variant="caption" color="text.secondary">{s.sub}</Typography>
+                          </Box>
+                          {state === 'done' ? <StatusBadge label="Done" tone="success" />
+                            : state === 'waiting' ? <StatusBadge label={stepIndex === 1 ? `Waiting ${daysOpen} days` : 'In progress'} tone={stepIndex === 1 ? 'error' : 'info'} />
+                            : <StatusBadge label="Not started" tone="neutral" />}
+                        </Box>
+                      )
+                    })}
+                  </Stack>
+                </Paper>
+                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Responsibilities</Typography>
+                  {[
+                    ['Investigator', (incident as any).investigator_name || 'Not assigned'],
+                    ['Reviewer', (incident as any).reviewer_name || 'Not assigned'],
+                    ['Regulator notification', incident.reported_to_cqc_at ? 'Notified' : 'Not set'],
+                    ['Target close date', (incident as any).target_close_date ? new Date((incident as any).target_close_date).toLocaleDateString('en-GB') : 'Not set'],
+                  ].map(([k, v], i, arr) => (
+                    <Box key={k} sx={{ display: 'flex', justifyContent: 'space-between', py: 1.2, ...(i < arr.length - 1 ? { borderBottom: '1px solid #E3E9F0' } : {}) }}>
+                      <Typography variant="body2" color="text.secondary">{k}</Typography>
+                      <Typography variant="body2" fontWeight={600} sx={{ color: String(v).startsWith('Not ') ? 'text.secondary' : 'text.primary' }}>{v}</Typography>
+                    </Box>
+                  ))}
+                </Paper>
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Stack spacing={3}>
+                {(incident.status === 'draft' || incident.status === 'reported') && (
+                  <NextStepCard onSubmit={() => submitMutation.mutate()} submitting={submitMutation.isPending} />
+                )}
+                <DetailSummaryCard peopleCount={involvedPeople.length} actionsDone={completedActions} actionsTotal={totalActions} regulator={incident.reported_to_cqc_at ? 'Notified' : 'Not set'} reported={reportedLabel} />
+              </Stack>
+            </Grid>
+          </Grid>
           <IncidentWorkflowBoard incidentId={id} canTriage={canTriage} />
           <IncidentCloseoutBoard incidentId={id} status={incident.status} canTriage={canTriage} />
         </Stack>

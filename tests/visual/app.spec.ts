@@ -121,6 +121,12 @@ const WIDGETS = {
   compliance_breakdown: { total_active: 24, compliant_count: 22, below_threshold: 2 },
 }
 
+/** Shape of GET /mission-control/alerts, read by the Today workspace. */
+const ALERTS = [
+  { id: 'alert-medication', severity: 'critical', alert_type: 'medication.missed', title: '1 missed medication', message: 'Administration record needs review', link: '/emedication' },
+  { id: 'alert-training', severity: 'high', alert_type: 'training.expiring', title: '5 training records expiring', message: 'Refresher training due soon', link: '/training' },
+]
+
 /** Shape of GET /reporting/overview (see reporting.repository.ts buildSummaryCards). */
 const PULSE = {
   generatedAt: `${OPERATIONAL_DATE}T08:15:00.000Z`,
@@ -212,6 +218,7 @@ const STUBS: Array<{ path: string | RegExp; json: unknown }> = [
   { path: '/dashboard/widgets', json: WIDGETS },
   { path: '/reporting/overview', json: PULSE },
   { path: '/mission-control/summary', json: SUMMARY },
+  { path: '/mission-control/alerts', json: ALERTS },
 ]
 
 /**
@@ -312,11 +319,13 @@ test('the seeded Mission Control workspace matches its baseline', async ({ page 
   await expect(page.getByText('0 of 3 shifts')).toBeVisible()
   await expect(page.getByText('11 rostered today')).toBeVisible()
   await expect(page.getByText('Reported or investigating')).toBeVisible()
-  // Operational pulse only renders content when /reporting/overview returns
-  // cards, so these two assert the fixture rather than the card's existence.
-  await expect(page.getByText('Service-wide reporting measures')).toBeVisible()
+  // The supported-living Today view derives its Operational pulse from the
+  // seeded summary, so these assert the fixture reached the view rather than
+  // merely that the card exists.
+  await expect(page.getByText('Operational pulse')).toBeVisible()
+  await expect(page.getByText('Compliance rate')).toBeVisible()
   await expect(page.getByText('92%')).toBeVisible()
-  await expect(page.getByText('2 overdue records')).toBeVisible()
+  await expect(page.getByText('Training completion')).toBeVisible()
   // The seeded organisation reached the shell. The mobile layout keeps it in the
   // drawer, so presence is asserted rather than visibility.
   await expect(page.getByText('Northgate Supported Living').first()).toBeAttached()

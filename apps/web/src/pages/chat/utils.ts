@@ -28,6 +28,11 @@ export function formatDate(dateStr: string): string {
   return `${pad(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
+/** "9:05 am" — the 12-hour clock the chat thread, files list and read receipts use. */
+export function formatChatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
 export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)

@@ -665,7 +665,7 @@ export class StaffController {
 
     const [adminResult, staffResult, invitationsResult] = await Promise.all([
       pool.query(
-       `SELECT u.id, u.email, u.role, u.status, sp.first_name, sp.last_name, sp.id as staff_id, sp.medication_competent, sp.employment_type,
+       `SELECT u.id, u.email, u.role, u.status, sp.first_name, sp.last_name, sp.id as staff_id, sp.medication_competent, sp.employment_type, sp.location_id,
            COALESCE(c.compliance_rate, 0)::int as compliance_rate
           FROM users u
           LEFT JOIN staff_profiles sp ON sp.user_id = u.id
@@ -680,7 +680,7 @@ export class StaffController {
         [organizationId]
       ),
       pool.query(
-       `SELECT u.id, u.email, u.role, sp.first_name, sp.last_name, u.status, sp.id as staff_id, sp.medication_competent, sp.employment_type,
+       `SELECT u.id, u.email, u.role, sp.first_name, sp.last_name, u.status, sp.id as staff_id, sp.medication_competent, sp.employment_type, sp.location_id,
            COALESCE(c.compliance_rate, 0)::int as compliance_rate
           FROM users u
           LEFT JOIN staff_profiles sp ON sp.user_id = u.id

@@ -30,6 +30,7 @@ router.delete('/channels/:channelId/files/:fileId', asyncHandler(ChatController.
 router.post('/ensure-general', asyncHandler(ChatController.ensureGeneral));
 router.get('/org-members', asyncHandler(ChatController.listOrgMembers));
 router.get('/channels/:channelId/members', asyncHandler(ChatController.listChannelMembers));
+router.post('/channels/:channelId/members', asyncHandler(ChatController.addChannelMembers));
 router.delete('/channels/:channelId/members/:userId', asyncHandler(ChatController.removeChannelMember));
 router.delete('/channels/:channelId/leave', asyncHandler(ChatController.leaveChannel));
 

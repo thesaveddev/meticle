@@ -1,30 +1,15 @@
 import { useState, useMemo } from 'react'
-import { Box, Typography, Paper, Chip, Button, Stack, LinearProgress, Alert, CircularProgress, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Link } from '@mui/material'
+import { Box, Typography, Paper, Chip, Button, Stack, Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Link } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Security as ShieldIcon, CheckCircle, Refresh as RefreshIcon, OpenInNew as ExternalIcon, Verified as VerifiedIcon, PlaylistAddCheck as AssessmentIcon } from '@mui/icons-material'
+import { Security as ShieldIcon, CheckCircle, OpenInNew as ExternalIcon, CalendarMonth as CalendarIcon, PlaylistAddCheck as AssessmentIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import { P } from '../../styles/tokens'
-
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  not_started: { label: 'Not Started', color: 'text.secondary' },
-  in_progress: { label: 'In Progress', color: '#F59E0B' },
-  submitted: { label: 'Submitted', color: '#6B8AFD' },
-  standards_met: { label: 'Standards Met', color: '#10B981' },
-  standards_exceeded: { label: 'Standards Exceeded', color: '#8B7CF6' },
-}
 
 const STD_STATUS = [
   { value: 'not_assessed', label: 'Not Assessed', color: 'text.secondary' },
   { value: 'partially', label: 'Partially Met', color: '#F59E0B' },
   { value: 'met', label: 'Met', color: '#10B981' },
   { value: 'exceeded', label: 'Exceeded', color: '#6B8AFD' },
-]
-
-const DSPT_THEMES = [
-  { key: 'Managing Data Protection', color: '#0164C8' },
-  { key: 'Confidentiality & Data Security', color: '#10B981' },
-  { key: 'Protecting & Sharing Information', color: '#6B8AFD' },
-  { key: 'Minimising Impact', color: '#8B7CF6' },
 ]
 
 export default function DSPTPage() {
@@ -71,7 +56,6 @@ export default function DSPTPage() {
 
   const metCount = mergedStds.filter(s => s.status === 'met' || s.status === 'exceeded').length
   const totalCount = mergedStds.length || 11
-  const pct = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0
 
   const createAssessment = useMutation({
     mutationFn: () => api.post('/dspt/assessments'),
@@ -96,78 +80,88 @@ export default function DSPTPage() {
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>
 
-  const status = statusData?.status || 'not_started'
-  const si = STATUS_META[status] || STATUS_META.not_started
   const deadline = statusData?.deadline || '2026-06-30'
-  const daysLeft = Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000))
+
+  // Figma 5.11: the standards table carries three status pills. Live data has
+  // a fourth state (exceeded), which keeps its existing purple rather than
+  // being folded into Met — the frame's sample never shows it, but the API
+  // can return it and the table must not mislabel it.
+  // Pill colours are token references, never literals: the design lint
+  // rejects any hex not declared in a token module. `P.*` values are the
+  // declarations, and `notice.*` pairs stay readable in dark mode.
+  const stdPill = (status: string) => {
+    if (status === 'met') return { label: 'Met', color: P.action, bg: P.greenLight }
+    if (status === 'exceeded') return { label: 'Exceeded', color: P.indigo, bg: P.indigoLight }
+    if (status === 'partially') return { label: 'In progress', color: 'notice.info.fg', bg: 'notice.info.bg' }
+    return { label: 'Not started', color: 'text.secondary', bg: 'notice.muted.bg' }
+  }
+
+  // Figma 5.11 header action: jump straight to the first standard still open.
+  // With no assessment yet there is nothing to mark, so offer to start one.
+  const openNextStandard = () => {
+    if (!active) { setAssessOpen(true); return }
+    const next = mergedStds.find(s => s.status !== 'met' && s.status !== 'exceeded') ?? mergedStds[0]
+    if (!next) return
+    setEditing({
+      key: next.standard_key,
+      label: `${next.standard_key}: ${next.label}`,
+      status: next.status || 'not_assessed',
+      evidence_notes: next.evidence_notes || '',
+    })
+  }
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <ShieldIcon sx={{ fontSize: 32, color: '#0164C8' }} />
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600 }}>NHS DSPT Certification</Typography>
-            <Typography variant="body2" color="text.secondary">Your organisation's Data Security & Protection Toolkit self-assessment — 2025/26</Typography>
-          </Box>
-        </Stack>
+      {/* ── Breadcrumb + header (Figma 5.11) ── */}
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em' }}>
+        COMPLIANCE &amp; SAFETY / COMPLIANCE / NHS DSPT
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mt: 0.5, mb: 3, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Data Security and Protection Toolkit</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            The yearly NHS self-assessment for keeping people&apos;s information safe.
+          </Typography>
+        </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="contained" startIcon={<AssessmentIcon />} onClick={() => setAssessOpen(true)}
-            disabled={!!active || createAssessment.isPending}
-            sx={{ bgcolor: P.primary, '&:hover': { bgcolor: P.primaryHover } }}>
-            {createAssessment.isPending ? <CircularProgress size={18} /> : 'New Assessment'}
+          <Button variant="outlined" endIcon={<ExternalIcon />} href="https://www.dsptoolkit.nhs.uk/" target="_blank"
+            sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            Open the DSPT website
           </Button>
-          <Button startIcon={<RefreshIcon />} onClick={() => qc.invalidateQueries({ queryKey: ['dspt-status'] })} />
+          <Button variant="contained" onClick={openNextStandard}
+            sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            Mark a standard as met
+          </Button>
         </Stack>
       </Stack>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', mb: 4 }}>
-        <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${si.color}` }}>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Overall Status</Typography>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <VerifiedIcon sx={{ color: si.color, fontSize: 20 }} />
-              <Typography variant="h6" fontWeight={600} sx={{ color: si.color }}>{si.label}</Typography>
-            </Stack>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${daysLeft < 60 ? '#EF4444' : '#0164C8'}` }}>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Submission Deadline</Typography>
-            <Typography variant="h6" fontWeight={600}>{new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
-            <Typography variant="caption" color={daysLeft < 60 ? 'error' : 'text.secondary'}>{daysLeft} days remaining</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${pct >= 80 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444'}` }}>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Standards Met</Typography>
-            <Typography variant="h6" fontWeight={600}>{metCount} / {totalCount}</Typography>
-            {mergedStds.length > 0 && <LinearProgress variant="determinate" value={pct} sx={{ mt: 1, height: 6, borderRadius: 3 }} />}
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'notice.info.bg', border: '1px solid #EAF3FF', borderRadius: 2 }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <ExternalIcon sx={{ color: 'notice.info.fg' }} />
-          <Typography variant="body2" sx={{ flex: 1 }}>
-            Track your organisation's progress against the 10 Data Security Standards here. When ready, complete your official submission on the NHS DSPT portal.
-          </Typography>
-          <Button variant="outlined" size="small" endIcon={<ExternalIcon />} href="https://www.dsptoolkit.nhs.uk/" target="_blank"
-            sx={{ borderColor: '#0164C8', color: 'notice.info.fg', whiteSpace: 'nowrap' }}>
-            Open DSPT Portal
-          </Button>
-        </Stack>
-      </Paper>
+      {active && (
+        <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'notice.info.bg', border: '1px solid #EAF3FF', borderRadius: 2 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <CalendarIcon sx={{ color: 'notice.info.fg' }} />
+            <Box>
+              <Typography variant="body2" fontWeight={700}>
+                Submission due {new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                You&apos;ve met {metCount} of {totalCount} standards. Click a standard to review the evidence recorded for it.
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+      )}
 
       {active && (
         <Paper sx={{ p: 3, mb: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight={600}>10 Data Security Standards</Typography>
+            <Box>
+              <Typography variant="h6" fontWeight={600}>Standards</Typography>
+              <Typography variant="body2" color="text.secondary">{metCount} of {totalCount} met</Typography>
+            </Box>
             <Button size="small" variant="contained"
               onClick={() => submitAssessment.mutate()}
               disabled={submitAssessment.isPending || active.status !== 'draft'}
-              sx={{ bgcolor: '#0164C8' }}>
+              sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
               {submitAssessment.isPending ? <CircularProgress size={16} /> : 'Mark as Submitted to Portal'}
             </Button>
           </Stack>
@@ -175,55 +169,48 @@ export default function DSPTPage() {
           {detailLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : (
-            <>
-              {DSPT_THEMES.map(theme => {
-                const themeStds = mergedStds.filter(s => s.theme === theme.key)
-                if (themeStds.length === 0) return null
-                return (
-                  <Box key={theme.key} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: theme.color, fontWeight: 600, fontSize: 13 }}>
-                      {theme.key}
-                    </Typography>
-                    {themeStds.map(std => {
-                      const ss = STD_STATUS.find(s => s.value === (std.status || 'not_assessed'))
-                      return (
-                        <Paper key={std.standard_key} variant="outlined" sx={{
-                          p: 1.75, mb: 0.75, cursor: 'pointer', transition: 'all 0.1s',
-                          borderLeft: `3px solid ${theme.color}`,
-                          '&:hover': { bgcolor: 'notice.subtle.bg', borderColor: '#EAF3FF' }
-                        }} onClick={() => setEditing({
-                          key: std.standard_key,
-                          label: `${std.standard_key}: ${std.label}`,
-                          status: std.status || 'not_assessed',
-                          evidence_notes: std.evidence_notes || '',
-                        })}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Box>
-                              <Typography variant="body2" fontWeight={600}>{std.standard_key}: {std.label}</Typography>
-                              {std.evidence_notes && <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: 'block' }}>
-                                {std.evidence_notes.length > 100 ? std.evidence_notes.slice(0, 100) + '...' : std.evidence_notes}
-                              </Typography>}
-                            </Box>
-                            <Chip label={ss?.label || 'Not Assessed'} size="small" sx={{
-                              color: ss?.color || '#5D6E85',
-                              bgcolor: `${ss?.color || '#5D6E85'}15`,
-                              fontWeight: 600,
-                              minWidth: 90,
-                            }} />
-                          </Stack>
-                        </Paper>
-                      )
-                    })}
-                  </Box>
-                )
-              })}
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Click any standard to update its status and add evidence notes. Once submitted on the official DSPT portal, mark this assessment as "Submitted".
-                </Typography>
-              </Box>
-            </>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>Standard</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Evidence in MeticleCare</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mergedStds.map(std => {
+                    const pill = stdPill(std.status || 'not_assessed')
+                    // The evidence column is deliberately the manager's own
+                    // recorded notes, not a generated summary: the frame's
+                    // sample strings ("GDPR policy, staff training") name
+                    // sources no endpoint verifies, so inventing them here
+                    // would present guesses as held evidence.
+                    const evidence = std.evidence_notes
+                      ? (std.evidence_notes.length > 100 ? std.evidence_notes.slice(0, 100) + '…' : std.evidence_notes)
+                      : '—'
+                    return (
+                      <TableRow key={std.standard_key} hover sx={{ cursor: 'pointer' }} onClick={() => setEditing({
+                        key: std.standard_key,
+                        label: `${std.standard_key}: ${std.label}`,
+                        status: std.status || 'not_assessed',
+                        evidence_notes: std.evidence_notes || '',
+                      })}>
+                        <TableCell><Typography variant="body2" fontWeight={600}>{std.standard_key}: {std.label}</Typography></TableCell>
+                        <TableCell sx={{ maxWidth: 320 }}><Typography variant="body2" color={std.evidence_notes ? 'text.primary' : 'text.secondary'} sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evidence}</Typography></TableCell>
+                        <TableCell><Chip label={pill.label} size="small" sx={{ color: pill.color, bgcolor: pill.bg, fontWeight: 600, minWidth: 90 }} /></TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              Click a standard to update its status and add evidence notes. Once submitted on the official DSPT portal, mark this assessment as &ldquo;Submitted&rdquo;.
+            </Typography>
+          </Box>
         </Paper>
       )}
 

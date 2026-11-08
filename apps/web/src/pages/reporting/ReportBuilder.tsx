@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation as useRouterLocation } from 'react-router-dom'
 import {
   Box, Typography, Paper, Stack, Button, TextField, MenuItem, Select, FormControl, InputLabel,
   Chip, IconButton, Tooltip, CircularProgress, Alert, Drawer, Divider,
-  ToggleButton, ToggleButtonGroup, Snackbar,
+  ToggleButton, ToggleButtonGroup,
 } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
 import {
@@ -15,6 +15,8 @@ import {
 import api from '../../services/api'
 import { StatCard, BarChart, PieChart, LineChart, AreaChart, RadarChart, ReportTable } from '../../components/charts'
 import { localDate } from '../../utils/dateFormat'
+import { useSnackbar } from '../../context/SnackbarContext'
+import { isPinned, togglePin, recordReportViewed, getReportsLocation } from './reportPins'
 
 interface ReportData {
   report: { id: string; title: string; category: string; generatedAt: string }
@@ -30,6 +32,26 @@ interface ReportMeta {
 
 interface Location { id: string; name: string }
 interface Department { id: string; name: string }
+interface Category { id: string; label: string }
+
+const DATE_PRESETS = [
+  { value: '', label: 'All time' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '3m', label: 'Last 3 months' },
+  { value: '6m', label: 'Last 6 months' },
+  { value: '12m', label: 'Last 12 months' },
+]
+
+/** Figma 10.1 date shortcut → concrete range ending today. */
+function presetRange(value: string): { from: string; to: string } {
+  const to = localDate()
+  if (!value) return { from: '', to: '' }
+  const days = value === '30d' ? 30 : value === '3m' ? 91 : value === '6m' ? 182 : 365
+  const d = new Date()
+  d.setDate(d.getDate() - (days - 1))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return { from: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, to }
+}
 
 const ROLE_OPTIONS = [
   { value: 'ORG_ADMIN', label: 'Admin' }, { value: 'MANAGER', label: 'Manager' },
@@ -47,6 +69,8 @@ const SEVERITY_COLORS: Record<string, string> = { critical: '#EF4444', high: '#F
 export default function ReportBuilder() {
   const { reportId } = useParams<{ reportId: string }>()
   const navigate = useNavigate()
+  const routerLocation = useRouterLocation() as { state?: { locationId?: string } }
+  const { showSnackbar } = useSnackbar()
 
   const [meta, setMeta] = useState<ReportMeta | null>(null)
   const [data, setData] = useState<ReportData | null>(null)
@@ -55,7 +79,10 @@ export default function ReportBuilder() {
   const [error, setError] = useState('')
   const [chartType, setChartType] = useState('bar')
   const [filterOpen, setFilterOpen] = useState(false)
-  const [snackbar, setSnackbar] = useState('')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [pinned, setPinned] = useState(false)
+  const [datePreset, setDatePreset] = useState('')
+  const [staffTotal, setStaffTotal] = useState<number | null>(null)
 
   const [locations, setLocations] = useState<Location[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
@@ -85,8 +112,14 @@ export default function ReportBuilder() {
       }
       setMeta(found)
       setChartType(found.defaultChartType)
+      setCategories(reportsResponse.data.categories || [])
       setLocations(optionsResponse.data.locations || [])
       setDepartments(optionsResponse.data.departments || [])
+      setPinned(isPinned(found.id))
+      // Deep link from the overview (e.g. a location's report) carries its filter.
+      const incoming = routerLocation.state?.locationId
+        ?? (reportId === 'staff-directory' || reportId === 'staff-by-location' ? getReportsLocation() : '')
+      if (incoming) setLocationId(incoming)
     }).catch((e: any) => {
       if (active) setError(e.response?.data?.message || 'We could not load this report.')
     }).finally(() => {
@@ -111,6 +144,7 @@ export default function ReportBuilder() {
 
       const res = await api.get(`/reporting/data/${reportId}`, { params })
       setData(res.data)
+      recordReportViewed(reportId)
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to load report data')
     } finally {
@@ -122,7 +156,7 @@ export default function ReportBuilder() {
 
   const activeFilterCount = [dateFrom, dateTo, locationId, departmentId, role, status, severity].filter(Boolean).length
 
-  const clearFilters = () => { setDateFrom(''); setDateTo(''); setLocationId(''); setDepartmentId(''); setRole(''); setStatus(''); setSeverity('') }
+  const clearFilters = () => { setDateFrom(''); setDateTo(''); setDatePreset(''); setLocationId(''); setDepartmentId(''); setRole(''); setStatus(''); setSeverity('') }
 
   const handleExport = async (format: string) => {
     try {
@@ -145,8 +179,33 @@ export default function ReportBuilder() {
       // export taken in the first hour of a BST day.
       a.href = url; a.download = `${reportId}-${localDate()}.${ext}`
       a.click(); URL.revokeObjectURL(url)
-      setSnackbar(`Report exported as ${ext.toUpperCase()}`)
-    } catch { setSnackbar('Export failed') }
+      showSnackbar(`Report exported as ${ext.toUpperCase()}`, 'success')
+    } catch { showSnackbar('Export failed', 'error') }
+  }
+
+  // Total active staff, fetched lazily so the staff-by-location report can say
+  // who is missing from it (Figma 10.1 missing-location callout).
+  useEffect(() => {
+    if (reportId !== 'staff-by-location' || staffTotal !== null) return
+    api.get('/reporting/overview').then((res) => {
+      const card = res.data.cards?.find((c: any) => c.label === 'Active staff')
+      if (typeof card?.value === 'number') setStaffTotal(card.value)
+    }).catch(() => { /* the report still renders without the callout */ })
+  }, [reportId, staffTotal])
+
+  const handleTogglePin = () => {
+    if (!reportId) return
+    const pins = togglePin(reportId)
+    const next = pins.includes(reportId)
+    setPinned(next)
+    showSnackbar(next ? 'Saved to your reports' : 'Removed from your reports', 'success')
+  }
+
+  const handlePreset = (value: string) => {
+    setDatePreset(value)
+    const { from, to } = presetRange(value)
+    // Typing in either date field after a shortcut switches back to Custom.
+    setDateFrom(from); setDateTo(to)
   }
 
   const renderChart = () => {
@@ -221,27 +280,51 @@ export default function ReportBuilder() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
   if (!meta) return <Box><Alert severity="error" sx={{ mb: 2 }}>{error || 'Report not found'}</Alert></Box>
 
+  const categoryLabel = categories.find(c => c.id === meta.category)?.label ?? meta.category
+  const counted = data?.series.reduce((sum: number, s: any) => sum + (Number(s.value) || 0), 0) ?? 0
+  const unlocated = staffTotal !== null && reportId === 'staff-by-location' && !locationId
+    ? Math.max(staffTotal - counted, 0)
+    : 0
+
   return (
     <PageContainer>
 
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <IconButton onClick={() => navigate('/reports')} size="small"><BackIcon /></IconButton>
         <Box sx={{ flex: 1 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1 }}>
+            ANALYTICS / REPORTS / {categoryLabel.toUpperCase()}
+          </Typography>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>{meta.title}</Typography>
-          <Typography variant="body2" color="text.secondary">{meta.description}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {meta.description}
+            {data && <> · live data, updated {new Date(data.report.generatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</>}
+          </Typography>
         </Box>
         <Tooltip title="Refresh"><IconButton onClick={fetchData} disabled={fetching}><RefreshIcon /></IconButton></Tooltip>
+        <Button variant={pinned ? 'contained' : 'outlined'} size="small" onClick={handleTogglePin}
+          sx={{ textTransform: 'none', }}>
+          {pinned ? 'Saved ✓' : 'Save report'}
+        </Button>
         <Button variant="outlined" size="small" startIcon={<FilterIcon />} onClick={() => setFilterOpen(true)}
           sx={{ textTransform: 'none',}}>
           Filters {activeFilterCount > 0 && <Chip label={activeFilterCount} size="small" color="primary" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />}
         </Button>
         <Button variant="outlined" size="small" startIcon={<CsvIcon />} onClick={() => handleExport('csv')}
           sx={{ textTransform: 'none',}}>
-          CSV
+          Export CSV
         </Button>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {unlocated > 0 && (
+        <Alert severity="warning" sx={{ mb: 2 }}
+          action={<Button size="small" sx={{ textTransform: 'none' }} onClick={() => navigate('/staff')}>Show those staff</Button>}>
+          {unlocated} active staff have no location. This report counts {counted} of your {staffTotal} active staff.
+          Add a location to the others so they show up here and in the rota.
+        </Alert>
+      )}
 
       {/* Summary Cards */}
       {data && data.summary.cards.length > 0 && (
@@ -316,10 +399,20 @@ export default function ReportBuilder() {
 
           {meta.filters.includes('dateRange') && (
             <>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Range</InputLabel>
+                <Select value={datePreset} label="Range"
+                  onChange={e => handlePreset(e.target.value)}>
+                  <MenuItem value="">Custom</MenuItem>
+                  {DATE_PRESETS.filter(p => p.value).map(p => (
+                    <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField label="Date From" type="date" size="small" fullWidth value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+                onChange={e => { setDatePreset(''); setDateFrom(e.target.value) }} InputLabelProps={{ shrink: true }} />
               <TextField label="Date To" type="date" size="small" fullWidth value={dateTo}
-                onChange={e => setDateTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+                onChange={e => { setDatePreset(''); setDateTo(e.target.value) }} InputLabelProps={{ shrink: true }} />
             </>
           )}
 
@@ -393,8 +486,6 @@ export default function ReportBuilder() {
           )}
         </Stack>
       </Drawer>
-
-      <Snackbar open={!!snackbar} autoHideDuration={3000} message={snackbar} onClose={() => setSnackbar('')} />
     </PageContainer>
   )
 }

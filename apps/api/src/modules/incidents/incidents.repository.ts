@@ -629,6 +629,8 @@ export class IncidentsRepository {
         COUNT(*) FILTER (WHERE status = 'resolved')::int AS resolved,
         COUNT(*) FILTER (WHERE status = 'closed')::int AS closed,
         COUNT(*) FILTER (WHERE severity = 'critical')::int AS critical,
+        COUNT(*) FILTER (WHERE severity = 'high')::int AS high,
+        COUNT(*) FILTER (WHERE severity IN ('critical', 'high') AND status IN ('reported', 'investigating', 'reopened', 'triaging', 'actioning', 'verifying'))::int AS open_critical_high,
         COUNT(*) FILTER (WHERE is_cqc_reportable = TRUE AND status != 'closed')::int AS pending_cqc,
         COUNT(*) FILTER (WHERE is_near_miss = TRUE)::int AS near_misses,
         COUNT(*) FILTER (WHERE is_confidential = TRUE)::int AS confidential

@@ -4,7 +4,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Collapse, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem,
-  FormControl, InputLabel,
+  FormControl, InputLabel, Alert,
 } from '@mui/material'
 import {
   Shield as ShieldIcon, People as PeopleIcon, Warning as WarningIcon,
@@ -18,6 +18,7 @@ import {
   LocalDrink as WaterIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
 import PageContainer from '../../components/design/PageContainer'
 
 
@@ -142,6 +143,8 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
   const [tokens, setTokens] = useState<any[]>([])
   const [tokensLoading, setTokensLoading] = useState(false)
   const [showTokens, setShowTokens] = useState(false)
+  const { showSnackbar } = useSnackbar()
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
     api.get('/settings/locations').then(r => setLocations(r.data)).catch(() => {})
@@ -159,12 +162,19 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
   const handleCreate = async () => {
     if (!form.location_id || !form.officer_name || !form.email) return
     setLoading(true)
+    setCreateError('')
     try {
       const res = await api.post('/compliance-portal/access', form)
       setResult(res.data)
       loadTokens()
+      // Figma 5.8 TOAST / Link created: say what happened, then what happens next.
+      showSnackbar(
+        `We've emailed ${form.officer_name} a read-only link.` || 'The inspector link is ready to share.',
+        'success',
+        'Link created',
+      )
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to create access')
+      setCreateError(e.response?.data?.message || 'Failed to create access')
     }
     setLoading(false)
   }
@@ -192,17 +202,18 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
 
   return (
     <>
-      <Stack direction="row" spacing={1}>
-        <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => setOpen(true)} sx={{}}>
-          Generate Portal Link
-        </Button>
-        <Button variant="outlined" startIcon={<ClockIcon />} onClick={() => { setShowTokens(!showTokens); if (!showTokens) loadTokens() }} sx={{}}>
-          Active Links
-        </Button>
-      </Stack>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<LinkIcon />}
+        onClick={() => setOpen(true)}
+        sx={{ textTransform: 'none', fontWeight: 600, borderColor: 'divider', color: 'text.primary' }}
+      >
+        Inspector access
+      </Button>
 
-      {/* Token management list */}
-      {showTokens && (
+      {/* Token management list — lives inside the dialog now so the page header keeps the Figma 5.1 three-button row */}
+      {false && showTokens && (
         <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E3E9F0', bgcolor: 'notice.subtle.bg' }}>
             <Typography variant="subtitle2" fontWeight={600}>Compliance Portal Links</Typography>
@@ -267,9 +278,9 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
         </Paper>
       )}
 
-      <Dialog open={open} onClose={() => { setOpen(false); setResult(null) }} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => { setOpen(false); setResult(null); setCreateError('') }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LinkIcon /> Generate Compliance Portal Access
+          <LinkIcon /> Give an inspector access
         </DialogTitle>
         <DialogContent>
           {result ? (
@@ -293,33 +304,82 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
             </Box>
           ) : (
             <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Create a secure, read-only link to your compliance. It expires on its own.
+              </Typography>
+              {createError && (
+                <Alert severity="error" onClose={() => setCreateError('')}>{createError}</Alert>
+              )}
+              <TextField label="Inspector's name" placeholder="E.g. CQC Inspector" fullWidth value={form.officer_name} onChange={e => setForm(f => ({ ...f, officer_name: e.target.value }))} />
               <FormControl fullWidth>
                 <InputLabel>Location</InputLabel>
                 <Select value={form.location_id} label="Location" onChange={e => setForm(f => ({ ...f, location_id: e.target.value }))}>
                   {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
                 </Select>
               </FormControl>
-              <TextField label="Auditor / Compliance Officer Name" fullWidth value={form.officer_name} onChange={e => setForm(f => ({ ...f, officer_name: e.target.value }))} />
-              <TextField label="Auditor Email" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              <FormControl fullWidth>
-                <InputLabel>Access Duration</InputLabel>
-                <Select value={form.expires_hours} label="Access Duration" onChange={e => setForm(f => ({ ...f, expires_hours: Number(e.target.value) }))}>
-                  <MenuItem value={8}>8 hours (1 day)</MenuItem>
-                  <MenuItem value={24}>24 hours</MenuItem>
-                  <MenuItem value={72}>3 days</MenuItem>
-                  <MenuItem value={168}>1 week</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField label="Inspector email" placeholder="inspector@example.gov.uk" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Link expires after</Typography>
+                <Stack direction="row" spacing={1}>
+                  {[24, 72, 168].map((h) => (
+                    <Button
+                      key={h}
+                      size="small"
+                      variant={form.expires_hours === h ? 'contained' : 'outlined'}
+                      onClick={() => setForm(f => ({ ...f, expires_hours: h }))}
+                      sx={{ textTransform: 'none', fontWeight: 600, flex: 1 }}
+                    >
+                      {h === 24 ? '24 hours' : h === 72 ? '3 days' : '7 days'}
+                    </Button>
+                  ))}
+                </Stack>
+              </Box>
               <Typography variant="caption" color="text.secondary">
-                The auditor will have read-only access to compliance, incidents, medications, people, and nutrition data for the selected location only. They cannot edit any records.
+                The inspector gets read-only access to compliance, incidents, medications, people, and nutrition data for the selected location only. They cannot edit any records.
               </Typography>
+              <Button
+                size="small"
+                startIcon={<ClockIcon />}
+                onClick={() => { setShowTokens(!showTokens); if (!showTokens) loadTokens() }}
+                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}
+              >
+                {showTokens ? 'Hide active links' : 'View active links'}
+              </Button>
+              {showTokens && (
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+                  {tokensLoading ? (
+                    <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>
+                  ) : tokens.length === 0 ? (
+                    <Box sx={{ p: 2, textAlign: 'center' }}><Typography variant="body2" color="text.secondary">No links shared yet. Every link is recorded in the audit trail.</Typography></Box>
+                  ) : (
+                    <Stack spacing={1} sx={{ p: 1.5 }}>
+                      {tokens.map((t: any) => {
+                        const isExpired = new Date(t.expires_at) < new Date()
+                        const isRevoked = t.revoked
+                        const status = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
+                        return (
+                          <Stack key={t.id} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>{t.officer_name}</Typography>
+                              <Typography variant="caption" color="text.secondary">{t.location_name} · expires {new Date(t.expires_at).toLocaleDateString('en-GB')} · {status}</Typography>
+                            </Box>
+                            {!isRevoked && !isExpired && (
+                              <Button size="small" color="error" onClick={() => handleRevoke(t.id)} sx={{ textTransform: 'none' }}>Revoke</Button>
+                            )}
+                          </Stack>
+                        )
+                      })}
+                    </Stack>
+                  )}
+                </Box>
+              )}
             </Stack>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => { setOpen(false); setResult(null) }}>{result ? 'Done' : 'Cancel'}</Button>
           {!result && <Button variant="contained" onClick={handleCreate} disabled={loading || !form.location_id || !form.officer_name || !form.email} sx={{ bgcolor: '#0164C8' }}>
-            {loading ? <CircularProgress size={20} /> : 'Generate Link'}
+            {loading ? <CircularProgress size={20} /> : 'Create link'}
           </Button>}
         </DialogActions>
       </Dialog>

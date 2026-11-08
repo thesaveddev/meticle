@@ -693,16 +693,16 @@ once — the first declaration wins at runtime.
 
 | Surface | Count |
 |---|---|
-| Routes with a page module | 124 |
-| Route × module rows | 124 |
-| Distinct page modules routed | 107 |
+| Routes with a page module | 125 |
+| Route × module rows | 125 |
+| Distinct page modules routed | 108 |
 | Redirect routes (no page to review) | 7 |
 | Structural wrapper routes (guards, layouts) | 1 |
 | Route elements that resolve to nothing | 0 |
-| Page-tree modules the router does not reach | 2 |
-| audited / updated / tested | 18 / 124 / 38 |
+| Page-tree modules the router does not reach | 4 |
+| audited / updated / tested | 18 / 125 / 38 |
 | Fully signed off (all three) | 13 |
-| Gaps (any of the three missing) | 111 |
+| Gaps (any of the three missing) | 112 |
 
 **Structural wrapper routes** — guards and layouts that render no page of their own:
 `(root)`.
@@ -734,6 +734,7 @@ once — the first declaration wins at runtime.
 | `/compliance/dspt` | `pages/dspt/DSPTPage.tsx` | no | yes | no |
 | `/compliance/engagement` | `pages/compliance/StaffEngagementPage.tsx` | no | yes | no |
 | `/compliance/evidence` | `pages/compliance/EvidencePacksPage.tsx` | no | yes | no |
+| `/compliance/handovers` | `pages/handovers/ShiftHandoversPage.tsx` | no | yes | no |
 | `/compliance/homecare` | `pages/compliance/HomecareCompliancePage.tsx` | no | yes | no |
 | `/compliance/identity` | `pages/compliance/IdentityMonitoringPage.tsx` | no | yes | no |
 | `/compliance/readiness` | `pages/compliance/CqcReadinessPage.tsx` | no | yes | no |
@@ -845,5 +846,7 @@ by nothing in the application: dead code, or a page whose route was removed.
 
 - `pages/LandingPage.tsx`
 - `pages/marketing/BlogPage.tsx`
+- `pages/scheduling/rota/DayBoardView.tsx`
+- `pages/scheduling/rota/ShiftCard.tsx`
 
 <!-- END generated route tracker -->

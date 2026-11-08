@@ -33,10 +33,11 @@ export class TaskRepository {
 
   static async create(orgId: string, data: any) {
     const result = await query(
-      `INSERT INTO tasks (organization_id, title, description, notes, assigned_to, person_id, recurrence, priority, status, due_date, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO tasks (organization_id, title, description, notes, assigned_to, person_id, recurrence, priority, status, due_date, created_by, policy_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [orgId, data.title, data.description || null, data.notes || null, data.assigned_to || null, data.person_id || null,
-       data.recurrence || 'once', data.priority || 'medium', data.status || 'pending', data.due_date || null, data.created_by || null]
+       data.recurrence || 'once', data.priority || 'medium', data.status || 'pending', data.due_date || null, data.created_by || null,
+       data.policy_id || null]
     );
     return result.rows[0];
   }

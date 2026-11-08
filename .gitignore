@@ -108,3 +108,10 @@ section-*.png
 # Playwright E2E artifacts
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Local QA/design scratch. These are screenshots and Figma harvests from
+# manual review sessions, not product source or reviewed visual baselines.
+/*.png
+design-harvest/
+__pycache__/
+*.pyc

@@ -710,7 +710,10 @@ export class EMedicationRepository {
       SELECT dc.*,
         (SELECT first_name || ' ' || last_name FROM people WHERE id = dc.person_id) AS person_name,
         (SELECT COUNT(*) FROM emedication_daily_count_items WHERE daily_count_id = dc.id)::int AS items_count,
-        EXISTS(SELECT 1 FROM emedication_daily_count_items WHERE daily_count_id = dc.id AND escalate = TRUE) AS has_escalation
+        EXISTS(SELECT 1 FROM emedication_daily_count_items WHERE daily_count_id = dc.id AND escalate = TRUE) AS has_escalation,
+        (SELECT medication_name FROM emedication_daily_count_items WHERE daily_count_id = dc.id ORDER BY medication_name LIMIT 1) AS first_medication_name,
+        (SELECT COALESCE(SUM(expected_quantity), 0)::int FROM emedication_daily_count_items WHERE daily_count_id = dc.id) AS total_expected,
+        (SELECT COALESCE(SUM(actual_quantity), 0)::int FROM emedication_daily_count_items WHERE daily_count_id = dc.id) AS total_counted
       FROM emedication_daily_counts dc
       WHERE dc.organization_id = $1`;
     const params: any[] = [orgId];

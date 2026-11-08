@@ -28,6 +28,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
 
 type Registration = {
   regulator_id: string
@@ -44,6 +45,7 @@ type Registration = {
 
 export default function RegulatorRegistrationsPanel() {
   const queryClient = useQueryClient()
+  const { showSnackbar } = useSnackbar()
   const [drafts, setDrafts] = useState<Record<string, string>>({})
 
   const { data, isLoading } = useQuery({
@@ -56,7 +58,14 @@ export default function RegulatorRegistrationsPanel() {
       const res = await api.put('/compliance/regulator-registrations', row)
       return res.data
     },
-    onSuccess: (d) => queryClient.setQueryData(['regulator-registrations'], d),
+    // Figma 5.12: recording a number confirms it by regulator — the toast
+    // names the body, not the field. No readiness claim: the score is the
+    // CQC framework's own, and this panel does not feed it.
+    onSuccess: (d, variables) => {
+      queryClient.setQueryData(['regulator-registrations'], d)
+      const saved = (d?.registrations ?? []).find((r: Registration) => r.regulator_id === variables.regulator_id)
+      showSnackbar(`${saved?.regulator_name ?? 'Registration'} is recorded.`, 'success', 'Regulator saved')
+    },
   })
 
   const remove = useMutation({

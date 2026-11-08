@@ -1,8 +1,7 @@
-import { useState } from 'react'
-import { Box, Typography, Paper, Button, Stack, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Tabs, Tab, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Checkbox, ListItemText } from '@mui/material'
+import { useState, useMemo } from 'react'
+import { Box, Typography, Paper, Button, Stack, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Tabs, Tab, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Checkbox, ListItemText, Divider } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
-import { PageHeader } from '../../components/ui'
-import { Add as AddIcon, Group as GroupIcon, Edit as EditIcon, Delete as DeleteIcon, Send as SendIcon, RemoveCircleOutline as RemoveIcon } from '@mui/icons-material'
+import { Add as AddIcon, Group as GroupIcon, BarChart as ChartIcon, CalendarMonth as CalendarIcon, Edit as EditIcon, Delete as DeleteIcon, RemoveCircleOutline as RemoveIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -95,21 +94,38 @@ export default function StaffEngagementPage() {
     ? Object.values(aggregate.average_scores).reduce((a: number, b: unknown) => a + (b as number), 0) / Math.max(Object.keys(aggregate.average_scores).length, 1)
     : 0
 
+  // Figma 5.11: the third metric card names the most recent survey. The
+  // aggregate endpoint carries no date, so it is read off the newest
+  // response row already in hand — no API change for a display value.
+  const lastSurveyAt = useMemo(() => {
+    if (!surveys?.length) return null
+    const ts = Math.max(...surveys.map((s: any) => new Date(s.created_at).getTime()).filter(n => !isNaN(n)))
+    return isFinite(ts) ? new Date(ts).toLocaleDateString() : null
+  }, [surveys])
+
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>
 
   return (
     <PageContainer>
 
       {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{feedback.message}</Alert>}
-      <PageHeader
-        title="Staff Engagement Surveys"
-        subtitle="Measure and improve staff engagement."
-        actions={
-          templates && templates.length > 0 && (
-            <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setSendOpen(true)}>Send Survey to All Staff</Button>
-          )
-        }
-      />
+      {/* ── Breadcrumb + header (Figma 5.11, Satisfaction pattern) ── */}
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em' }}>
+        COMPLIANCE &amp; SAFETY / COMPLIANCE / STAFF ENGAGEMENT
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mt: 0.5, mb: 3, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Staff engagement</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            How the team feels about their work, asked a few times a year.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant="contained" onClick={() => setSendOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Start a pulse survey
+          </Button>
+        </Stack>
+      </Stack>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab label="Dashboard" />
@@ -119,38 +135,32 @@ export default function StaffEngagementPage() {
 
       {tab === 0 && (
         <>
-          {aggregate && aggregate.total > 0 && (
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #E3E9F0' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <GroupIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
-                    <Typography variant="h4" fontWeight={600}>{aggregate.total}</Typography>
-                    <Typography variant="body2" color="text.secondary">Responses</Typography>
-                    <Typography variant="caption" color="text.secondary">{aggregate.anonymous_count} anon · {aggregate.named_count} named</Typography>
+          {/* ── Metric cards (Figma 5.11): always visible, live values ── */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {[{
+              label: 'Responses', value: aggregate?.total ?? 0, icon: <GroupIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+            }, {
+              label: 'Engagement score',
+              value: aggregate && aggregate.total > 0 ? `${Math.round((avgAll / 5) * 100)}%` : '—',
+              icon: <ChartIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+            }, {
+              label: 'Last survey', value: lastSurveyAt ?? 'Never', icon: <CalendarIcon sx={{ fontSize: 18, color: 'notice.info.fg' }} />,
+            }].map((c) => (
+              <Grid item xs={12} sm={4} key={c.label}>
+                <Card sx={{ border: '1px solid #E3E9F0' }}>
+                  <CardContent>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">{c.label}</Typography>
+                      <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: 'notice.info.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {c.icon}
+                      </Box>
+                    </Stack>
+                    <Typography variant="h4" fontWeight={600}>{c.value}</Typography>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #E3E9F0' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={600} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
-                    <Typography variant="body2" color="text.secondary">Avg Score / 5</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E3E9F0' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={600} color="#0164C8">
-                      {aggregate.total > 0 ? Math.round((avgAll / 5) * 100) : '—'}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">Engagement Score</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          )}
+            ))}
+          </Grid>
 
           {aggregate?.average_scores && Object.keys(aggregate.average_scores).length > 0 && (
             <Paper sx={{ p: 3, mb: 3 }}>
@@ -173,7 +183,22 @@ export default function StaffEngagementPage() {
           )}
 
           {(!aggregate || aggregate.total === 0) && (
-            <EmptyState title="No responses yet" description="Staff can take the anonymous survey or admins can send a survey to everyone" variant="default" />
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6">Pulse surveys</Typography>
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ textAlign: 'center', py: 5 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.info.bg', mb: 2 }}>
+                  <GroupIcon sx={{ color: 'notice.info.fg', fontSize: 26 }} />
+                </Box>
+                <Typography sx={{ fontWeight: 700, mb: 0.75 }}>No staff surveys yet</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480, mx: 'auto', mb: 2.5 }}>
+                  A five-question pulse survey takes staff two minutes. Answers are anonymous, so people can be honest.
+                </Typography>
+                <Button variant="contained" onClick={() => setSendOpen(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                  Start a pulse survey
+                </Button>
+              </Box>
+            </Paper>
           )}
         </>
       )}

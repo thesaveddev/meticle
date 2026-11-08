@@ -9,6 +9,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog, SectionHeader } from '../../components/ui'
 import { localDate } from '../../utils/dateFormat'
+import FigDialogHeader, { nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { EmptyState } from '../../components/design/EmptyState'
 
 const SUPPORT_LEVELS = [
@@ -61,6 +63,8 @@ function getAllImageUrls(entry: MemoryEntry): string[] {
 }
 
 export default function MemoryBookTab({ personId }: { personId: string }) {
+  const eyebrow = usePersonEyebrow(personId, 'RECORDS')
+  const { showSnackbar } = useSnackbar()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -90,13 +94,13 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
       files.forEach(f => fd.append('images', f))
       return api.post(`/people/${personId}/memory-book`, fd)
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); closeDialog() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); const t = form.title; closeDialog(); showSnackbar(`${t} is saved to the memory book.`, 'success', 'Memory saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to save'),
   })
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/people/memory-book/${editingEntry?.id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); closeDialog() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); const t = form.title; closeDialog(); showSnackbar(`${t} is updated.`, 'success', 'Memory saved') },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update'),
   })
 
@@ -170,8 +174,8 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Memory Book" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openCreate}
-        sx={{ textTransform: 'none', px: 2 }}>Add Memory</Button>} />
+      <SectionHeader title="Memory book" subtitle="Life story and the things that matter" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openCreate}
+        sx={{ textTransform: 'none', px: 2 }}>Add a memory</Button>} />
 
       {entries.length === 0 ? (
         <EmptyState
@@ -316,7 +320,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
             createMutation.mutate()
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editingEntry ? 'Edit Memory' : 'Add Memory'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={editingEntry ? 'Edit memory' : 'Add a memory'} subtitle={`Memories from ${nameFromEyebrow(eyebrow)}, shared with the family where they want them.`} onClose={closeDialog} />
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -353,12 +357,13 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                       ))}
                     </Grid>
                   )}
-                  {!editingEntry && (
+                  {!editingEntry && (<>
                     <Button variant="outlined" startIcon={<CameraAlt />} onClick={() => fileInputRef.current?.click()}
                       sx={{ textTransform: 'none', width: '100%', py: 1.5, borderStyle: 'dashed',}}>
-                      {previewUrls.length > 0 ? 'Add More Photos' : 'Add Photos'}
+                      {previewUrls.length > 0 ? 'Add more photos' : 'Add photos'}
                     </Button>
-                  )}
+                    <Typography variant="caption" color="text.secondary">JPG or PNG · up to 10 MB each</Typography>
+                  </>)}
                   {editingEntry && getAllImageUrls(editingEntry).length > 0 && (
                     <Typography variant="caption" color="#51637A">
                       Existing images: {getAllImageUrls(editingEntry).length} photo(s). Upload new images via Edit only.
@@ -372,7 +377,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
             <Button onClick={closeDialog} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending || updateMutation.isPending}
               sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
-              {createMutation.isPending || updateMutation.isPending ? <CircularProgress size={20} /> : (editingEntry ? 'Update' : 'Save Memory')}
+              {createMutation.isPending || updateMutation.isPending ? <CircularProgress size={20} /> : (editingEntry ? 'Save changes' : 'Save memory')}
             </Button>
           </DialogActions>
         </Box>

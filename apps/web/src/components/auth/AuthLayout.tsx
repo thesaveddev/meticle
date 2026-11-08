@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
 import AuthBrandPanel from './AuthBrandPanel'
-import BrandWordmark from '../BrandWordmark'
 import Nav from '../marketing/Nav'
 import { M } from '../../styles/marketing-tokens'
 
@@ -31,8 +29,6 @@ export default function AuthLayout({
   /** The authentication card content (form or state). */
   children: ReactNode
 }) {
-  const navigate = useNavigate()
-
   return (
     <Box
       sx={{
@@ -108,18 +104,8 @@ export default function AuthLayout({
             pointerEvents: 'none',
           }}
         />
-        {/* Slim top bar: wordmark on mobile (brand panel is hidden there),
-            language on desktop. Never a second product's chrome. */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: { xs: 20, md: 28 },
-            left: { xs: 24, md: 40 },
-            display: { md: 'none' },
-          }}
-        >
-          <BrandWordmark size={20} onClick={() => navigate('/')} />
-        </Box>
+        {/* Slim top bar: language selector. The header Nav above carries the
+            only wordmark on auth pages. */}
         <Box
           sx={{
             position: 'absolute',

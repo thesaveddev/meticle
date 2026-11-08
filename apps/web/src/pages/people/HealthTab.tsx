@@ -3,6 +3,8 @@ import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogConte
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import FigDialogHeader, { PillOptions, nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
+import { useSnackbar } from '../../context/SnackbarContext'
 import { localToday } from '../../utils/dateFormat'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
 import { P, BRISTOL_SCALE_COLORS } from '../../styles/tokens'
@@ -52,13 +54,16 @@ function HealthEntryViewDialog({ open, onClose, title, chips, rows }: {
 
 function ObservationsSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
+  const eyebrow = usePersonEyebrow(personId, 'CLINICAL')
+  const { showSnackbar } = useSnackbar()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewEntry, setViewEntry] = useState<any>(null)
   const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ observation_date: today(), category: 'general', notes: '', severity: 'normal' })
+  const [showAllObs, setShowAllObs] = useState(false)
   const { data, isLoading } = useQuery({ queryKey: ['health-obs', personId], queryFn: () => api.get(`/health/${personId}/observations`).then(r => r.data) })
-  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/observations`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
+  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/observations`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }); showSnackbar('The observations are saved to the record.', 'success', 'Observations saved') } })
   const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/observations/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
   const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/observations/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setDeleteTarget(null) } })
 
@@ -66,10 +71,11 @@ function ObservationsSection({ personId }: { personId: string }) {
   return (
     <Box>
       <SectionHeader
-        title="Health Observations"
+        title="Observations"
+        subtitle={data?.length > 0 ? (showAllObs ? `${data.length} readings` : 'Last 3 readings') : undefined}
         action={
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>
-            Add Observation
+            Record observations
           </Button>
         }
       />
@@ -77,7 +83,7 @@ function ObservationsSection({ personId }: { personId: string }) {
         <EmptyRow message="No observations recorded" />
       ) : (
         <Stack spacing={1.5}>
-          {data.map((o: any) => (
+          {(showAllObs ? data : data.slice(0, 3)).map((o: any) => (
             <Paper
               key={o.id}
               onClick={() => setViewEntry(o)}
@@ -100,9 +106,17 @@ function ObservationsSection({ personId }: { personId: string }) {
           ))}
         </Stack>
       )}
+      {(data?.length > 3) && (
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">Showing {showAllObs ? data.length : 3} of {data.length}</Typography>
+          <Button size="small" onClick={() => setShowAllObs(v => !v)} sx={{ textTransform: 'none' }}>
+            {showAllObs ? 'Show less' : `View all ${data.length}`}
+          </Button>
+        </Stack>
+      )}
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editId) updMut.mutate({ id: editId, d: form }); else addMut.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 600 }}>{editId ? 'Edit Observation' : 'Add Observation'}</DialogTitle>
+          <FigDialogHeader eyebrow={eyebrow} title={editId ? 'Edit observations' : 'Record observations'} subtitle={`Record ${nameFromEyebrow(eyebrow)}'s observations.`} onClose={() => { setAddOpen(false); setEditId(null) }} />
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.observation_date} onChange={e => setForm(f => ({ ...f, observation_date: e.target.value }))} />
@@ -111,15 +125,14 @@ function ObservationsSection({ personId }: { personId: string }) {
                   {['general', 'skin', 'medication', 'sleep', 'pain', 'weight', 'other'].map(c => <MenuItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MenuItem>)}
                 </Select>
               </FormControl>
-              <FormControl fullWidth><InputLabel>Severity</InputLabel>
-                <Select value={form.severity} label="Severity" onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>
-                  {['normal', 'mild', 'moderate', 'severe'].map(s => <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>)}
-                </Select>
-              </FormControl>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Severity</Typography>
+                <PillOptions options={['normal', 'mild', 'moderate', 'severe'].map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))} value={form.severity} onChange={v => setForm(f => ({ ...f, severity: v }))} />
+              </Box>
               <TextField label="Notes" fullWidth multiline rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending} sx={{ bgcolor: '#0164C8' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : 'Save'}</Button></DialogActions>
+          <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending} sx={{ bgcolor: '#0164C8' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : 'Save observations'}</Button></DialogActions>
         </Box>
       </Dialog>
       <ConfirmDialog
