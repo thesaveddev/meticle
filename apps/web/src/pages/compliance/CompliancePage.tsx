@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip } from '@mui/material'
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
 import { useTheme } from '@mui/material/styles'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -170,19 +170,25 @@ export default function CompliancePage() {
               OVERALL COMPLIANCE
             </Typography>
             <Box sx={{ position: 'relative', display: 'inline-flex', my: 1 }}>
-              <Box sx={{
-                width: 140, height: 140, borderRadius: '50%',
-                border: `5px solid ${theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE'}`,
-                position: 'absolute',
-              }} />
-              <Box sx={{
-                width: 140, height: 140, borderRadius: '50%',
-                border: `5px solid ${rating.color}`,
-                position: 'absolute',
-                clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%)`,
-                opacity: 0.15,
-                bgcolor: rating.color,
-              }} />
+              <CircularProgress
+                variant="determinate"
+                value={100}
+                size={140}
+                thickness={5}
+                sx={{ color: theme.palette.mode === 'dark' ? '#2A3C54' : '#F7FAFE' }}
+              />
+              <CircularProgress
+                variant="determinate"
+                value={overallCompliance}
+                size={140}
+                thickness={5}
+                sx={{
+                  color: rating.color,
+                  position: 'absolute',
+                  left: 0,
+                  '& .MuiCircularProgress-circle': { strokeLinecap: 'round' },
+                }}
+              />
               <Box sx={{
                 position: 'absolute', top: 0, left: 0, bottom: 0, right: 0,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -254,89 +260,97 @@ export default function CompliancePage() {
 
       {/* ── Alert banner ── */}
       {overallCompliance < 80 || pendingDocs > 0 || incompleteRequirements > 0 || nutritionConcerns > 0 ? (
-        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'notice.error.bg', border: 'none' }}>
+        <PremiumCard noBorder sx={{ p: 2, mb: 3 }}>
           <Stack spacing={1.5}>
             {overallCompliance < 80 && (
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ErrorIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
+              <Box sx={{ bgcolor: 'notice.error.bg', borderRadius: 2, p: 1.5 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ErrorIcon sx={{ color: '#EF4444', fontSize: 18 }} />
                   </Box>
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>Overall compliance is {overallCompliance}% — below 80% target</Typography>
                     <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Review the Readiness Score for detailed gap analysis</Typography>
                   </Box>
                 </Stack>
                 <Button size="small" variant="contained" onClick={() => navigate('/compliance/readiness')}
-                  sx={{ textTransform: 'none', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
+                  sx={{ textTransform: 'none', bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>View Gaps</Button>
               </Stack>
+              </Box>
             )}
             {pendingDocs > 0 && (
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <DocIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
+              <Box sx={{ bgcolor: 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <DocIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
                   </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{pendingDocs} document{pendingDocs > 1 ? 's' : ''} pending review</Typography>
-                    <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Review and approve or reject uploaded identity documents</Typography>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{pendingDocs} document{pendingDocs > 1 ? 's' : ''} pending review</Typography>
+                    <Typography variant="caption" sx={{ color: 'notice.warning.fg' }}>Review and approve or reject uploaded identity documents</Typography>
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => navigate('/compliance/identity')}
-                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem' }}>Review</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.warning.fg', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>Review</Button>
               </Stack>
+              </Box>
             )}
             {incompleteRequirements > 0 && (
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <WarningIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
+              <Box sx={{ bgcolor: 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <WarningIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
                   </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{incompleteRequirements} requirement{incompleteRequirements > 1 ? 's' : ''} with gaps</Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                      <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>Click a requirement below to see which staff are missing it.</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/training')}>Assign training</Button>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/competency')}>Run assessments</Button>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/compliance/identity')}>Upload docs</Button>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{incompleteRequirements} requirement{incompleteRequirements > 1 ? 's' : ''} with gaps</Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
+                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }}>Click a requirement below to see which staff are missing it.</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/training')}>Assign training</Button>
+                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }} aria-hidden>·</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/competency')}>Run assessments</Button>
+                      <Typography variant="caption" sx={{ color: 'notice.warning.fg' }} aria-hidden>·</Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.warning.fg' }} onClick={() => navigate('/compliance/identity')}>Upload docs</Button>
                     </Stack>
                   </Box>
                 </Stack>
                 <Button size="small" variant="outlined" onClick={() => { setExpandedSection('requirements'); navigate('/compliance/records') }}
-                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.error.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>View All Records</Button>
+                  sx={{ textTransform: 'none', borderColor: '#F59E0B', color: 'notice.warning.fg', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap', flexShrink: 0 }}>View All Records</Button>
               </Stack>
+              </Box>
             )}
             {nutritionConcerns > 0 && (
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: nutritionRating.color === '#EF4444' ? '#FEF0F0' : '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ bgcolor: nutritionRating.color === '#EF4444' ? 'notice.error.bg' : 'notice.warning.bg', borderRadius: 2, p: 1.5 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <FavoriteIcon sx={{ color: nutritionRating.color, fontSize: 18 }} />
                   </Box>
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }}>
                       {nutritionConcerns} person{nutritionConcerns > 1 ? 's' : ''} with nutrition concerns in the last 7 days
                     </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                      <Typography variant="caption" sx={{ color: 'notice.error.fg' }}>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
+                      <Typography variant="caption" sx={{ color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }}>
                         {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 &&
                           `${nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length} refused meals today`}
                         {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 && nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 && ' · '}
                         {nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 &&
                           `${nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length} staff-flagged concerns`}
                       </Typography>
-                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: 'notice.error.fg' }} onClick={() => navigate('/nutrition')}>View Nutrition</Button>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: nutritionRating.color === '#EF4444' ? '#B42318' : '#9A6700' }} onClick={() => navigate('/nutrition')}>View Nutrition</Button>
                     </Stack>
                   </Box>
                 </Stack>
               </Stack>
+              </Box>
             )}
           </Stack>
         </PremiumCard>
       ) : (
         <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <CheckCircle sx={{ color: 'notice.success.fg', fontSize: 18 }} />
           </Box>
           <Typography sx={{ fontWeight: 700, color: 'notice.success.fg' }}>All compliance areas are on track, including nutrition.</Typography>
