@@ -14,6 +14,7 @@ import { validateAIResponse, IntelligenceResponseSchema } from '../ai.schemas';
 import { query as dbQuery } from '../../../shared/database';
 import { resolveAiMinimisation } from '../ai.minimisation';
 import logger from '../../../shared/utils/logger';
+import { decryptRowsForOrg } from '../../../shared/utils/encrypted-columns';
 
 /**
  * SUMMARISE_CHANGES — a read-only Mica action.
@@ -153,7 +154,7 @@ export class SummariseChangesAction implements MicaAction<SummariseChangesInput,
           params,
         ),
         this.db.query(
-          `SELECT n.id, n.note_date, n.category, n.shift, LEFT(n.content, 600) AS content,
+          `SELECT n.id, n.note_date, n.category, n.shift, n.content AS content,
                   p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name,
                   'daily_note'::text AS __source_type
            FROM daily_notes n JOIN people p ON p.id = n.person_id
@@ -180,7 +181,7 @@ export class SummariseChangesAction implements MicaAction<SummariseChangesInput,
           params,
         ),
         this.db.query(
-          `SELECT ra.id, ra.type, ra.risk_level, ra.review_date, LEFT(ra.details, 400) AS details, ra.person_id,
+          `SELECT ra.id, ra.type, ra.risk_level, ra.review_date, ra.details AS details, ra.person_id,
                   'risk_assessment'::text AS __source_type
            FROM risk_assessments ra JOIN people p ON p.id = ra.person_id
            WHERE p.organization_id = $1
@@ -200,7 +201,16 @@ export class SummariseChangesAction implements MicaAction<SummariseChangesInput,
         ),
       ]);
 
-      const rows = [...visits.rows, ...notes.rows, ...medication.rows, ...incidents.rows, ...risks.rows, ...actions.rows] as Array<Record<string, unknown> & { id: string; __source_type: string }>;
+      // Decrypted and only then truncated — `LEFT()` in the query above would have
+      // cut a ciphertext instead of a sentence.
+      const rows = [
+        ...visits.rows,
+        ...decryptRowsForOrg('daily_notes', notes.rows, orgId).map((r: any) => ({ ...r, content: String(r.content ?? '').slice(0, 600) })),
+        ...medication.rows,
+        ...incidents.rows,
+        ...decryptRowsForOrg('risk_assessments', risks.rows, orgId).map((r: any) => ({ ...r, details: String(r.details ?? '').slice(0, 400) })),
+        ...actions.rows,
+      ] as Array<Record<string, unknown> & { id: string; __source_type: string }>;
       if (rows.length === 0) {
         return {
           error: {

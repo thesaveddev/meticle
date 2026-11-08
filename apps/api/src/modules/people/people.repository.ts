@@ -1,6 +1,7 @@
 import { query } from '../../shared/database';
 import { encryptField } from '../../shared/utils/encryption';
-import { decryptRow, decryptRows, decryptRowForOrg, encryptUpdate, encryptedColumns, orgIdForPerson, orgIdForFamilyContact } from '../../shared/utils/encrypted-columns';
+import { decryptRow, decryptRows, decryptRowForOrg, decryptRowsForOrg, encryptUpdate, encryptedColumns, orgIdForPerson, orgIdForFamilyContact, orgIdForClinicalRow } from '../../shared/utils/encrypted-columns';
+import { decryptField } from '../../shared/utils/encryption';
 import { visibleResidentPredicate } from './personVisibility';
 
 /**
@@ -285,61 +286,75 @@ export class PersonRepository {
     const { person_id, title, category, description, risk_assessment, review_date, status,
             mobility_level, mobility_aids, communication_needs, capacity_status,
             sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, file_name, sections } = data;
+    // The narrative is encrypted under the resident's organisation key; the title,
+    // category and review date stay searchable and sortable in the clear.
+    const orgId = await orgIdForPerson(person_id as string);
+    const encrypted = encryptUpdate('care_plans', { description, risk_assessment }, orgId as string);
     const result = await query(
       `INSERT INTO care_plans (person_id, title, category, description, risk_assessment, review_date, status,
         mobility_level, mobility_aids, communication_needs, capacity_status,
         sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, file_name, sections)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-       [person_id, title, category, description, risk_assessment, review_date || null, status || 'active',
+       [person_id, title, category, encrypted.description, encrypted.risk_assessment, review_date || null, status || 'active',
        mobility_level || null, mobility_aids || null, communication_needs || null, capacity_status || null,
        sleep_pattern || null, emergency_info || null, personal_goals || null, likes_dislikes || null,
        cultural_needs || null, file_url || null, file_name || null, JSON.stringify(sections || {})]
     );
-    return result.rows[0];
+    return decryptRowForOrg('care_plans', result.rows[0], orgId as string) as any;
   }
 
   static async updateCarePlan(id: string, data: Partial<CarePlanRow>) {
     const ALLOWED = new Set(['title', 'category', 'description', 'risk_assessment', 'review_date', 'reviewed_by', 'reviewed_at', 'status',
       'mobility_level', 'mobility_aids', 'communication_needs', 'capacity_status',
       'sleep_pattern', 'emergency_info', 'personal_goals', 'likes_dislikes', 'cultural_needs', 'file_url', 'file_name', 'sections']);
+    // An update arrives with the row's id and no organisation, so the key context
+    // comes back through the resident. No row, no key — and nothing to update.
+    const orgId = await orgIdForClinicalRow('care_plans', id);
+    if (!orgId) return null;
+    const encrypted = encryptUpdate('care_plans', data as Record<string, unknown>, orgId);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
-    for (const [k, v] of Object.entries(data)) {
+    for (const [k, v] of Object.entries(encrypted)) {
       if (!ALLOWED.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v === '' && (k === 'review_date') ? null : (k === 'sections' ? JSON.stringify(v) : v));
     }
     if (fields.length === 0) {
       const result = await query(`SELECT * FROM care_plans WHERE id = $1`, [id]);
-      return result.rows[0] || null;
+      return decryptRowForOrg('care_plans', result.rows[0], orgId) || null;
     }
     if (fields.length > 0) {
       fields.push('version = COALESCE(version, 0) + 1');
     }
     params.push(id);
     const result = await query(`UPDATE care_plans SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, params);
-    return result.rows[0] || null;
+    return decryptRowForOrg('care_plans', result.rows[0], orgId) || null;
   }
 
   // ---- Daily Notes ----
   static async createDailyNote(data: Partial<DailyNoteRow>) {
     const { person_id, author_id, note_date, shift, category, content, support_level } = data;
+    const orgId = await orgIdForPerson(person_id as string);
+    const encrypted = encryptUpdate('daily_notes', { content }, orgId as string);
     const result = await query(
       `INSERT INTO daily_notes (person_id, author_id, note_date, shift, category, content, support_level) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [person_id, author_id, note_date || new Date().toISOString().split('T')[0], shift, category, content, support_level || null]
+      [person_id, author_id, note_date || new Date().toISOString().split('T')[0], shift, category, encrypted.content, support_level || null]
     );
-    return result.rows[0];
+    return decryptRowForOrg('daily_notes', result.rows[0], orgId as string);
   }
 
   static async updateDailyNote(id: string, data: any) {
+    const orgId = await orgIdForClinicalRow('daily_notes', id);
+    if (!orgId) return null;
+    const encrypted = encryptUpdate('daily_notes', data as Record<string, unknown>, orgId);
     const fields: string[] = []; const values: any[] = []; let idx = 1;
-    for (const [key, val] of Object.entries(data)) {
+    for (const [key, val] of Object.entries(encrypted)) {
       if (!PersonRepository.DAILY_NOTE_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
     values.push(id);
     const result = await query(`UPDATE daily_notes SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
-    return result.rows[0] || null;
+    return decryptRowForOrg('daily_notes', result.rows[0], orgId) || null;
   }
 
   static async getDailyNotes(personId: string, limit = 50) {
@@ -348,30 +363,36 @@ export class PersonRepository {
        FROM daily_notes dn WHERE dn.person_id = $1 ORDER BY dn.note_date DESC, dn.created_at DESC LIMIT $2`,
       [personId, limit]
     );
-    return result.rows;
+    const orgId = await orgIdForPerson(personId);
+    return decryptRowsForOrg('daily_notes', result.rows, orgId as string);
   }
 
   // ---- Risk Assessments ----
   static async createRiskAssessment(data: Partial<RiskAssessmentRow>) {
     const { person_id, type, risk_level, details, mitigation_actions, review_date, file_url, file_name } = data;
+    const orgId = await orgIdForPerson(person_id as string);
+    const encrypted = encryptUpdate('risk_assessments', { details, mitigation_actions }, orgId as string);
     const result = await query(
       `INSERT INTO risk_assessments (person_id, type, risk_level, details, mitigation_actions, review_date, file_url, file_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [person_id, type, risk_level, details, mitigation_actions, review_date, file_url || null, file_name || null]
+      [person_id, type, risk_level, encrypted.details, encrypted.mitigation_actions, review_date, file_url || null, file_name || null]
     );
-    return result.rows[0];
+    return decryptRowForOrg('risk_assessments', result.rows[0], orgId as string);
   }
 
   static async updateRiskAssessment(id: string, data: Partial<RiskAssessmentRow>) {
+    const orgId = await orgIdForClinicalRow('risk_assessments', id);
+    if (!orgId) return null;
+    const encrypted = encryptUpdate('risk_assessments', data as Record<string, unknown>, orgId);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['review_date', 'reassessment_date']);
-    for (const [k, v] of Object.entries(data)) {
+    for (const [k, v] of Object.entries(encrypted)) {
       if (!PersonRepository.RISK_ASSESSMENT_UPDATE_COLUMNS.has(k)) continue;
       const val = dateFields.has(k) && v === '' ? null : v;
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
     params.push(id);
     const result = await query(`UPDATE risk_assessments SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, params);
-    return result.rows[0] || null;
+    return decryptRowForOrg('risk_assessments', result.rows[0], orgId) || null;
   }
 
   // ---- Family Contacts ----
@@ -575,8 +596,13 @@ export class PersonRepository {
           dn.created_at
         FROM daily_notes dn WHERE dn.person_id = $1
         UNION ALL
-        SELECT 'risk_assessment' AS event_type, 'Risk Assessment: ' || dn.type,
-          dn.details, ('Risk level: ' || dn.risk_level || E'\\nMitigation: ' || COALESCE(dn.mitigation_actions, 'None')),
+        -- The risk level moved into the label so that details is exactly the
+        -- mitigation text and description is exactly the risk text. Both are
+        -- encrypted, and concatenating one of them into a string here would bury
+        -- the ciphertext mid-sentence where no read path could get it back out.
+        SELECT 'risk_assessment' AS event_type,
+          'Risk Assessment: ' || dn.type || ' (' || dn.risk_level || ')',
+          dn.details, dn.mitigation_actions,
           (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = dn.reviewed_by),
           COALESCE(dn.reviewed_at, dn.created_at)
         FROM risk_assessments dn WHERE dn.person_id = $1
@@ -693,7 +719,29 @@ export class PersonRepository {
       ) AS timeline
       ORDER BY created_at DESC
     `, [personId]);
-    return result.rows;
+    // Four of the union's branches carry encrypted narrative, and each puts it in
+    // a different column: a note's and a care plan's text is `description`, a risk
+    // assessment's text is `description` with its mitigation in `details`, and an
+    // incident's is `description`. Decrypting by `event_type` is what keeps the
+    // timeline from rendering ciphertext for exactly those rows while leaving the
+    // rest untouched.
+    const orgId = await orgIdForPerson(personId);
+    return (result.rows as Array<Record<string, any>>).map(row => {
+      if (row.event_type === 'daily_note' || row.event_type === 'care_plan') {
+        return { ...row, description: decryptField(row.description, orgId as string) };
+      }
+      if (row.event_type === 'incident') {
+        return decryptRowForOrg('incidents', row, orgId as string) as Record<string, any>;
+      }
+      if (row.event_type === 'risk_assessment') {
+        return {
+          ...row,
+          description: decryptField(row.description, orgId as string),
+          details: row.details ? `Mitigation: ${decryptField(row.details, orgId as string)}` : null,
+        };
+      }
+      return row;
+    });
   }
 
   // ---- Clinical Scores ----

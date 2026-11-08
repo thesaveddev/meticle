@@ -51,6 +51,8 @@ jest.mock('../screens/SettingsScreen', () => ({ SettingsScreen: require('./scree
 jest.mock('../screens/ClientListScreen', () => ({ ClientListScreen: require('./screenStub').stub('clientList') }))
 jest.mock('../screens/AllVisitsScreen', () => ({ AllVisitsScreen: require('./screenStub').stub('allVisits') }))
 jest.mock('../screens/NotificationsScreen', () => ({ NotificationsScreen: require('./screenStub').stub('notifications') }))
+jest.mock('../screens/PoliciesScreen', () => ({ PoliciesScreen: require('./screenStub').stub('policies') }))
+jest.mock('../screens/SupportedLivingDashboard', () => ({ SupportedLivingDashboard: require('./screenStub').stub('livingDashboard') }))
 jest.mock('../screens/HandoverScreen', () => ({ HandoverScreen: require('./screenStub').stub('handover') }))
 jest.mock('../screens/ShiftClockScreen', () => ({ ShiftClockScreen: require('./screenStub').stub('clock') }))
 jest.mock('../screens/RoomChecksScreen', () => ({ RoomChecksScreen: require('./screenStub').stub('roomChecks') }))
@@ -135,10 +137,15 @@ const signInAs = (role: MobileUser['role']): AuthSession => ({
  * a notification that opened a pushed screen. Waiting for a tab bar that the tap has
  * deliberately replaced would never succeed.
  */
-async function mountApp(role: MobileUser['role'] = 'CARE_WORKER', options: { awaitTabs?: boolean } = {}) {
-  const session = signInAs(role)
+async function mountApp(
+  role: MobileUser['role'] = 'CARE_WORKER',
+  options: { awaitTabs?: boolean; organization?: Record<string, unknown> | null } = {},
+) {
+  const session = { ...signInAs(role), organization: options.organization ?? null }
   mockReadSession.mockResolvedValue(session)
-  mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: null } as any)
+  // `/auth/me` is what the shell trusts for the service model: the boot effect
+  // replaces the stored organisation with the one the server returns.
+  mockGetCurrentUser.mockResolvedValue({ user: session.user, organization: options.organization ?? null } as any)
 
   const screen = render(<App />)
   if (options.awaitTabs !== false) {
@@ -199,11 +206,55 @@ describe('App tab bar per role', () => {
     expect(screen.queryByText('Earnings')).toBeNull()
   })
 
+  it('gives a supported-living manager the supported-living home, not the visit dashboard', async () => {
+    const { screen } = await mountApp('MANAGER', {
+      organization: { id: 'org-1', primary_service_type: 'supported_living' },
+    })
+
+    // The visit dashboard asks `/homecare/*`, which a supported-living provider never
+    // writes to — it would read as a quiet service rather than the wrong question.
+    expect(screen.getByText('screen:livingDashboard')).toBeTruthy()
+    expect(screen.queryByText('Dashboard')).toBeNull()
+  })
+
+  it('keeps a domiciliary manager on the visit dashboard', async () => {
+    const { screen } = await mountApp('MANAGER', {
+      organization: { id: 'org-2', primary_service_type: 'domiciliary' },
+    })
+
+    expect(await screen.findByText('Dashboard')).toBeTruthy()
+    expect(screen.queryByText('screen:livingDashboard')).toBeNull()
+  })
+
   it('treats an org admin as a manager', async () => {
     const { screen } = await mountApp('ORG_ADMIN')
 
     expect(tabLabels(screen)).toEqual(['Team', 'Clients', 'Visits', 'Chat', 'Settings'])
     expect(await screen.findByText('Dashboard')).toBeTruthy()
+  })
+
+  it('gives a compliance officer oversight — no Today, no Earnings, and the policies they answer for', async () => {
+    const { screen } = await mountApp('COMPLIANCE_OFFICER')
+
+    expect(tabLabels(screen)).toEqual(['Clients', 'Policies', 'Chat', 'Settings'])
+    // The carer's day list and the marketplace money tab are what the old
+    // isManager test gave them, with an empty rota on top.
+    expect(screen.queryByText('screen:today')).toBeNull()
+    expect(screen.queryByText('Earnings')).toBeNull()
+    expect(screen.queryByText('Schedule')).toBeNull()
+    expect(screen.queryByText('Dashboard')).toBeNull()
+  })
+
+  it('opens the compliance officer on their first tab, since oversight has no Today', async () => {
+    const { screen } = await mountApp('COMPLIANCE_OFFICER')
+
+    // The initial tab state is 'today', which no oversight surface carries; the
+    // shell would otherwise open on an empty body with nothing selected.
+    expect(tabNamed(screen, 'Clients').props.accessibilityState).toEqual({ selected: true })
+    expect(screen.getByText('screen:clientList')).toBeTruthy()
+
+    fireEvent.press(tabNamed(screen, 'Policies'))
+    expect(screen.getByText('screen:policies')).toBeTruthy()
   })
 })
 

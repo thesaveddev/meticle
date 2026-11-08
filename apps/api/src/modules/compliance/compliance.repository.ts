@@ -1,6 +1,7 @@
 import { query, migrateQuery } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getVettingScheme, identityTypesForAllSchemes } from './compliance.vetting';
+import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 // The union of every scheme's identity documents, used to narrow the fetch. A
 // person's required types are then resolved per person below, from that person's
@@ -296,7 +297,10 @@ export class ComplianceRepository {
       documents: documents.rows,
       competency: competency.rows,
       people: people.rows,
-      care_plans: carePlans.rows,
+      // The evidence pack carries the plan narrative, so it is decrypted here for
+      // the same reason every other read path does it: a reviewer opening this
+      // must not be shown hex.
+      care_plans: decryptRowsForOrg('care_plans', carePlans.rows, orgId),
       incidents: incidents.rows,
       nutrition: nutrition.rows,
       satisfaction: satisfactionAgg.rows[0] || { avg_rating: null, total: 0, positive: 0 },

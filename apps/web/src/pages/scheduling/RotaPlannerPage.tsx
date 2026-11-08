@@ -27,6 +27,7 @@ import TimelineView from './rota/TimelineView'
 import RosterView from './rota/RosterView'
 import ShiftDetailDialog from './rota/ShiftDetailDialog'
 import { rotaHelpers } from './rota/helpers'
+import { resolveRotaDrop } from './rota/dragDrop'
 import { weekStartFromParam } from './rota.week'
 import type { RotaViewMode } from './rota/types'
 import PageContainer from '../../components/design/PageContainer'
@@ -859,6 +860,47 @@ export default function RotaPlannerPage() {
     }
   }, [])
 
+  /**
+   * Drag-and-drop from the roster grid: a (staff, day) cell names the new
+   * assignment and the new date, and `resolveRotaDrop` splits that into the
+   * two calls the API already offers — PATCH for the date, unassign+assign
+   * for the staff. The date move runs first: if the server refuses it (a
+   * conflict, the 11-hour rest rule), the assignment is left untouched rather
+   * than half-moved. Failures land in the page error banner — a compliance
+   * block is a message, never a silent snap-back.
+   */
+  const handleDropShift = useCallback(async (shiftId: string, fromStaffId: string | null, toStaffId: string, toDateStr: string) => {
+    const shift = normalizedShifts.find((s: any) => s.id === shiftId)
+    if (!shift) return
+    const plan = resolveRotaDrop({ shiftStartDate: shift._startDate, fromStaffId, toStaffId, toDate: toDateStr })
+    if (!plan.moveDate && !plan.reassignTo) return
+    setError('')
+    setSuccess('')
+    try {
+      if (plan.moveDate) {
+        const start = new Date(shift.start_time)
+        const durationMs = new Date(shift.end_time).getTime() - start.getTime()
+        const pad = (n: number) => String(n).padStart(2, '0')
+        const newStart = new Date(`${plan.moveDate}T${pad(start.getHours())}:${pad(start.getMinutes())}:00`)
+        const newEnd = new Date(newStart.getTime() + durationMs)
+        await api.patch(`/shifts/${shiftId}`, {
+          start_time: toLocalISO(plan.moveDate, `${pad(start.getHours())}:${pad(start.getMinutes())}`),
+          end_time: toLocalISO(toLocalDateStr(newEnd), `${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`),
+        })
+      }
+      if (plan.reassignTo) {
+        if (plan.reassignFrom) await api.delete(`/shifts/${shiftId}/assign/${plan.reassignFrom}`)
+        await api.post(`/shifts/${shiftId}/assign`, { staffId: plan.reassignTo })
+      }
+      const dayName = new Date(`${plan.moveDate || shift._startDate}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })
+      setSuccess(plan.moveDate && plan.reassignTo ? `Shift moved to ${dayName} and reassigned` : plan.moveDate ? `Shift moved to ${dayName}` : 'Shift reassigned')
+      fetchDataRef.current()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to move shift')
+      fetchDataRef.current()
+    }
+  }, [normalizedShifts])
+
   const handleToggleCoverage = useCallback(async (shiftId: string, currentlyCovered: boolean) => {
     try {
       await api.patch(`/shifts/${shiftId}/agency-coverage`, { covered: !currentlyCovered })
@@ -1226,6 +1268,7 @@ export default function RotaPlannerPage() {
           })()}
 
           {viewMode === 'board' && (
+
             <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0', overflow: 'hidden', mb: 2 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ p: 2, pb: 1 }}>
                 <Box>
@@ -1301,6 +1344,7 @@ export default function RotaPlannerPage() {
               onClaimShift={handleClaimShift}
               onUnassign={handleUnassign}
               onSwap={openSwapDialog}
+              onDropShift={handleDropShift}
               onOpenDetail={setDetailShift}
             />
           )}
@@ -1326,6 +1370,7 @@ export default function RotaPlannerPage() {
               onClaimShift={handleClaimShift}
               onUnassign={handleUnassign}
               onSwap={openSwapDialog}
+              onDropShift={handleDropShift}
               onOpenDetail={setDetailShift}
             />
           )}

@@ -42,6 +42,7 @@ import goalRoutes from '../modules/goals/goals.routes'
 import healthRoutes from '../modules/health/health.routes'
 import nutritionRoutes from '../modules/nutrition/nutrition.routes'
 import compliancePortalRoutes from '../modules/compliance-portal/compliance-portal.routes'
+import bodyMapRoutes from '../modules/body-map/bodyMap.routes'
 import settingsRoutes from '../modules/settings/settings.routes'
 import billingRoutes from '../modules/billing/billing.routes'
 import emedicationRoutes from '../modules/emedication/emedication.routes'
@@ -71,6 +72,7 @@ import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes
 import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
 import missionControlRoutes from '../modules/mission-control/mission-control.routes'
 import homecareRoutes, { publicInvoiceRouter, publicEmailDsnRouter } from '../modules/homecare/homecare.routes'
+import smsRoutes, { publicSmsRouter } from '../modules/sms/sms.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -82,6 +84,7 @@ export function createTestApp(): Express {
   app.use(metricsMiddleware)
   app.use(rlsMiddleware)
   app.use('/homecare/email/dsn-callback', express.raw({ type: 'application/json' }), publicEmailDsnRouter)
+  app.use('/sms/status', express.urlencoded({ extended: false }), publicSmsRouter)
   app.use(express.json({ limit: '15mb' }))
   // Mounted here exactly as `src/index.ts` mounts it, and not merely for
   // convenience: the web app's session is an httpOnly cookie, so a test app
@@ -126,6 +129,7 @@ export function createTestApp(): Express {
   app.use('/health', authenticate, requireCareOrganisation, healthRoutes)
   app.use('/nutrition', authenticate, requireSupportedLivingOnly, nutritionRoutes)
   app.use('/compliance-portal', compliancePortalRoutes)
+  app.use('/body-map', bodyMapRoutes)
   app.use('/ai', aiRoutes)
   app.use('/family-portal', familyPortalRoutes)
   app.use('/family-feedback', familyFeedbackRoutes)
@@ -142,6 +146,7 @@ export function createTestApp(): Express {
   app.use('/platform-admin', platformAdminRoutes)
   app.use('/shift-audit', shiftAuditRoutes)
   app.use('/mission-control', missionControlRoutes)
+  app.use('/sms', smsRoutes)
   app.use('/homecare', authenticate, requireDomiciliaryOnly, homecareRoutes)
   app.use('/supervisions', supervisionRoutes)
   app.use('/api/client-invoices', publicInvoiceRouter)

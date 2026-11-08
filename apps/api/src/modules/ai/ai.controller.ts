@@ -22,8 +22,8 @@ import type { MicaPendingPage } from './mica.session';
 import { AIConfig, AIProvider } from './ai.types';
 import { UserRole, micaRecordPath } from '@meticle/shared';
 import logger from '../../shared/utils/logger';
-import { decryptField } from '../../shared/utils/encryption';
-import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
+import { decryptField, encryptField } from '../../shared/utils/encryption';
+import { decryptRowForOrg, decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 /**
  * Centralised AI call helper with budget enforcement and provider fallback.
@@ -626,11 +626,11 @@ export class AIController {
         FROM homecare_visits v JOIN people p ON p.id = v.person_id
         WHERE v.organization_id = $1 AND v.scheduled_start::date BETWEEN $2::date AND $3::date
         ORDER BY v.scheduled_start LIMIT 500`, [orgId, from, to]),
-      pool.query(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.first_name || ' ' || p.last_name AS person_name
+      pool.query(`SELECT n.id, n.note_date, n.category, n.content AS content, p.first_name || ' ' || p.last_name AS person_name
         FROM daily_notes n JOIN people p ON p.id = n.person_id
         WHERE p.organization_id = $1 AND n.note_date BETWEEN $2::date AND $3::date
         ORDER BY n.note_date DESC, n.created_at DESC LIMIT 200`, [orgId, from, to]),
-      pool.query(`SELECT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description
+      pool.query(`SELECT i.id, i.title, i.severity, i.status, i.incident_date, i.description AS description
         FROM incidents i WHERE i.organization_id = $1 AND i.incident_date BETWEEN $2::date AND $3::date
         ORDER BY i.incident_date DESC LIMIT 200`, [orgId, from, to]),
       pool.query(`SELECT lr.id, lr.status, lr.start_date, lr.end_date, lt.name AS leave_type, sp.first_name || ' ' || sp.last_name AS staff_name
@@ -645,8 +645,15 @@ export class AIController {
 
     const records = JSON.stringify({
       visits: visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: r.id, ...r })),
-      notes: notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: r.id, ...r })),
-      incidents: incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: r.id, ...r })),
+      // Decrypted before the model sees them, and truncated here rather than with
+      // `LEFT()` in SQL — a ciphertext truncated in the database can never be put
+      // back together, which is exactly how this read path would have broken.
+      notes: decryptRowsForOrg('daily_notes', notes.rows, orgId).map((r: any) => ({
+        source_type: 'daily_note', source_id: r.id, ...r, content: String(r.content ?? '').slice(0, 600),
+      })),
+      incidents: decryptRowsForOrg('incidents', incidents.rows, orgId).map((r: any) => ({
+        source_type: 'incident', source_id: r.id, ...r, description: String(r.description ?? '').slice(0, 500),
+      })),
       leave: leave.rows.map((r: any) => ({ source_type: 'leave_request', source_id: r.id, ...r })),
       training: training.rows.map((r: any) => ({ source_type: 'training_record', source_id: r.id, ...r })),
     });
@@ -1112,6 +1119,11 @@ export class AIController {
     }
 
     const su = suResult.rows[0];
+    // `jsonb_build_object` put the care-plan narrative into a JSON array rather
+    // than a column, so it has to be decrypted element by element.
+    if (Array.isArray(su.care_plans)) {
+      su.care_plans = decryptRowsForOrg('care_plans', su.care_plans, orgId);
+    }
 
     // Fetch recent mood/baseline data
     const baselineResult = await pool.query(
@@ -1129,7 +1141,7 @@ export class AIController {
       `- ${g.title}: ${g.description || 'No description'} (Status: ${g.status}${g.target_value ? `, Target: ${g.target_value}${g.value_unit || ''}` : ''})`
     ).join('\n') || 'No active goals';
 
-    const baselineData = baselineResult.rows.map((r: any) => 
+    const baselineData = decryptRowsForOrg('daily_notes', baselineResult.rows, orgId).map((r: any) => 
       `[${r.note_date}] (${r.category}): ${r.content.slice(0, 150)}...`
     ).join('\n') || 'No recent notes';
 
@@ -1304,6 +1316,11 @@ export class AIController {
     }
 
     const su = suResult.rows[0];
+    // `jsonb_build_object` put the care-plan narrative into a JSON array rather
+    // than a column, so it has to be decrypted element by element.
+    if (Array.isArray(su.care_plans)) {
+      su.care_plans = decryptRowsForOrg('care_plans', su.care_plans, orgId);
+    }
 
     // Fetch recent mood/baseline data
     const baselineResult = await pool.query(
@@ -1321,7 +1338,7 @@ export class AIController {
       `- ${g.title}: ${g.description || 'No description'} (Status: ${g.status}${g.target_value ? `, Target: ${g.target_value}${g.value_unit || ''}` : ''})`
     ).join('\n') || 'No active goals';
 
-    const baselineData = baselineResult.rows.map((r: any) => 
+    const baselineData = decryptRowsForOrg('daily_notes', baselineResult.rows, orgId).map((r: any) => 
       `[${r.note_date}] (${r.category}): ${r.content.slice(0, 150)}...`
     ).join('\n') || 'No recent notes';
 
@@ -2173,6 +2190,11 @@ export class AIController {
     // then rejects the insert below — the note was never saved at all, and the
     // carer saw "Failed to save daily note". `transaction()` is the helper that
     // reaches for the request-scoped client when the request has one.
+    // The note's text is encrypted at rest; an empty string stays empty so the
+    // NOT NULL column is not turned into a null by the encryptor.
+    const noteText = dailyNote?.content || '';
+    const storedContent = noteText === '' ? '' : (encryptField(noteText, orgId) as string);
+
     let note: Record<string, any> | undefined;
     try {
       note = await transaction(async (client) => {
@@ -2194,7 +2216,7 @@ export class AIController {
           noteDate || new Date().toISOString().split('T')[0],
           dailyNote?.shift ? AIController.normaliseShift(dailyNote.shift) : 'day',
           dailyNote?.category || 'wellbeing',
-          dailyNote?.content || '',
+          storedContent,
           dailyNote?.support_level || null,
           moodAnalysis ? JSON.stringify(moodAnalysis) : null,
           safeguardingFlags && safeguardingFlags.length > 0 ? JSON.stringify(safeguardingFlags) : null,
@@ -2321,7 +2343,7 @@ export class AIController {
       return res.status(404).json({ error: { message: 'Note not found' } });
     }
 
-    const note = noteResult.rows[0];
+    const note = decryptRowForOrg('daily_notes', noteResult.rows[0], orgId)!;
     const config = await AIRepository.getConfig(orgId);
     if (!config || !config.enabled || !config.apiKey) {
       return res.status(400).json({ error: { message: 'AI not configured. Add API keys in Settings > AI.' } });
@@ -2881,11 +2903,11 @@ export class AIController {
           FROM homecare_visits v JOIN people p ON p.id = v.person_id
           WHERE v.organization_id = $1 AND v.scheduled_start::date BETWEEN $2::date AND $3::date${personFilter}
           ORDER BY v.scheduled_start LIMIT 500`, params),
-        tenantQuery(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
+        tenantQuery(`SELECT n.id, n.note_date, n.category, n.content AS content, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
           FROM daily_notes n JOIN people p ON p.id = n.person_id
           WHERE p.organization_id = $1 AND n.note_date BETWEEN $2::date AND $3::date${personFilter}
           ORDER BY n.note_date DESC, n.created_at DESC LIMIT 300`, params),
-        tenantQuery(`SELECT DISTINCT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description, iir.person_id
+        tenantQuery(`SELECT DISTINCT i.id, i.title, i.severity, i.status, i.incident_date, i.description AS description, iir.person_id
           FROM incidents i LEFT JOIN incident_involved_residents iir ON iir.incident_id = i.id
           WHERE i.organization_id = $1 AND i.incident_date BETWEEN $2::date AND $3::date
             AND ($4::uuid IS NULL OR iir.person_id = $4)
@@ -2897,8 +2919,12 @@ export class AIController {
 
       const records = [
         ...visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: String(r.id), ...r })),
-        ...notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: String(r.id), ...r })),
-        ...incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: String(r.id), ...r })),
+        ...decryptRowsForOrg('daily_notes', notes.rows, orgId).map((r: any) => ({
+          source_type: 'daily_note', source_id: String(r.id), ...r, content: String(r.content ?? '').slice(0, 600),
+        })),
+        ...decryptRowsForOrg('incidents', incidents.rows, orgId).map((r: any) => ({
+          source_type: 'incident', source_id: String(r.id), ...r, description: String(r.description ?? '').slice(0, 500),
+        })),
         ...(capability === 'compliance_copilot' || capability === 'competency_coaching' ? training.rows.map((r: any) => ({ source_type: 'training_record', source_id: String(r.id), ...r })) : []),
       ];
 
@@ -2913,7 +2939,7 @@ export class AIController {
 
       if (capability === 'compliance_copilot' || capability === 'operational_anomaly_detection') {
         const [risks, actions, competencies] = await Promise.all([
-          tenantQuery(`SELECT ra.id, ra.type, ra.risk_level, ra.review_date, LEFT(ra.details, 400) AS details, ra.person_id
+          tenantQuery(`SELECT ra.id, ra.type, ra.risk_level, ra.review_date, ra.details AS details, ra.person_id
             FROM risk_assessments ra JOIN people p ON p.id = ra.person_id
             WHERE p.organization_id = $1 AND (ra.review_date BETWEEN $2::date AND $3::date OR ra.review_date < CURRENT_DATE)
             LIMIT 200`, [orgId, from, to]),
@@ -2926,7 +2952,9 @@ export class AIController {
             WHERE ct.organization_id = $1 AND (ca.reassessment_date BETWEEN $2::date AND $3::date OR ca.reassessment_date < CURRENT_DATE OR ca.passed = false)
             LIMIT 200`, [orgId, from, to]),
         ]);
-        records.push(...risks.rows.map((r: any) => ({ source_type: 'risk_assessment', source_id: String(r.id), ...r })));
+        records.push(...decryptRowsForOrg('risk_assessments', risks.rows, orgId).map((r: any) => ({
+          source_type: 'risk_assessment', source_id: String(r.id), ...r, details: String(r.details ?? '').slice(0, 400),
+        })));
         records.push(...actions.rows.map((r: any) => ({ source_type: 'incident_action', source_id: String(r.id), ...r })));
         records.push(...competencies.rows.map((r: any) => ({ source_type: 'competency_assessment', source_id: String(r.id), ...r })));
       }

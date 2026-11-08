@@ -1,5 +1,5 @@
 import pool, { migrateQuery } from '../../shared/database';
-import { decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
+import { decryptRowsForOrg, orgIdForPerson } from '../../shared/utils/encrypted-columns';
 
 export class FamilyPortalRepository {
   private static readonly MEMBER_UPDATE_COLUMNS = new Set(['name', 'email', 'relationship', 'phone']);
@@ -145,7 +145,10 @@ export class FamilyPortalRepository {
        ORDER BY dn.created_at DESC LIMIT $2`,
       [personId, limit]
     );
-    return result.rows;
+    // The family portal is token-scoped and holds no organisation of its own, so
+    // the key context comes through the resident.
+    const orgId = await orgIdForPerson(personId);
+    return decryptRowsForOrg('daily_notes', result.rows, orgId as string);
   }
 
   static async getCarePlans(personId: string) {
@@ -158,7 +161,8 @@ export class FamilyPortalRepository {
        ORDER BY updated_at DESC`,
       [personId]
     );
-    return result.rows;
+    const orgId = await orgIdForPerson(personId);
+    return decryptRowsForOrg('care_plans', result.rows, orgId as string);
   }
 
   static async getGoals(personId: string) {

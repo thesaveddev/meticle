@@ -1,4 +1,9 @@
-import { isDomiciliaryOrganisation, isSupportedLivingOrganisation } from '../serviceType'
+import {
+  isDomiciliaryOrganisation,
+  isLivingProviderOrganisation,
+  isSupportedLivingOrganisation,
+  livingServiceLabel,
+} from '../serviceType'
 
 describe('isDomiciliaryOrganisation', () => {
   it('accepts domiciliary and live-in organisations', () => {
@@ -58,5 +63,46 @@ describe('isSupportedLivingOrganisation', () => {
     expect(isSupportedLivingOrganisation({ service_types: [] })).toBe(false)
     expect(isSupportedLivingOrganisation(undefined)).toBe(false)
     expect(isSupportedLivingOrganisation(null)).toBe(false)
+  })
+})
+
+// The API's `requireSupportedLivingOnly` admits supported living *and* residential,
+// and both are served by the same dashboard endpoints. The phone has to agree with
+// that gate, or a residential manager is shown the domiciliary visit dashboard —
+// which reads `/homecare/*`, tables their model of care never writes to.
+describe('isLivingProviderOrganisation', () => {
+  it('accepts supported living and residential, from either source', () => {
+    expect(isLivingProviderOrganisation({ primary_service_type: 'supported_living' })).toBe(true)
+    expect(isLivingProviderOrganisation({ primary_service_type: 'residential' })).toBe(true)
+    expect(isLivingProviderOrganisation({ service_types: ['residential'] })).toBe(true)
+  })
+
+  it('trusts the primary type over a stale list', () => {
+    expect(
+      isLivingProviderOrganisation({ primary_service_type: 'domiciliary', service_types: ['supported_living'] })
+    ).toBe(false)
+    expect(
+      isLivingProviderOrganisation({ primary_service_type: 'residential', service_types: ['domiciliary'] })
+    ).toBe(true)
+  })
+
+  it('treats a domiciliary or missing organisation as not a living provider', () => {
+    expect(isLivingProviderOrganisation({ primary_service_type: 'domiciliary' })).toBe(false)
+    expect(isLivingProviderOrganisation({ primary_service_type: 'live_in' })).toBe(false)
+    expect(isLivingProviderOrganisation({ service_types: [] })).toBe(false)
+    expect(isLivingProviderOrganisation(null)).toBe(false)
+  })
+})
+
+describe('livingServiceLabel', () => {
+  it('names the model the organisation actually runs', () => {
+    expect(livingServiceLabel({ primary_service_type: 'residential' })).toBe('Residential')
+    expect(livingServiceLabel({ primary_service_type: 'supported_living' })).toBe('Supported living')
+    expect(livingServiceLabel({ service_types: ['residential'] })).toBe('Residential')
+  })
+
+  it('falls back to supported living when nothing says otherwise', () => {
+    expect(livingServiceLabel(null)).toBe('Supported living')
+    expect(livingServiceLabel({ service_types: ['supported_living'] })).toBe('Supported living')
   })
 })

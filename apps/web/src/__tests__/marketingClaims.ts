@@ -290,7 +290,7 @@ export const REGISTERED_CLAIMS: {
     label: 'AES-256 / encryption at rest',
     pattern: /AES-?256|encrypted at rest/i,
     status: 'verified',
-    evidence: 'Scoped to a named set of columns, declared in `apps/api/src/shared/utils/encrypted-columns.ts`. On `people`: nhs_number, date_of_birth, gp_phone, gp_address, pharmacy_phone, pharmacy_address, social_worker_phone. On `staff_profiles`: birth_date, phone, address, city, postal_code. Each is encrypted with aes-256-gcm under an HKDF-derived per-organisation key, written encrypted on create and update, and decrypted on every read path that returns it — including the DBS submission that sends address, postcode and date of birth to a third-party provider, and the AI prompts that interpolate a date of birth into `new Date()`. Proven against the stored column by `encrypted-columns.sentinel.test.ts` over a connection bypassing RLS. FIELD_ENCRYPTION_KEY is mandatory: the API refuses to start without a well-formed one. Still unencrypted: `emergency_contacts.phone` (a third party\'s number), `locations.address` (a care site), names, and every non-date-of-birth date column.',
+    evidence: 'Scoped to a named set of columns, declared in `apps/api/src/shared/utils/encrypted-columns.ts`. On `people`: nhs_number, date_of_birth, gp_phone, gp_address, pharmacy_phone, pharmacy_address, social_worker_phone. On `staff_profiles`: birth_date, phone, address, city, postal_code. Each is encrypted with aes-256-gcm under an HKDF-derived per-organisation key, written encrypted on create and update, and decrypted on every read path that returns it — including the DBS submission that sends address, postcode and date of birth to a third-party provider, and the AI prompts that interpolate a date of birth into `new Date()`. Proven against the stored column by `encrypted-columns.sentinel.test.ts` over a connection bypassing RLS. FIELD_ENCRYPTION_KEY is mandatory: the API refuses to start without a well-formed one. **Since 4 Nov 2026 the registry also covers the clinical free text** — daily_notes.content; care_plans.description and risk_assessment; risk_assessments.details and mitigation_actions; incidents.description, root_cause, outcomes, investigation_notes and lessons_learned — so the published scope is no longer "identifiers only" but the care record\'s narrative too, with four sentinel suites proving it per table and `clinicalNarrativeCoverage.test.ts` failing the build when a read path is added without decryption. Still unencrypted, and named as such in the privacy policy: `emergency_contacts.phone` (a third party\'s number), `locations.address` (a care site), names, every non-date-of-birth date column, chat message content and medication administration notes (both `ILIKE`-searched, which ciphertext would break), and the incident investigation summary and findings.',
     evidencePath: 'apps/api/src/shared/utils/encryption.ts',
     owner: 'Opeyemi',
     closesOn: 'T0-15',
@@ -424,8 +424,15 @@ export const REQUIRED_DISCLAIMERS: {
   },
   {
     label: 'The unencrypted remainder is still disclosed',
-    phrase: /not currently encrypted/i,
-    why: 'Not everything is encrypted, and the most significant omission is the one that matters most: clinical narrative records — care workers\' written notes, incident and investigation records, risk assessments — are still plaintext in the database. This sentence is the only thing stopping a reader inferring that a care record is protected in full, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
+    // Changed 4 Nov 2026: the clinical narrative is now encrypted, so the old
+    // "not currently encrypted" sentence became false and had to go. The
+    // disclosure it existed to force is more important than the sentence, so it
+    // is now pinned to the two records that stay plaintext on purpose — chat
+    // messages and medication-administration notes, both directly searched. A
+    // policy that lists only what is protected is how the previous version of
+    // this claim went wrong.
+    phrase: /are not encrypted by the application/i,
+    why: 'Not everything is encrypted. Chat messages and the free-text notes on a medication administration are stored in the clear because both are searched with ILIKE, and a predicate on ciphertext silently returns nothing. Saying so is what stops a reader inferring that a care record is protected in full, and it is the sentence most likely to be tidied away by someone reading the bullets above it. It is not redundant. If it was removed on purpose, remove it from REQUIRED_DISCLAIMERS here and say why.ds, risk assessments — are still plaintext in the database. This sentence is the only thing stopping a reader inferring that a care record is protected in full, and it is the sentence most likely to be tidied away as redundant by someone who has read the bullet above it. It is not redundant.',
     requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
   },
 ]

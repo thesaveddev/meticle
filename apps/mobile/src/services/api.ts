@@ -1400,3 +1400,92 @@ export async function approveVoiceNote(
     }),
   }, token)
 }
+
+// ── Policies ──
+// Read by every role, and acknowledged in the caller's own name (`blueprint
+// §9.7`). The list carries the full content, so opening a policy is not a
+// second request.
+export interface PolicySummary {
+  id: string
+  title: string
+  category: string
+  content: string
+  version: string
+  status?: string
+  review_due_at?: string | null
+  updated_at?: string
+  updated_by_name?: string | null
+}
+
+export interface PolicyAcknowledgement {
+  id: string
+  policy_id: string
+  user_id: string
+  acknowledged_at: string
+  email?: string
+  name?: string
+}
+
+export async function getPolicies(token: string): Promise<PolicySummary[]> {
+  return request<PolicySummary[]>('/policies', {}, token)
+}
+
+/** Managers receive everyone's rows; anyone else receives only their own. */
+export async function getPolicyAcknowledgements(token: string, policyId: string): Promise<PolicyAcknowledgement[]> {
+  return request<PolicyAcknowledgement[]>(`/policies/${policyId}/acknowledgements`, {}, token)
+}
+
+export async function acknowledgePolicy(token: string, policyId: string): Promise<PolicyAcknowledgement> {
+  return request<PolicyAcknowledgement>(`/policies/${policyId}/acknowledge`, { method: 'POST' }, token)
+}
+
+// ── Supported-living dashboard ──
+// `/dashboard/*` is gated to supported living and residential organisations
+// (`requireSupportedLivingOnly`), which is why the manager's home branches on the
+// service model before it calls any of this: a domiciliary org's home is the
+// visit dashboard, and asking these endpoints there answers 403.
+export interface DashboardStats {
+  total_staff: number
+  compliance_rate: number
+  open_shifts: number
+  agency_saved: number
+  active_people: number
+  staff_on_duty: number
+  open_incidents: number
+  locations: number
+}
+
+export interface DashboardWidgets {
+  dbs_expiring_soon: number
+  training_expiring_soon: number
+  pending_leave_requests: number
+  overdue_medications: number
+  competency_due: number
+  staff_below_threshold: number
+  open_severe_incidents: number
+  satisfaction_avg: number | null
+  satisfaction_total: number
+  compliance_breakdown?: { total_active?: number; compliant_count?: number; below_threshold?: number }
+}
+
+export interface TodayRotaShift {
+  id: string
+  start_time: string
+  end_time: string
+  status: string
+  location_name: string
+  /** Comma-separated email addresses — the endpoint returns whoever is rostered. */
+  assigned_staff: string
+}
+
+export async function getDashboardStats(token: string): Promise<DashboardStats> {
+  return request<DashboardStats>('/dashboard/stats', {}, token)
+}
+
+export async function getDashboardWidgets(token: string): Promise<DashboardWidgets> {
+  return request<DashboardWidgets>('/dashboard/widgets', {}, token)
+}
+
+export async function getDashboardTodayRota(token: string): Promise<TodayRotaShift[]> {
+  return request<TodayRotaShift[]>('/dashboard/today-rota', {}, token)
+}

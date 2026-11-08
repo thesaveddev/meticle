@@ -12,17 +12,15 @@
  * that maps nowhere still lands the carer on the notifications screen, where the
  * message that referenced the record is, rather than silently discarding the tap.
  */
+import type { TabKey } from './surface'
 
-/** The app's tab keys, as `App.tsx` names them. */
-export type NotificationTab =
-  | 'today'
-  | 'schedule'
-  | 'chat'
-  | 'mileage'
-  | 'settings'
-  | 'team'
-  | 'clients'
-  | 'visits'
+/**
+ * The app's tab keys, as the shell names them. Taken from `surface.ts` rather than
+ * repeated here: the shell's tab list is now per surface, and a copy of its keys
+ * would go stale the first time a tab is added — the 'team' key that used to live
+ * in this union was never a tab in the first place.
+ */
+export type NotificationTab = TabKey
 
 export type NotificationTarget =
   | { kind: 'tab'; tab: NotificationTab }

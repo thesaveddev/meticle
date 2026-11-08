@@ -1,4 +1,4 @@
-import pool from '../../shared/database';
+import pool, { migrateQuery, requestDBStorage, resetRlsSessionVars } from '../../shared/database';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
 import { EMAIL_TEXT, EMAIL_BRAND } from '../../shared/utils/email.template';
@@ -19,69 +19,50 @@ interface OverdueItem {
 }
 
 export class ReviewNotificationService {
-  static async checkOverdueReviews(): Promise<number> {
+  /**
+   * Raises a notification (and an email) for every review that is past its date.
+   *
+   * ## Why this takes a client per organisation
+   *
+   * It used to run entirely on the app-role pool with no request behind it, and
+   * that is the one context in which RLS hides everything: `app.current_org_id`
+   * is unset, `org_check()` evaluates to NULL, and `SELECT DISTINCT
+   * organization_id FROM people` returned no organisations at all. The job then
+   * looped zero times, logged nothing, reported `0`, and was believed — a daily
+   * sweep that had never sent a review reminder. Every table it reads is
+   * `FORCE ROW LEVEL SECURITY`, so the gate was closed for every statement, not
+   * just the first. The org list comes from the superuser pool, and each
+   * organisation's work runs on a client scoped to that organisation, which is
+   * the same pattern `scheduling.notifications` and the location purge use.
+   *
+   * `onlyOrgId` narrows the sweep to one provider. The scheduler passes nothing;
+   * it exists so a single tenant's overdue reviews can be re-run (and checked)
+   * without walking every organisation in the database.
+   */
+  static async checkOverdueReviews(onlyOrgId?: string): Promise<number> {
     let notificationCount = 0;
     try {
-      const orgsResult = await pool.query(
-        `SELECT DISTINCT organization_id FROM people WHERE organization_id IS NOT NULL`
+      const orgsResult = await migrateQuery(
+        `SELECT DISTINCT organization_id FROM people
+         WHERE organization_id IS NOT NULL${onlyOrgId ? ' AND organization_id = $1' : ''}`,
+        onlyOrgId ? [onlyOrgId] : undefined
       );
       const orgIds: string[] = orgsResult.rows.map((r: any) => r.organization_id);
 
       for (const orgId of orgIds) {
-        const overdue = await this.getOverdueReviews(orgId);
-        if (overdue.length === 0) continue;
+        const client = await pool.connect();
+        try {
+          await client.query(`SELECT set_config('app.current_org_id', $1, false)`, [orgId]);
+          await client.query(`SELECT set_config('app.current_user_id', $1, false)`, ['00000000-0000-0000-0000-000000000000']);
+          await client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['MANAGER']);
 
-        const orgAdmins = await this.getOrgAdmins(orgId);
-        const locationManagers = new Map<string, { user_id: string; email: string; name: string }[]>();
-
-        for (const item of overdue) {
-          if (item.manager_user_id && !locationManagers.has(item.location_id || '')) {
-            locationManagers.set(item.location_id || '', [
-              { user_id: item.manager_user_id, email: item.manager_email || '', name: item.manager_name || '' },
-            ]);
-          }
-        }
-
-        for (const item of overdue) {
-          const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
-          const title = `${this.entityLabel(item.entity_type)} overdue`;
-          const message = `"${item.item_name}" for ${item.person_name} was due by ${friendlyDue}.`;
-
-          const notified = new Set<string>();
-
-          // Notify location manager
-          if (item.manager_user_id && !notified.has(item.manager_user_id)) {
-            notified.add(item.manager_user_id);
-            try {
-              await NotificationsController.createNotification(
-                item.manager_user_id, title, message, 'compliance'
-              );
-              notificationCount++;
-              if (item.manager_email) {
-                await this.sendReviewEmail(
-                  item.manager_email, item.manager_name || 'Manager',
-                  item, friendlyDue
-                );
-              }
-            } catch (e) { /* non-critical */ }
-          }
-
-          // Notify org admins (skip already-notified manager)
-          for (const admin of orgAdmins) {
-            if (notified.has(admin.user_id)) continue;
-            notified.add(admin.user_id);
-            try {
-              await NotificationsController.createNotification(
-                admin.user_id, title, message, 'compliance'
-              );
-              notificationCount++;
-              if (admin.email) {
-                await this.sendReviewEmail(
-                  admin.email, admin.name || 'Admin', item, friendlyDue
-                );
-              }
-            } catch (e) { /* non-critical */ }
-          }
+          notificationCount += await requestDBStorage.run({ client }, () => this.notifyForOrg(orgId));
+        } catch (err) {
+          // One organisation's failure must not stop the rest of the sweep.
+          logger.error({ err, orgId }, 'Overdue review check failed for organisation');
+        } finally {
+          await resetRlsSessionVars(client);
+          try { client.release(); } catch { /* already released */ }
         }
       }
 
@@ -92,6 +73,59 @@ export class ReviewNotificationService {
       logger.error(err, 'Overdue review check failed');
     }
     return notificationCount;
+  }
+
+  /** One organisation's sweep. Runs inside that organisation's RLS context. */
+  private static async notifyForOrg(orgId: string): Promise<number> {
+    let sent = 0;
+    const overdue = await this.getOverdueReviews(orgId);
+    if (overdue.length === 0) return 0;
+
+    const orgAdmins = await this.getOrgAdmins(orgId);
+
+    for (const item of overdue) {
+      const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
+      const title = `${this.entityLabel(item.entity_type)} overdue`;
+      const message = `"${item.item_name}" for ${item.person_name} was due by ${friendlyDue}.`;
+
+      const notified = new Set<string>();
+
+      // Notify location manager
+      if (item.manager_user_id && !notified.has(item.manager_user_id)) {
+        notified.add(item.manager_user_id);
+        try {
+          await NotificationsController.createNotification(
+            item.manager_user_id, title, message, 'compliance'
+          );
+          sent++;
+          if (item.manager_email) {
+            await this.sendReviewEmail(
+              item.manager_email, item.manager_name || 'Manager',
+              item, friendlyDue
+            );
+          }
+        } catch (e) { /* non-critical */ }
+      }
+
+      // Notify org admins (skip already-notified manager)
+      for (const admin of orgAdmins) {
+        if (notified.has(admin.user_id)) continue;
+        notified.add(admin.user_id);
+        try {
+          await NotificationsController.createNotification(
+            admin.user_id, title, message, 'compliance'
+          );
+          sent++;
+          if (admin.email) {
+            await this.sendReviewEmail(
+              admin.email, admin.name || 'Admin', item, friendlyDue
+            );
+          }
+        } catch (e) { /* non-critical */ }
+      }
+    }
+
+    return sent;
   }
 
   private static async getOverdueReviews(orgId: string): Promise<OverdueItem[]> {

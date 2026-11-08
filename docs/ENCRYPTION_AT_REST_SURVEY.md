@@ -56,40 +56,52 @@ Recorded so the decision is not re-litigated every audit.
 | Names (`people`, `staff_profiles`, `family_contacts`, `emergency_contacts`) | Plaintext. Displayed, sorted and searched throughout the product. Putting them behind per-organisation encryption without saying so would be a claim nobody made. |
 | `locations.address` | A care site, not a person. Also filtered on by `scripts/geocode-backfill.ts`. |
 | All dates other than the two dates of birth | Visit, incident, review and assessment dates are operational records and are frequently filtered on and ranged. Encrypting them breaks reporting. |
-| Clinical free text | See below — the largest remaining gap. |
+| Clinical free text (`daily_notes`, `care_plans`, `risk_assessments`, `incidents`) | **Encrypted since 4 Nov 2026.** See below for what closed and what remains. |
+| Incident investigation summaries and findings (`incident_investigations.summary`, `incident_investigation_notes.note`), action `effectiveness_notes` | Plaintext, and the next piece of this work. `incident_investigation_notes.note` carries a `char_length(note) BETWEEN 1 AND 5000` check that ciphertext would trip at roughly 2,000 characters of findings, so it needs a migration before it can be encrypted — the reason it was not folded into the pass above rather than an oversight. |
 | Financial records (`invoices`, `payment_methods`, `person_expenses`, `petty_cash_*`) | Plaintext. RLS-scoped per organisation, and not identifiers. Revisit if a PCI scope question ever arises. |
 | `password_history`, `verification_tokens`, `compliance_portal_tokens` | Already secrets in the cryptographic sense — hashed or random. Encrypting a hash adds nothing. |
 | `documents` file contents | Files live on disk or object storage, not in the database. The `file_url` column is a path. |
 
-## The largest remaining gap: clinical free text
+## Clinical free text — closed 4 Nov 2026
 
-**`daily_notes.content` and the incident/risk/care-plan narrative columns are the most
-sensitive data in the product and are not encrypted.** A care worker's free-text
-notes about a named individual, and the `investigation_notes` on a safeguarding
-incident, are more revealing than a date of birth.
+**`daily_notes.content` and the incident/risk/care-plan narrative columns are now
+encrypted**, which is what this section used to say was the largest remaining gap. The
+prediction in the earlier version of this document was right about where the work
+would be: not the write surface, which is one or two statements per table, but the
+read surface, and specifically the `json_agg` case.
 
-It is not encrypted because of the read surface, not the write surface. Writing is
-one or two places per table. Reading is roughly fifteen, and one of them —
-`people.repository.ts:181` — embeds notes inside a `json_agg` alongside a joined
-author name, so the decryption would have to walk parsed JSON rather than a flat row.
+What actually shipped:
 
-Getting that wrong produces AES blobs inside care records, which is worse than
-plaintext: a worker cannot read the note, and it looks like corruption rather than a
-decision. That is a real risk, not a theoretical one, and it is why this was not
-done in the same pass as the column work.
+- `daily_notes.content`; `care_plans.description` and `.risk_assessment`;
+  `risk_assessments.details` and `.mitigation_actions`; `incidents.description`,
+  `.root_cause`, `.outcomes`, `.investigation_notes` and `.lessons_learned` — ten
+  columns, all already `TEXT`, so **no migration was needed**. Nothing filters, sorts,
+  ranges or `ILIKE`s any of them; the predicates that caused the earlier caution are
+  on chat message content and medication `notes`, which stay plaintext and are now
+  named as such in the privacy policy.
+- `NESTED_JSON_TABLES` learned `care_plans`, `risk_assessments` and `recent_notes`, so
+  `decryptRow` walks the aggregates `findById` returns rather than only columns.
+- Three of the four tables carry no `organization_id`, so the key context is resolved
+  through the resident: `orgIdForPerson(personId)` on create and list, and
+  `orgIdForClinicalRow(table, id)` on an update, which knows nothing but a row id.
+- Two read paths were **restructured, not decorated**. `people.repository.getTimeline`
+  used to concatenate `mitigation_actions` into a display string in SQL — the
+  ciphertext would have landed mid-sentence with no way back out — so the risk level
+  moved into the label and the two texts are decrypted as separate columns. Six AI and
+  reporting reads truncated with `LEFT(content, 600)`, which cuts hex rather than a
+  sentence; truncation now happens in TypeScript after decryption.
+- `clinicalNarrativeCoverage.test.ts` fails the build on any `LEFT()`/`SUBSTRING()` of
+  a registered column, and lists any file that selects a narrative column without
+  decrypting its table. That guard exists because a truncated ciphertext cannot be
+  repaired afterwards by adding a decrypt call.
+- `encrypted-columns.sentinel.test.ts` gained four suites that create a note, a care
+  plan, a risk assessment and an incident through the API and assert ciphertext in the
+  raw row and plaintext in the response — including the care plan inside the person
+  payload, which is the nested case.
 
-**The shape of the work**, when it is picked up:
-
-1. Add the columns to `ENCRYPTED_COLUMNS` and widen them in a migration.
-2. Introduce a decrypt step that walks nested JSON, not just rows — `NESTED_JSON_TABLES`
-   is the seam, and it currently handles one table.
-3. Route the AI paths first. `ai.controller.ts` sends note and incident text to a
-   third-party model provider; those reads are already `decryptField` call sites from
-   the date-of-birth work, so they are the least surprising to change.
-4. Add sentinel cases per table, matching the existing raw-column pattern.
-
-Until then, the privacy policy names this honestly rather than implying the record is
-protected as a whole.
+What is still plaintext, deliberately and visibly: the investigation summary and
+findings tables and the action `effectiveness_notes`. The findings note has a
+`char_length` check that a ciphertext would trip, so it needs a migration first.
 
 ## Surfaces this survey does not cover
 

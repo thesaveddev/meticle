@@ -28,7 +28,7 @@ From `packages/shared/src/types.ts`:
 | Organisation admin | `ORG_ADMIN` | Manager surface + settings and org configuration |
 | Manager | `MANAGER` | Manager surface |
 | Support worker | `CARE_WORKER` | Field surface |
-| Compliance officer | `COMPLIANCE_OFFICER` | **New third treatment.** Today the app's `isManager` check in `App.tsx` treats them as support workers, which is wrong for supported living where they are a distinct audience |
+| Compliance officer | `COMPLIANCE_OFFICER` | **Oversight surface** — Clients, Policies, Chat, Settings and the notification bell, with no Today, Schedule, Earnings or marketplace. **Built 4 Nov 2026:** the shell branches on a surface (`apps/mobile/src/utils/surface.ts`) rather than on `isManager`, so this is a mapping table and not a fourth role branch — §9.8 |
 | Super admin | `SUPER_ADMIN` | Not applicable; platform console is web-only |
 
 The app must read the role from `/auth/me` and the service model from the session organisation payload, exactly as the web `ModuleGuard` does. It must **not** infer service type from `localStorage` or from a cached copy; the web app was bitten by exactly that and now treats `primary_service_type` as authoritative.
@@ -87,6 +87,8 @@ Five tabs, differing by role. This mirrors the existing `carerTabs` / `managerTa
 | **People** | Read-only resident records. |
 | **Staff** | Staff compliance, training matrix, DBS, competency. |
 | **More** | Chat, settings. |
+
+That table is the **target** supported-living information architecture (five areas, with a compliance dashboard as Today). What ships on 4 November 2026 is the narrow version of it — §9.8's `oversight` surface: Clients, Policies, Chat and Settings. The dashboard and the evidence areas above need mobile screens that do not exist yet; the point of shipping now is that a compliance officer is no longer shown the carer's app in the meantime.
 
 ---
 
@@ -291,10 +293,20 @@ This was a safeguarding control rather than a feature, and the CQC and local aut
 The store-compliance half is done and it is the half that mattered: `POST /staff/self-deactivate` (`staff.routes.ts:31`, ungated) is reachable from the mobile app's Settings (`apps/mobile/src/screens/SettingsScreen.tsx:352-381`, behind a destructive confirm whose copy states that care records are retained and personal data erased) and from the web settings, and the deletion erases personal data server-side in `staff.controller.ts` with six integration tests behind it. The other half closed on 20 October 2026: `POST /staff/:staffId/emergency-contacts` and `DELETE /:contactId` are owner-or-admin (`requireOwnContactOrAdmin` in `staff.controller.ts`, resolved through the `staff_profiles` link the way room checks attribute the worker) instead of `requireRole(ORG_ADMIN)`, with five integration tests. The same work fixed a latent 500: the delete ownership check queried `staff_emergency_contacts`, a table that exists nowhere — the real table is `emergency_contacts` — so the admin-gated endpoint had never worked for anyone.
 
 ### 9.7 Policy acknowledgement — P1, **record closed at the API 20 October 2026**
-The web app has a policy library; there was no way for a support worker to read or acknowledge a policy on mobile, and no record of who has read what. The record now exists: `policy_acknowledgements` (migration 160, one row per person per policy, re-read refreshes rather than duplicates, RLS tenant-isolated), `POST /policies/:id/acknowledge` for any signed-in staff member in their own name, and `GET /policies/:id/acknowledgements` with the whole list for managers and only the caller's own row for anyone else — four integration tests. The policy list and detail reads were already open to all roles, so what is left is the mobile screen, not the backend.
+The web app has a policy library; there was no way for a support worker to read or acknowledge a policy on mobile, and no record of who has read what. The record now exists: `policy_acknowledgements` (migration 160, one row per person per policy, re-read refreshes rather than duplicates, RLS tenant-isolated), `POST /policies/:id/acknowledge` for any signed-in staff member in their own name, and `GET /policies/:id/acknowledgements` with the whole list for managers and only the caller's own row for anyone else — four integration tests. The policy list and detail reads were already open to all roles, so what was left was the mobile screen, not the backend — and **that landed on 4 November 2026**: `apps/mobile/src/screens/PoliciesScreen.tsx` groups the library by category, shows each policy's own read state, renders the content, and writes the acknowledgement in the caller's own name. It is the compliance officer's own tab (§9.8) and is also pushed from Settings on every surface. §9.7 is closed.
 
-### 9.8 Compliance officer mobile treatment — P1
-The app has no third role model. See §2.
+### 9.8 Compliance officer mobile treatment — P1, **closed 4 November 2026**
+`isManager` is gone from `App.tsx`. The shell now asks for a **surface** — `field`, `oversight` or `companion` — and a surface owns exactly one tab set, so no screen and no branch in the shell tests a role:
+
+| Surface | Who | Tabs |
+|---|---|---|
+| `field` | `CARE_WORKER` | Today, Schedule, Chat, Earnings, Settings |
+| `oversight` | `COMPLIANCE_OFFICER` | Clients, Policies, Chat, Settings (+ the notification bell every surface has) |
+| `companion` | `MANAGER`, `ORG_ADMIN` | Team, Clients, Visits, Chat, Settings |
+
+The role → surface map is a `Record<UserRole, Surface>`, so a role added to the shared union without a decision there fails the type check instead of silently inheriting the carer app — which is exactly how a compliance officer came to be shown visits that were never theirs, an Earnings tab, and a rota that only ever looked empty. `tabsForSurface` is the only place a tab list is written down, and the shell falls back to the surface's first tab when the previous session's tab is not in its set.
+
+**What this does not do.** The phone still learns its surface from the role, because the session it keeps carries no permission list; the web's permission-driven `ModuleGuard` remains the model, and this is the narrow version of it. A surface also cannot hide an action the API would refuse for a different reason — a compliance officer's Sessions tab reaches the same read-only people records as a manager's, and a write the API rejects still surfaces as an error inside that screen.
 
 ### 9.9 Notification targeting — P1, **closed at the API on 17 October 2026**
 The notification service is shared and works, but supported living needs event types the domiciliary app never produces: unfilled shift, handover due, missed medication round, incident raised, DBS or training expiring, room check overdue.
@@ -377,9 +389,11 @@ Every notification must deep-link to the thing it is about, and a notification t
 
 **Phase 2 — the field write path.** Shift clock-on/off (9.1), daily notes, body map, medication round, observations, meals, task completion (9.3), room checks (9.4). This is the phase that makes it a working tool rather than a browser. None of these need backend work now: the API was reopened for task completion and room checks on 16 October 2026, and clock-on/off landed the same day. Clock-on/off's screen landed on 18 October 2026 and room checks' on 17 October 2026; what is left is the screens for daily notes, body map, the medication round, observations, meals and task completion.
 
-**Phase 3 — safeguarding.** Incident reporting (9.5), handover (9.2), notifications (9.9), read-scoping (9.10). These are the regulatory items and should not be allowed to slip behind convenience work. Incident reporting is API-ready as of 16 October 2026 and reachable from the shift screen as of 20 October 2026; **handover now has one** (the phone writes, amends and acknowledges it, 17 October 2026) — handover's backend gap closed with §9.1/§9.2, and 9.9's handover-due event landed the same day — so the phase is now screen work for notifications (a dedicated policy-reading screen for 9.7's new record), plus the P1s left in it (9.10, and 9.8 above).
+**Phase 3 — safeguarding.** Incident reporting (9.5), handover (9.2), notifications (9.9), read-scoping (9.10). These are the regulatory items and should not be allowed to slip behind convenience work. Incident reporting is API-ready as of 16 October 2026 and reachable from the shift screen as of 20 October 2026; **handover now has one** (the phone writes, amends and acknowledges it, 17 October 2026) — handover's backend gap closed with §9.1/§9.2, and 9.9's handover-due event landed the same day — so the phase was screen work for notifications (a dedicated policy-reading screen for 9.7's new record), plus the P1s left in it. **4 November 2026:** the policy screen shipped and 9.8 closed, so what remains in this phase is 9.10's read-scoping.
 
 **Phase 4 — manager.** Dashboard, rota builder, claims, staff compliance, incident management, insights, compliance home.
+
+**4 November 2026 — the dashboard, which was the item standing in for the rest.** The manager's Team tab used to mount the domiciliary dashboard: four calls to `/homecare/*`, which a supported-living provider never writes to, so it read "0 completed, 0 missed, 0% cover" — an app telling the person accountable for the service that nothing was happening. `SupportedLivingDashboard` reads `/dashboard/stats`, `/dashboard/widgets` and `/dashboard/today-rota` instead (the first two are gated to supported living *and* residential by `requireSupportedLivingOnly`, so the shell picks this screen by service model), shows compliance rate, staff on duty, residents and open shifts, an attention list that only contains what somebody can act on, today's rota with nobody-rostered shifts named, and quick actions into Residents, Visits, Staff and Timesheets. A failed load is an error with a retry, never a zero. Still open in this phase: the rota builder, incident management, insights and the compliance home — the phone has claims (open-call approvals), the staff directory and timesheets already.
 
 **Phase 5 — polish.** Policy acknowledgement, the staff member's own emergency contacts (§9.6), remote wipe, app switcher protection, store assets and listing copy.
 

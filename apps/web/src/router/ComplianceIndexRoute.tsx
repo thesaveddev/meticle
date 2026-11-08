@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { UserRole } from '@meticle/shared'
 import AuthGuard from '../components/AuthGuard'
 import ErrorBoundary from '../components/ErrorBoundary'
+import Layout from '../components/Layout'
 import ModuleGuard from '../components/ModuleGuard'
 
 const MarketingCompliancePage = lazy(() => import('../pages/marketing/CompliancePage'))
@@ -71,13 +72,24 @@ export function ComplianceIndexRoute() {
     )
   }
 
+  // The shell is part of the answer, not decoration: this route is declared
+  // above the app's Layout wrapper to out-rank the marketing page, so it has to
+  // render the Layout itself. Without it a signed-in visitor got the hub with no
+  // nav and no page padding — the content bled to the edge of the window, which
+  // looks exactly like broken CSS.
   return (
-    <AuthGuard
-      allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}
-    >
-      <ModuleGuard module="compliance">
-        <AppCompliancePage />
-      </ModuleGuard>
-    </AuthGuard>
+    <Layout>
+      <AuthGuard
+        allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}
+      >
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <ModuleGuard module="compliance">
+              <AppCompliancePage />
+            </ModuleGuard>
+          </Suspense>
+        </ErrorBoundary>
+      </AuthGuard>
+    </Layout>
   )
 }

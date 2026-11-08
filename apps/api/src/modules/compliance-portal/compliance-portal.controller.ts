@@ -41,9 +41,14 @@ export class CompliancePortalController {
     });
 
     // Generate JWT using the record ID
+    // The payload keys must match `PortalUser` in portalAuth.middleware.ts, which
+    // signs nothing but does read every one of them back. `officer_name` sat here
+    // while the interface (and `/portal/verify`) expected `officerName`, so the
+    // name was undefined in every verify response and the portal login page could
+    // not say who had been granted access.
     const jwtPayload = {
       portalId: tokenRecord.id,
-      officer_name,
+      officerName: officer_name,
       email,
       orgId: user.organizationId,
       locationId: location_id,
@@ -166,6 +171,7 @@ export class CompliancePortalController {
     const detail = await CompliancePortalRepository.getMedicationDetail(
       user.orgId, user.locationId, req.params.personId
     );
+    if (!detail) throw new AppError(404, 'Person not found at this location');
     res.json(detail);
   }
 }

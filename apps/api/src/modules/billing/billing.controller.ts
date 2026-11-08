@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { getStripe, getOrCreateCustomer, getOrCreatePrice, getOrCreateDomiciliaryPrice, isExpectedDomiciliaryContractPrice, PLAN_PRICE_CONFIG, DomiciliaryVatBehavior } from '../../shared/services/stripe.service';
+import { getStripe, getOrCreateCustomer, getOrCreatePrice, getOrCreateAddonPrice, isExpectedAddonPrice, getOrCreateDomiciliaryPrice, isExpectedDomiciliaryContractPrice, PLAN_PRICE_CONFIG, DomiciliaryVatBehavior } from '../../shared/services/stripe.service';
+import { ADDON_CATALOG, formatAddonAmount, getAddon, isAddonSlug, reconcileAddonsFromItems } from './billing.addons';
 import { selectDunningMilestone, HARD_DECLINES } from './dunning';
 import { AuditRepository } from '../audit/audit.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
@@ -1030,6 +1031,14 @@ export class BillingController {
                ) OR domiciliary_stripe_subscription_id = $7)`,
             [status, domiciliary, sub.metadata?.plan || null, orgIdSub, (sub as any).current_period_end || null, (sub as any).trial_end || null, sub.id]
           );
+          if (!domiciliary) {
+            // Stripe is the source of truth for what is billed: an add-on
+            // removed or refunded on the Stripe side stops being held here,
+            // whatever the local flags said. Domiciliary agreements never
+            // carry add-on items, so they are left out of the reconcile.
+            const billed = reconcileAddonsFromItems(sub.items?.data);
+            await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(billed), orgIdSub]);
+          }
         }
         break;
       }
@@ -1055,6 +1064,11 @@ export class BillingController {
                ) OR domiciliary_stripe_subscription_id = $4)`,
             [orgIdDel, (deletedSub as any).current_period_end || null, domiciliary, deletedSub.id]
           );
+          // A deleted plan subscription bills nothing, so no add-on survives
+          // it. Domiciliary cancellations leave the plan flags untouched.
+          if (!domiciliary) {
+            await pool.query("UPDATE organizations SET addons = '[]' WHERE id = $1", [orgIdDel]);
+          }
         }
         break;
       }
@@ -1304,21 +1318,176 @@ export class BillingController {
       }
     }
 
+    for (const addon of ADDON_CATALOG) {
+      const key = `addon:${addon.slug}`;
+      const envVal = process.env[addon.envKey];
+      if (!envVal) {
+        result[key] = { configured: false, envKey: addon.envKey, message: `${addon.envKey} is not set` };
+        continue;
+      }
+      try {
+        const price = await stripe.prices.retrieve(envVal);
+        result[key] = {
+          configured: true,
+          envKey: addon.envKey,
+          priceId: price.id,
+          active: price.active,
+          amount: price.unit_amount,
+          amountDisplay: `£${((price.unit_amount || 0) / 100).toFixed(2)}`,
+          currency: price.currency,
+          interval: price.recurring?.interval,
+          intervalCount: price.recurring?.interval_count,
+          matchesExpected: isExpectedAddonPrice(addon.slug, price),
+          expectedAmount: formatAddonAmount(addon),
+          expectedCurrency: addon.currency,
+          expectedInterval: addon.interval,
+        };
+      } catch (err: any) {
+        result[key] = { configured: true, envKey: addon.envKey, priceId: envVal, error: err.message };
+      }
+    }
+
     res.json(result);
+  }
+
+  /**
+   * Find the organisation's billable plan subscription: exactly one active
+   * Stripe subscription that is not the sales-led domiciliary agreement.
+   * Add-ons ride on the plan subscription as extra items, so without one
+   * there is nothing to attach a purchase to.
+   */
+  private static async findPlanSubscription(stripe: Stripe, customerId: string) {
+    const subs = await stripe.subscriptions.list({ customer: customerId, limit: 10, status: 'all' });
+    const planSubs = subs.data.filter((candidate) =>
+      ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(candidate.status)
+      && candidate.metadata?.pricingModel !== 'sales_led'
+      && candidate.metadata?.serviceType !== 'domiciliary',
+    );
+    if (planSubs.length > 1) throw new AppError(409, 'Multiple Stripe subscriptions require support review');
+    return planSubs[0] || null;
   }
 
   static async getAddons(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const result = await pool.query('SELECT addons FROM organizations WHERE id = $1', [orgId]);
-    res.json({ addons: result.rows[0]?.addons || [] });
+    const active: string[] = Array.isArray(result.rows[0]?.addons) ? result.rows[0].addons : [];
+    res.json({
+      catalog: ADDON_CATALOG.map((addon) => ({
+        slug: addon.slug,
+        name: addon.name,
+        description: addon.description,
+        amountDisplay: `${formatAddonAmount(addon)} / month`,
+        interval: addon.interval,
+      })),
+      active: active.filter(isAddonSlug),
+    });
   }
 
-  static async updateAddons(req: Request, res: Response) {
+  static async purchaseAddon(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    const { addons } = req.body;
-    if (!Array.isArray(addons)) throw new AppError(400, 'addons must be an array');
-    await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(addons), orgId]);
-    res.json({ addons });
+    const slug = typeof req.body?.addon === 'string' ? req.body.addon : '';
+    const addon = getAddon(slug);
+    if (!addon) throw new AppError(400, `Unknown add-on. Available: ${ADDON_CATALOG.map((entry) => entry.slug).join(', ') || 'none'}`);
+
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(503, 'Stripe is not configured — add-ons cannot be purchased yet');
+
+    const current = await pool.query('SELECT addons FROM organizations WHERE id = $1', [orgId]);
+    if (current.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const active: string[] = Array.isArray(current.rows[0]?.addons) ? current.rows[0].addons : [];
+    if (active.includes(slug)) throw new AppError(409, `The ${addon.name} add-on is already active on this organisation`);
+
+    const userEmail = ((req.user as any).email as string) || orgId;
+    const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle Care organisation');
+    if (!customerId) throw new AppError(503, 'Stripe is not configured — add-ons cannot be purchased yet');
+    const subscription = await BillingController.findPlanSubscription(stripe, customerId);
+    if (!subscription) throw new AppError(409, 'Subscribe to a plan first — add-ons attach to an active plan subscription');
+
+    let price: string | null;
+    try {
+      price = await getOrCreateAddonPrice(slug);
+    } catch (err: any) {
+      logWarn('stripe add-on price')(err);
+      throw new AppError(500, err.message || 'Could not resolve the add-on price');
+    }
+    if (!price) throw new AppError(503, 'Stripe is not configured — add-ons cannot be purchased yet');
+
+    // Defensive: verify the exact recurring GBP price before a charge, the
+    // same guard plan upgrades apply. A stale or annual price pinned in the
+    // environment must fail loudly instead of billing the wrong amount.
+    const verifyPrice = await stripe.prices.retrieve(price);
+    if (!isExpectedAddonPrice(slug, verifyPrice)) {
+      throw new AppError(500, `Stripe price ${price} does not match the configured ${addon.name} add-on price. Contact support to correct Stripe configuration.`);
+    }
+
+    // Items not mentioned in an update are left alone, so this appends the
+    // add-on item without touching the plan item.
+    await stripe.subscriptions.update(subscription.id, {
+      items: [{ price, metadata: { organizationId: orgId, addon: slug } }],
+      proration_behavior: 'none',
+      metadata: { ...subscription.metadata, organizationId: orgId },
+    });
+
+    const next = [...active, slug];
+    await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(next), orgId]);
+
+    await AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'PURCHASE_ADDON',
+      entity_type: 'organization',
+      entity_id: orgId,
+      new_data: { addon: slug, stripeSubscription: subscription.id },
+      ip_address: req.ip,
+    });
+
+    res.json({ message: `${addon.name} added — ${formatAddonAmount(addon)} / month from the next billing date.`, addons: next });
+  }
+
+  static async cancelAddon(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const slug = typeof req.body?.addon === 'string' ? req.body.addon : '';
+    const addon = getAddon(slug);
+    if (!addon) throw new AppError(400, `Unknown add-on. Available: ${ADDON_CATALOG.map((entry) => entry.slug).join(', ') || 'none'}`);
+
+    const current = await pool.query('SELECT addons FROM organizations WHERE id = $1', [orgId]);
+    if (current.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const active: string[] = Array.isArray(current.rows[0]?.addons) ? current.rows[0].addons : [];
+    if (!active.includes(slug)) throw new AppError(404, `The ${addon.name} add-on is not active on this organisation`);
+
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(503, 'Stripe is not configured — add-ons cannot be cancelled yet');
+
+    const userEmail = ((req.user as any).email as string) || orgId;
+    const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle Care organisation');
+    if (!customerId) throw new AppError(503, 'Stripe is not configured — add-ons cannot be cancelled yet');
+    const subscription = await BillingController.findPlanSubscription(stripe, customerId);
+    if (subscription) {
+      const item = subscription.items.data.find((candidate) => candidate.metadata?.addon === slug);
+      if (item) {
+        await stripe.subscriptions.update(subscription.id, {
+          items: [{ id: item.id, deleted: true }],
+          proration_behavior: 'none',
+        });
+      } else {
+        logWarn('stripe add-on cancel')(`Add-on ${slug} active locally but no matching Stripe item on ${subscription.id}`);
+      }
+    } else {
+      logWarn('stripe add-on cancel')(`Add-on ${slug} active locally but no plan subscription found for org ${orgId}`);
+    }
+
+    const next = active.filter((entry) => entry !== slug);
+    await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(next), orgId]);
+
+    await AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'CANCEL_ADDON',
+      entity_type: 'organization',
+      entity_id: orgId,
+      new_data: { addon: slug },
+      ip_address: req.ip,
+    });
+
+    res.json({ message: `${addon.name} cancelled — it stays available until the end of the billing period.`, addons: next });
   }
 
   static async getPricingConfig(req: Request, res: Response) {

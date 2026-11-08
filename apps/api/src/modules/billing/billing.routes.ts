@@ -6,7 +6,7 @@ import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { BillingController } from './billing.controller';
 import { UserRole } from '@meticle/shared';
 import { requireDomiciliaryOnly } from '../../shared/middleware/requireServiceType';
-import { updatePlanSchema, addPaymentMethodSchema, createSetupIntentSchema, updateBillingConfigSchema, updateDomiciliaryBillingAddressSchema } from '../../shared/validation/schemas';
+import { updatePlanSchema, addPaymentMethodSchema, createSetupIntentSchema, updateBillingConfigSchema, updateDomiciliaryBillingAddressSchema, purchaseAddonSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -29,9 +29,12 @@ router.patch('/payment-methods/:id/default', requireRole(UserRole.ORG_ADMIN), as
 router.delete('/payment-methods/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.deletePaymentMethod));
 router.post('/retry-payment', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.retryPayment));
 
-// Add-ons
+// Add-ons ride on the plan subscription as billed Stripe items: purchase
+// attaches the item, cancel removes it. There is deliberately no free-form
+// writer — an add-on Stripe did not bill is an add-on not held.
 router.get('/addons', asyncHandler(BillingController.getAddons));
-router.patch('/addons', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updateAddons));
+router.post('/addons/purchase', requireRole(UserRole.ORG_ADMIN), validate(purchaseAddonSchema), asyncHandler(BillingController.purchaseAddon));
+router.post('/addons/cancel', requireRole(UserRole.ORG_ADMIN), validate(purchaseAddonSchema), asyncHandler(BillingController.cancelAddon));
 
 // Billing configuration (pricing, mileage, payroll)
 router.get('/pricing-config', requireRole(UserRole.ORG_ADMIN), requireDomiciliaryOnly, asyncHandler(BillingController.getPricingConfig));

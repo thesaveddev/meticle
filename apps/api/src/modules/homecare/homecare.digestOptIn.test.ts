@@ -151,9 +151,10 @@ describe('the opt-in invariant, in the places that decide it', () => {
     // (per-organisation compliance files), and again on 169-171 (saved
     // custom reports, delivery schedules and run history), and again on
     // 172-176 (shift handover checks, policy versions, appointment where/
-    // cancellation, custom report visibility, meal-plan location tags),
+    // cancellation, custom report visibility, meal-plan location tags), and
+    // again on 177 (the SMS queue and per-organisation Twilio config),
     // which is the latest run registered.
-    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_176\]\)/)
+    expect(setup).toMatch(/MIGRATION_132,[\s\S]*MIGRATION_177\]\)/)
   })
 
   it('does not fall back to enabled for a user with no preference row', () => {

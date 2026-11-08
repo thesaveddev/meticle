@@ -67,7 +67,7 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
   const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
-  const [tab, setTab] = useState<'profile' | 'security' | 'appearance' | 'org' | 'compliance' | 'delegations' | 'ai' | 'leave' | 'incidents'>('profile')
+  const [tab, setTab] = useState<'profile' | 'security' | 'appearance' | 'org' | 'compliance' | 'delegations' | 'ai' | 'sms' | 'leave' | 'incidents'>('profile')
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
@@ -121,6 +121,8 @@ export default function SettingsPage() {
   // AI state
   const [aiConfig, setAIConfig] = useState<any>(null)
   const [aiSaving, setAISaving] = useState(false)
+  const [smsConfig, setSmsConfig] = useState<any>(null)
+  const [smsSaving, setSmsSaving] = useState(false)
   // Voice preview: plays a short sample through the org's current TTS voice so
   // the settings editor can hear the choice before saving it. The draft
   // selector value is what gets previewed, not the last-saved one.
@@ -286,6 +288,10 @@ export default function SettingsPage() {
           const aiRes = await api.get('/ai/config')
           setAIConfig(aiRes.data.config)
         } catch { /* ai not yet configured */ }
+        // Load SMS config the same way: the fields stay empty until the org
+        // connects its own Twilio account, and a failed load is not an error
+        // the whole settings page should wear.
+        loadSmsConfig()
         // Load the minimisation setting separately: it exists even when no AI
         // provider is configured yet, and a manager should be able to decide
         // the policy before they switch the feature on, not only after.
@@ -1818,6 +1824,71 @@ export default function SettingsPage() {
     }
   }
 
+  const loadSmsConfig = async () => {
+    try {
+      const res = await api.get('/sms/config')
+      setSmsConfig(res.data.config)
+    } catch { /* ignore */ }
+  }
+
+  const saveSmsConfig = async () => {
+    if (!smsConfig) return
+    setSmsSaving(true)
+    try {
+      // The API never returns the secrets, so any value sitting in these
+      // fields is a new secret the user typed — send it. Untouched fields
+      // stay empty and are left alone server-side.
+      const body: Record<string, any> = {}
+      if (smsConfig.enabled !== undefined) body.enabled = smsConfig.enabled
+      if (smsConfig.fromNumber !== undefined) body.fromNumber = smsConfig.fromNumber || null
+      if (smsConfig.accountSid) body.accountSid = smsConfig.accountSid
+      if (smsConfig.authToken) body.authToken = smsConfig.authToken
+      const res = await api.put('/sms/config', body)
+      setSmsConfig({ ...res.data.config, accountSid: '', authToken: '' })
+      showSnackbar('SMS settings saved.', 'success')
+    } catch (e: any) {
+      setError(e.response?.data?.error?.message || e.response?.data?.message || 'Failed to save SMS config')
+    } finally {
+      setSmsSaving(false)
+    }
+  }
+
+  const renderSMSTab = () => (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}><PhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />SMS Notifications</Typography>
+        <Button variant="contained" onClick={saveSmsConfig} disabled={smsSaving}
+          startIcon={smsSaving ? undefined : <SaveIcon />}
+          sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
+          {smsSaving ? 'Saving...' : 'Save SMS Settings'}
+        </Button>
+      </Stack>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Twilio Account</Typography>
+        <Stack spacing={2.5}>
+          <FormControlLabel control={<Switch checked={smsConfig?.enabled || false} onChange={e => setSmsConfig((p: any) => ({ ...p, enabled: e.target.checked }))} />} label="Enable SMS sending" />
+          <Alert severity="info">
+            {smsConfig?.configured
+              ? 'Connected — queued messages will send from the number below. Delivery receipts arrive automatically.'
+              : 'Connect your organisation\u2019s Twilio account to send shift reminders and cover requests by text. Messages queue when the account is missing and send once it is connected.'}
+          </Alert>
+          <TextField label="From number" fullWidth size="small"
+            value={smsConfig?.fromNumber || ''}
+            onChange={e => setSmsConfig((p: any) => ({ ...p, fromNumber: e.target.value }))}
+            helperText="Your Twilio number in international format, e.g. +447700900123" />
+          <TextField label="Account SID" fullWidth size="small"
+            value={smsConfig?.accountSid || ''}
+            onChange={e => setSmsConfig((p: any) => ({ ...p, accountSid: e.target.value }))}
+            helperText="Found in the Twilio console. Stored encrypted, never shown again." />
+          <TextField label="Auth token" type="password" fullWidth size="small"
+            value={smsConfig?.authToken || ''}
+            onChange={e => setSmsConfig((p: any) => ({ ...p, authToken: e.target.value }))}
+            helperText="Leave blank to keep the saved token. Emptying is not possible here — clear it only by disabling SMS." />
+        </Stack>
+      </Paper>
+    </Box>
+  )
+
   const renderAITab = () => (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
@@ -2281,6 +2352,7 @@ export default function SettingsPage() {
           {canManage && <Tab value="compliance" icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
           {isOrgAdmin && <Tab value="delegations" icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
           {isOrgAdmin && <Tab value="ai" icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
+          {isOrgAdmin && <Tab value="sms" icon={<PhoneIcon />} iconPosition="start" label="SMS" />}
           {canManage && <Tab value="leave" icon={<LeaveIcon />} iconPosition="start" label="Leave" />}
           {canManage && <Tab value="incidents" icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
         </Tabs>
@@ -2292,6 +2364,7 @@ export default function SettingsPage() {
       {tab === 'compliance' && renderComplianceTab()}
       {isOrgAdmin && tab === 'delegations' && renderDelegationsTab()}
       {isOrgAdmin && tab === 'ai' && renderAITab()}
+      {isOrgAdmin && tab === 'sms' && renderSMSTab()}
       {tab === 'leave' && <LeaveTypesSettings staffCount={staffList.length} />}
       {tab === 'incidents' && <IncidentCategoriesSettings />}
     </Box>

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ComplianceIndexRoute } from './ComplianceIndexRoute'
 
@@ -12,6 +12,17 @@ vi.mock('../services/api', () => ({
 // sides render a marker and nothing else.
 vi.mock('../pages/marketing/CompliancePage', () => ({ default: () => 'marketing-overview' }))
 vi.mock('../pages/compliance/CompliancePage', () => ({ default: () => 'app-compliance-hub' }))
+
+// The shell itself is not what this file decides, but *that the hub is inside
+// it* is: the top-level route has to out-rank the marketing page, so it renders
+// the Layout itself rather than inheriting it from the route tree. Rendering the
+// real Layout here would drag its session, socket and theme providers into a
+// unit test about one decision, so the shell is a marker that records the fact.
+vi.mock('../components/Layout', () => ({
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="app-shell">{children}</div>
+  ),
+}))
 
 import api from '../services/api'
 
@@ -62,6 +73,19 @@ describe('ComplianceIndexRoute', () => {
     expect(screen.queryByText('marketing-overview')).not.toBeInTheDocument()
   })
 
+  it('renders the hub inside the app shell, not loose on the page', async () => {
+    // The regression: the route answered the session question correctly but
+    // rendered the hub outside the Layout, so a signed-in visitor got the page
+    // with no sidebar and no page padding — content flush against the window.
+    mockSignedIn('ORG_ADMIN')
+    renderIndex()
+
+    const shell = await screen.findByTestId('app-shell')
+    // The hub is lazy, so wait for it inside the shell rather than assuming it
+    // painted in the same tick the shell did.
+    expect(await within(shell).findByText('app-compliance-hub')).toBeInTheDocument()
+  })
+
   it('renders the marketing overview for a signed-out visitor', async () => {
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url === '/auth/me') return Promise.reject({ response: { status: 401 } })
@@ -71,6 +95,8 @@ describe('ComplianceIndexRoute', () => {
 
     expect(await screen.findByText('marketing-overview')).toBeInTheDocument()
     expect(screen.queryByText('app-compliance-hub')).not.toBeInTheDocument()
+    // The public page keeps its own chrome; the app shell is for signed-in users.
+    expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument()
   })
 
   it('treats an unreachable server as still signed in when a user is cached', async () => {

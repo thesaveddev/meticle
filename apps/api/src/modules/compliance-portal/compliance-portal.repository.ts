@@ -1,4 +1,5 @@
 import { query } from '../../shared/database';
+import { decryptRow, decryptRowsForOrg } from '../../shared/utils/encrypted-columns';
 
 export class CompliancePortalRepository {
   // ── Token Management ──
@@ -259,21 +260,35 @@ export class CompliancePortalRepository {
     `, [personId]);
 
     return {
+      // `decryptRow` also walks the nested `care_plans`/`risk_assessments`
+      // aggregates on this row, so the plan narrative and the risk text arrive
+      // readable rather than as ciphertext inside JSON.
       person: person.rows[0] ? {
-        ...person.rows[0],
+        ...decryptRow('people', person.rows[0]),
         allergies: typeof person.rows[0].allergies === 'string' ? JSON.parse(person.rows[0].allergies) : person.rows[0].allergies || [],
       } : null,
-      dailyNotes: dailyNotes.rows,
+      dailyNotes: decryptRowsForOrg('daily_notes', dailyNotes.rows, orgId),
       meals: meals.rows.map((m: any) => ({
         ...m,
         items: m.items || [],
       })),
       dietaryProfile: dietaryProfile.rows[0] || null,
-      incidents: incidents.rows,
+      incidents: decryptRowsForOrg('incidents', incidents.rows, orgId),
     };
   }
 
   static async getMedicationDetail(orgId: string, locationId: string, personId: string) {
+    // The token is scoped to one location, so the resident must be at it. Without
+    // this check `locationId` was accepted and then never used, and a portal link
+    // issued for one home returned the MAR of a resident at another home in the
+    // same organisation — clinical medication data outside the audit scope the
+    // officer was granted (and the scope the email describes to them).
+    const personCheck = await query(
+      `SELECT id FROM people WHERE id = $1 AND location_id = $2 AND organization_id = $3`,
+      [personId, locationId, orgId]
+    );
+    if (personCheck.rows.length === 0) return null;
+
     const records = await query(`
       SELECT r.*,
         (SELECT first_name || ' ' || last_name FROM people WHERE id = r.person_id) AS person_name
