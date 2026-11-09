@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeticleCare — Investment Viability Report · 9 November 2026</title>
+<style>
+  :root{
+    --navy:#0F4C81; --navy-deep:#0A3559; --emerald:#10B981; --emerald-deep:#0B8F63;
+    --bone:#F7F4EE; --ink:#1B2430; --muted:#5B6875; --hairline:#E1E8EF;
+    --paper:#FFFFFF; --wash:#F6F9FC; --amber:#E8A33D; --amber-wash:#FEF6E7;
+    --red:#C8453B; --red-wash:#FDF1EF; --green-wash:#EAF8F2;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bone); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15.5px; line-height:1.66; -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:960px; margin:0 auto; background:var(--paper); box-shadow:0 2px 28px rgba(15,76,129,.09)}
+  .pad{padding:0 62px}
+  /* ---------- cover ---------- */
+  .cover{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 62%,#1367A8 100%); color:#fff; padding:52px 62px 44px; position:relative; overflow:hidden}
+  .cover:after{content:""; position:absolute; right:-110px; top:-110px; width:380px; height:380px; border:1px solid rgba(255,255,255,.13); border-radius:50%}
+  .cover:before{content:""; position:absolute; right:-40px; top:-40px; width:230px; height:230px; border:1px solid rgba(255,255,255,.10); border-radius:50%}
+  .brand{font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:#9FD8C4; font-weight:700; margin-bottom:34px}
+  .cover h1{font-size:40px; line-height:1.12; margin:0 0 12px; font-weight:750; letter-spacing:-.025em; max-width:660px}
+  .cover .sub{font-size:18px; color:#D6E7F5; margin:0 0 30px; font-weight:400; max-width:650px}
+  .meta{display:flex; flex-wrap:wrap; gap:26px 44px; border-top:1px solid rgba(255,255,255,.22); padding-top:22px; font-size:12.5px}
+  .meta div span{display:block; color:#9CC4E4; text-transform:uppercase; letter-spacing:.13em; font-size:10.5px; font-weight:700; margin-bottom:3px}
+  .meta div b{font-weight:600; color:#fff; font-size:13.5px}
+  /* ---------- verdict band ---------- */
+  .verdict{background:var(--amber-wash); border-bottom:1px solid #F0DCB8; padding:26px 62px 28px; display:flex; gap:24px; align-items:flex-start}
+  .vtag{flex:0 0 auto; background:var(--amber); color:#fff; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; padding:7px 12px; border-radius:4px; margin-top:3px}
+  .verdict h2{margin:0 0 7px; font-size:21px; letter-spacing:-.01em; color:#7A4E0B}
+  .verdict p{margin:0; font-size:14.5px; color:#6B5327; max-width:760px}
+  .verdict strong{color:#5A3E06}
+  /* ---------- toc ---------- */
+  .toc{background:var(--wash); border-bottom:1px solid var(--hairline); padding:24px 62px 26px}
+  .toc h3{margin:0 0 12px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+  .toc ol{margin:0; padding:0; list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:5px 30px; counter-reset:t}
+  .toc li{counter-increment:t; font-size:13px}
+  .toc li:before{content:counter(t,decimal-leading-zero); color:var(--emerald-deep); font-weight:700; margin-right:9px; font-variant-numeric:tabular-nums}
+  .toc a{color:var(--ink); text-decoration:none; border-bottom:1px solid transparent}
+  .toc a:hover{color:var(--navy); border-bottom-color:var(--navy)}
+  /* ---------- sections ---------- */
+  section{padding:38px 0 6px; border-bottom:1px solid var(--hairline)}
+  section:last-of-type{border-bottom:none}
+  .kicker{font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--emerald-deep); font-weight:800; margin-bottom:8px}
+  h2.sec{font-size:25px; letter-spacing:-.02em; margin:0 0 6px; color:var(--navy-deep); font-weight:750}
+  .lede{font-size:16px; color:var(--muted); margin:0 0 22px; max-width:790px}
+  h3{font-size:16.5px; margin:26px 0 10px; color:var(--navy-deep); letter-spacing:-.01em}
+  h4{font-size:14px; margin:20px 0 8px; color:var(--ink)}
+  p{margin:0 0 13px}
+  ul,ol{margin:0 0 14px; padding-left:22px}
+  li{margin-bottom:6px}
+  strong{font-weight:650}
+  a{color:var(--navy)}
+  .small{font-size:12.5px; color:var(--muted)}
+  .tag{display:inline-block; font-size:10.5px; font-weight:750; letter-spacing:.07em; text-transform:uppercase; padding:3px 8px; border-radius:3px; vertical-align:middle}
+  .tag.pri{background:#E7F0F9; color:var(--navy)}
+  .tag.sec2{background:#F0F3F6; color:var(--muted)}
+  .tag.new{background:var(--green-wash); color:var(--emerald-deep)}
+  /* tables */
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; font-size:13.5px}
+  th{background:var(--navy-deep); color:#fff; text-align:left; padding:9px 11px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:700}
+  td{padding:9px 11px; border-bottom:1px solid var(--hairline); vertical-align:top}
+  tbody tr:nth-child(even){background:var(--wash)}
+  td.num{font-variant-numeric:tabular-nums; white-space:nowrap}
+  .q{font-weight:650; color:var(--navy-deep)}
+  /* callouts */
+  .box{border-left:4px solid var(--navy); background:var(--wash); padding:15px 18px; margin:18px 0; border-radius:0 5px 5px 0; font-size:14px}
+  .box.warn{border-left-color:var(--amber); background:var(--amber-wash)}
+  .box.stop{border-left-color:var(--red); background:var(--red-wash)}
+  .box.go{border-left-color:var(--emerald); background:var(--green-wash)}
+  .box p:last-child{margin-bottom:0}
+  .box .box-t{font-weight:750; font-size:12px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px; color:var(--navy-deep)}
+  .box.warn .box-t{color:#8A5D10} .box.stop .box-t{color:#9C332B} .box.go .box-t{color:var(--emerald-deep)}
+  /* stat strip */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0 24px}
+  .stat{background:var(--wash); border:1px solid var(--hairline); border-radius:6px; padding:14px 14px 13px}
+  .stat .n{font-size:24px; font-weight:750; color:var(--navy); letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums}
+  .stat .n.em{color:var(--emerald-deep)}
+  .stat .l{font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.4}
+  /* figures */
+  figure{margin:20px 0 24px; border:1px solid var(--hairline); border-radius:6px; padding:18px 20px 14px; background:#fff}
+  figure svg{display:block; width:100%; height:auto}
+  figcaption{font-size:11.5px; color:var(--muted); margin-top:11px; border-top:1px solid var(--hairline); padding-top:9px; line-height:1.5}
+  .fig-t{font-size:12.5px; font-weight:750; color:var(--navy-deep); margin-bottom:14px; letter-spacing:.01em}
+  /* two-col */
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin:16px 0}
+  .card{border:1px solid var(--hairline); border-radius:6px; padding:16px 18px}
+  .card h4{margin:0 0 8px; font-size:14px}
+  .card.bad{background:var(--red-wash); border-color:#F0D5D1}
+  .card.good{background:var(--green-wash); border-color:#CDEBDD}
+  .card ul{margin-bottom:0; font-size:13.5px}
+  /* gate table extras */
+  .gate td:first-child{font-weight:750; color:var(--navy); width:34px; text-align:center; font-variant-numeric:tabular-nums}
+  .gate td:nth-child(2){width:46%}
+  /* option cards */
+  .opt{border:1px solid var(--hairline); border-radius:6px; padding:15px 18px; margin-bottom:12px; display:grid; grid-template-columns:34px 1fr 132px; gap:14px; align-items:start}
+  .opt .rank{background:var(--navy-deep); color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:750; font-size:13px}
+  .opt .rank.g{background:var(--emerald-deep)}
+  .opt h4{margin:0 0 4px}
+  .opt p{margin:0; font-size:13px; color:var(--muted)}
+  .opt .rating{font-size:11px; text-align:right; color:var(--muted); line-height:1.55}
+  .opt .rating b{display:block; color:var(--navy-deep); font-size:12px; letter-spacing:.04em; text-transform:uppercase}
+  /* sources */
+  .src{font-size:12.5px; columns:2; column-gap:34px}
+  .src p{break-inside:avoid; margin-bottom:9px}
+  .src b{color:var(--navy-deep)}
+  footer{background:var(--navy-deep); color:#AFC9DE; padding:26px 62px 30px; font-size:11.5px; line-height:1.6}
+  footer strong{color:#fff}
+  .conf{display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; background:#E7F0F9; color:var(--navy)}
+  @media(max-width:760px){
+    .pad,.cover,.verdict,.toc,footer{padding-left:24px; padding-right:24px}
+    .cover h1{font-size:30px} .stats{grid-template-columns:1fr 1fr}
+    .two,.toc ol{grid-template-columns:1fr} .src{columns:1}
+    .opt{grid-template-columns:28px 1fr} .opt .rating{grid-column:2; text-align:left}
+  }
+  @media print{
+    body{background:#fff; font-size:11pt} .page{box-shadow:none; max-width:none}
+    section{page-break-inside:avoid} figure,.box,table{page-break-inside:avoid}
+    .cover{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+    th,.stat,.vtag{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="brand">Independent assessment &nbsp;·&nbsp; Decision memorandum</div>
+  <h1>MeticleCare: is there a market, is there demand, and is it worth investing in?</h1>
+  <p class="sub">A viability and investment review of a UK supported-living &amp; domiciliary-care management platform — with a recommended go / no-go decision.</p>
+  <div class="meta">
+    <div><span>Report date</span><b>9 November 2026</b></div>
+    <div><span>Research window</span><b>5–9 November 2026</b></div>
+    <div><span>Subject</span><b>UK adult social care SaaS</b></div>
+    <div><span>Prepared for</span><b>Founder / investment decision</b></div>
+    <div><span>Evidence base</span><b>Primary regulators + internal docs</b></div>
+    <div><span>Status</span><b>Final</b></div>
+  </div>
+</div>
+
+<!-- ============ VERDICT ============ -->
+<div class="verdict">
+  <span class="vtag">Conditional no-go</span>
+  <div>
+    <h2>Do not fund the full plan yet. Fund a 90-day evidence gate instead.</h2>
+    <p>The product is unusually well built and the market is real — but it is <strong>small, mature, late-cycle and financially weak</strong>, ~80% of buyers have already purchased, 23 assured competitors occupy every claimed gap, and there is <strong>no evidence yet that a provider will switch and pay</strong>. The binding constraint is no longer engineering; it is customer proof and regulatory credibility. <strong>Worth completing: conditionally. Worth £400–650k today: no.</strong></p>
+  </div>
+</div>
+
+<!-- ============ TOC ============ -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Executive verdict — the four questions</a></li>
+    <li><a href="#s2">What you actually have</a></li>
+    <li><a href="#s3">Market: size, structure, health</a></li>
+    <li><a href="#s4">Demand: real, but the land-grab is over</a></li>
+    <li><a href="#s5">Competition and the credibility gate</a></li>
+    <li><a href="#s6">Investment math and exit path</a></li>
+    <li><a href="#s7">What is genuinely strong</a></li>
+    <li><a href="#s8">The 90-day decision gate</a></li>
+    <li><a href="#s9">Five strategic options, ranked</a></li>
+    <li><a href="#s10">Risks, caveats, what changes the verdict</a></li>
+    <li><a href="#s11">Research addendum (9 Nov verification)</a></li>
+    <li><a href="#s12">Sources</a></li>
+  </ol>
+</div>
+
+<div class="pad">
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <div class="kicker">01 — The answer</div>
+  <h2 class="sec">Executive verdict</h2>
+  <p class="lede">Four questions were asked. Here are the direct answers, with confidence ratings.</p>
+
+  <table>
+    <thead><tr><th style="width:31%">Question</th><th>Answer</th><th style="width:15%">Confidence</th></tr></thead>
+    <tbody>
+      <tr><td class="q">Is there a market?</td><td><strong>Yes — but small, mature and financially weak.</strong> ~19,000 adult social care provider organisations in England; 13,500+ homecare and 4,500+ supported-living services. A defensible bottom-up UK care-software pool of only <strong>~£80–120m/year</strong> (four-nations ~£90–140m).</td><td><span class="conf">High</span> on buyer counts; medium on spend</td></tr>
+      <tr><td class="q">Is there demand?</td><td><strong>Yes for digitisation — but ~80% have already bought.</strong> Residual demand is replacement/consolidation, not first-time adoption, concentrated in the smallest, least able to pay providers. No binding software mandate; no national subsidy wave left.</td><td><span class="conf">High</span></td></tr>
+      <tr><td class="q">Is it worth completing?</td><td><strong>Only conditionally.</strong> Engineering is unusually complete. The missing work is commercial and regulatory — customer proof, NHS assurance, DSPT, legal pack — not features.</td><td><span class="conf">High</span></td></tr>
+      <tr><td class="q">Is it worth £400–650k?</td><td><strong>No — not on the current thesis.</strong> Do not fund a horizontal all-in-one challenger without evidence that a provider will switch. Fund a time-boxed validation gate first.</td><td><span class="conf">Medium-high</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <div class="box-t">One sentence</div>
+    <p>MeticleCare is a genuinely well-built product pointed at a real but late-cycle, low-budget, incumbent-locked market; the constraint on its value is no longer code — it is evidence that a care provider will switch and pay, and <strong>that evidence does not currently exist</strong>.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">80%</div><div class="l">of care providers already use a digital social care record (DHSC, Dec 2025)</div></div>
+    <div class="stat"><div class="n">23</div><div class="l">NHS England assured DSCR products verified live on 9 Nov 2026</div></div>
+    <div class="stat"><div class="n">£80–120m</div><div class="l">estimated UK serviceable care-software spend per year</div></div>
+    <div class="stat"><div class="n em">0</div><div class="l">paying customers, signed LOIs or named investors found in the evidence pack</div></div>
+  </div>
+
+  <p class="small">This is desk research plus internal-document review — <strong>it is not customer evidence</strong>, and no customer evidence was found. Every material number carries a date and a source; estimates are labelled as assumptions.</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <div class="kicker">02 — The asset</div>
+  <h2 class="sec">What you actually have</h2>
+  <p class="lede">Separate the two things that are easy to confuse: a strong engineering asset, and a viable business. The first is proven; the second is unproven.</p>
+
+  <div class="two">
+    <div class="card good">
+      <h4>Proven: engineering and capability</h4>
+      <ul>
+        <li>Multi-tenant, RLS-isolated Express/React platform, ~51 API modules, ~132 web routes, ~1,505 API tests and 310 mobile tests.</li>
+        <li>Live production: TLS 1.3, HSTS, MFA, per-request RBAC, audit-log-before-response guarantee, Prometheus metrics, Swagger, Stripe billing, branded email queue.</li>
+        <li>One coherent data model across rota → care record → eMAR → compliance evidence → billing, incl. min-safe-staffing, 11-hour rest, offline PWA check-in with GPS point-in-time capture.</li>
+        <li>Compliance/privacy depth: four-nations regulator frameworks, on-demand location privacy with DPIA v1.0–1.4 and kill switch, governed AI capability registry, and a claims guard that polices its own marketing.</li>
+        <li>Phase 2 multi-service expansion (domiciliary packages, visits, mileage, payroll CSV) substantially implemented.</li>
+      </ul>
+    </div>
+    <div class="card bad">
+      <h4>Unproven: viability</h4>
+      <ul>
+        <li>No signed LOIs, no paying pilots, no named investors, no committed funds, no completed customer interviews.</li>
+        <li>DSPT <strong>not submitted</strong>; no accreditation; not on the NHS England assured list.</li>
+        <li>Legal/commercial set unstarted "before the first paying customer": DPA, solicitor-reviewed terms, PI insurance, org-wide DPIA, AI Art 28 position.</li>
+        <li>Backups exist but no restore has ever been run; monitoring present but unproven.</li>
+        <li>Internal plan requires <strong>£400–650k</strong> total, with <strong>£542k cash to break-even at month 30</strong>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">The most honest sentence in your own documents</div>
+    <p><code>INNF_8.2_VIABILITY_EVIDENCE.md</code> (28 Sep 2026) states that everything built is evidence of <em>innovation and capability</em>, not <em>viability</em>; that viability is evidenced by customers, advisers and a funding record; and that <strong>"no further engineering moves this score"</strong>. This independent review reaches the same conclusion from the outside. It also notes the market-awareness limb is evidenced by documented contact with buyers — <em>"the market research shows we can read; it does not show we have listened."</em></p>
+  </div>
+
+  <div class="box">
+    <div class="box-t">Decision context worth naming</div>
+    <p>The internal pack is also built for an <strong>Innovator Founder endorsement</strong> (criteria 8.2 viability, 8.3(d) scalability). That changes what "worth it" means: the highest-value next action is not VC math but a dated, citable record of buyer conversations and one signed design partner — <strong>which is exactly the same 90-day gate recommended here</strong>. Two structural notes: the endorsed plan becomes a monitored commitment (so endorse a staged Year 1, not the full three-year model), and the current sole-director share structure means only one founder is presently eligible — decide the applicant set before the raise, since issuing shares first can invalidate the SEIS advance assurance.</p>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <div class="kicker">03 — Market</div>
+  <h2 class="sec">Market: size, structure, health</h2>
+  <p class="lede">The care market is large and growing. The software slice is not. Confusing the two is the single most common error in this category's pitch decks.</p>
+
+  <h3>3.1 Buyer base — strong, growing, fragmenting downwards</h3>
+  <table>
+    <thead><tr><th style="width:44%">Figure</th><th style="width:22%">Value</th><th>Date / source</th></tr></thead>
+    <tbody>
+      <tr><td>Adult social care provider organisations, England</td><td class="num"><strong>~19,000</strong></td><td>2024/25, DHSC Fair Pay Agreement consultation (updated 16 Jul 2026)</td></tr>
+      <tr><td>LA-funded adult social care gross expenditure</td><td class="num"><strong>just under £30bn</strong> (+9% YoY)</td><td>2024/25, CQC State of Care 2025/26 (23 Oct 2026)</td></tr>
+      <tr><td>Homecare services registered with CQC</td><td class="num"><strong>13,500+</strong> (+42% vs Apr 2019)</td><td>Apr 2026, CQC State of Care 2025/26: Fragmentation</td></tr>
+      <tr><td>Supported-living services</td><td class="num"><strong>4,500+</strong> (+20% in 2025/26)</td><td>Apr 2026, same CQC source</td></tr>
+      <tr><td>Homecare services supporting ≤4 people</td><td class="num"><strong>30%</strong> of market (+2pp YoY)</td><td>Apr 2026, same CQC source</td></tr>
+      <tr><td>Workforce</td><td class="num"><strong>1.5m</strong> (~5% of all employed adults)</td><td>2024/25, DHSC / CQC State of Care</td></tr>
+    </tbody>
+  </table>
+  <p>The segments MeticleCare targets are <strong>the growing ones</strong> — homecare +42% since 2019, supported living +20% in the last year. But they are fragmenting <em>downwards</em>: more micro-providers. A long tail of tiny buyers means low ACV, high support cost and high involuntary churn.</p>
+
+  <h3>3.2 The software slice — a bottom-up TAM, and a funnel that ends small</h3>
+  <p>Neither DHSC nor CQC publishes a care-software spend series. Syndicated "market reports" quoting USD 0.9–1.2bn for "social work management tools" or "private duty care software" use US/local-authority case-management definitions and should <strong>not</strong> be used as a TAM. A defensible bottom-up estimate:</p>
+  <table>
+    <thead><tr><th style="width:8%">Step</th><th>Assumption</th><th style="width:26%">Value</th></tr></thead>
+    <tbody>
+      <tr><td class="num">A</td><td>England ASC provider organisations (DHSC 2024/25)</td><td class="num">19,000</td></tr>
+      <tr><td class="num">B</td><td>Community-only (homecare + supported living) organisations <em>— assumption</em> given multi-location groups</td><td class="num">~13,000</td></tr>
+      <tr><td class="num">C</td><td>Blended annual platform spend per org <em>— assumption</em>: micro ~£2k, small ~£5k, medium ~£15k, large ~£50k, weighted by DHSC size mix</td><td class="num">~£6–9k</td></tr>
+      <tr><td class="num"><strong>D</strong></td><td><strong>Serviceable software TAM</strong> = B × C</td><td class="num"><strong>~£80–120m/yr</strong></td></tr>
+      <tr><td class="num"><strong>E</strong></td><td><strong>Realistic capturable share</strong> for a new entrant in 3–5 years (1–3% of community orgs)</td><td class="num"><strong>130–390 customers<br>£0.8–3.5m ARR</strong></td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <div class="fig-t">Fig. 1 — From a £30bn care market to a low-single-digit-million ARR business</div>
+    <svg viewBox="0 0 860 210" role="img" aria-label="Funnel from 30 billion pound care expenditure to 80-120 million software TAM to 0.8-3.5 million capturable ARR">
+      <defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0A3559"/><stop offset="1" stop-color="#1367A8"/></linearGradient></defs>
+      <rect x="10" y="20" width="800" height="44" rx="5" fill="url(#fg)"/>
+      <text x="26" y="42" fill="#fff" font-size="13" font-weight="700">£30bn</text>
+      <text x="26" y="58" fill="#C7E0F2" font-size="11">LA-funded adult social care gross expenditure (state-funded care delivery)</text>
+      <path d="M410 66 L410 84" stroke="#9AAEBF" stroke-width="2"/><path d="M404 78 L410 86 L416 78" fill="#9AAEBF"/>
+      <rect x="110" y="88" width="600" height="44" rx="5" fill="#0F4C81" opacity=".88"/>
+      <text x="126" y="110" fill="#fff" font-size="13" font-weight="700">£80–120m / yr</text>
+      <text x="126" y="126" fill="#D6E7F5" font-size="11">Serviceable UK care-software TAM — ~0.3% of care delivery spend</text>
+      <path d="M410 134 L410 152" stroke="#9AAEBF" stroke-width="2"/><path d="M404 146 L410 154 L416 146" fill="#9AAEBF"/>
+      <rect x="250" y="156" width="320" height="44" rx="5" fill="#10B981"/>
+      <text x="266" y="178" fill="#fff" font-size="13" font-weight="700">£0.8–3.5m ARR</text>
+      <text x="266" y="194" fill="#E4F8F0" font-size="11">Realistic capturable share (130–390 customers)</text>
+    </svg>
+    <figcaption>Not to scale. The point is the ratio, not the geometry: software is roughly three orders of magnitude smaller than the care market it serves. Assumptions are analyst estimates with no official UK series behind them.</figcaption>
+  </figure>
+
+  <div class="box go">
+    <div class="box-t">New in this report — the four-nations TAM, now sized <span class="tag new" style="margin-left:6px">9 Nov</span></div>
+    <p>The 5 Nov research flagged that the four-nations differentiator "rests on a TAM that has not been sized here". Using a 2025 UK-wide homecare service count cross-checked against a Welsh parliamentary answer: <strong>~18,400 homecare services across the UK — 16,001 England, 1,289 Scotland, 776 Wales, 331 Northern Ireland</strong>. The devolved nations therefore add only <strong>~2,400 services, ~13%</strong> to the English base. (Wales: 655 of those domiciliary services are limited companies, per Senedd WQ97755, 1 Dec 2025; NI: ~42,000 practitioners across ~500 employers, NISCC Jun 2025.)</p>
+    <p><strong>Conclusion:</strong> the four-nations uplift to software TAM is roughly <strong>+10–15% (~£8–18m/yr)</strong>, taking UK-wide TAM to <strong>~£90–140m/yr</strong> — still not venture scale. Worse, those buyers sit behind three separate regulators, three procurement regimes, no shared assured list, and Welsh-language "Active Offer" obligations, so the <em>addressable</em> uplift is smaller and the cost-to-serve higher. <strong>Four-nations is a real engineering achievement but a small commercial one.</strong> It should be sold as credibility, not as market expansion. <span class="small">Caveat: the England figure here (16,001 services) differs from CQC's official 13,500+ (Apr 2026) — different service/location definitions. Devolved figures are secondary/vendor-sourced; treat the ratio as indicative.</span></p>
+  </div>
+
+  <h3>3.3 Buyers are in financial distress — the underweighted risk</h3>
+  <ul>
+    <li>Council homecare rate <strong>£25.05/hr for 2026/27</strong> vs the Homecare Association's <strong>£34.42/hr Minimum Price</strong> — a <strong>£9.37/hr gap</strong> on the 70–80% of hours bought by councils/NHS. Only 1% of reviewed council contracts met the minimum in 2025/26.</li>
+    <li><strong>£715m</strong> adult social care budget overspend in 2025/26; <strong>66%</strong> of councils saw providers close, cease trading or hand back contracts in the six months to May 2026; <strong>&gt;400,000</strong> people waiting for assessment/care.</li>
+    <li><strong>33 homecare company insolvencies (SIC 881) in Jan–Aug 2026</strong> — more than any full year since 2016; 63 care-company insolvencies including residential vs 36 in the same period of 2025. <span class="small">Secondary analysis of Insolvency Service data; directionally credible.</span></li>
+    <li>National Living Wage <strong>£12.71/hr from 1 Apr 2026</strong>, employer NIC at 15%, homecare vacancy rate still <strong>~9%</strong>.</li>
+  </ul>
+  <div class="box warn"><p><strong>Implication:</strong> a SaaS book in this sector suffers <em>involuntary</em> churn from customer insolvency, and price rises/upsell face structural resistance. Any model assuming smooth net revenue retention is optimistic. Care homes are a healthier two-tier exception (27% profitability, self-funder share 48%→52%) — but that is not MeticleCare's primary ICP.</p></div>
+
+  <h3>3.4 Policy tailwind, but no near-term budget event</h3>
+  <p>2025 Spending Review: <strong>&gt;£4bn extra ASC funding by 2028/29</strong> and <strong>£500m</strong> for the first Fair Pay Agreement (effective April 2028) — real, but back-loaded. The Casey Commission launched its "Big Conversation on Care" on 29 July 2026, with a final report now expected <strong>summer 2027</strong>; the funding architecture remains unresolved after decades of commissions. The Health and Care Worker visa route closed to new overseas entrants on 22 July 2025, and international recruitment fell 105,000 (2023/24) → 50,000 (2024/25) → ~30,000 (2025/26): good for "admin efficiency" narratives, bad for provider cost bases. <strong>No new near-term digitisation funding event was found in the 9 Nov check.</strong></p>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <div class="kicker">04 — Demand</div>
+  <h2 class="sec">Demand: real, but the land-grab is over</h2>
+  <p class="lede">This is the most important section. The adoption curve is the verdict.</p>
+
+  <h3>4.1 Adoption is already ~80%</h3>
+  <figure>
+    <div class="fig-t">Fig. 2 — DSCR adoption in England: the S-curve is finished</div>
+    <svg viewBox="0 0 860 230" role="img" aria-label="Line chart showing digital social care record adoption rising from 41 percent in December 2021 to 77 percent in March 2025 to 80 percent in 2025">
+      <line x1="60" y1="20" x2="60" y2="180" stroke="#C9D6E2" stroke-width="1"/>
+      <line x1="60" y1="180" x2="820" y2="180" stroke="#C9D6E2" stroke-width="1"/>
+      <g font-size="10" fill="#7A8894" font-family="sans-serif">
+        <text x="24" y="24">100%</text><text x="32" y="63">80%</text><text x="32" y="102">60%</text><text x="32" y="141">40%</text><text x="32" y="183">20%</text>
+      </g>
+      <g stroke="#EDF2F6" stroke-width="1"><line x1="60" y1="20" x2="820" y2="20"/><line x1="60" y1="59" x2="820" y2="59"/><line x1="60" y1="98" x2="820" y2="98"/><line x1="60" y1="137" x2="820" y2="137"/></g>
+      <rect x="60" y="20" width="760" height="39" fill="#FDF1EF"/>
+      <text x="812" y="35" font-size="9.5" fill="#C8453B" text-anchor="end" font-family="sans-serif">residual 20% — mostly micro-providers</text>
+      <polyline points="95,115 300,66 500,62 700,59 800,59" fill="none" stroke="#0F4C81" stroke-width="3" stroke-linejoin="round"/>
+      <g fill="#0F4C81"><circle cx="95" cy="115" r="5"/><circle cx="300" cy="66" r="5"/><circle cx="500" cy="62" r="5"/><circle cx="700" cy="59" r="5"/><circle cx="800" cy="59" r="6" fill="#10B981"/></g>
+      <g font-size="11" font-weight="700" fill="#0A3559" font-family="sans-serif">
+        <text x="95" y="108" text-anchor="middle">41%</text><text x="300" y="56" text-anchor="middle">77%</text><text x="500" y="52" text-anchor="middle">~78%</text><text x="700" y="49" text-anchor="middle">80%</text><text x="800" y="47" text-anchor="middle" fill="#0B8F63">80%</text>
+      </g>
+      <g font-size="10" fill="#5B6875" font-family="sans-serif">
+        <text x="95" y="198" text-anchor="middle">Dec 2021</text><text x="300" y="198" text-anchor="middle">Mar 2025</text><text x="500" y="198" text-anchor="middle">mid 2025</text><text x="700" y="198" text-anchor="middle">Jul 2025</text><text x="800" y="198" text-anchor="middle">Dec 2025</text>
+      </g>
+      <text x="440" y="220" text-anchor="middle" font-size="10.5" fill="#5B6875" font-family="sans-serif">DHSC: "the number of care providers using them doubling from 40% to 80%" — covering ~90% of people drawing on care</text>
+    </svg>
+    <figcaption>Verified verbatim from DHSC, <em>Digital revolution in care saves millions of admin hours</em>, 5 Dec 2025. Also stated: an estimated <b>30m administrative hours saved per year</b>, at least <b>20 minutes per care worker per shift</b>, care plans completed in 3 days instead of 7 and reviewed in ½ hour instead of 4. The efficiency case is proven — by the incumbents' installed base.</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:40%">Measure</th><th style="width:22%">Value</th><th>Date / source</th></tr></thead>
+    <tbody>
+      <tr><td>Providers using a Digital Social Care Record</td><td class="num"><strong>80%</strong> (~90% of people drawing on care)</td><td>5 Dec 2025, DHSC press release <span class="tag pri">verified 9 Nov</span></td></tr>
+      <tr><td>Surveyed providers using DSCR / digital rostering / eMAR</td><td class="num"><strong>73% / 63% / 53%</strong></td><td>Fieldwork Feb–Mar 2025, pub. 6 Mar 2026 (n=1,085), DHSC technology survey</td></tr>
+      <tr><td>DSCR adoption by provider size</td><td class="num">micro <strong>57%</strong> / small 77% / medium 79% / large <strong>88%</strong></td><td>same survey</td></tr>
+      <tr><td>Barriers to adoption</td><td class="num">set-up cost <strong>73%</strong>, licence cost <strong>70%</strong>, training/turnover 52%, cyber 41%, connectivity 40%, digital skills 39%</td><td>same survey</td></tr>
+      <tr><td>Support wanted</td><td class="num"><strong>82%</strong> want ongoing-cost funding, 67% upfront</td><td>same survey</td></tr>
+    </tbody>
+  </table>
+  <p><strong>The 20% who have not bought are disproportionately micro-providers — the exact group with the least ability to pay.</strong> The residual greenfield is a price/access gap, not a product gap.</p>
+
+  <h3>4.2 The "mandate" is weaker than the pitch deck assumes</h3>
+  <div class="box stop">
+    <div class="box-t">Verified primary sources, 9 November 2026</div>
+    <p>DHSC's own buyer guidance (published <strong>29 Sep 2026</strong>) states plainly: <em>"There is no formal public sector process for DSCR procurements"</em>; <em>"You may be able to negotiate the price with the supplier"</em>; and for in-house systems, <em>"there is currently no requirement for your solution to be on the assured solutions list."</em> It also confirms <em>"DSCRs do not normally include rostering or electronic medication administration records (eMAR)"</em> — which is the real, documented gap MeticleCare's bundle addresses.</p>
+  </div>
+  <ul>
+    <li>The original "80% digitised by March 2024" was a <strong>policy aim, not a statutory requirement</strong> (DHSC, Jun 2022); it was missed and reached ~16 months late.</li>
+    <li>The <strong>Digitising Social Care (DiSC) programme ended in April 2025</strong>; the current formulation is an "ambition for all care providers to be fully digitised by the end of this Parliament" (ministerial answer, 15 Dec 2025).</li>
+    <li>CQC requires accurate, complete records under Regulation 17 — <strong>paper is compliant</strong>; CQC does not endorse any system.</li>
+    <li>The genuinely binding pressure is <strong>contractual</strong>: DSPT "Standards Met" by 30 June is written into many LA/ICB contracts, and GP Connect access requires an <strong>assured DSCR + DSPT "standards met" + signed National Data Sharing Agreement</strong> (verified verbatim in the 29 Sep 2026 DHSC guidance).</li>
+    <li><strong>2025/26 public money funds training, not licences</strong>: a Level 5 Digital Leadership qualification, £12m LDSS training and £12m workforce courses (DHSC, 9 Apr 2025). The old ICB match-funded grant rounds no longer run in that form.</li>
+  </ul>
+  <div class="box warn"><p><strong>Conclusion:</strong> the government-subsidised adoption wave that created the incumbents' installed bases <strong>cannot be ridden again</strong>. This is the single most important demand finding, and it is the reason a new horizontal DSCR entrant is fighting for replacement rather than expansion.</p></div>
+
+  <h3>4.3 What demand remains</h3>
+  <table>
+    <thead><tr><th style="width:27%">Residual demand</th><th>Why it is real</th><th style="width:26%">Why it is hard</th></tr></thead>
+    <tbody>
+      <tr><td class="q">Replacement / consolidation</td><td>DHSC notes most DSCRs omit rostering/eMAR; NHS England's remaining priority is "providers with legacy systems".</td><td>A displacement fight against 12-month contracts and free migration offers.</td></tr>
+      <tr><td class="q">Inspection / evidence pressure</td><td>Only 6,294 ASC services assessed under the Single Assessment Framework since Jan 2024 against ~22,000+ locations; CQC says volumes are "too low to be representative".</td><td>Trigger is episodic; incumbents already automate evidence packs.</td></tr>
+      <tr><td class="q">Workforce admin efficiency</td><td>9% vacancies + collapsed overseas recruitment make admin-per-visit one of few levers providers control. DHSC quantifies ≥20 min/carer/shift.</td><td>Benefit is already claimed by every assured vendor.</td></tr>
+      <tr><td class="q">Interoperability / shared records</td><td>Connecting Care Records, national social care data infrastructure, single patient record favour structured connected data.</td><td>Favours already-connected incumbents most; requires assured status.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <div class="kicker">05 — Competition</div>
+  <h2 class="sec">Competition and the credibility gate</h2>
+  <p class="lede">On 9 November 2026 I pulled the live NHS England assured-solutions list and counted it. This changed the detail, not the direction — it sharpened it.</p>
+
+  <h3>5.1 The gate: 23 assured products, verified live</h3>
+  <p>The assured list currently carries <strong>23 DSCR products</strong> (December 2025: 21). Access appears twice. Every listed product offers core care planning, recording, reporting and audit trails, meets national quality/security standards, and can connect to GP records. The list is a moving target: NHS England "regularly reviews these standards" and may remove products.</p>
+  <div class="box">
+    <p class="small" style="margin-bottom:6px"><strong>Verified 9 Nov 2026:</strong> Access Care and Clinical · Access Care Planning · Birdie · Care Control Systems · Care Vision · Careberry · CareDocs · CareLineLive · Cura Systems · Dom Portal by Decaura · Fusion eCare Solutions · Leecare Platinum6 · Log my Care · Nourish · OneTouch · PASS by everyLIFE · Person Centred Software · QCS (formerly Carebeans) · Qwikify · RoundSys · sorted.care · SOS Care Management System · Tagtronics (TagCare)</p>
+  </div>
+  <p><strong>Two findings that matter more than the count:</strong></p>
+  <ul>
+    <li><strong>The exact bundle already exists, assured.</strong> sorted.care describes "care records, medication, rostering, HR, training, recruitment, surveys, policies, quality assurance and reporting plus a carer app" — essentially MeticleCare's module list. Birdie covers care management, quality auditing, rostering, finance and analytics; Dom Portal by Decaura explicitly covers "domiciliary care, live-in care, and <strong>supported living care</strong>".</li>
+    <li><strong>The installed base is enormous.</strong> PASS claims 84,000 carers nationwide; Person Centred Software claims 8,000+ UK providers supporting 300,000 people; Birdie claims 1,000+ providers. <span class="small">Vendor-published marketing figures, but they indicate the order of magnitude of the displacement task.</span></li>
+  </ul>
+  <div class="box stop">
+    <div class="box-t">Every gap MeticleCare positions on is occupied</div>
+    <p>Supported-living workflows, CQC evidence automation, family portal, chat, training matrix, multi-service providers, four-nations compliance. These are <strong>feature gaps, not market gaps</strong>, and the largest incumbents can copy them within a sprint. Two 2026 entrants — <strong>Flocare</strong> and <strong>CareGovern</strong> — already target supported living specifically; neither appears on the assured list, which is a small opening but also means they face the same gate.</p>
+  </div>
+
+  <h3>5.2 Pricing — headline-competitive but structurally wrong</h3>
+  <table>
+    <thead><tr><th style="width:24%">Vendor</th><th style="width:38%">Published price</th><th style="width:16%">Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Log my Care</td><td><strong>Free</strong> Starter for &lt;10 service users; rota/eMAR/family app are paid add-ons</td><td>per service user</td><td>logmycare.co.uk/pricing</td></tr>
+      <tr><td>CareLineLive</td><td><strong>£120/month floor</strong>; £8.10/carer/month eRoster, £19.70 BYOD, £45 managed handset; onboarding up to £300</td><td>per carer / device</td><td>carelinelive.com/pricing</td></tr>
+      <tr><td>PASS (everyLIFE)</td><td><strong>£185/month</strong> Foundation, 1–15 service users, single location; 12-month minimum; <strong>3 months free to switch</strong>, migration + training included</td><td>per service → per service user</td><td>pass.care</td></tr>
+      <tr><td>Birdie</td><td><strong>from £200/month</strong> ex VAT; AI tools £2.75–£3.50/recording hour</td><td>per scheduled care hour</td><td>birdie.care/pricing</td></tr>
+      <tr><td>Market benchmark</td><td><strong>£12–£35 per carer per month</strong> for combined rostering + care planning</td><td>per carer</td><td>Birdie buyer's guide (vendor-authored)</td></tr>
+    </tbody>
+  </table>
+  <p>MeticleCare's planned tiers (<strong>£99 / £299 / £749 per month</strong>) sit inside the observed range, but four structural problems:</p>
+  <ul>
+    <li><strong>£99 is not disruptive</strong> — it is £99 more than free, and only £21 below CareLineLive's floor, in a market where 70% cite licence cost as a barrier and 82% want ongoing subsidies.</li>
+    <li><strong>£749 "Enterprise" is too cheap</strong>: 50 carers on CareLineLive BYOD already cost ~£985/month plus onboarding. A flat cap under-monetises large multi-site groups and signals "SMB product" to enterprise buyers.</li>
+    <li><strong>Flat tiers ignore the market's revenue-linked units</strong> (care hours / carers / service users / beds). DHSC's own guidance confirms charges are normally based on staff, system users, clients or bed capacity — inviting adverse selection and leaving money on the table at the top.</li>
+    <li><strong>£99/month cannot credibly fund</strong> assurance, customer DSPT support, ISO 27001, Cyber Essentials Plus, GP Connect, 24/7 UK support, data migration and retraining. <strong>Price is not the barrier — credibility is.</strong></li>
+  </ul>
+
+  <h3>5.3 Consolidation and capital — the category is mid-roll-up</h3>
+  <table>
+    <thead><tr><th style="width:14%">Date</th><th>Deal</th><th style="width:24%">Source</th></tr></thead>
+    <tbody>
+      <tr><td class="num">Aug 2026</td><td><strong>Hg acquires majority of Nourish Care</strong> (Hg Mercury Fund; ~£20m from HgCapital Trust; Livingbridge rolls over). Hg plans to embed its Catalyst AI layer and move pricing off seats.</td><td>SaasRise deal note</td></tr>
+      <tr><td class="num">Dec 2025</td><td><strong>Person Centred Software + Clearcare</strong> combination financed by new debt + <strong>Brighton Park Capital</strong> minority equity; Cow Corner remains majority.</td><td>Houlihan Lokey transaction</td></tr>
+      <tr><td class="num">2024–26</td><td>PCS acquired DepenSys/ResHub, Redcrier, KareInn, Camascope (eMAR); Nourish acquired CarePlanner; CareLineLive acquired CareFor and Ulysses; QCS absorbed Carebeans.</td><td>Vendor announcements</td></tr>
+      <tr><td class="num">2021</td><td>Access acquired Servelec — the enterprise roll-up.</td><td>Access Group</td></tr>
+    </tbody>
+  </table>
+  <p>No 2024–26 deal values were publicly disclosed; the Nourish 2022 MBO at <strong>~£35m EV ≈ 9.5× ARR</strong> is the most useful public benchmark. <strong>Well-capitalised PE owners are arming incumbents with AI.</strong> "AI-first" is now a table stake, not a differentiator.</p>
+
+  <h3>5.4 The credibility checklist — a 12–24 month hurdle pricing cannot shortcut</h3>
+  <p>To be credible to a UK care provider in 2026 a vendor needs: assured-list inclusion; DSPT ("Standards Met", own plus customer support); live GP Connect integration; PRSB conformance; ISO 27001; Cyber Essentials Plus; UK data hosting; offline mode; tamper-proof audit trails; 24/7 UK support; funded migration and retraining; an interoperability roadmap. Incumbents actively neutralise the challenger pitch: PASS gives free migration, ~30-day go-live and 3 months free; CareLineLive offers free migration; CareDocs runs champion-led training.</p>
+  <div class="box stop"><p><strong>Against that checklist, your own documents record the gap:</strong> the Compliance Badges page correctly states "we have not submitted the DSPT"; the legal/commercial set is unstarted "before the first paying customer"; add-ons cannot be sold because no Stripe mechanism exists; <code>MARKET_READINESS_AUDIT.md</code> (13 Oct 2026) rates legal/commercial <strong>blocked</strong>, Play data safety <strong>blocked</strong>, iOS listing <strong>not started</strong>, backups <strong>real but no restore ever run</strong>.</p></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <div class="kicker">06 — The math</div>
+  <h2 class="sec">Investment math and exit path</h2>
+  <p class="lede">Scored /5 on the dimensions a 2026 seed/Series-A investor would actually underwrite.</p>
+
+  <figure>
+    <div class="fig-t">Fig. 3 — Investment scorecard (0–5)</div>
+    <svg viewBox="0 0 860 340" role="img" aria-label="Horizontal bar chart of eight investment dimensions scored out of five">
+      <g font-family="sans-serif" font-size="12" fill="#1B2430">
+        <text x="0" y="26">Market timing</text><text x="0" y="62">TAM</text><text x="0" y="98">Competitive defensibility</text>
+        <text x="0" y="134">Buyer ability to pay</text><text x="0" y="170">Policy tailwind</text><text x="0" y="206">Capital environment</text>
+        <text x="0" y="242">Exit path</text>
+      </g>
+      <g>
+        <rect x="230" y="12" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="12" width="162" height="18" rx="3" fill="#C8453B"/><text x="400" y="26" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">1.5</text>
+        <rect x="230" y="48" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="48" width="216" height="18" rx="3" fill="#E8A33D"/><text x="454" y="62" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">2.0</text>
+        <rect x="230" y="84" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="84" width="162" height="18" rx="3" fill="#C8453B"/><text x="400" y="98" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">1.5</text>
+        <rect x="230" y="120" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="120" width="162" height="18" rx="3" fill="#C8453B"/><text x="400" y="134" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">1.5</text>
+        <rect x="230" y="156" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="156" width="432" height="18" rx="3" fill="#10B981"/><text x="670" y="170" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">4.0</text>
+        <rect x="230" y="192" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="192" width="324" height="18" rx="3" fill="#5C9BC9"/><text x="562" y="206" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">3.0</text>
+        <rect x="230" y="228" width="540" height="18" rx="3" fill="#EDF2F6"/><rect x="230" y="228" width="378" height="18" rx="3" fill="#5C9BC9"/><text x="616" y="242" font-size="11" font-weight="700" fill="#1B2430" font-family="sans-serif">3.5</text>
+      </g>
+      <line x1="230" y1="262" x2="770" y2="262" stroke="#D9E3EB" stroke-width="1"/>
+      <g font-family="sans-serif">
+        <rect x="230" y="274" width="540" height="22" rx="3" fill="#EDF2F6"/><rect x="230" y="274" width="259" height="22" rx="3" fill="#0A3559"/>
+        <text x="0" y="290" font-size="12" font-weight="700" fill="#0A3559">Aggregate — horizontal DSCR entrant</text>
+        <text x="497" y="290" font-size="12" font-weight="700" fill="#0A3559">2.4 / 5</text>
+        <rect x="230" y="302" width="540" height="22" rx="3" fill="#EDF2F6"/><rect x="230" y="302" width="356" height="22" rx="3" fill="#10B981"/>
+        <text x="0" y="318" font-size="12" font-weight="700" fill="#0B8F63">Aggregate — adjacent layer + non-UK vector</text>
+        <text x="594" y="318" font-size="12" font-weight="700" fill="#0B8F63">3.3 / 5</text>
+      </g>
+    </svg>
+    <figcaption>Indicative scoring from this research, not a valuation. Multiple ranges (UK private SaaS ~3–10× ARR; 8–15× at £0.5–2m ARR with high growth) come from second-hand surveys — context only.</figcaption>
+  </figure>
+
+  <p>The internal model's <strong>£542k-to-break-even at month 30</strong> assumes a sales motion this research does not support: entering a market where 80% have bought, 23 assured competitors exist, 12-month contracts are the norm, incumbents give migration away free, and the buyer base is insolvent at a record rate. A <strong>£3–5m ARR</strong> business could be a credible <strong>£30–50m strategic acquisition</strong> at ~9.5× ARR — but only with a defensible data/workflow asset and real contracts, not a lighter DSCR.</p>
+  <div class="box warn">
+    <div class="box-t">What investors need to see before a Series A in 2026</div>
+    <p>£1m+ ARR · &gt;100% growth · NRR &gt;120% · CAC payback &lt;12–18 months · multi-year council/group contracts. <strong>MeticleCare is currently at zero on all five.</strong> The realistic path is SEIS/EIS seed → specialist healthtech/SaaS fund → strategic acquisition, not an independent scale story. The acquirer set is genuinely active (Hg, Access, Cow Corner/PCS, Brighton Park Capital, Livingbridge) — that is the strongest part of the investment case.</p>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <div class="kicker">07 — The other side</div>
+  <h2 class="sec">What is genuinely strong</h2>
+  <p class="lede">This is not a "kill it" report. Five things are real assets.</p>
+  <div class="two">
+    <div class="card good">
+      <h4>1 · Engineering depth is a real asset</h4>
+      <p>Very few pre-revenue products ship RLS multi-tenancy, MFA, offline mobile sync with idempotency, an audit-log-before-response guarantee, 1,500+ tests, a claims guard that polices its own marketing, and a live production deployment. This is a credible <em>team + codebase</em> asset with acqui-hire value.</p>
+      <h4>2 · The bundle is coherent</h4>
+      <p>Rota → care record → medication → compliance evidence → billing is genuinely one data model. DHSC explicitly acknowledges most DSCRs do not include rostering or eMAR; point-solution reconciliation is a real, documented cost.</p>
+    </div>
+    <div class="card good">
+      <h4>3 · Compliance/privacy posture is unusually thoughtful</h4>
+      <p>Four-nations frameworks, on-demand location privacy, DPIAs, a governed AI capability registry with method disclosure. In a regulated, trust-based sale that matters — even if it is not a purchase criterion on its own.</p>
+      <h4>4 · The market need is not imaginary</h4>
+      <p>An ageing population, 400,000+ people waiting for assessment/care, a large uninspected CQC backlog and a structural workforce shortage all keep the category alive.</p>
+      <h4>5 · The acquirer set is active</h4>
+      <p>Hg (Nourish), Access, Cow Corner/PCS and Brighton Park Capital are buying. A niche asset with real ARR has an exit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <div class="kicker">08 — The decision</div>
+  <h2 class="sec">The 90-day decision gate</h2>
+  <p class="lede">Cheap, non-engineering, decisive. <strong>Do not commit the full £400–650k raise or continue broad feature completion on the current thesis.</strong> More engineering will not change the binding constraints, which are, in order: customer proof, regulatory credibility, and a defensible wedge.</p>
+
+  <figure>
+    <div class="fig-t">Fig. 4 — The gate: six pass conditions, one decision</div>
+    <svg viewBox="0 0 860 122" role="img" aria-label="Six-step ninety-day validation gate leading to a go or no-go decision">
+      <line x1="40" y1="52" x2="820" y2="52" stroke="#D9E3EB" stroke-width="3"/>
+      <g font-family="sans-serif">
+        <g fill="#0F4C81"><circle cx="70" cy="52" r="17"/><circle cx="215" cy="52" r="17"/><circle cx="360" cy="52" r="17"/><circle cx="505" cy="52" r="17"/><circle cx="650" cy="52" r="17"/></g>
+        <g font-size="13" font-weight="700" fill="#fff" text-anchor="middle"><text x="70" y="57">1</text><text x="215" y="57">2</text><text x="360" y="57">3</text><text x="505" y="57">4</text><text x="650" y="57">5</text></g>
+        <circle cx="795" cy="52" r="22" fill="#10B981"/><text x="795" y="57" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+        <g font-size="10" fill="#5B6875" text-anchor="middle">
+          <text x="70" y="86">15–20 buyer</text><text x="70" y="99">interviews</text>
+          <text x="215" y="86">1 LOI +</text><text x="215" y="99">1 paying pilot</text>
+          <text x="360" y="86">DSPT +</text><text x="360" y="99">assurance plan</text>
+          <text x="505" y="86">Close the</text><text x="505" y="99">legal set</text>
+          <text x="650" y="86">Rewrite</text><text x="650" y="99">pricing</text>
+          <text x="795" y="90" font-weight="700" fill="#0B8F63">Re-score ≥3.5</text>
+        </g>
+        <text x="40" y="24" font-size="11" font-weight="700" fill="#0A3559">DAY 0 — start</text>
+        <text x="820" y="24" font-size="11" font-weight="700" fill="#0B8F63" text-anchor="end">DAY 90 — GO / NO-GO</text>
+      </g>
+    </svg>
+    <figcaption>The same six actions satisfy the Innovator Founder viability limb (documented buyer contact + a signed design partner). One gate, two objectives.</figcaption>
+  </figure>
+
+  <table class="gate">
+    <thead><tr><th style="width:34px">#</th><th style="width:46%">Action</th><th>Pass condition</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Run the existing <code>INNF_8.2_CUSTOMER_INTERVIEW_PROTOCOL.md</code>: <strong>15–20 structured buyer conversations</strong> (registered managers, owners, and at least 3 LA/ICB commissioners)</td><td>Documented notes with named roles and dates; clear evidence of a <em>switching</em> trigger and a budget owner</td></tr>
+      <tr><td>2</td><td>Convert <strong>one design partner</strong> into a signed LOI and <strong>one paying pilot</strong></td><td>≥1 signed LOI and ≥1 paying account at a real price (target ≥£299/month, not a free trial)</td></tr>
+      <tr><td>3</td><td>Start the credibility work: <strong>submit DSPT</strong>, begin NHS England assured-solution pre-application, scope GP Connect, ISO 27001 and Cyber Essentials Plus</td><td>DSPT submitted; a dated, costed assurance plan with an owner</td></tr>
+      <tr><td>4</td><td>Close the legal set: DPA, solicitor-reviewed terms, PI insurance, org-wide DPIA, restore drill</td><td>All five signed off / executed</td></tr>
+      <tr><td>5</td><td>Rewrite pricing to <strong>scale with a unit</strong> (per carer or per care hour) and re-cut the plan around one narrow ICP</td><td>A one-page pricing model with a defensible ACV and CAC payback</td></tr>
+      <tr><td>6</td><td>Re-score the investment case against §6 using real pipeline numbers</td><td><strong>Score ≥3.5/5 with at least one paying customer</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box stop">
+    <div class="box-t">Kill criteria</div>
+    <p>If after 90 days there is <strong>no paying pilot, no LOI</strong>, or buyers consistently say <em>"we already have a system and would not migrate"</em>, stop the horizontal all-in-one and move to one of: (a) pivot to a narrow compliance/outcomes/interoperability layer that sits <em>on top of</em> assured incumbents; (b) sell the codebase/team as an acqui-hire to an assured-list incumbent; (c) keep it as a low-cost, self-funded niche product with no outside capital.</p>
+  </div>
+
+  <h3>If you proceed anyway, only two positions are defensible</h3>
+  <ol>
+    <li><strong>Narrow wedge, not replacement.</strong> A supported-living outcomes / tenancy / four-nations evidence layer that integrates with Birdie/PASS/Nourish rather than displacing them. Higher credibility, lower switching cost — but Flocare and CareGovern already occupy this niche, and supported living was only 6% of the DHSC survey base.</li>
+    <li><strong>Multi-service / mixed-provider consolidation play.</strong> Sell to consolidating mid-tier groups and multi-site community providers (who have a budget owner and a group-level pain), not to the 30% of homecare services supporting ≤4 people. Pair with international expansion from day one, because the UK-only TAM is too small for venture scale.</li>
+  </ol>
+  <div class="box warn"><p><strong>What not to do:</strong> do not underwrite the plan on the £13.4bn care-delivery market or USD-billion "care software" reports; do not lead with price; do not lead with "AI"; do not spend the raise before the 90-day evidence exists.</p></div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <div class="kicker">09 — Options</div>
+  <h2 class="sec">Five strategic options, ranked</h2>
+  <p class="lede">Ranked by evidence generated per pound spent, not by upside on a slide.</p>
+
+  <div class="opt">
+    <div class="rank g">1</div>
+    <div><h4>Run the 90-day evidence gate, spend almost nothing</h4><p>Interviews, one LOI, one paying pilot, DSPT submission, legal pack, unit-based pricing. Converts an unvalidated thesis into evidence either way. Also satisfies the Innovator Founder viability limb and produces a staged plan that can actually be hit.</p></div>
+    <div class="rating"><b>Recommended</b>Cost: near zero<br>Upside: decisive<br>Risk: low</div>
+  </div>
+  <div class="opt">
+    <div class="rank">2</div>
+    <div><h4>Adjacent layer on top of assured incumbents</h4><p>Compliance/outcomes/interoperability layer that integrates rather than displaces. Avoids the 12–24 month assurance gate and the switching-cost fight. Smallest credible wedge; must accept a smaller ceiling and coexistence with Flocare/CareGovern.</p></div>
+    <div class="rating"><b>Conditional</b>Cost: low<br>Upside: moderate<br>Risk: niche is occupied</div>
+  </div>
+  <div class="opt">
+    <div class="rank">3</div>
+    <div><h4>Ireland / HIQA greenfield window — a 2-week spike only <span class="tag new" style="margin-left:4px">new</span></h4><p>Internal <code>MULTI_JURISDICTION_EXPANSION_RESEARCH.md</code> ranks Ireland #1: home support (domiciliary care) is coming into HIQA registration for the first time under the Health Bill 2025 pathway, so every Irish homecare provider faces a new compliance burden with no incumbent inspection-ready software. Garda vetting is a single scheme (lowest modelling cost). <strong>This is the one genuinely greenfield window in the whole analysis</strong> and the strongest answer to "the UK land-grab is over". But: it needs EU-region data residency + tenancy-region routing (3–5 weeks), a HIQA standards mapping, and a solicitor's verification of the Bill's commencement — which has slipped before. My 9 Nov external check could not independently confirm the current commencement status, so treat the timing as unverified. <strong>Worth a spike, not a quarter.</strong></p></div>
+    <div class="rating"><b>Spike only</b>Cost: 2 weeks<br>Upside: high if dated<br>Risk: timing unverified</div>
+  </div>
+  <div class="opt">
+    <div class="rank">4</div>
+    <div><h4>Acqui-hire / codebase sale to an assured incumbent</h4><p>The acquirer set is active and paying ~9.5× ARR for quality assets. A team that shipped RLS multi-tenancy, offline sync, an audit guarantee and 1,500+ tests has value independent of the product's market fit. Realistic, unglamorous, and preserves the engineering investment.</p></div>
+    <div class="rating"><b>Fallback</b>Cost: none<br>Upside: bounded<br>Risk: low valuation pre-revenue</div>
+  </div>
+  <div class="opt">
+    <div class="rank">5</div>
+    <div><h4>Raise £400–650k and finish the horizontal all-in-one</h4><p>The current plan. Requires beating 23 assured incumbents on credibility, displacing 80% saturated buyers, and outspending PE-backed vendors on sales — with zero customer evidence today. Every other finding in this report argues against doing this first.</p></div>
+    <div class="rating"><b>Not advised</b>Cost: £400–650k<br>Upside: speculative<br>Risk: very high</div>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <div class="kicker">10 — Honesty</div>
+  <h2 class="sec">Risks, caveats, and what would change the verdict</h2>
+  <div class="two">
+    <div class="card">
+      <h4>Caveats on this research</h4>
+      <ul>
+        <li><strong>No traction evidence was found.</strong> Absence of LOIs/pilots/customers in the reviewed documents is not proof there are none. If real customers exist, the verdict changes materially and the gate can be shortened.</li>
+        <li><strong>TAM/SOM are analyst estimates with stated assumptions.</strong> No official UK care-software market size exists; £80–120m and £0.8–3.5m capturable ARR are illustrative, not sourced facts.</li>
+        <li><strong>Some statistics are secondary analyses</strong> of official data (Insolvency Service via Care Brief; ADASS/Care England via trade press). Directionally credible, not primary-verified here.</li>
+        <li><strong>Vendor pricing, customer counts and four-nations service counts are vendor/secondary-published.</strong> The 16,001 England homecare figure conflicts with CQC's official 13,500+ on definitions; use the ratio, not the absolute.</li>
+        <li><strong>England-only bias</strong> in most official series; the devolved-nation sizing added here is indicative only.</li>
+        <li><strong>Ireland commencement status unverified</strong> in the 9 Nov external check; internal research is dated 28 Sep 2026 and explicitly warns the date has slipped before.</li>
+        <li><strong>Internal financial figures</strong> (£400–650k, £542k, month 30, £99/£299/£749) come from repository docs dated Aug–Oct 2026 and were not independently re-verified.</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h4>What would flip this to a GO</h4>
+      <ul>
+        <li>One or more <strong>paying customers at a real price</strong>, with a documented switching trigger and a named budget owner.</li>
+        <li>A <strong>signed design-partner LOI</strong> from a multi-site or consolidating group (a buyer with a real budget).</li>
+        <li><strong>DSPT submitted</strong> and a dated, costed assured-solution plan — evidence the 12–24 month gate is being attacked.</li>
+        <li>A <strong>narrow ICP with a unit-based price</strong> and a CAC payback that survives the sector's insolvency churn.</li>
+        <li>A <strong>dated Irish commencement</strong> confirmed by a solicitor, turning the one greenfield window into a real timetable.</li>
+        <li>Re-score <strong>≥3.5/5</strong> on real pipeline numbers rather than desk estimates.</li>
+      </ul>
+      <p class="small" style="margin-top:10px">Any two of these, evidenced, would justify revisiting the raise. One of them alone would not.</p>
+    </div>
+  </div>
+  <div class="box"><p>Re-check anything older than 12 months before citing it externally. This research reflects sources available on <strong>5–9 November 2026</strong>. It is desk research and internal-document review — a decision aid, not customer evidence, legal advice, or a valuation.</p></div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="s11">
+  <div class="kicker">11 — What was finished</div>
+  <h2 class="sec">Research addendum: 9 November verification</h2>
+  <p class="lede">The 5–6 November research left three open threads. Here is what this final pass established.</p>
+  <table>
+    <thead><tr><th style="width:27%">Open thread</th><th style="width:40%">What was verified</th><th>Effect on the verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="q">Is the "80% adopted" claim solid?</td><td>Fetched DHSC press release (5 Dec 2025) verbatim: "Four in 5 (80%) care providers now use DSCRs, helping almost 90% of people who draw on care"; minister: "doubling from 40% to 80%"; "an estimated 30 million administrative hours will be saved per year"; "at least 20 minutes per care worker per shift".</td><td><strong>Confirmed.</strong> The demand finding is primary-sourced, not a press summary.</td></tr>
+      <tr><td class="q">Is the mandate / assurance gate real?</td><td>Fetched DHSC buyer guidance (published 29 Sep 2026) verbatim: "There is no formal public sector process for DSCR procurements"; "You may be able to negotiate the price"; in-house DSCRs "currently no requirement ... to be on the assured solutions list"; GP Connect requires an assured DSCR + DSPT "standards met" + NDSA; "DSCRs do not normally include rostering or eMAR"; charges based on staff, users, clients or beds.</td><td><strong>Confirmed and sharpened.</strong> Also confirms the rota/eMAR bundle is a genuine product gap — but a gap competitors also fill.</td></tr>
+      <tr><td class="q">How many assured competitors, really?</td><td>Fetched the live assured-solutions list: <strong>23 products</strong>, named and counted. sorted.care offers essentially MeticleCare's full module list; Dom Portal covers supported living explicitly; PASS 84,000 carers, PCS 8,000+ providers, Birdie 1,000+ providers.</td><td><strong>Worse than assumed.</strong> Every claimed gap is occupied by an assured product.</td></tr>
+      <tr><td class="q">Four-nations TAM was unsized</td><td>Sized at ~13% additional services / ~+10–15% TAM. See §3.2.</td><td><strong>Neutral-to-negative.</strong> Engineering achievement, small commercial uplift.</td></tr>
+      <tr><td class="q">Any new Nov 2026 funding event?</td><td>Casey Commission "Big Conversation" launched 29 Jul 2026, final report expected summer 2027. No new digitisation subsidy or near-term software budget event found.</td><td><strong>No change.</strong> Policy tailwind remains back-loaded.</td></tr>
+      <tr><td class="q">Ireland / HIQA greenfield window</td><td>Internal research (28 Sep 2026) ranks it #1 with an open regulatory window; <strong>external confirmation of the current commencement status was inconclusive</strong> in this pass.</td><td><strong>New option, unverified.</strong> Added as a 2-week spike, not a strategy.</td></tr>
+    </tbody>
+  </table>
+  <div class="box go"><p><strong>Net effect of the final pass: the verdict is unchanged and the confidence in it is higher.</strong> No new fact was found that improves the investment case; several were found that tighten it. The one genuinely new opportunity (Ireland) is real enough to test cheaply and unverified enough not to bet on.</p></div>
+</section>
+
+<!-- ============ 12 ============ -->
+<section id="s12">
+  <div class="kicker">12 — Evidence</div>
+  <h2 class="sec">Sources</h2>
+  <div class="src">
+    <p><b>Official / primary.</b> CQC, <em>State of Care 2025/26</em> (23 Oct 2026): Pressures, Fragmentation, Consolidation, Workforce, Ratings. DHSC, <em>Findings from the 2025 adult social care provider technology survey</em> (6 Mar 2026); <em>Digital revolution in care saves millions of admin hours</em> (5 Dec 2025); <em>Digital social care records: choosing and implementing solutions</em> (29 Sep 2026); <em>A plan for digital health and social care</em> (29 Jun 2022); Fair Pay Agreement consultation (updated 16 Jul 2026); <em>Cutting-edge tech introduced in social care</em> (9 Apr 2025). CQC, <em>Digital record systems in adult social care services</em> (4 Mar 2024). NHS England, <em>Assured DSCR solutions list</em> (checked 9 Nov 2026) and <em>Digitising the frontline</em>. Ministerial answer on DiSC / assured solutions (15 Dec 2025). Homecare Association, response to ADASS Spring Survey 2026 (Jul 2026) and <em>The Homecare Deficit 2025</em>. Low Pay Commission, <em>The National Minimum Wage in 2026</em>. Senedd written question WQ97755 (1 Dec 2025); NISCC workforce release (11 Jun 2025); Casey Commission (29 Jul 2026).</p>
+    <p><b>Competitive / commercial.</b> Birdie pricing; PASS pricing; CareLineLive pricing; Log my Care pricing; Birdie buyer's guide (16 Dec 2025, vendor-authored). Houlihan Lokey: PCS / Brighton Park Capital; SaasRise: Hg / Nourish deal note; Access Group / Servelec. PRSB on assurance standards; Digital Care Hub on DSPT in contracts. Nursebuddy, <em>What happened in homecare in 2025?</em> (secondary, used only for the four-nations service split). Insolvency Service data via Care Brief (secondary).</p>
+    <p><b>Internal (this repository).</b> <code>PRODUCT.md</code>, <code>AGENTS.md</code>, <code>INNF_8.2_VIABILITY_EVIDENCE.md</code>, <code>INNF_8.2_CUSTOMER_INTERVIEW_PROTOCOL.md</code>, <code>INNF_8.3d_MARKET_RESEARCH.md</code>, <code>MULTI_JURISDICTION_EXPANSION_RESEARCH.md</code>, <code>MARKET_READINESS_AUDIT.md</code>, <code>FEATURE_READINESS_AUDIT.md</code>, <code>CLAIM_REGISTER.md</code>, <code>VIABILITY_RESEARCH_2026-11-05.md</code>, <code>docs/funding/meticlecare-financial-model.html</code>.</p>
+    <p><b>Verifiable links.</b> gov.uk/government/news/digital-revolution-in-care-saves-millions-of-admin-hours · gov.uk/guidance/digital-social-care-records-choosing-and-implementing-solutions · adultsocialcare.standards.nhs.uk/assured-solutions · gov.uk/government/statistics/technology-use-in-adult-social-care-2025-survey-results/findings-from-the-2025-adult-social-care-provider-technology-survey · cqc.org.uk/publications/major-report/state-care/2025-2026/asc/fragmentation · homecareassociation.org.uk · theaccessgroup.com · hl.com · saasrise.com · caseycommission.co.uk</p>
+  </div>
+</section>
+
+</div><!-- /pad -->
+
+<footer>
+  <strong>MeticleCare — Investment Viability Report</strong> · 9 November 2026 · Final<br>
+  Independent desk research and internal-document review. Decision aid only — not customer evidence, not legal or investment advice, not a valuation. Figures carry the dates and sources shown; estimates are labelled as assumptions. Re-verify anything older than 12 months before external use.<br>
+  Companion technical note: <code>docs/VIABILITY_RESEARCH_2026-11-05.md</code>.
+</footer>
+
+</div><!-- /page -->
+</body>
+</html>
