@@ -1,18 +1,20 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, IconButton, MenuItem, Paper, Snackbar, Stack, Tab, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
+  Divider, MenuItem, Paper, Snackbar, Stack, Tab, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
 } from '@mui/material'
 import {
-  Add as AddIcon, Block as VoidIcon, CheckCircle as CheckCircleIcon,
-  Download as DownloadIcon, Edit as EditIcon, History as HistoryIcon,
-  Receipt as ReceiptIcon, Search as SearchIcon, Wallet as WalletIcon,
+  AccountBalanceWallet as AccountsIcon, Add as AddIcon, Block as VoidIcon,
+  CheckCircle as CheckCircleIcon, CloudUpload as UploadIcon, Download as DownloadIcon,
+  Edit as EditIcon, HomeWork as HomeWorkIcon, Insights as LedgerIcon, OpenInNew as OpenInNewIcon,
+  People as PeopleIcon, Wallet as WalletIcon, WarningAmber as WarningIcon,
 } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyRow } from '../../components/ui'
 import { localToday } from '../../utils/dateFormat'
+import FigDialogHeader, { PillOptions } from '../people/dialogHeader'
 import './expenses.css'
 
 const CATEGORIES = [
@@ -22,9 +24,22 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ]
 const SOURCE_LABELS: Record<string, string> = { house: 'House funds', person: 'Person funds' }
+const CASH_SOURCE_OPTIONS = [
+  { value: 'bank_withdrawal', label: 'Bank withdrawal' },
+  { value: 'cash_float', label: 'Cash float' },
+  { value: 'transfer', label: 'Transfer from another tin' },
+  { value: 'other', label: 'Other' },
+]
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' },
+  { value: 'bank_transfer', label: 'Bank transfer' }, { value: 'direct_debit', label: 'Direct debit' },
+]
 const MANAGE_ROLES = ['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER']
 const VIEW_ROLES = [...MANAGE_ROLES, 'CARE_WORKER']
-const CHECKS_PER_PAGE = 15
+const PAGE_SIZE = 8
+const RECEIPT_LIMIT_BYTES = 10 * 1024 * 1024
+
+type TabKey = 'ledger' | 'petty' | 'checks'
 
 function asArray(value: any, keys: string[] = []): any[] {
   if (Array.isArray(value)) return value
@@ -35,26 +50,68 @@ function asArray(value: any, keys: string[] = []): any[] {
 // both are the operator's own day, not its UTC equivalent.
 function today() { return localToday() }
 function money(pence: number | string | null | undefined) { return `£${(Number(pence || 0) / 100).toFixed(2)}` }
-function pounds(value: number | string | null | undefined) { return `£${Number(value || 0).toLocaleString('en-GB')}` }
 function personName(person: any) { return `${person?.first_name || ''} ${person?.last_name || ''}`.trim() || person?.email || 'Unnamed staff member' }
+function initials(name: string) { return name.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('') || '?' }
 function csvCell(value: any) { return `"${String(value ?? '').replace(/"/g, '""')}"` }
+// `YYYY-MM-DD` is a calendar day, not an instant: parsing it as UTC midnight
+// would show the day before for anyone west of Greenwich.
+function parseDay(iso: string | null | undefined): Date | null {
+  if (!iso) return null
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+function dayLabel(iso: string | null | undefined) {
+  const date = parseDay(iso)
+  return date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'
+}
+function longDay(iso: string | null | undefined) {
+  const date = parseDay(iso)
+  return date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+}
+function relativeDay(iso: string | null | undefined) {
+  const date = parseDay(iso)
+  if (!date) return '—'
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diff = Math.round((startOfToday.getTime() - date.getTime()) / 86_400_000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  return dayLabel(iso)
+}
+function categoryLabel(value: string) { return CATEGORIES.find(c => c.value === value)?.label || value || 'Uncategorised' }
+function errorText(mutation: any) {
+  const response = mutation?.error?.response
+  return response?.data?.error || response?.data?.message || ''
+}
+function accountLabel(check: any) {
+  if (!check) return ''
+  return check.money_source === 'house' ? check.location_name || 'House tin' : check.person_name || 'Personal money'
+}
+
+function StatusChip({ label, tone }: { label: string; tone: 'ok' | 'due' | 'bad' | 'neutral' }) {
+  return <Chip size="small" label={label} className={`expenses-chip expenses-chip--${tone}`} />
+}
 
 export default function ExpensesPage() {
   const qc = useQueryClient()
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState<TabKey>('ledger')
   const [createOpen, setCreateOpen] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [voidId, setVoidId] = useState<string | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [topUpOpen, setTopUpOpen] = useState(false)
   const [reconcileOpen, setReconcileOpen] = useState(false)
   const [cashCheckOpen, setCashCheckOpen] = useState(false)
+  const [signCheck, setSignCheck] = useState<any | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [ledgerPage, setLedgerPage] = useState(0)
   const [reportLoading, setReportLoading] = useState(false)
   const [acceptingId, setAcceptingId] = useState<string | null>(null)
   const [reviewingId, setReviewingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
-  const onReviewReconciliation = (id: string, reason: string) => reviewReconciliationMutation.mutate({ id, decision: 'rejected', reason })
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' })
   const [filterSource, setFilterSource] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -97,28 +154,23 @@ export default function ExpensesPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setCreateOpen(false); showSuccess('Expense added') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not add expense'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setCreateOpen(false); showSuccess('Expense saved') },
   })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: any) => api.patch(`/expenses/${id}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setEditId(null); showSuccess('Entry updated') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not update entry'),
   })
   const voidMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => api.put(`/expenses/${id}/void`, { reason }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setVoidId(null); setVoidReason(''); showSuccess('Entry voided') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not void entry'),
   })
   const topUpMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/top-up', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); setTopUpOpen(false); showSuccess('Cash topped up') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not top up cash'),
   })
   const reconcileMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/reconcile', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-reconciliation-requests'] }); setReconcileOpen(false); showSuccess('Reconciliation submitted for review') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not submit reconciliation'),
   })
   const reviewReconciliationMutation = useMutation({
     mutationFn: ({ id, decision, reason }: { id: string; decision: 'accepted' | 'rejected'; reason?: string }) => api.post(`/expenses/petty-cash/reconciliations/${id}/review`, { decision, rejectionReason: reason }),
@@ -130,178 +182,1168 @@ export default function ExpensesPage() {
   const dailyCheckMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/daily-check', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); setCashCheckOpen(false); showSuccess('Cash check recorded and handed over') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not save cash check'),
   })
   const acceptMutation = useMutation({
     mutationFn: (id: string) => api.post(`/expenses/petty-cash/daily-checks/${id}/accept`),
-    onMutate: (id) => setAcceptingId(id),
+    onMutate: (id: string) => setAcceptingId(id),
     onSettled: () => setAcceptingId(null),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); showSuccess('Cash count accepted') },
-    onError: (e: any) => showError(e.response?.data?.error || 'Could not accept cash count'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); setSignCheck(null); showSuccess('Cash count signed') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Could not sign this cash check'),
   })
 
   const totals = useMemo(() => {
     const house = balances.filter((b: any) => b.money_source === 'house').reduce((sum: number, b: any) => sum + Number(b.current_balance_pence || 0), 0)
     const person = balances.filter((b: any) => b.money_source === 'person').reduce((sum: number, b: any) => sum + Number(b.current_balance_pence || 0), 0)
-    const ledger = stats?.total_amount_pounds != null ? pounds(stats.total_amount_pounds * 100) : money(expenses.reduce((sum: number, e: any) => sum + Number(e.amount_pence || 0), 0))
-    return { house, person, ledger, accounts: balances.length }
+    const ledger = stats?.total_amount_pounds != null
+      ? money(Math.round(Number(stats.total_amount_pounds) * 100))
+      : money(expenses.reduce((sum: number, e: any) => sum + Number(e.amount_pence || 0), 0))
+    const entryCount = stats?.total_expenses ?? expenses.length
+    const personAccounts = balances.filter((b: any) => b.money_source === 'person').length
+    return { house, person, ledger, entryCount, accounts: balances.length, personAccounts }
   }, [balances, expenses, stats])
+
+  const pendingChecks = useMemo(() => cashChecks.filter((c: any) => !c.accepted_at), [cashChecks])
+  const myPendingChecks = useMemo(() => pendingChecks.filter((c: any) => c.handed_over_to === currentUserId), [pendingChecks, currentUserId])
+  const latestCheckFor = (balance: any) => cashChecks.find((c: any) =>
+    c.money_source === balance.money_source &&
+    (balance.money_source === 'house' ? c.location_id === balance.location_id : c.person_id === balance.person_id)
+  )
+
+  const detailExpense = expenses.find((e: any) => e.id === detailId) || null
+  const editExpense = expenses.find((e: any) => e.id === editId) || null
+
+  useEffect(() => { setLedgerPage(0) }, [filterSource, filterCategory, filterPerson])
+  useEffect(() => { if (!canManage && tab === 'petty') setTab('ledger') }, [canManage, tab])
+
+  const metrics = useMemo(() => {
+    const cards = [
+      {
+        key: 'ledger', label: 'Total ledger', value: totals.ledger,
+        detail: `${totals.entryCount} recorded ${totals.entryCount === 1 ? 'entry' : 'entries'}`,
+        icon: <LedgerIcon fontSize="small" />,
+      },
+      {
+        key: 'house', label: 'House funds', value: canManage ? money(totals.house) : '—',
+        detail: canManage ? 'Available now' : 'Manager access required',
+        icon: <HomeWorkIcon fontSize="small" />,
+      },
+      {
+        key: 'person', label: 'Person funds', value: canManage ? money(totals.person) : '—',
+        detail: canManage ? `Across ${totals.personAccounts} ${totals.personAccounts === 1 ? 'person' : 'people'}` : 'Manager access required',
+        icon: <PeopleIcon fontSize="small" />,
+      },
+    ]
+    if (pendingChecks.length > 0) {
+      cards.push({
+        key: 'checks', label: 'Checks waiting', value: String(pendingChecks.length),
+        detail: 'Needs a second signature', icon: <WarningIcon fontSize="small" />,
+      })
+    } else {
+      cards.push({
+        key: 'accounts', label: 'Cash accounts', value: canManage ? String(totals.accounts) : '—',
+        detail: canManage ? 'Locations and people' : 'Manager access required',
+        icon: <AccountsIcon fontSize="small" />,
+      })
+    }
+    return cards
+  }, [totals, canManage, pendingChecks.length])
+
+  const downloadReport = async () => {
+    setReportLoading(true)
+    try {
+      const response = await api.get('/expenses/report')
+      const rows = (response.data.expenses || []).map((e: any) => [e.incurred_date, SOURCE_LABELS[e.money_source] || e.money_source, e.person_name || '', e.category, e.description || '', money(e.amount_pence), e.created_by_name || '', e.is_voided ? 'Yes' : 'No'])
+      const csv = [['Date', 'Source', 'Person', 'Category', 'Description', 'Amount', 'Added by', 'Voided'], ...rows].map(row => row.map(csvCell).join(',')).join('\n')
+      const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); link.download = `expenses-report-${today()}.csv`; link.click(); URL.revokeObjectURL(link.href)
+    } catch { showError('Could not download the report') } finally { setReportLoading(false) }
+  }
 
   if (expensesLoading) return <Box className="expenses-page"><Box className="expenses-empty" role="status" aria-live="polite"><CircularProgress /><Typography className="expenses-empty__copy">Loading the expense workspace</Typography></Box></Box>
   if (expensesError) return <Box className="expenses-page"><Alert severity="error">Expenses could not be loaded. Refresh the page or contact an administrator.</Alert></Box>
 
   return (
     <Box className="expenses-page">
+      <Typography className="expenses-crumbs">Communication / Expenses</Typography>
+
       <header className="expenses-header">
         <Box className="expenses-header__copy">
           <Typography component="h1" className="expenses-header__title">Expenses</Typography>
-          <Typography className="expenses-header__description">A clear record of spending, available cash, and checks that still need a second person’s sign-off.</Typography>
+          <Typography className="expenses-header__description">A clear record of spending, available cash, and checks that need a second person’s sign-off.</Typography>
         </Box>
-        {canManage && <Box className="expenses-actions">
-          <Button className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<WalletIcon />} onClick={() => setTopUpOpen(true)}>Top up cash</Button>
-          <Button className="expenses-button expenses-button--primary" variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>Add expense</Button>
-        </Box>}
+        {canManage && (
+          <Box className="expenses-actions">
+            <Button className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<WalletIcon />} onClick={() => setTopUpOpen(true)}>Top up cash</Button>
+            <Button className="expenses-button expenses-button--primary" variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>Add expense</Button>
+          </Box>
+        )}
       </header>
 
-      <section className="expenses-summary" aria-label="Expense summary">
-        <SummaryItem label="Total ledger" value={totals.ledger} detail={`${stats?.total_expenses ?? expenses.length} recorded entries`} primary />
-        <SummaryItem label="House funds" value={canManage ? money(totals.house) : '—'} detail={canManage ? 'Available now' : 'Manager access required'} />
-        <SummaryItem label="Person funds" value={canManage ? money(totals.person) : '—'} detail={canManage ? 'Available now' : 'Manager access required'} />
-        <SummaryItem label="Cash accounts" value={canManage ? String(totals.accounts) : '—'} detail={canManage ? 'Locations and people' : 'Manager access required'} />
-      </section>
+      {tab === 'checks' && pendingChecks.length > 0 && (
+        <CashCheckBanner
+          checks={pendingChecks}
+          mine={myPendingChecks}
+          onSign={(check: any) => setSignCheck(check)}
+        />
+      )}
 
-      <Tabs className="expenses-tabs" value={tab} onChange={(_, value) => setTab(value)} aria-label="Expense sections">
-        <Tab icon={<ReceiptIcon />} iconPosition="start" label="Spending ledger" />
-        {canManage && <Tab icon={<WalletIcon />} iconPosition="start" label="Petty cash" />}
-        <Tab icon={<HistoryIcon />} iconPosition="start" label="Daily cash checks" />
+      <Tabs className="expenses-tabs" value={tab} onChange={(_e, value: TabKey) => setTab(value)} aria-label="Expense sections">
+        <Tab value="ledger" label="Spending ledger" />
+        {canManage && <Tab value="petty" label="Petty cash" />}
+        <Tab value="checks" label="Daily cash checks" />
       </Tabs>
 
-      {tab === 0 && <LedgerTab
-        expenses={expenses} people={people} filterSource={filterSource} filterCategory={filterCategory} filterPerson={filterPerson}
-        setFilterSource={setFilterSource} setFilterCategory={setFilterCategory} setFilterPerson={setFilterPerson}
-        onEdit={setEditId} onVoid={(id: string) => { setVoidId(id); setVoidReason('') }} canManage={canManage}
-      />}
-      {tab === 1 && canManage && <PettyCashTab balances={balances} transactions={transactions} reconciliations={reconciliations} currentUserId={currentUserId} onTopUp={() => setTopUpOpen(true)} onReconcile={() => setReconcileOpen(true)} onReview={(id: string, decision: 'accepted' | 'rejected', reason?: string) => reviewReconciliationMutation.mutate({ id, decision, reason })} reviewingId={reviewingId} setRejectingId={setRejectingId} onDownload={async () => {
-        setReportLoading(true)
-        try {
-          const response = await api.get('/expenses/report')
-          const rows = (response.data.expenses || []).map((e: any) => [e.incurred_date, SOURCE_LABELS[e.money_source] || e.money_source, e.person_name || '', e.category, e.description || '', money(e.amount_pence), e.created_by_name || '', e.is_voided ? 'Yes' : 'No'])
-          const csv = [['Date', 'Source', 'Person', 'Category', 'Description', 'Amount', 'Added by', 'Voided'], ...rows].map(row => row.map(csvCell).join(',')).join('\n')
-          const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); link.download = `expenses-report-${today()}.csv`; link.click(); URL.revokeObjectURL(link.href)
-        } catch { showError('Could not download the report') } finally { setReportLoading(false) }
-      }} reportLoading={reportLoading} />}
-      {((tab === 1 && !canManage) || tab === 2) && <CashChecksTab cashChecks={cashChecks} reconciliations={reconciliations} currentUserId={currentUserId} onNewCheck={() => setCashCheckOpen(true)} onAccept={(id: string) => acceptMutation.mutate(id)} onReview={(id: string, decision: 'accepted' | 'rejected', reason?: string) => reviewReconciliationMutation.mutate({ id, decision, reason })} reviewingId={reviewingId} setRejectingId={setRejectingId} acceptingId={acceptingId} canCreate={canManage} />}
+      <section className="expenses-metrics" aria-label="Expense summary">
+        {metrics.map(metric => (
+          <Box className="expenses-metric" key={metric.key}>
+            <Box className="expenses-metric__top">
+              <Typography className="expenses-metric__label">{metric.label}</Typography>
+              <Box className={`expenses-metric__icon${metric.key === 'checks' ? ' expenses-metric__icon--warn' : ''}`}>{metric.icon}</Box>
+            </Box>
+            <Typography className="expenses-metric__value">{metric.value}</Typography>
+            <Typography className="expenses-metric__detail">{metric.detail}</Typography>
+          </Box>
+        ))}
+      </section>
+
+      {tab === 'ledger' && (
+        <LedgerSection
+          expenses={expenses}
+          people={people}
+          page={ledgerPage}
+          setPage={setLedgerPage}
+          filterOpen={filterOpen}
+          setFilterOpen={setFilterOpen}
+          filterSource={filterSource} setFilterSource={setFilterSource}
+          filterCategory={filterCategory} setFilterCategory={setFilterCategory}
+          filterPerson={filterPerson} setFilterPerson={setFilterPerson}
+          onOpen={(expense: any) => setDetailId(expense.id)}
+          canManage={canManage}
+          onAdd={() => setCreateOpen(true)}
+          onTopUp={() => setTopUpOpen(true)}
+        />
+      )}
+
+      {tab === 'petty' && canManage && (
+        <PettyCashSection
+          balances={balances}
+          transactions={transactions}
+          reconciliations={reconciliations}
+          currentUserId={currentUserId}
+          reviewingId={reviewingId}
+          onReconcile={() => setReconcileOpen(true)}
+          onDownload={downloadReport}
+          reportLoading={reportLoading}
+          onOpenCheck={(check: any) => setSignCheck(check)}
+          latestCheckFor={latestCheckFor}
+          onReview={(id: string, decision: 'accepted' | 'rejected') => reviewReconciliationMutation.mutate({ id, decision })}
+          onReject={(id: string) => { setRejectingId(id); setRejectionReason('') }}
+        />
+      )}
+
+      {tab === 'checks' && (
+        <CashChecksSection
+          checks={cashChecks}
+          currentUserId={currentUserId}
+          acceptingId={acceptingId}
+          canManage={canManage}
+          onOpen={(check: any) => setSignCheck(check)}
+          onSign={(check: any) => acceptMutation.mutate(check.id)}
+          onCreate={() => setCashCheckOpen(true)}
+        />
+      )}
 
       <Dialog className="expenses-dialog" open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add expense</DialogTitle>
-        <ExpenseForm people={people} locations={locations} onSubmit={(data: any) => createMutation.mutate(data)} onCancel={() => setCreateOpen(false)} isLoading={createMutation.isPending} />
-      </Dialog>
-      <Dialog className="expenses-dialog" open={Boolean(editId)} onClose={() => setEditId(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit ledger entry</DialogTitle>
-        {editId && <EditExpenseForm key={editId} expense={expenses.find((e: any) => e.id === editId)} onSubmit={(data: any) => updateMutation.mutate({ id: editId, data })} onCancel={() => setEditId(null)} isLoading={updateMutation.isPending} />}
-      </Dialog>
-      <Dialog className="expenses-dialog" open={Boolean(voidId)} onClose={() => { setVoidId(null); setVoidReason('') }} maxWidth="sm" fullWidth>
-        <DialogTitle>Void ledger entry</DialogTitle>
-        <DialogContent><Alert className="expenses-dialog__hint" severity="warning">The entry will remain in the audit history, but will be excluded from totals. This cannot be undone.</Alert><TextField label="Reason for voiding" fullWidth multiline rows={3} value={voidReason} onChange={e => setVoidReason(e.target.value)} /></DialogContent>
-        <DialogActions><Button onClick={() => { setVoidId(null); setVoidReason('') }}>Cancel</Button><Button variant="contained" color="warning" disabled={voidReason.trim().length < 3 || voidMutation.isPending} onClick={() => voidId && voidMutation.mutate({ id: voidId, reason: voidReason.trim() })}>{voidMutation.isPending ? <CircularProgress size={20} /> : 'Void entry'}</Button></DialogActions>
-      </Dialog>
-      <PettyCashDialog open={topUpOpen} title="Top up cash" locations={locations} people={people} balances={balances} onClose={() => setTopUpOpen(false)} onSubmit={(data: any) => topUpMutation.mutate(data)} kind="top_up" isLoading={topUpMutation.isPending} />
-      <PettyCashDialog open={reconcileOpen} title="Request cash reconciliation" locations={locations} people={people} balances={balances} staffMembers={staffMembers} currentUser={currentUser} onClose={() => setReconcileOpen(false)} onSubmit={(data: any) => reconcileMutation.mutate(data)} kind="reconcile" isLoading={reconcileMutation.isPending} />
-      <PettyCashDialog open={cashCheckOpen} title="Daily cash balance check" locations={locations} people={people} balances={balances} staffMembers={staffMembers} currentUser={currentUser} onClose={() => setCashCheckOpen(false)} onSubmit={(data: any) => dailyCheckMutation.mutate(data)} kind="daily_check" isLoading={dailyCheckMutation.isPending} />
-      <Dialog className="expenses-dialog" open={Boolean(rejectingId)} onClose={() => { setRejectingId(null); setRejectionReason('') }} maxWidth="sm" fullWidth>
-        <DialogTitle>Reject reconciliation</DialogTitle>
-        <DialogContent><Alert className="expenses-dialog__hint" severity="warning">The balance will not change. The person who counted the cash must submit a new reconciliation after the issue is corrected.</Alert><TextField label="Reason for rejection" fullWidth multiline rows={3} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} required /></DialogContent>
-        <DialogActions><Button onClick={() => { setRejectingId(null); setRejectionReason('') }}>Cancel</Button><Button variant="contained" color="error" disabled={rejectionReason.trim().length < 3 || Boolean(reviewingId)} onClick={() => rejectingId && onReviewReconciliation(rejectingId, rejectionReason.trim())}>Reject reconciliation</Button></DialogActions>
+        <AddExpenseDialog
+          people={people}
+          locations={locations}
+          isLoading={createMutation.isPending}
+          error={errorText(createMutation)}
+          onSubmit={(data: any) => createMutation.mutate(data)}
+          onClose={() => setCreateOpen(false)}
+        />
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4500} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} variant="filled">{snackbar.message}</Alert></Snackbar>
+      <Dialog className="expenses-dialog" open={Boolean(editId)} onClose={() => setEditId(null)} maxWidth="xs" fullWidth>
+        {editExpense && (
+          <EditExpenseDialog
+            expense={editExpense}
+            isLoading={updateMutation.isPending}
+            error={errorText(updateMutation)}
+            onSubmit={(data: any) => updateMutation.mutate({ id: editExpense.id, data })}
+            onClose={() => setEditId(null)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog className="expenses-dialog" open={Boolean(detailId)} onClose={() => setDetailId(null)} maxWidth="xs" fullWidth>
+        {detailExpense && (
+          <ExpenseDetailDialog
+            expense={detailExpense}
+            canManage={canManage}
+            onClose={() => setDetailId(null)}
+            onEdit={() => { setEditId(detailExpense.id); setDetailId(null) }}
+            onVoid={() => { setVoidId(detailExpense.id); setVoidReason(''); setDetailId(null) }}
+          />
+        )}
+      </Dialog>
+
+      <Dialog className="expenses-dialog" open={Boolean(voidId)} onClose={() => { setVoidId(null); setVoidReason('') }} maxWidth="xs" fullWidth>
+        <FigDialogHeader eyebrow="EXPENSES" title="Void this entry" subtitle="It stays in the audit history but leaves the totals." onClose={() => { setVoidId(null); setVoidReason('') }} />
+        <DialogContent sx={{ pt: 1.5 }}>
+          {errorText(voidMutation) && <Alert severity="error" className="expenses-dialog__hint">{errorText(voidMutation)}</Alert>}
+          <Alert className="expenses-dialog__hint" severity="warning">Voiding cannot be undone. The original amounts and dates remain visible in the audit trail.</Alert>
+          <TextField label="Why is this being voided?" fullWidth multiline rows={3} value={voidReason} onChange={e => setVoidReason(e.target.value)} autoFocus />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setVoidId(null); setVoidReason('') }}>Cancel</Button>
+          <Button variant="contained" color="warning" disabled={voidReason.trim().length < 3 || voidMutation.isPending} onClick={() => voidId && voidMutation.mutate({ id: voidId, reason: voidReason.trim() })}>
+            {voidMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Void entry'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog className="expenses-dialog" open={topUpOpen} onClose={() => setTopUpOpen(false)} maxWidth="xs" fullWidth>
+        <TopUpDialog
+          locations={locations}
+          people={people}
+          balances={balances}
+          isLoading={topUpMutation.isPending}
+          error={errorText(topUpMutation)}
+          onSubmit={(data: any) => topUpMutation.mutate(data)}
+          onClose={() => setTopUpOpen(false)}
+        />
+      </Dialog>
+
+      <ReconcileDialog
+        open={reconcileOpen}
+        onClose={() => setReconcileOpen(false)}
+        locations={locations}
+        people={people}
+        balances={balances}
+        staffMembers={staffMembers}
+        currentUser={currentUser}
+        isLoading={reconcileMutation.isPending}
+        error={errorText(reconcileMutation)}
+        onSubmit={(data: any) => reconcileMutation.mutate(data)}
+      />
+      <RecordCheckDialog
+        open={cashCheckOpen}
+        onClose={() => setCashCheckOpen(false)}
+        locations={locations}
+        people={people}
+        balances={balances}
+        staffMembers={staffMembers}
+        currentUser={currentUser}
+        isLoading={dailyCheckMutation.isPending}
+        error={errorText(dailyCheckMutation)}
+        onSubmit={(data: any) => dailyCheckMutation.mutate(data)}
+      />
+
+      <Dialog className="expenses-dialog" open={Boolean(signCheck)} onClose={() => setSignCheck(null)} maxWidth="xs" fullWidth>
+        {signCheck && (
+          <SignCheckDialog
+            check={signCheck}
+            currentUser={currentUser}
+            currentUserId={currentUserId}
+            isLoading={acceptingId === signCheck.id}
+            onSign={() => acceptMutation.mutate(signCheck.id)}
+            onClose={() => setSignCheck(null)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog className="expenses-dialog" open={Boolean(rejectingId)} onClose={() => { setRejectingId(null); setRejectionReason('') }} maxWidth="xs" fullWidth>
+        <FigDialogHeader eyebrow="PETTY CASH" title="Reject reconciliation" subtitle="The balance will not change." onClose={() => { setRejectingId(null); setRejectionReason('') }} />
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Alert className="expenses-dialog__hint" severity="warning">The person who counted the cash must submit a new reconciliation after the issue is corrected.</Alert>
+          <TextField label="Why is it being rejected?" fullWidth multiline rows={3} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} required autoFocus />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setRejectingId(null); setRejectionReason('') }}>Cancel</Button>
+          <Button variant="contained" color="error" disabled={rejectionReason.trim().length < 3 || Boolean(reviewingId)} onClick={() => rejectingId && reviewReconciliationMutation.mutate({ id: rejectingId, decision: 'rejected', reason: rejectionReason.trim() })}>Reject reconciliation</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4500} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} variant="filled">{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   )
 }
 
-function SummaryItem({ label, value, detail, primary = false }: { label: string; value: string; detail: string; primary?: boolean }) {
-  return <div className="expenses-summary__item" data-primary={primary || undefined}><span className="expenses-summary__label">{label}</span><span className="expenses-summary__value">{value}</span><span className="expenses-summary__detail">{detail}</span></div>
-}
-
-function LedgerTab({ expenses, people, filterSource, filterCategory, filterPerson, setFilterSource, setFilterCategory, setFilterPerson, onEdit, onVoid, canManage }: any) {
-  return <Box>
-    <Box className="expenses-section-heading"><Box><Typography component="h2" className="expenses-section-heading__title">Spending ledger</Typography><Typography className="expenses-section-heading__copy">Every entry stays traceable. Voiding is used instead of deletion.</Typography></Box><Typography className="expenses-status-copy">{expenses.length} visible {expenses.length === 1 ? 'entry' : 'entries'}</Typography></Box>
-    <Alert className="expenses-audit-note" severity="info">Amounts, sources, dates, and people are fixed after creation. Managers can update the category or description; corrections remain visible in the audit history.</Alert>
-    <Box className="expenses-filter-bar">
-      <TextField select size="small" label="Money source" value={filterSource} onChange={e => setFilterSource(e.target.value)}><MenuItem value="">All sources</MenuItem><MenuItem value="house">House funds</MenuItem><MenuItem value="person">Person funds</MenuItem></TextField>
-      <TextField select size="small" label="Person" value={filterPerson} onChange={e => setFilterPerson(e.target.value)}><MenuItem value="">All people</MenuItem>{people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}</TextField>
-      <TextField select size="small" label="Category" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}><MenuItem value="">All categories</MenuItem>{CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}</TextField>
-      {(filterSource || filterCategory || filterPerson) && <Button className="expenses-button expenses-button--quiet" onClick={() => { setFilterSource(''); setFilterCategory(''); setFilterPerson('') }}>Clear filters</Button>}
+function CashCheckBanner({ checks, mine, onSign }: { checks: any[]; mine: any[]; onSign: (check: any) => void }) {
+  const first = checks[0]
+  const count = checks.length
+  return (
+    <Box className="expenses-banner" role="status">
+      <Box className="expenses-banner__icon"><WarningIcon /></Box>
+      <Box className="expenses-banner__copy-wrap">
+        <Typography className="expenses-banner__title">
+          {count} {count === 1 ? 'check needs' : 'checks need'} a second signature
+        </Typography>
+        <Typography className="expenses-banner__copy">
+          {accountLabel(first)}’s money was counted on {relativeDay(first.check_date)} by {first.counted_by_name || 'a staff member'}. Another person needs to count and sign.
+        </Typography>
+      </Box>
+      {mine.length > 0
+        ? <Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={() => onSign(mine[0])}>Sign now</Button>
+        : <Typography className="expenses-banner__waiting">Awaiting {first.handed_over_to_name || 'the assigned staff member'}</Typography>}
     </Box>
-    <LedgerTable expenses={expenses} onEdit={onEdit} onVoid={onVoid} canManage={canManage} />
-  </Box>
+  )
 }
 
-function LedgerTable({ expenses, onEdit, onVoid, canManage }: any) {
-  const empty = <EmptyRow message="No expenses match these filters. Try clearing a filter, or add the first expense for this period." />
-  return <>
-    <TableContainer component={Paper} className="expenses-table-wrap expenses-table-wrap--ledger"><Table className="expenses-table" size="small" aria-label="Spending ledger"><TableHead><TableRow>{['Date', 'Source', 'Account', 'Category', 'Description', 'Amount', 'Added by', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{expenses.length === 0 ? <TableRow><TableCell colSpan={8}>{empty}</TableCell></TableRow> : expenses.map((e: any) => <TableRow key={e.id} hover sx={e.is_voided ? { opacity: 0.5 } : undefined}><TableCell>{new Date(e.incurred_date).toLocaleDateString('en-GB')}</TableCell><TableCell><Chip size="small" label={SOURCE_LABELS[e.money_source] || 'Person funds'} variant="outlined" /></TableCell><TableCell>{e.money_source === 'house' ? e.location_name || 'House funds' : e.person_name || 'Person funds'}</TableCell><TableCell><Chip size="small" label={e.category} variant="outlined" /></TableCell><TableCell>{e.description || '—'}{e.is_voided && <Typography className="expenses-status-copy" display="block">Voided: {e.void_reason || 'No reason recorded'}</Typography>}</TableCell><TableCell className="expenses-table__amount" sx={e.is_voided ? { textDecoration: 'line-through' } : undefined}>{money(e.amount_pence)}</TableCell><TableCell>{e.created_by_name || '—'}</TableCell><TableCell><Box className="expenses-table__actions">{canManage && !e.is_voided && <><IconButton size="small" aria-label="Edit entry" title="Edit description or category" onClick={() => onEdit(e.id)}><EditIcon fontSize="small" /></IconButton><IconButton size="small" color="warning" aria-label="Void entry" title="Void entry" onClick={() => onVoid(e.id)}><VoidIcon fontSize="small" /></IconButton></>}</Box></TableCell></TableRow>)}</TableBody></Table></TableContainer>
-    <Paper className="expenses-panel expenses-mobile-list">{expenses.length === 0 ? empty : expenses.map((e: any) => <Box className="expenses-mobile-row" key={e.id}><Box className="expenses-mobile-row__top"><Box sx={{ minWidth: 0 }}><Typography className="expenses-mobile-row__primary">{e.description || 'Untitled expense'}</Typography><Typography className="expenses-mobile-row__secondary">{new Date(e.incurred_date).toLocaleDateString('en-GB')} · {e.money_source === 'house' ? e.location_name || 'House funds' : e.person_name || 'Person funds'}</Typography></Box><Typography className="expenses-table__amount">{money(e.amount_pence)}</Typography></Box><Box className="expenses-mobile-row__bottom"><Chip size="small" label={e.is_voided ? 'Voided' : e.category} variant="outlined" />{canManage && !e.is_voided && <Box className="expenses-table__actions"><IconButton size="small" aria-label="Edit entry" onClick={() => onEdit(e.id)}><EditIcon fontSize="small" /></IconButton><IconButton size="small" color="warning" aria-label="Void entry" onClick={() => onVoid(e.id)}><VoidIcon fontSize="small" /></IconButton></Box>}</Box></Box>)}</Paper>
-  </>
+function SectionCard({ title, copy, actions, children, footnote }: { title: string; copy?: string; actions?: ReactNode; children: ReactNode; footnote?: ReactNode }) {
+  return (
+    <Paper elevation={0} className="expenses-card">
+      <Box className="expenses-card__head">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="h2" className="expenses-card__title">{title}</Typography>
+          {copy && <Typography className="expenses-card__copy">{copy}</Typography>}
+        </Box>
+        {actions && <Box className="expenses-card__actions">{actions}</Box>}
+      </Box>
+      {children}
+      {footnote && <Box className="expenses-card__foot">{footnote}</Box>}
+    </Paper>
+  )
 }
 
-function PettyCashTab({ balances, transactions, reconciliations, currentUserId, onTopUp, onReconcile, onReview, reviewingId, setRejectingId, onDownload, reportLoading }: any) {
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const visible = balances.filter((b: any) => (filter === 'all' || b.money_source === filter) && (!search || (b.money_source === 'person' ? b.person_name : b.location_name)?.toLowerCase().includes(search.toLowerCase())))
-  const pendingForMe = reconciliations.filter((r: any) => r.status === 'pending' && r.handed_over_to === currentUserId)
-  return <Box>
-    <Box className="expenses-section-heading"><Box><Typography component="h2" className="expenses-section-heading__title">Petty cash</Typography><Typography className="expenses-section-heading__copy">Balances change only after an independent staff member approves a reconciliation.</Typography></Box><Box className="expenses-actions"><Button className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<WalletIcon />} onClick={onTopUp}>Top up</Button><Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={onReconcile}>Request reconciliation</Button><Button className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<DownloadIcon />} onClick={onDownload} disabled={reportLoading}>{reportLoading ? 'Preparing…' : 'CSV report'}</Button></Box></Box>
-    <Box className="expenses-attention" role="status"><Box><Typography className="expenses-attention__title">Maker-checker control</Typography><Typography className="expenses-attention__copy">A reconciliation is pending until the assigned second staff member accepts it. Rejected requests do not change the balance.</Typography></Box><Typography className="expenses-status-copy">{pendingForMe.length} awaiting your review</Typography></Box>
-    <Box className="expenses-filter-bar"><TextField size="small" label="Find an account" placeholder="Location or person" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} /> }} /><TextField select size="small" label="Account type" value={filter} onChange={e => setFilter(e.target.value)}><MenuItem value="all">All accounts</MenuItem><MenuItem value="house">House funds</MenuItem><MenuItem value="person">Person funds</MenuItem></TextField><Typography className="expenses-status-copy">{visible.length} of {balances.length} accounts</Typography></Box>
-    <TableContainer component={Paper} className="expenses-table-wrap"><Table className="expenses-table" size="small" aria-label="Petty cash accounts"><TableHead><TableRow>{['Account', 'Type', 'Available balance', 'Last reconciled'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{visible.length === 0 ? <TableRow><TableCell colSpan={4}><EmptyRow message="No accounts found. Try a different search or account type." /></TableCell></TableRow> : visible.map((b: any) => <TableRow key={`${b.money_source}-${b.id}`} hover><TableCell><Typography fontWeight={600}>{b.money_source === 'person' ? b.person_name : b.location_name}</Typography></TableCell><TableCell><Chip size="small" label={b.money_source === 'person' ? 'Person funds' : 'House funds'} variant="outlined" /></TableCell><TableCell className="expenses-table__amount">{money(b.current_balance_pence)}</TableCell><TableCell>{b.last_reconciled_at ? new Date(b.last_reconciled_at).toLocaleDateString('en-GB') : 'Not reconciled'}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
-    <Box className="expenses-section-heading" sx={{ mt: 5 }}><Box><Typography component="h2" className="expenses-section-heading__title">Reconciliation review</Typography><Typography className="expenses-section-heading__copy">Review the recorded count before it changes the account balance.</Typography></Box></Box>
-    <TableContainer component={Paper} className="expenses-table-wrap"><Table className="expenses-table" size="small" aria-label="Petty cash reconciliation requests"><TableHead><TableRow>{['Date', 'Account', 'Expected', 'Counted', 'Variance', 'Requested by', 'Reviewer', 'Status', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{reconciliations.length === 0 ? <TableRow><TableCell colSpan={9}><EmptyRow message="No reconciliation requests. New requests will appear here for an independent review." /></TableCell></TableRow> : reconciliations.map((r: any) => <TableRow key={r.id} hover><TableCell>{new Date(r.created_at).toLocaleString('en-GB')}</TableCell><TableCell>{r.money_source === 'person' ? r.person_name : r.location_name}</TableCell><TableCell className="expenses-table__amount">{money(r.expected_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(r.actual_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(r.variance_pence)}</TableCell><TableCell>{r.requested_by_name || '—'}</TableCell><TableCell>{r.handed_over_to_name || '—'}</TableCell><TableCell><Chip size="small" label={r.status === 'pending' ? 'Awaiting review' : r.status === 'accepted' ? 'Accepted' : 'Rejected'} color={r.status === 'accepted' ? 'success' : r.status === 'rejected' ? 'error' : 'warning'} variant="outlined" />{r.rejection_reason && <Typography className="expenses-status-copy" display="block">{r.rejection_reason}</Typography>}</TableCell><TableCell>{r.status === 'pending' && r.handed_over_to === currentUserId && <Box className="expenses-table__actions"><Button size="small" variant="contained" color="success" disabled={reviewingId === r.id} onClick={() => onReview(r.id, 'accepted')}>{reviewingId === r.id ? <CircularProgress size={16} color="inherit" /> : 'Accept'}</Button><Button size="small" variant="outlined" color="error" disabled={reviewingId === r.id} onClick={() => setRejectingId(r.id)}>Reject</Button></Box>}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
-    <Box className="expenses-section-heading" sx={{ mt: 5 }}><Box><Typography component="h2" className="expenses-section-heading__title">Transaction history</Typography><Typography className="expenses-section-heading__copy">Top-ups and accepted reconciliations remain listed in time order.</Typography></Box></Box>
-    <TableContainer component={Paper} className="expenses-table-wrap"><Table className="expenses-table" size="small" aria-label="Petty cash transaction history"><TableHead><TableRow>{['Date', 'Account', 'Type', 'Change', 'Balance after', 'Notes'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{transactions.length === 0 ? <TableRow><TableCell colSpan={6}><EmptyRow message="No cash movements yet." /></TableCell></TableRow> : transactions.map((t: any) => <TableRow key={t.id} hover><TableCell>{new Date(t.created_at).toLocaleString('en-GB')}</TableCell><TableCell>{t.money_source === 'person' ? t.person_name : t.location_name}</TableCell><TableCell><Chip size="small" label={String(t.type).replace('_', ' ')} variant="outlined" /></TableCell><TableCell className="expenses-table__amount">{money(t.amount_pence)}</TableCell><TableCell className="expenses-table__amount">{money(t.new_balance_pence)}</TableCell><TableCell>{t.notes || '—'}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
-  </Box>
+function LedgerSection({ expenses, people, page, setPage, filterOpen, setFilterOpen, filterSource, setFilterSource, filterCategory, setFilterCategory, filterPerson, setFilterPerson, onOpen, canManage, onAdd, onTopUp }: any) {
+  const pageCount = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE))
+  const current = Math.min(page, pageCount - 1)
+  const start = current * PAGE_SIZE
+  const visible = expenses.slice(start, start + PAGE_SIZE)
+  const hasFilters = Boolean(filterSource || filterCategory || filterPerson)
+
+  return (
+    <SectionCard
+      title="Spending ledger"
+      copy="Every entry stays traceable. Entries are voided, never deleted."
+      actions={<Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={() => setFilterOpen(!filterOpen)}>Filter{hasFilters ? ' · on' : ''}</Button>}
+      footnote={expenses.length > 0 ? `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, expenses.length)} of ${expenses.length}` : undefined}
+    >
+      {filterOpen && (
+        <Box className="expenses-filter">
+          <TextField select size="small" label="Paid from" value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+            <MenuItem value="">All sources</MenuItem>
+            <MenuItem value="house">House funds</MenuItem>
+            <MenuItem value="person">A person’s money</MenuItem>
+          </TextField>
+          <TextField select size="small" label="Person" value={filterPerson} onChange={e => setFilterPerson(e.target.value)}>
+            <MenuItem value="">All people</MenuItem>
+            {people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Category" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+            <MenuItem value="">All categories</MenuItem>
+            {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </TextField>
+          {hasFilters && <Button className="expenses-button expenses-button--quiet" onClick={() => { setFilterSource(''); setFilterCategory(''); setFilterPerson('') }}>Clear</Button>}
+        </Box>
+      )}
+
+      {expenses.length === 0 ? (
+        <Box className="expenses-empty">
+          <Box className="expenses-empty__icon"><LedgerIcon /></Box>
+          <Typography className="expenses-empty__title">No expenses yet</Typography>
+          <Typography className="expenses-empty__copy">
+            {hasFilters
+              ? 'Nothing matches these filters. Clear them to see the rest of the ledger.'
+              : 'Start by topping up a cash account, then add each expense with its receipt. Nothing is ever deleted, so the record stays complete.'}
+          </Typography>
+          {canManage && !hasFilters && (
+            <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
+              <Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={onTopUp}>Top up cash</Button>
+              <Button className="expenses-button expenses-button--primary" variant="contained" onClick={onAdd}>Add expense</Button>
+            </Stack>
+          )}
+        </Box>
+      ) : (
+        <>
+          <TableContainer className="expenses-table-wrap expenses-table-wrap--ledger">
+            <Table className="expenses-table" size="small" aria-label="Spending ledger">
+              <TableHead>
+                <TableRow>{['Date', 'What for', 'From', 'Person', 'Amount', 'Receipt'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow>
+              </TableHead>
+              <TableBody>
+                {visible.map((e: any) => (
+                  <TableRow
+                    key={e.id}
+                    hover
+                    tabIndex={0}
+                    className={`expenses-row${e.is_voided ? ' expenses-row--void' : ''}`}
+                    onClick={() => onOpen(e)}
+                    onKeyDown={(event: any) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(e) } }}
+                  >
+                    <TableCell className="expenses-table__date">{dayLabel(e.incurred_date)}</TableCell>
+                    <TableCell>
+                      <Typography className="expenses-table__what">{e.description || 'Untitled expense'}</Typography>
+                      <Typography className="expenses-table__sub">{categoryLabel(e.category)}</Typography>
+                    </TableCell>
+                    <TableCell>{SOURCE_LABELS[e.money_source] || 'Person funds'}</TableCell>
+                    <TableCell>{e.money_source === 'person' ? e.person_name || '—' : e.location_name || '—'}</TableCell>
+                    <TableCell className="expenses-table__amount">{money(e.amount_pence)}</TableCell>
+                    <TableCell><StatusChip label={e.receipt_url ? 'Attached' : 'Missing'} tone={e.receipt_url ? 'ok' : 'bad'} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Box className="expenses-mobile-list">
+            {visible.map((e: any) => (
+              <Box
+                className={`expenses-mobile-row${e.is_voided ? ' expenses-row--void' : ''}`}
+                key={e.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(e)}
+                onKeyDown={(event: any) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(e) } }}
+              >
+                <Box className="expenses-mobile-row__top">
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography className="expenses-mobile-row__primary">{e.description || 'Untitled expense'}</Typography>
+                    <Typography className="expenses-mobile-row__secondary">
+                      {dayLabel(e.incurred_date)} · {SOURCE_LABELS[e.money_source] || 'Person funds'} · {e.money_source === 'person' ? e.person_name || '—' : e.location_name || '—'}
+                    </Typography>
+                  </Box>
+                  <Typography className="expenses-table__amount">{money(e.amount_pence)}</Typography>
+                </Box>
+                <Box className="expenses-mobile-row__bottom">
+                  <StatusChip label={categoryLabel(e.category)} tone="neutral" />
+                  <StatusChip label={e.receipt_url ? 'Receipt attached' : 'Receipt missing'} tone={e.receipt_url ? 'ok' : 'bad'} />
+                </Box>
+              </Box>
+            ))}
+          </Box>
+
+          {pageCount > 1 && (
+            <Box className="expenses-pager">
+              <Button size="small" className="expenses-button expenses-button--quiet" disabled={current === 0} onClick={() => setPage(current - 1)}>Previous</Button>
+              <Typography className="expenses-status-copy">Page {current + 1} of {pageCount}</Typography>
+              <Button size="small" className="expenses-button expenses-button--quiet" disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)}>Next</Button>
+            </Box>
+          )}
+        </>
+      )}
+    </SectionCard>
+  )
 }
 
-function CashChecksTab({ cashChecks, reconciliations, currentUserId, onNewCheck, onAccept, acceptingId, canCreate, onReview, reviewingId, setRejectingId }: any) {
-  const [search, setSearch] = useState('')
+function PettyCashSection({ balances, transactions, reconciliations, currentUserId, reviewingId, onReconcile, onDownload, reportLoading, onOpenCheck, latestCheckFor, onReview, onReject }: any) {
+  return (
+    <>
+      <SectionCard
+        title="Cash accounts"
+        copy="House tins and each person’s money"
+        actions={<>
+          <Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={onReconcile}>Request reconciliation</Button>
+          {onDownload && <Button className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<DownloadIcon />} onClick={onDownload} disabled={reportLoading}>{reportLoading ? 'Preparing…' : 'CSV report'}</Button>}
+        </>}
+      >
+        <TableContainer className="expenses-table-wrap expenses-table-wrap--accounts">
+          <Table className="expenses-table" size="small" aria-label="Cash accounts">
+            <TableHead>
+              <TableRow>{['Account', 'Location', 'Balance', 'Last checked'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow>
+            </TableHead>
+            <TableBody>
+              {balances.length === 0 ? (
+                <TableRow><TableCell colSpan={4}><EmptyRow message="No cash accounts yet. Top up cash to open the first tin." /></TableCell></TableRow>
+              ) : balances.map((b: any) => {
+                const label = b.money_source === 'person' ? b.person_name || 'Personal money' : 'House tin'
+                const check = latestCheckFor(b)
+                return (
+                  <TableRow
+                    key={`${b.money_source}-${b.id}`}
+                    hover
+                    tabIndex={check ? 0 : undefined}
+                    className={check ? 'expenses-row' : undefined}
+                    onClick={check ? () => onOpenCheck(check) : undefined}
+                    onKeyDown={check ? (event: any) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenCheck(check) } } : undefined}
+                  >
+                    <TableCell>
+                      <Box className="expenses-account">
+                        <Avatar className={`expenses-avatar${b.money_source === 'house' ? ' expenses-avatar--house' : ''}`}>{b.money_source === 'house' ? <HomeWorkIcon fontSize="small" /> : initials(label)}</Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography className="expenses-table__what">{label}</Typography>
+                          <Typography className="expenses-table__sub">{b.money_source === 'house' ? 'Shared spending' : 'Personal money'}</Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{b.location_name || '—'}</TableCell>
+                    <TableCell className="expenses-table__amount">{money(b.current_balance_pence)}</TableCell>
+                    <TableCell>
+                      {check ? (
+                        <>
+                          <Typography className={check.accepted_at ? 'expenses-table__what' : 'expenses-table__what expenses-text--danger'}>{relativeDay(check.check_date)}</Typography>
+                          <Typography className={check.accepted_at ? 'expenses-table__sub' : 'expenses-table__sub expenses-text--danger'}>
+                            {check.accepted_at ? 'Signed by 2 people' : 'Second signature needed'}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography className="expenses-table__sub">Not checked yet</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Box className="expenses-mobile-list">
+          {balances.length === 0 ? <EmptyRow message="No cash accounts yet." /> : balances.map((b: any) => {
+            const label = b.money_source === 'person' ? b.person_name || 'Personal money' : 'House tin'
+            const check = latestCheckFor(b)
+            return (
+              <Box className="expenses-mobile-row" key={`${b.money_source}-${b.id}`} role={check ? 'button' : undefined} tabIndex={check ? 0 : undefined} onClick={check ? () => onOpenCheck(check) : undefined}>
+                <Box className="expenses-mobile-row__top">
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography className="expenses-mobile-row__primary">{label}</Typography>
+                    <Typography className="expenses-mobile-row__secondary">{b.location_name || '—'} · {check ? `${relativeDay(check.check_date)} · ${check.accepted_at ? 'Signed by 2 people' : 'Second signature needed'}` : 'Not checked yet'}</Typography>
+                  </Box>
+                  <Typography className="expenses-table__amount">{money(b.current_balance_pence)}</Typography>
+                </Box>
+              </Box>
+            )
+          })}
+        </Box>
+      </SectionCard>
+
+      {(reconciliations.length > 0) && (
+        <SectionCard title="Reconciliation review" copy="Review the recorded count before it changes the account balance.">
+          <TableContainer className="expenses-table-wrap">
+            <Table className="expenses-table" size="small" aria-label="Petty cash reconciliation requests">
+              <TableHead>
+                <TableRow>{['Date', 'Account', 'Expected', 'Counted', 'Variance', 'Requested by', 'Reviewer', 'Status', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow>
+              </TableHead>
+              <TableBody>
+                {reconciliations.map((r: any) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell className="expenses-table__date">{dayLabel(r.created_at)}</TableCell>
+                    <TableCell>{r.money_source === 'person' ? r.person_name : r.location_name || 'House tin'}</TableCell>
+                    <TableCell className="expenses-table__amount">{money(r.expected_balance_pence)}</TableCell>
+                    <TableCell className="expenses-table__amount">{money(r.actual_balance_pence)}</TableCell>
+                    <TableCell className="expenses-table__amount">{money(r.variance_pence)}</TableCell>
+                    <TableCell>{r.requested_by_name || '—'}</TableCell>
+                    <TableCell>{r.handed_over_to_name || '—'}</TableCell>
+                    <TableCell>
+                      <StatusChip
+                        label={r.status === 'pending' ? 'Awaiting review' : r.status === 'accepted' ? 'Accepted' : 'Rejected'}
+                        tone={r.status === 'accepted' ? 'ok' : r.status === 'rejected' ? 'bad' : 'due'}
+                      />
+                      {r.rejection_reason && <Typography className="expenses-table__sub">{r.rejection_reason}</Typography>}
+                    </TableCell>
+                    <TableCell>
+                      {r.status === 'pending' && r.handed_over_to === currentUserId && (
+                        <Box className="expenses-table__actions">
+                          <Button size="small" variant="contained" color="success" disabled={reviewingId === r.id} onClick={() => onReview(r.id, 'accepted')}>
+                            {reviewingId === r.id ? <CircularProgress size={14} color="inherit" /> : 'Accept'}
+                          </Button>
+                          <Button size="small" variant="outlined" color="error" disabled={reviewingId === r.id} onClick={() => onReject(r.id)}>Reject</Button>
+                        </Box>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </SectionCard>
+      )}
+
+      <SectionCard title="Account history" copy="Top-ups and accepted reconciliations, in time order.">
+        <TableContainer className="expenses-table-wrap">
+          <Table className="expenses-table" size="small" aria-label="Petty cash transaction history">
+            <TableHead>
+              <TableRow>{['Date', 'Account', 'Type', 'Change', 'Balance after', 'Notes'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow>
+            </TableHead>
+            <TableBody>
+              {transactions.length === 0 ? (
+                <TableRow><TableCell colSpan={6}><EmptyRow message="No cash movements yet." /></TableCell></TableRow>
+              ) : transactions.map((t: any) => (
+                <TableRow key={t.id} hover>
+                  <TableCell className="expenses-table__date">{dayLabel(t.created_at)}</TableCell>
+                  <TableCell>{t.money_source === 'person' ? t.person_name : t.location_name || 'House tin'}</TableCell>
+                  <TableCell><StatusChip label={String(t.type).replace(/_/g, ' ')} tone="neutral" /></TableCell>
+                  <TableCell className="expenses-table__amount">{money(t.amount_pence)}</TableCell>
+                  <TableCell className="expenses-table__amount">{money(t.new_balance_pence)}</TableCell>
+                  <TableCell>{t.notes || '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </SectionCard>
+    </>
+  )
+}
+
+function CashChecksSection({ checks, currentUserId, acceptingId, canManage, onOpen, onSign, onCreate }: any) {
   const [page, setPage] = useState(0)
-  const filtered = useMemo(() => cashChecks.filter((c: any) => { const q = search.toLowerCase(); return !q || [c.location_name, c.person_name, c.counted_by_name, c.handed_over_to_name, c.notes].some(v => String(v || '').toLowerCase().includes(q)) }), [cashChecks, search])
-  const pages = Math.ceil(filtered.length / CHECKS_PER_PAGE)
-  const visible = filtered.slice(page * CHECKS_PER_PAGE, (page + 1) * CHECKS_PER_PAGE)
-  useEffect(() => setPage(0), [search])
-  return <Box>
-    {reconciliations?.some((r: any) => r.status === 'pending' && r.handed_over_to === currentUserId) && <>
-      <Box className="expenses-section-heading"><Box><Typography component="h2" className="expenses-section-heading__title">Reconciliation review</Typography><Typography className="expenses-section-heading__copy">Review the count before the account balance is changed.</Typography></Box></Box>
-      <TableContainer component={Paper} className="expenses-table-wrap"><Table className="expenses-table" size="small" aria-label="Assigned reconciliation reviews"><TableHead><TableRow>{['Date', 'Account', 'Expected', 'Counted', 'Variance', 'Requested by', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{reconciliations.filter((r: any) => r.status === 'pending' && r.handed_over_to === currentUserId).map((r: any) => <TableRow key={r.id}><TableCell>{new Date(r.created_at).toLocaleString('en-GB')}</TableCell><TableCell>{r.money_source === 'person' ? r.person_name : r.location_name}</TableCell><TableCell className="expenses-table__amount">{money(r.expected_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(r.actual_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(r.variance_pence)}</TableCell><TableCell>{r.requested_by_name || '—'}</TableCell><TableCell><Box className="expenses-table__actions"><Button size="small" variant="contained" color="success" disabled={reviewingId === r.id} onClick={() => onReview(r.id, 'accepted')}>{reviewingId === r.id ? <CircularProgress size={16} color="inherit" /> : 'Accept'}</Button><Button size="small" variant="outlined" color="error" disabled={reviewingId === r.id} onClick={() => setRejectingId(r.id)}>Reject</Button></Box></TableCell></TableRow>)}</TableBody></Table></TableContainer>
-    </>}
-    <Box className="expenses-section-heading"><Box><Typography component="h2" className="expenses-section-heading__title">Daily cash checks</Typography><Typography className="expenses-section-heading__copy">A check is complete only after the named second staff member accepts it.</Typography></Box>{canCreate && <Button className="expenses-button expenses-button--primary" variant="contained" startIcon={<CheckCircleIcon />} onClick={onNewCheck}>Record a check</Button>}</Box>
-    <Box className="expenses-attention"><Box><Typography className="expenses-attention__title">Two-person control</Typography><Typography className="expenses-attention__copy">The person who counts the cash cannot approve their own count. Pending checks stay visible until the assigned confirmer accepts them.</Typography></Box><Typography className="expenses-status-copy">{filtered.length} of {cashChecks.length} checks</Typography></Box>
-    <Box className="expenses-filter-bar"><TextField size="small" label="Search checks" placeholder="Account, staff member, or note" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} /> }} /><Box /><Typography className="expenses-status-copy">Page {pages ? page + 1 : 0} of {pages}</Typography></Box>
-    <TableContainer component={Paper} className="expenses-table-wrap expenses-table-wrap--checks"><Table className="expenses-table" size="small" aria-label="Daily cash checks"><TableHead><TableRow>{['Date', 'Account', 'Expected', 'Physical', 'Variance', 'Counted by', 'Handed over to', 'Status', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>{visible.length === 0 ? <TableRow><TableCell colSpan={9}><EmptyRow message="No cash checks found. New checks will appear here with their acceptance history." /></TableCell></TableRow> : visible.map((c: any) => <TableRow key={c.id} hover><TableCell>{new Date(c.check_date).toLocaleDateString('en-GB')}</TableCell><TableCell>{c.money_source === 'house' ? c.location_name : c.person_name}</TableCell><TableCell className="expenses-table__amount">{money(c.expected_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(c.physical_balance_pence)}</TableCell><TableCell className="expenses-table__amount">{money(c.variance_pence)}</TableCell><TableCell>{c.counted_by_name || '—'}</TableCell><TableCell>{c.handed_over_to_name || '—'}</TableCell><TableCell>{c.accepted_at ? <><Chip size="small" label="Accepted" color="success" variant="outlined" /><Typography className="expenses-status-copy" display="block">{c.accepted_by_name} · {new Date(c.accepted_at).toLocaleString('en-GB')}</Typography></> : <Chip size="small" label="Awaiting acceptance" color="warning" variant="outlined" />}</TableCell><TableCell>{!c.accepted_at && c.handed_over_to === currentUserId && <Button size="small" variant="contained" color="success" startIcon={<CheckCircleIcon />} disabled={acceptingId === c.id} onClick={() => onAccept(c.id)}>{acceptingId === c.id ? <CircularProgress size={16} color="inherit" /> : 'Accept'}</Button>}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
-    <Paper className="expenses-panel expenses-mobile-list">{visible.length === 0 ? <EmptyRow message="No cash checks found." /> : visible.map((c: any) => <Box className="expenses-mobile-row" key={c.id}><Box className="expenses-mobile-row__top"><Box sx={{ minWidth: 0 }}><Typography className="expenses-mobile-row__primary">{c.money_source === 'house' ? c.location_name : c.person_name}</Typography><Typography className="expenses-mobile-row__secondary">{new Date(c.check_date).toLocaleDateString('en-GB')} · Counted by {c.counted_by_name || '—'}</Typography></Box>{c.accepted_at ? <Chip size="small" label="Accepted" color="success" variant="outlined" /> : <Chip size="small" label="Pending" color="warning" variant="outlined" />}</Box><Box className="expenses-mobile-row__bottom"><Typography className="expenses-status-copy">Expected {money(c.expected_balance_pence)} · Physical {money(c.physical_balance_pence)}</Typography>{!c.accepted_at && c.handed_over_to === currentUserId && <Button size="small" variant="contained" color="success" onClick={() => onAccept(c.id)} disabled={acceptingId === c.id}>{acceptingId === c.id ? 'Saving…' : 'Accept count'}</Button>}</Box></Box>)}</Paper>
-    {pages > 1 && <Stack direction="row" justifyContent="center" spacing={2} mt={2}><Button className="expenses-button expenses-button--quiet" size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous</Button><Button className="expenses-button expenses-button--quiet" size="small" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>Next</Button></Stack>}
-  </Box>
+  const pageCount = Math.max(1, Math.ceil(checks.length / PAGE_SIZE))
+  const current = Math.min(page, pageCount - 1)
+  const visible = checks.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE)
+
+  const status = (check: any) => {
+    if (!check.accepted_at) return <StatusChip label="1 signature" tone="due" />
+    const variance = Number(check.variance_pence || 0)
+    return variance === 0
+      ? <StatusChip label="Matched" tone="ok" />
+      : <StatusChip label={`Signed · ${money(Math.abs(variance))} off`} tone="neutral" />
+  }
+  const signedBy = (check: any) => [check.counted_by_name, check.accepted_by_name].filter(Boolean).join(', ') || '—'
+
+  return (
+    <SectionCard
+      title="Daily cash checks"
+      copy="Two people count, two people sign"
+      actions={canManage ? <Button className="expenses-button expenses-button--quiet" variant="outlined" onClick={onCreate}>Record a check</Button> : undefined}
+      footnote={checks.length > 0 ? `Showing ${current * PAGE_SIZE + 1}–${Math.min((current + 1) * PAGE_SIZE, checks.length)} of ${checks.length}` : undefined}
+    >
+      <TableContainer className="expenses-table-wrap expenses-table-wrap--checks">
+        <Table className="expenses-table" size="small" aria-label="Daily cash checks">
+          <TableHead>
+            <TableRow>{['Date', 'Account', 'Expected', 'Counted', 'Signed by', 'Status', ''].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow>
+          </TableHead>
+          <TableBody>
+            {visible.length === 0 ? (
+              <TableRow><TableCell colSpan={7}><EmptyRow message="No cash checks yet. A check is complete once a second person signs it." /></TableCell></TableRow>
+            ) : visible.map((check: any) => (
+              <TableRow
+                key={check.id}
+                hover
+                tabIndex={0}
+                className="expenses-row"
+                onClick={() => onOpen(check)}
+                onKeyDown={(event: any) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(check) } }}
+              >
+                <TableCell className="expenses-table__date">{dayLabel(check.check_date)}</TableCell>
+                <TableCell>{accountLabel(check)}</TableCell>
+                <TableCell className="expenses-table__amount">{money(check.expected_balance_pence)}</TableCell>
+                <TableCell className="expenses-table__amount">{money(check.physical_balance_pence)}</TableCell>
+                <TableCell>{signedBy(check)}</TableCell>
+                <TableCell>{status(check)}</TableCell>
+                <TableCell>
+                  {!check.accepted_at && check.handed_over_to === currentUserId && (
+                    <Button size="small" variant="contained" disabled={acceptingId === check.id} onClick={event => { event.stopPropagation(); onSign(check) }}>
+                      {acceptingId === check.id ? <CircularProgress size={14} color="inherit" /> : 'Sign'}
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Box className="expenses-mobile-list">
+        {visible.length === 0 ? <EmptyRow message="No cash checks yet." /> : visible.map((check: any) => (
+          <Box className="expenses-mobile-row" key={check.id} role="button" tabIndex={0} onClick={() => onOpen(check)}>
+            <Box className="expenses-mobile-row__top">
+              <Box sx={{ minWidth: 0 }}>
+                <Typography className="expenses-mobile-row__primary">{accountLabel(check)}</Typography>
+                <Typography className="expenses-mobile-row__secondary">{dayLabel(check.check_date)} · counted by {check.counted_by_name || '—'}</Typography>
+              </Box>
+              {status(check)}
+            </Box>
+            <Box className="expenses-mobile-row__bottom">
+              <Typography className="expenses-table__sub">Expected {money(check.expected_balance_pence)} · Counted {money(check.physical_balance_pence)}</Typography>
+              {!check.accepted_at && check.handed_over_to === currentUserId && (
+                <Button size="small" variant="contained" disabled={acceptingId === check.id} onClick={event => { event.stopPropagation(); onSign(check) }}>Sign</Button>
+              )}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+
+      {pageCount > 1 && (
+        <Box className="expenses-pager">
+          <Button size="small" className="expenses-button expenses-button--quiet" disabled={current === 0} onClick={() => setPage(current - 1)}>Previous</Button>
+          <Typography className="expenses-status-copy">Page {current + 1} of {pageCount}</Typography>
+          <Button size="small" className="expenses-button expenses-button--quiet" disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)}>Next</Button>
+        </Box>
+      )}
+    </SectionCard>
+  )
 }
 
-function ExpenseForm({ people, locations, onSubmit, onCancel, isLoading }: any) {
-  const [source, setSource] = useState('person'); const [personId, setPersonId] = useState(''); const [locationId, setLocationId] = useState(''); const [category, setCategory] = useState('food'); const [amount, setAmount] = useState(0); const [description, setDescription] = useState(''); const [paymentMethod, setPaymentMethod] = useState('cash'); const [date, setDate] = useState(today())
-  return <><DialogContent><Alert className="expenses-dialog__hint" severity="info">Enter the transaction once. The account, amount, date, and payment method cannot be changed afterwards.</Alert><Stack spacing={2}><TextField select label="Money source" fullWidth value={source} onChange={e => { setSource(e.target.value); setPersonId(''); setLocationId('') }}><MenuItem value="person">Person funds</MenuItem><MenuItem value="house">House funds</MenuItem></TextField>{source === 'person' ? <TextField select label="Person" fullWidth required value={personId} onChange={e => setPersonId(e.target.value)}><MenuItem value="">Select person</MenuItem>{people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}</TextField> : <TextField select label="Location" fullWidth required value={locationId} onChange={e => setLocationId(e.target.value)}><MenuItem value="">Select house location</MenuItem>{locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}</TextField>}<TextField select label="Category" fullWidth value={category} onChange={e => setCategory(e.target.value)}>{CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}</TextField><TextField select label="Payment method" fullWidth value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}><MenuItem value="cash">Cash</MenuItem><MenuItem value="card">Card</MenuItem><MenuItem value="bank_transfer">Bank transfer</MenuItem><MenuItem value="direct_debit">Direct debit</MenuItem></TextField><TextField label="Amount (£)" type="number" fullWidth value={amount || ''} onChange={e => setAmount(Number(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} /><TextField label="Description / reason" fullWidth multiline rows={2} value={description} onChange={e => setDescription(e.target.value)} /><TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={date} onChange={e => setDate(e.target.value)} /></Stack></DialogContent><DialogActions><Button onClick={onCancel}>Cancel</Button><Button className="expenses-button expenses-button--primary" variant="contained" disabled={!amount || !date || (source === 'person' ? !personId : !locationId) || isLoading} onClick={() => onSubmit({ personId: source === 'person' ? personId : null, locationId: source === 'house' ? locationId : undefined, moneySource: source, paymentMethod, category, amountPence: Math.round(amount * 100), description, incurredDate: date })}>{isLoading ? <CircularProgress size={20} /> : 'Add expense'}</Button></DialogActions></>
+function ExpenseDetailDialog({ expense, canManage, onClose, onEdit, onVoid }: any) {
+  return (
+    <>
+      <FigDialogHeader
+        eyebrow="EXPENSES"
+        title={expense.description || 'Expense'}
+        subtitle={`${longDay(expense.incurred_date)} · ${SOURCE_LABELS[expense.money_source] || 'Person funds'}`}
+        onClose={onClose}
+      />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {expense.is_voided && (
+          <Alert severity="warning" className="expenses-dialog__hint">
+            Voided{expense.void_reason ? `: ${expense.void_reason}` : ''}. The entry stays in the audit history and is excluded from totals.
+          </Alert>
+        )}
+        <Stack spacing={1.75}>
+          <DetailRow label="Amount" value={money(expense.amount_pence)} strong />
+          <DetailRow label="Category" value={categoryLabel(expense.category)} />
+          <DetailRow label="Paid from" value={SOURCE_LABELS[expense.money_source] || 'Person funds'} />
+          <DetailRow label={expense.money_source === 'person' ? 'Person' : 'Location'} value={expense.money_source === 'person' ? expense.person_name || '—' : expense.location_name || '—'} />
+          <DetailRow label="Payment method" value={(PAYMENT_METHODS.find(m => m.value === expense.payment_method)?.label) || expense.payment_method || '—'} />
+          <DetailRow label="Added by" value={expense.created_by_name || '—'} />
+          <Divider />
+          <Box className="expenses-detail__receipt">
+            <Typography className="expenses-detail__label">Receipt</Typography>
+            {expense.receipt_url
+              ? <Button size="small" className="expenses-button expenses-button--quiet" variant="outlined" startIcon={<OpenInNewIcon />} href={expense.receipt_url} target="_blank" rel="noopener noreferrer">Open receipt</Button>
+              : <Typography className="expenses-table__sub">No receipt attached.</Typography>}
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+        {canManage && !expense.is_voided && <Button startIcon={<EditIcon />} onClick={onEdit}>Edit</Button>}
+        {canManage && !expense.is_voided && <Button color="warning" startIcon={<VoidIcon />} onClick={onVoid}>Void</Button>}
+      </DialogActions>
+    </>
+  )
 }
 
-function EditExpenseForm({ expense, onSubmit, onCancel, isLoading }: any) {
-  const [category, setCategory] = useState(expense?.category || 'food'); const [description, setDescription] = useState(expense?.description || '')
-  return <><DialogContent><Alert className="expenses-dialog__hint" severity="info">Only the description and category can be edited. The original financial details remain part of the audit record.</Alert><Stack spacing={2}><TextField select label="Category" fullWidth value={category} onChange={e => setCategory(e.target.value)}>{CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}</TextField><TextField label="Description" fullWidth multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} /></Stack></DialogContent><DialogActions><Button onClick={onCancel}>Cancel</Button><Button className="expenses-button expenses-button--primary" variant="contained" disabled={isLoading} onClick={() => onSubmit({ category, description })}>{isLoading ? <CircularProgress size={20} /> : 'Save changes'}</Button></DialogActions></>
+function DetailRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <Box className="expenses-detail__row">
+      <Typography className="expenses-detail__label">{label}</Typography>
+      <Typography className={strong ? 'expenses-detail__value expenses-detail__value--strong' : 'expenses-detail__value'}>{value}</Typography>
+    </Box>
+  )
 }
 
-function PettyCashDialog({ open, title, locations, people, balances, staffMembers = [], currentUser = {}, onClose, onSubmit, kind, isLoading }: any) {
-  const [source, setSource] = useState('house'); const [locationId, setLocationId] = useState(''); const [personId, setPersonId] = useState(''); const [amount, setAmount] = useState(0); const [expected, setExpected] = useState(0); const [notes, setNotes] = useState(''); const [date, setDate] = useState(today()); const [escalate, setEscalate] = useState(false); const [escalationReason, setEscalationReason] = useState(''); const [handedOverTo, setHandedOverTo] = useState('')
-  const isCheck = kind === 'daily_check'
-  const isReconcile = kind === 'reconcile'
-  const selectedBalance = useMemo(() => { if (!balances || (!isCheck && !isReconcile && kind !== 'top_up')) return 0; const id = source === 'house' ? locationId : personId; const match = balances.find((b: any) => b.money_source === source && (source === 'house' ? b.location_id : b.person_id) === id); return Number(match?.current_balance_pence || 0) / 100 }, [balances, isCheck, isReconcile, kind, source, locationId, personId])
-  useEffect(() => { if (open) { setSource('house'); setLocationId(''); setPersonId(''); setAmount(0); setExpected(0); setNotes(''); setDate(today()); setEscalate(false); setEscalationReason(''); setHandedOverTo('') } }, [open])
-  useEffect(() => { if (isCheck || isReconcile) setExpected(selectedBalance) }, [isCheck, isReconcile, selectedBalance])
-  const variance = amount - expected; const hasVariance = (isCheck || isReconcile) && amount > 0 && Math.abs(variance) > 0.001
-  const hasSelectedAccount = source === 'house' ? Boolean(locationId) : Boolean(personId)
-  const projectedBalance = selectedBalance + Math.max(amount, 0)
-  return <Dialog className="expenses-dialog" open={open} onClose={onClose} maxWidth="sm" fullWidth><DialogTitle>{title}</DialogTitle><DialogContent><Stack spacing={2}><TextField select label="Cash belongs to" fullWidth value={source} onChange={e => { setSource(e.target.value); setLocationId(''); setPersonId('') }}><MenuItem value="house">House</MenuItem><MenuItem value="person">Person</MenuItem></TextField>{source === 'house' ? <TextField select label="Location" fullWidth value={locationId} onChange={e => setLocationId(e.target.value)}><MenuItem value="">Select location</MenuItem>{locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}</TextField> : <TextField select label="Person" fullWidth value={personId} onChange={e => setPersonId(e.target.value)}><MenuItem value="">Select person</MenuItem>{people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}</TextField>}{isCheck && <><TextField label="Check date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={date} onChange={e => setDate(e.target.value)} /><TextField className="expenses-field--readonly" label="Counted by" fullWidth value={personName(currentUser)} InputProps={{ readOnly: true }} helperText="Taken from your signed-in account." /><TextField select label="Handed over to" fullWidth required value={handedOverTo} onChange={e => setHandedOverTo(e.target.value)} helperText="A different active staff member must accept this count."><MenuItem value="">Select confirming staff member</MenuItem>{staffMembers.filter((s: any) => s.id !== (currentUser.id || currentUser.userId)).map((s: any) => <MenuItem key={s.id} value={s.id}>{personName(s)}</MenuItem>)}</TextField></>}{isReconcile && <TextField select label="Reviewed by" fullWidth required value={handedOverTo} onChange={e => setHandedOverTo(e.target.value)} helperText="A different active staff member must approve or reject this reconciliation."><MenuItem value="">Select reviewing staff member</MenuItem>{staffMembers.filter((s: any) => s.id !== (currentUser.id || currentUser.userId)).map((s: any) => <MenuItem key={s.id} value={s.id}>{personName(s)}</MenuItem>)}</TextField>}{isCheck || isReconcile ? <><TextField className="expenses-field--readonly" label="Expected balance (£)" type="number" fullWidth value={expected.toFixed(2)} InputProps={{ readOnly: true }} /><TextField label={isCheck ? 'Physical cash in money tin (£)' : 'Counted balance (£)'} type="number" fullWidth value={amount || ''} onChange={e => setAmount(Number(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} /></> : <>{kind === 'top_up' && hasSelectedAccount && <Box className="expenses-balance-preview" aria-live="polite"><Box><Typography className="expenses-balance-preview__label">Current balance</Typography><Typography className="expenses-balance-preview__value">{money(Math.round(selectedBalance * 100))}</Typography></Box><Typography className="expenses-balance-preview__plus">+</Typography><Box><Typography className="expenses-balance-preview__label">Top-up amount</Typography><Typography className="expenses-balance-preview__value">{money(Math.round(Math.max(amount, 0) * 100))}</Typography></Box><Box className="expenses-balance-preview__result"><Typography className="expenses-balance-preview__label">Balance after top-up</Typography><Typography className="expenses-balance-preview__value">{money(Math.round(projectedBalance * 100))}</Typography></Box></Box>}<TextField label={kind === 'top_up' ? 'Amount (£)' : 'Actual balance (£)'} type="number" fullWidth value={amount || ''} onChange={e => setAmount(Number(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} /></>}{hasVariance && <><Alert severity="warning">Variance: {money(Math.round(variance * 100))}. Record an escalation if the difference cannot be resolved.</Alert><TextField select label="Escalate to manager" fullWidth value={escalate ? 'yes' : 'no'} onChange={e => setEscalate(e.target.value === 'yes')}><MenuItem value="no">No</MenuItem><MenuItem value="yes">Yes</MenuItem></TextField>{escalate && <TextField label="Escalation reason" fullWidth multiline rows={2} value={escalationReason} onChange={e => setEscalationReason(e.target.value)} />}</>}<TextField label="Notes" fullWidth multiline rows={2} value={notes} onChange={e => setNotes(e.target.value)} /></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button className="expenses-button expenses-button--primary" variant="contained" disabled={(source === 'house' ? !locationId : !personId) || (kind === 'top_up' ? amount <= 0 : (isCheck || isReconcile) ? amount < 0 || !handedOverTo : amount < 0) || isLoading} onClick={() => onSubmit(kind === 'top_up' ? { moneySource: source, locationId: source === 'house' ? locationId : undefined, personId: source === 'person' ? personId : undefined, amountPence: Math.round(amount * 100), notes } : isCheck ? { moneySource: source, locationId: source === 'house' ? locationId : undefined, personId: source === 'person' ? personId : undefined, expectedBalancePence: Math.round(expected * 100), physicalBalancePence: Math.round(amount * 100), checkDate: date, notes, escalate, escalationReason: escalate ? escalationReason : undefined, handedOverTo } : { moneySource: source, locationId: source === 'house' ? locationId : undefined, personId: source === 'person' ? personId : undefined, actualBalancePence: Math.round(amount * 100), handedOverTo, notes })}>{isLoading ? <CircularProgress size={20} /> : kind === 'top_up' ? 'Top up cash' : isCheck ? 'Record and hand over' : 'Save reconciliation'}</Button></DialogActions></Dialog>
+function AddExpenseDialog({ people, locations, isLoading, error, onSubmit, onClose }: any) {
+  const [description, setDescription] = useState('')
+  const [amount, setAmount] = useState(0)
+  const [date, setDate] = useState(today())
+  const [source, setSource] = useState<'house' | 'person'>('house')
+  const [accountId, setAccountId] = useState('')
+  const [category, setCategory] = useState('food')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [receiptUrl, setReceiptUrl] = useState('')
+  const [receiptName, setReceiptName] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInput = useRef<HTMLInputElement | null>(null)
+
+  const uploadReceipt = async (file?: File) => {
+    if (!file) return
+    setUploadError('')
+    if (file.size > RECEIPT_LIMIT_BYTES) { setUploadError('Choose a photo or PDF up to 10 MB.'); return }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/settings/upload', formData)
+      setReceiptUrl(res.data.url)
+      setReceiptName(file.name)
+    } catch (e: any) {
+      setUploadError(e.response?.data?.error || 'Could not upload this receipt. Try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const canSave = Boolean(description.trim()) && amount > 0 && Boolean(accountId) && !uploading
+
+  const save = () => {
+    if (!canSave) return
+    onSubmit({
+      moneySource: source,
+      locationId: source === 'house' ? accountId : undefined,
+      personId: source === 'person' ? accountId : undefined,
+      category,
+      amountPence: Math.round(amount * 100),
+      description: description.trim(),
+      paymentMethod,
+      incurredDate: date,
+      receiptUrl: receiptUrl || undefined,
+    })
+  }
+
+  return (
+    <>
+      <FigDialogHeader eyebrow="EXPENSES" title="Add expense" subtitle="Amounts, dates and people can’t be changed after saving." onClose={onClose} />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="expenses-dialog__hint">{error}</Alert>}
+        <Stack spacing={2.25}>
+          <Box>
+            <Typography className="expenses-detail__label">What for</Typography>
+            <TextField fullWidth size="small" sx={{ mt: 0.75 }} value={description} onChange={e => setDescription(e.target.value)} inputProps={{ maxLength: 500 }} placeholder="Weekly food shop" autoFocus />
+          </Box>
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flex: 1 }}>
+              <Typography className="expenses-detail__label">Amount</Typography>
+              <TextField fullWidth size="small" sx={{ mt: 0.75 }} type="number" value={amount || ''} onChange={e => setAmount(Number(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} InputProps={{ startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary' }}>£</Typography> }} placeholder="86.40" />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography className="expenses-detail__label">Date</Typography>
+              <TextField fullWidth size="small" sx={{ mt: 0.75 }} type="date" value={date} onChange={e => setDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+            </Box>
+          </Stack>
+          <Box>
+            <Typography className="expenses-detail__label">Paid from</Typography>
+            <Box sx={{ mt: 1 }}>
+              <PillOptions
+                options={[{ value: 'house', label: 'House funds' }, { value: 'person', label: 'A person’s money' }]}
+                value={source}
+                onChange={(value: string) => { setSource(value as 'house' | 'person'); setAccountId('') }}
+                showCheck
+              />
+            </Box>
+          </Box>
+          <TextField
+            select fullWidth size="small"
+            label={source === 'house' ? 'Location' : 'Person'}
+            value={accountId}
+            onChange={e => setAccountId(e.target.value)}
+          >
+            <MenuItem value="">{source === 'house' ? 'Select the house' : 'Select the person'}</MenuItem>
+            {source === 'house'
+              ? locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)
+              : people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}
+          </TextField>
+          <Stack direction="row" spacing={2}>
+            <TextField select fullWidth size="small" label="Category" value={category} onChange={e => setCategory(e.target.value)}>
+              {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+            </TextField>
+            <TextField select fullWidth size="small" label="Payment method" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+              {PAYMENT_METHODS.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+            </TextField>
+          </Stack>
+          <Box
+            className={`expenses-dropzone${uploading ? ' expenses-dropzone--busy' : ''}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => fileInput.current?.click()}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.current?.click() } }}
+          >
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*,application/pdf"
+              hidden
+              onChange={e => { uploadReceipt(e.target.files?.[0]); e.target.value = '' }}
+            />
+            {uploading ? <CircularProgress size={22} /> : <UploadIcon color="primary" />}
+            <Typography className="expenses-dropzone__title">{receiptName || (uploading ? 'Uploading receipt…' : 'Attach the receipt')}</Typography>
+            <Typography className="expenses-dropzone__copy">{receiptName ? 'Click to replace this file' : 'Photo or PDF · up to 10 MB'}</Typography>
+          </Box>
+          {uploadError && <Typography className="expenses-text--danger">{uploadError}</Typography>}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" className="expenses-button expenses-button--primary" disabled={!canSave || isLoading} onClick={save}>
+          {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Save expense'}
+        </Button>
+      </DialogActions>
+    </>
+  )
+}
+
+function EditExpenseDialog({ expense, isLoading, error, onSubmit, onClose }: any) {
+  const [category, setCategory] = useState(expense?.category || 'food')
+  const [description, setDescription] = useState(expense?.description || '')
+  return (
+    <>
+      <FigDialogHeader eyebrow="EXPENSES" title="Edit this entry" subtitle="Only the description and category change." onClose={onClose} />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="expenses-dialog__hint">{error}</Alert>}
+        <Alert className="expenses-dialog__hint" severity="info">The amount, date, source and receipt stay as recorded, so the audit trail stays intact.</Alert>
+        <Stack spacing={2}>
+          <TextField select fullWidth size="small" label="Category" value={category} onChange={e => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </TextField>
+          <TextField label="What for" fullWidth size="small" multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} inputProps={{ maxLength: 500 }} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" className="expenses-button expenses-button--primary" disabled={isLoading} onClick={() => onSubmit({ category, description })}>
+          {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Save changes'}
+        </Button>
+      </DialogActions>
+    </>
+  )
+}
+
+function TopUpDialog({ locations, people, balances, isLoading, error, onSubmit, onClose }: any) {
+  const [accountKey, setAccountKey] = useState('')
+  const [amount, setAmount] = useState(0)
+  const [source, setSource] = useState('bank_withdrawal')
+
+  const accounts = useMemo(() => {
+    const balanceFor = (moneySource: string, id: string) => balances.find((b: any) =>
+      b.money_source === moneySource && (moneySource === 'house' ? b.location_id === id : b.person_id === id))
+    const options = locations.map((l: any) => ({
+      key: `house:${l.id}`, moneySource: 'house' as const, id: l.id,
+      label: `House tin · ${l.name}`, balance: Number(balanceFor('house', l.id)?.current_balance_pence || 0),
+    }))
+    for (const p of people) {
+      options.push({
+        key: `person:${p.id}`, moneySource: 'person' as const, id: p.id,
+        label: `${personName(p)} · personal money`, balance: Number(balanceFor('person', p.id)?.current_balance_pence || 0),
+      })
+    }
+    return options
+  }, [locations, people, balances])
+
+  const selected = accounts.find((a: any) => a.key === accountKey)
+  const canSave = Boolean(selected) && amount > 0 && !isLoading
+
+  const save = () => {
+    if (!selected) return
+    onSubmit({
+      moneySource: selected.moneySource,
+      locationId: selected.moneySource === 'house' ? selected.id : undefined,
+      personId: selected.moneySource === 'person' ? selected.id : undefined,
+      amountPence: Math.round(amount * 100),
+      notes: CASH_SOURCE_OPTIONS.find(o => o.value === source)?.label || 'Top up',
+    })
+  }
+
+  return (
+    <>
+      <FigDialogHeader eyebrow="EXPENSES" title="Top up cash" subtitle="Add money to a cash account." onClose={onClose} />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="expenses-dialog__hint">{error}</Alert>}
+        <Stack spacing={2.25}>
+          <TextField select fullWidth size="small" label="Account" value={accountKey} onChange={e => setAccountKey(e.target.value)} autoFocus>
+            <MenuItem value="">Select an account</MenuItem>
+            {accounts.map((account: any) => (
+              <MenuItem key={account.key} value={account.key}>
+                {account.label} — {money(account.balance)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            fullWidth size="small" label="Amount" type="number" value={amount || ''}
+            onChange={e => setAmount(Number(e.target.value) || 0)}
+            inputProps={{ min: 0.01, step: 0.01 }}
+            InputProps={{ startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary' }}>£</Typography> }}
+            helperText={selected ? `New balance: ${money(selected.balance + Math.round(amount * 100))}` : ' '}
+          />
+          <TextField select fullWidth size="small" label="Source" value={source} onChange={e => setSource(e.target.value)}>
+            {CASH_SOURCE_OPTIONS.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+          </TextField>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" className="expenses-button expenses-button--primary" disabled={!canSave} onClick={save}>
+          {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Top up'}
+        </Button>
+      </DialogActions>
+    </>
+  )
+}
+
+function ReconcileDialog({ open, onClose, locations, people, balances, staffMembers, currentUser, isLoading, error, onSubmit }: any) {
+  const [source, setSource] = useState<'house' | 'person'>('house')
+  const [accountId, setAccountId] = useState('')
+  const [counted, setCounted] = useState(0)
+  const [handedOverTo, setHandedOverTo] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const balance = useMemo(() => {
+    const match = balances.find((b: any) => b.money_source === source && (source === 'house' ? b.location_id : b.person_id) === accountId)
+    return Number(match?.current_balance_pence || 0)
+  }, [balances, source, accountId])
+  const variance = Math.round(counted * 100) - balance
+  const canSave = Boolean(accountId) && Boolean(handedOverTo) && !isLoading
+
+  useEffect(() => {
+    if (open) { setSource('house'); setAccountId(''); setCounted(0); setHandedOverTo(''); setNotes('') }
+  }, [open])
+
+  const save = () => {
+    onSubmit({
+      moneySource: source,
+      locationId: source === 'house' ? accountId : undefined,
+      personId: source === 'person' ? accountId : undefined,
+      actualBalancePence: Math.round(counted * 100),
+      handedOverTo,
+      notes: notes || undefined,
+    })
+  }
+
+  return (
+    <Dialog className="expenses-dialog" open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <FigDialogHeader eyebrow="PETTY CASH" title="Request reconciliation" subtitle="A second staff member reviews the count before the balance changes." onClose={onClose} />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="expenses-dialog__hint">{error}</Alert>}
+        <Stack spacing={2.25}>
+          <Box>
+            <Typography className="expenses-detail__label">Cash belongs to</Typography>
+            <Box sx={{ mt: 1 }}>
+              <PillOptions
+                options={[{ value: 'house', label: 'House' }, { value: 'person', label: 'Person' }]}
+                value={source}
+                onChange={(value: string) => { setSource(value as 'house' | 'person'); setAccountId('') }}
+              />
+            </Box>
+          </Box>
+          <TextField select fullWidth size="small" label={source === 'house' ? 'Location' : 'Person'} value={accountId} onChange={e => setAccountId(e.target.value)}>
+            <MenuItem value="">{source === 'house' ? 'Select location' : 'Select person'}</MenuItem>
+            {source === 'house'
+              ? locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)
+              : people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}
+          </TextField>
+          <TextField
+            fullWidth size="small" label="Cash counted" type="number" value={counted || ''}
+            onChange={e => setCounted(Number(e.target.value) || 0)}
+            InputProps={{ startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary' }}>£</Typography> }}
+            helperText={accountId ? `Recorded balance: ${money(balance)} · difference ${money(Math.abs(variance))}` : ' '}
+          />
+          <TextField select fullWidth size="small" label="Reviewed by" value={handedOverTo} onChange={e => setHandedOverTo(e.target.value)} helperText="A different active staff member must approve or reject this.">
+            <MenuItem value="">Select reviewing staff member</MenuItem>
+            {staffMembers.filter((s: any) => s.id !== (currentUser.id || currentUser.userId)).map((s: any) => <MenuItem key={s.id} value={s.id}>{personName(s)}</MenuItem>)}
+          </TextField>
+          <TextField fullWidth size="small" label="Notes (optional)" multiline rows={2} value={notes} onChange={e => setNotes(e.target.value)} inputProps={{ maxLength: 500 }} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" className="expenses-button expenses-button--primary" disabled={!canSave} onClick={save}>
+          {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Send for review'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function RecordCheckDialog({ open, onClose, locations, people, balances, staffMembers, currentUser, isLoading, error, onSubmit }: any) {
+  const [source, setSource] = useState<'house' | 'person'>('house')
+  const [accountId, setAccountId] = useState('')
+  const [date, setDate] = useState(today())
+  const [counted, setCounted] = useState(0)
+  const [handedOverTo, setHandedOverTo] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const balance = useMemo(() => {
+    const match = balances.find((b: any) => b.money_source === source && (source === 'house' ? b.location_id : b.person_id) === accountId)
+    return Number(match?.current_balance_pence || 0)
+  }, [balances, source, accountId])
+  const variance = Math.round(counted * 100) - balance
+  const canSave = Boolean(accountId) && Boolean(handedOverTo) && counted > 0 && !isLoading
+
+  useEffect(() => {
+    if (open) { setSource('house'); setAccountId(''); setDate(today()); setCounted(0); setHandedOverTo(''); setNotes('') }
+  }, [open])
+
+  const save = () => {
+    onSubmit({
+      moneySource: source,
+      locationId: source === 'house' ? accountId : undefined,
+      personId: source === 'person' ? accountId : undefined,
+      expectedBalancePence: balance,
+      physicalBalancePence: Math.round(counted * 100),
+      checkDate: date,
+      handedOverTo,
+      notes: notes || undefined,
+    })
+  }
+
+  return (
+    <Dialog className="expenses-dialog" open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <FigDialogHeader eyebrow="PETTY CASH" title="Record a cash check" subtitle="You count the cash; a second person signs it off." onClose={onClose} />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="expenses-dialog__hint">{error}</Alert>}
+        <Stack spacing={2.25}>
+          <Box>
+            <Typography className="expenses-detail__label">Cash belongs to</Typography>
+            <Box sx={{ mt: 1 }}>
+              <PillOptions
+                options={[{ value: 'house', label: 'House' }, { value: 'person', label: 'Person' }]}
+                value={source}
+                onChange={(value: string) => { setSource(value as 'house' | 'person'); setAccountId('') }}
+              />
+            </Box>
+          </Box>
+          <TextField select fullWidth size="small" label={source === 'house' ? 'Location' : 'Person'} value={accountId} onChange={e => setAccountId(e.target.value)}>
+            <MenuItem value="">{source === 'house' ? 'Select location' : 'Select person'}</MenuItem>
+            {source === 'house'
+              ? locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)
+              : people.map((p: any) => <MenuItem key={p.id} value={p.id}>{personName(p)}</MenuItem>)}
+          </TextField>
+          <TextField fullWidth size="small" label="Check date" type="date" value={date} onChange={e => setDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField
+            fullWidth size="small" label="Cash you counted" type="number" value={counted || ''}
+            onChange={e => setCounted(Number(e.target.value) || 0)}
+            InputProps={{ startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary' }}>£</Typography> }}
+            helperText={accountId ? `Recorded balance: ${money(balance)} · difference ${money(Math.abs(variance))}` : ' '}
+          />
+          <TextField select fullWidth size="small" label="Handed over to" value={handedOverTo} onChange={e => setHandedOverTo(e.target.value)} helperText="A different active staff member must sign this count.">
+            <MenuItem value="">Select the second person</MenuItem>
+            {staffMembers.filter((s: any) => s.id !== (currentUser.id || currentUser.userId)).map((s: any) => <MenuItem key={s.id} value={s.id}>{personName(s)}</MenuItem>)}
+          </TextField>
+          <TextField fullWidth size="small" label="Notes (optional)" multiline rows={2} value={notes} onChange={e => setNotes(e.target.value)} inputProps={{ maxLength: 500 }} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" className="expenses-button expenses-button--primary" disabled={!canSave} onClick={save}>
+          {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Record check'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function SignCheckDialog({ check, currentUser, currentUserId, isLoading, onSign, onClose }: any) {
+  const expected = Number(check.expected_balance_pence || 0)
+  const counted = Number(check.physical_balance_pence || 0)
+  const variance = counted - expected
+  const matches = variance === 0
+  const mine = check.handed_over_to === currentUserId
+  const accepted = Boolean(check.accepted_at)
+
+  return (
+    <>
+      <FigDialogHeader
+        eyebrow="EXPENSES"
+        title={accepted ? 'Cash check' : 'Sign the cash check'}
+        subtitle={`${accountLabel(check)} · counted by ${check.counted_by_name || 'a staff member'} on ${longDay(check.check_date)}`}
+        onClose={onClose}
+      />
+      <DialogContent sx={{ pt: 1.5 }}>
+        {accepted && <Alert severity="success" className="expenses-dialog__hint">Signed by {check.accepted_by_name || 'a second staff member'}.</Alert>}
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+          <TextField fullWidth size="small" label="Expected" value={money(expected)} InputProps={{ readOnly: true }} className="expenses-field--readonly" />
+          <TextField fullWidth size="small" label="Counted" value={money(counted)} InputProps={{ readOnly: true }} className="expenses-field--readonly" />
+        </Stack>
+        <Box className={`expenses-band${matches ? '' : ' expenses-band--due'}`}>
+          <Box className="expenses-band__icon">{matches ? <CheckCircleIcon /> : <WarningIcon />}</Box>
+          <Box>
+            <Typography className="expenses-band__title">{matches ? 'It matches' : `${money(Math.abs(variance))} difference`}</Typography>
+            <Typography className="expenses-band__copy">
+              {matches
+                ? 'The count matches the expected balance.'
+                : `The count is ${variance > 0 ? 'over' : 'under'} the expected balance. Sign only if you are satisfied the difference is explained.`}
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ mt: 2 }}>
+          <TextField fullWidth size="small" label="Signed by" value={personName(currentUser)} InputProps={{ readOnly: true }} className="expenses-field--readonly" helperText="You can’t be the same person who did the first count." />
+        </Box>
+        {!accepted && !mine && (
+          <Typography className="expenses-status-copy" sx={{ mt: 1.5 }}>
+            Awaiting {check.handed_over_to_name || 'the assigned staff member'} to sign.
+          </Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{accepted || !mine ? 'Close' : 'Cancel'}</Button>
+        {!accepted && mine && (
+          <Button variant="contained" className="expenses-button expenses-button--primary" disabled={isLoading} onClick={onSign}>
+            {isLoading ? <CircularProgress size={18} color="inherit" /> : 'Sign check'}
+          </Button>
+        )}
+      </DialogActions>
+    </>
+  )
 }

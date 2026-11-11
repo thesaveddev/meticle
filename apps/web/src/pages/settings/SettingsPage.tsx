@@ -1,28 +1,27 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+
+import './settings.css'
+import FigDialogHeader from '../people/dialogHeader'
 import {
   Box, Typography, Paper, TextField, Button, Stack, Alert,
-  Avatar, Grid, Dialog, DialogTitle, DialogContent, DialogActions,
-  Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead,
+  Grid, Dialog, DialogTitle, DialogContent, DialogActions,
+  Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow,   IconButton, FormControl, InputLabel, Select, MenuItem,
   Chip, Switch, FormControlLabel, Card, CardContent,
   TablePagination, CircularProgress,
 } from '@mui/material'
 import {
-  PhotoCamera as CameraIcon, Add as AddIcon, Edit as EditIcon,
+  Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Check as CheckIcon, Close as CloseIcon,
   PersonAdd as DelegateIcon, Calculate as CalculateIcon,
   LocationOn as LocationOnIcon,
   Settings as SettingsIcon,
-  AccountCircle as ProfileIcon, Assignment as ComplianceIcon,
-  BeachAccess as LeaveIcon, Group as GroupIcon,
+  Assignment as ComplianceIcon,
   Save as SaveIcon,
   Schedule as ScheduleIcon, Notifications as NotificationsIcon,
   Medication as MedicationIcon,
   Lock as SecurityIcon, Palette as PaletteIcon,
   SmartToy as SmartToyIcon, History as HistoryIcon,
-  Warning as WarningIcon, DarkMode as DarkModeIcon,
-  LightMode as LightModeIcon,
-  TextFields as TextFieldsIcon,
   CalendarMonth as CalendarIcon,
   Phone as PhoneIcon,
   VolumeUp as VolumeUpIcon,
@@ -31,7 +30,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
-import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
+import { useThemeMode } from '../../context/ThemeContext'
 import { disablePushNotifications, enablePushNotifications, getPushState, type PushState } from '../../services/push'
 import { EmptyState } from '../../components/design/EmptyState'
 import LocationDecisionControl from '../../components/LocationDecisionControl'
@@ -61,13 +60,143 @@ function currentUserRole(): string | undefined {
   }
 }
 
+type SettingsTab = 'profile' | 'notifications' | 'security' | 'appearance' | 'org' | 'compliance' | 'delegations' | 'ai' | 'sms' | 'leave' | 'incidents'
+
+function roleLabel(role?: string | null) {
+  switch (role) {
+    case 'ORG_ADMIN': return 'Organisation admin'
+    case 'MANAGER': return 'Registered manager'
+    case 'CARE_WORKER': return 'Care worker'
+    case 'COMPLIANCE_OFFICER': return 'Compliance officer'
+    default: return role || '—'
+  }
+}
+
+function serviceTypeLabel(org: any) {
+  const types: string[] = org?.primary_service_type
+    ? [org.primary_service_type]
+    : Array.isArray(org?.service_types) ? org.service_types : []
+  if (types.some(type => ['domiciliary', 'live_in'].includes(type))) return 'Domiciliary care'
+  if (types.some(type => ['supported_living', 'residential'].includes(type))) return 'Supported living'
+  if (types.length === 0) return '—'
+  return types.map(type => type.replace(/_/g, ' ')).join(', ')
+}
+
+function regulatorLabel(regulator?: string | null) {
+  switch ((regulator || 'cqc').toLowerCase()) {
+    case 'cqc': return 'Care Quality Commission (England)'
+    case 'ciw': return 'Care Inspectorate Wales'
+    case 'care-inspectorate': return 'Care Inspectorate (Scotland)'
+    case 'rqia': return 'RQIA (Northern Ireland)'
+    default: return regulator || '—'
+  }
+}
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+function currentDeviceLabel() {
+  const ua = navigator.userAgent
+  const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'This browser'
+  const os = /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : 'this device'
+  return `${browser} on ${os}`
+}
+
+function ChangePasswordAction({ email }: { email?: string }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const sendLink = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await api.post('/auth/forgot-password', { email })
+      setSent(true)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Could not send the reset link. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outlined" className="set-button set-button--quiet" onClick={() => { setOpen(true); setSent(false); setError('') }}>
+        Change password
+      </Button>
+      <Dialog className="set-dialog" open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+        <FigDialogHeader
+          eyebrow="SECURITY"
+          title="Change password"
+          subtitle={sent ? undefined : `We’ll email a reset link to ${email || 'your account email'}. The link is single-use and expires in an hour.`}
+          onClose={() => setOpen(false)}
+        />
+        <DialogContent>
+          {error && <Alert severity="error">{error}</Alert>}
+          {sent ? (
+            <Typography className="set-dialog__note">
+              The link is on its way. Open it on this device to choose a new password — nothing changes until you do.
+            </Typography>
+          ) : (
+            <Typography className="set-dialog__note">
+              We send a link rather than asking for the current password in the app, so a shared device never holds a password field open.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>{sent ? 'Close' : 'Cancel'}</Button>
+          {!sent && (
+            <Button variant="contained" className="set-button set-button--primary" onClick={sendLink} disabled={busy || !email}>
+              {busy ? <CircularProgress size={18} color="inherit" /> : 'Send reset link'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+    </>
+  )
+}
+
+function SignOutDeviceAction() {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const signOut = async () => {
+    setBusy(true)
+    try { await api.post('/auth/logout') } catch { /* the session is cleared locally regardless */ }
+    localStorage.clear()
+    navigate('/')
+  }
+
+  return (
+    <>
+      <Button variant="outlined" className="set-button set-button--quiet" onClick={() => setOpen(true)}>Sign out</Button>
+      <Dialog className="set-dialog" open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+        <FigDialogHeader
+          eyebrow="SECURITY"
+          title="Sign out of this device?"
+          subtitle="You’ll need your email and password to sign back in. Anything unsaved is lost."
+          onClose={() => setOpen(false)}
+        />
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={signOut} disabled={busy}>
+            {busy ? <CircularProgress size={18} color="inherit" /> : 'Sign out'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  )
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
-  const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
-  const [tab, setTab] = useState<'profile' | 'security' | 'appearance' | 'org' | 'compliance' | 'delegations' | 'ai' | 'sms' | 'leave' | 'incidents'>('profile')
+  const { mode, setMode, updateBranding, zoomScale, setZoomScale } = useThemeMode()
+  const [tab, setTab] = useState<SettingsTab>('profile')
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
@@ -620,70 +749,78 @@ export default function SettingsPage() {
   }
 
   const renderProfileTab = () => (
-    <Stack spacing={4}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Profile Picture</Typography>
-        <Stack direction="row" alignItems="center" spacing={3}>
-          <Avatar src={profile?.profile_picture_url || user?.profile_picture_url || ''} sx={{ width: 100, height: 100, bgcolor: '#0164C8', fontSize: '2.5rem' }}>
-            {(profile?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()}
-          </Avatar>
-          <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handlePictureUpload} />
-          <Button variant="outlined" startIcon={<CameraIcon />} onClick={() => fileInputRef.current?.click()}>Upload Photo</Button>
-        </Stack>
-      </Paper>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Personal Information</Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <TextField label="First Name" fullWidth size="small" autoFocus value={profile?.first_name || ''} onChange={(e) => handleFieldChange('first_name', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Last Name" fullWidth size="small" value={profile?.last_name || ''} onChange={(e) => handleFieldChange('last_name', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Email" fullWidth size="small" value={user?.email || ''} disabled helperText="Email cannot be changed." />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Date of Birth" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
-              value={profile?.birth_date ? new Date(profile.birth_date).toISOString().split('T')[0] : ''}
-              onChange={(e) => handleFieldChange('birth_date', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Phone" fullWidth size="small" value={profile?.phone || ''} onChange={(e) => handleFieldChange('phone', e.target.value)} />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField label="Address" fullWidth size="small" value={profile?.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField label="City" fullWidth size="small" value={profile?.city || ''} onChange={(e) => handleFieldChange('city', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField label="Country" fullWidth size="small" value={profile?.country || ''} onChange={(e) => handleFieldChange('country', e.target.value)} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField label="Postal Code" fullWidth size="small" value={profile?.postal_code || ''} onChange={(e) => handleFieldChange('postal_code', e.target.value)} />
-          </Grid>
-        </Grid>
-        <Button variant="contained" onClick={handleSaveProfile} disabled={updateMutation.isPending}
-          sx={{ mt: 3, bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>
-          {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </Paper>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Account</Typography>
-        <Stack spacing={2}>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>Role</Typography>
-            <Typography variant="body2" color="text.secondary">{user?.role || 'â€”'}</Typography>
+    <Stack spacing={3}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.9fr) minmax(0, 1fr)' }, gap: '18px', alignItems: 'start' }}>
+        <Paper className="set-card">
+          <Box className="set-card__head">
+            <Box>
+              <Typography component="h2" className="set-card__title">Personal information</Typography>
+              <Typography className="set-card__copy">The field list matches the live My Profile tab.</Typography>
+            </Box>
           </Box>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>Member Since</Typography>
-            <Typography variant="body2" color="text.secondary">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'â€”'}</Typography>
+          {[
+            { label: 'First name', field: 'first_name', placeholder: 'Add your first name' },
+            { label: 'Last name', field: 'last_name', placeholder: 'Add your last name' },
+            { label: 'Phone', field: 'phone', placeholder: 'Add a phone number' },
+            { label: 'Date of birth', field: 'birth_date', placeholder: 'Add your date of birth', type: 'date' },
+            { label: 'Address', field: 'address', placeholder: 'Add your address' },
+          ].map(row => (
+            <Box className="set-row" key={row.field}>
+              <Typography className="set-row__label">{row.label}</Typography>
+              <TextField
+                className="set-inline-field"
+                variant="standard"
+                fullWidth
+                placeholder={row.placeholder}
+                type={row.type || 'text'}
+                value={row.field === 'birth_date'
+                  ? (profile?.birth_date ? new Date(profile.birth_date).toISOString().split('T')[0] : '')
+                  : (profile?.[row.field] || '')}
+                onChange={e => handleFieldChange(row.field, e.target.value)}
+              />
+              <Box className="set-row__action" />
+            </Box>
+          ))}
+          <Box className="set-row">
+            <Typography className="set-row__label">Email</Typography>
+            <Typography className="set-row__value">{user?.email || '—'} <Typography component="span" className="set-row__value--muted">(can’t be changed)</Typography></Typography>
+            <Box className="set-row__action" />
           </Box>
-        </Stack>
-      </Paper>
-      <NotificationPreferencesSection />
-      <PushNotificationsSection />
+        </Paper>
+
+        <Paper className="set-card">
+          <Box className="set-card__head">
+            <Box>
+              <Typography component="h2" className="set-card__title">Account</Typography>
+            </Box>
+          </Box>
+          <Box className="set-row">
+            <Typography className="set-row__label">Role</Typography>
+            <Typography className="set-row__value">{roleLabel(user?.role)}</Typography>
+            <Box className="set-row__action" />
+          </Box>
+          <Box className="set-row">
+            <Typography className="set-row__label">Member since</Typography>
+            <Typography className="set-row__value">{user?.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</Typography>
+            <Box className="set-row__action" />
+          </Box>
+          <Box className="set-row set-row--with-icon">
+            <Box className="set-avatar">
+              {profile?.profile_picture_url || user?.profile_picture_url
+                ? <img src={profile?.profile_picture_url || user?.profile_picture_url} alt="" />
+                : (profile?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()}
+            </Box>
+            <Box className="set-row__body">
+              <Typography className="set-row__title">Photo</Typography>
+              <Typography className="set-row__copy">Shown beside your name across the organisation.</Typography>
+            </Box>
+            <Box className="set-row__action">
+              <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handlePictureUpload} />
+              <Button className="set-row-link" onClick={() => fileInputRef.current?.click()}>Upload a photo</Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
       {/*
         A carer's own decision about location recording, on the tab every user
         gets. It is here and not on the organisation tab because that one is
@@ -715,21 +852,72 @@ export default function SettingsPage() {
   )
 
   const renderSecurityTab = () => (
-    <Stack spacing={4}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}><SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Multi-Factor Authentication</Typography>
-        <Typography variant="body2" color="#51637A" sx={{ mb: 3 }}>
-          {mfaEnabled
-            ? 'MFA is currently enabled on your account. Each time you sign in, you will be prompted for an authentication code.'
-            : 'Add an extra layer of security to your account by enabling multi-factor authentication (MFA).'}
-        </Typography>
-        {mfaEnabled ? (
-          <Stack direction="row" spacing={2}>
-            <Button variant="outlined" color="error" onClick={() => setMfaDisableDialog(true)}>Disable MFA</Button>
-          </Stack>
-        ) : (
-          <Button variant="contained" onClick={setupMfa} sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#014FB5' } }}>Enable MFA</Button>
-        )}
+    <Stack spacing={3}>
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">Signing in</Typography>
+            <Typography className="set-card__copy">Your password, and the second step that protects it.</Typography>
+          </Box>
+        </Box>
+        <Box className="set-row set-row--with-icon">
+          <Box className="set-row__icon"><SecurityIcon fontSize="small" /></Box>
+          <Box className="set-row__body">
+            <Typography className="set-row__title">Password</Typography>
+            <Typography className="set-row__copy">Changed by a single-use link we email to you.</Typography>
+          </Box>
+          <Box className="set-row__action">
+            <ChangePasswordAction email={user?.email} />
+          </Box>
+        </Box>
+        <Box className="set-row set-row--with-icon">
+          <Box className="set-row__icon"><CheckIcon fontSize="small" /></Box>
+          <Box className="set-row__body">
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography className="set-row__title">Two-step sign-in</Typography>
+              {!mfaEnabled && <span className="set-chip set-chip--accent">Recommended</span>}
+            </Stack>
+            <Typography className="set-row__copy">
+              {mfaEnabled
+                ? 'On — a code from your authenticator app is required when you sign in.'
+                : 'Off — adds a code from your phone when you sign in.'}
+            </Typography>
+          </Box>
+          <Box className="set-row__action">
+            {mfaEnabled
+              ? <Button variant="outlined" color="error" className="set-button" onClick={() => setMfaDisableDialog(true)}>Turn off</Button>
+              : <Button variant="outlined" className="set-button set-button--quiet" onClick={setupMfa}>Turn on</Button>}
+          </Box>
+        </Box>
+      </Paper>
+
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">Where you’re signed in</Typography>
+            <Typography className="set-card__copy">The device this browser session belongs to.</Typography>
+          </Box>
+        </Box>
+        <Box className="set-row set-row--with-icon">
+          <Box className="set-row__icon"><SecurityIcon fontSize="small" /></Box>
+          <Box className="set-row__body">
+            <Typography className="set-row__title">{currentDeviceLabel()}</Typography>
+            <Typography className="set-row__copy">This device · active now</Typography>
+          </Box>
+          <Box className="set-row__action">
+            <span className="set-chip set-chip--ok">Current</span>
+          </Box>
+        </Box>
+        <Box className="set-row set-row--with-icon">
+          <Box className="set-row__icon"><SecurityIcon fontSize="small" /></Box>
+          <Box className="set-row__body">
+            <Typography className="set-row__title">Sign out of this browser</Typography>
+            <Typography className="set-row__copy">Ends this session on this device. Other signed-in devices are not listed yet.</Typography>
+          </Box>
+          <Box className="set-row__action">
+            <SignOutDeviceAction />
+          </Box>
+        </Box>
       </Paper>
       <Dialog open={mfaSetupDialog} onClose={() => setMfaSetupDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>Set Up MFA</DialogTitle>
@@ -807,59 +995,49 @@ export default function SettingsPage() {
   )
 
   const renderAppearanceTab = () => (
-    <Stack spacing={4}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-          <PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Theme
-        </Typography>
-        <Stack direction="row" spacing={3} alignItems="center">
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>Color Scheme</Typography>
-          <Button
-            variant={mode === 'light' ? 'contained' : 'outlined'}
-            startIcon={<LightModeIcon />}
-            onClick={() => mode !== 'light' && toggleTheme()}
-            sx={{ textTransform: 'none' }}
-          >
-            Light
-          </Button>
-          <Button
-            variant={mode === 'dark' ? 'contained' : 'outlined'}
-            startIcon={<DarkModeIcon />}
-            onClick={() => mode !== 'dark' && toggleTheme()}
-            sx={{ textTransform: 'none' }}
-          >
-            Dark
-          </Button>
-        </Stack>
-      </Paper>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-          <TextFieldsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Text Size & Zoom
-        </Typography>
-        <Stack spacing={2} sx={{ maxWidth: 480 }}>
-          <Typography variant="body2" color="#51637A">
-            Adjust the scale of the interface to make text and controls easier to read. Your preference is saved and applied on every device you use to sign in.
-          </Typography>
+    <Stack spacing={3}>
+      <Paper className="set-card">
+        <Box className="set-card__head">
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Interface Scale</Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-              {ZOOM_OPTIONS.map(z => (
-                <Button
-                  key={z}
-                  size="small"
-                  variant={zoomScale === z ? 'contained' : 'outlined'}
-                  onClick={() => setZoomScale(z)}
-                  sx={{ minWidth: 64, textTransform: 'none' }}
-                >
-                  {z < 1 ? `${Math.round(z * 100)}%` : z === 1 ? '100%' : `${Math.round(z * 100)}%`}
-                </Button>
-              ))}
-            </Stack>
-            <Typography variant="caption" color="#5D6E85" sx={{ display: 'block', mt: 1 }}>
-              {zoomScale < 1 ? 'Compact' : zoomScale === 1 ? 'Default' : zoomScale >= 1.5 ? 'Largest' : 'Enlarged'}
-            </Typography>
+            <Typography component="h2" className="set-card__title">Display</Typography>
+            <Typography className="set-card__copy">Only changes how MeticleCare looks for you.</Typography>
           </Box>
-        </Stack>
+        </Box>
+        <Box className="set-field">
+          <Typography className="set-field__label">Theme</Typography>
+          <Box className="set-seg" role="group" aria-label="Theme">
+            {[{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }].map(option => (
+              <button
+                key={option.id}
+                type="button"
+                className={`set-seg__btn${mode === option.id ? ' set-seg__btn--on' : ''}`}
+                aria-pressed={mode === option.id}
+                onClick={() => setMode(option.id as 'light' | 'dark')}
+              >
+                {mode === option.id && <CheckIcon sx={{ fontSize: 16 }} />}
+                {option.label}
+              </button>
+            ))}
+          </Box>
+        </Box>
+        <Box className="set-field">
+          <Typography className="set-field__label">Text size</Typography>
+          <Box className="set-seg" role="group" aria-label="Text size">
+            {([{ scale: 0.85 as const, label: 'Compact' }, { scale: 1 as const, label: 'Standard' }, { scale: 1.25 as const, label: 'Large' }, { scale: 1.5 as const, label: 'Larger' }]).map(option => (
+              <button
+                key={option.label}
+                type="button"
+                className={`set-seg__btn${zoomScale === option.scale ? ' set-seg__btn--on' : ''}`}
+                aria-pressed={zoomScale === option.scale}
+                onClick={() => setZoomScale(option.scale)}
+              >
+                {zoomScale === option.scale && <CheckIcon sx={{ fontSize: 16 }} />}
+                {option.label}
+              </button>
+            ))}
+          </Box>
+        </Box>
+        <Typography className="set-note">Saved to your account, so every device you sign in from uses the same display.</Typography>
       </Paper>
     </Stack>
   )
@@ -899,6 +1077,74 @@ export default function SettingsPage() {
 
   const renderOrgSettingsTab = () => (
     <Stack spacing={4}>
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">Organisation</Typography>
+            <Typography className="set-card__copy">Name, service type and regulator come from the live account.</Typography>
+          </Box>
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Name</Typography>
+          <Typography className="set-row__value">{orgDetails?.name || orgSettings?.name || '—'}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Service type</Typography>
+          <Typography className="set-row__value">{serviceTypeLabel(orgSettings)}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Regulator</Typography>
+          <Typography className="set-row__value">{regulatorLabel(orgDetails?.regulator || orgSettings?.regulator)}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Locations</Typography>
+          <Typography className="set-row__value">
+            {Array.isArray(orgSettings?.locations)
+              ? orgSettings.locations.length
+              : (orgSettings?.location_count ?? '—')}
+          </Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Time zone</Typography>
+          <Typography className="set-row__value">{orgSettings?.timezone || 'Europe/London'}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+      </Paper>
+
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">Defaults</Typography>
+            <Typography className="set-card__copy">Applied to staff unless a person’s own record overrides it.</Typography>
+          </Box>
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Leave year starts</Typography>
+          <Typography className="set-row__value">{MONTH_NAMES[(Number(orgSettings?.leave_start_month) || 1) - 1]}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Holiday allowance</Typography>
+          <Typography className="set-row__value">
+            {(() => {
+              const hours = Number(orgSettings?.base_leave_hours) || 240
+              const perDay = Number(orgSettings?.default_hours_per_leave_day) || 7.5
+              return `${Math.round((hours / perDay) * 10) / 10} days (${hours} hours)`
+            })()}
+          </Typography>
+          <Box className="set-row__action" />
+        </Box>
+        <Box className="set-row">
+          <Typography className="set-row__label">Maximum weekly hours</Typography>
+          <Typography className="set-row__value">{Number(orgSettings?.base_contracted_hours) || 40}</Typography>
+          <Box className="set-row__action" />
+        </Box>
+      </Paper>
+
       {/*
         The switch that turns carer location off entirely.
 
@@ -2338,35 +2584,86 @@ export default function SettingsPage() {
     </Box>
   )
 
+  const tabs: Array<{ id: SettingsTab; label: string }> = [
+    { id: 'profile', label: 'My profile' },
+    { id: 'notifications', label: 'Notifications' },
+    ...(user ? [{ id: 'security' as SettingsTab, label: 'Security' }] : []),
+    { id: 'appearance', label: 'Appearance' },
+    ...(canManage
+      ? [
+          { id: 'org' as SettingsTab, label: 'Organisation' },
+          { id: 'compliance' as SettingsTab, label: 'Compliance' },
+        ]
+      : []),
+    ...(isOrgAdmin
+      ? [
+          { id: 'delegations' as SettingsTab, label: 'Delegations' },
+          { id: 'ai' as SettingsTab, label: 'AI' },
+          { id: 'sms' as SettingsTab, label: 'Text messages' },
+        ]
+      : []),
+    ...(canManage
+      ? [
+          { id: 'leave' as SettingsTab, label: 'Leave' },
+          { id: 'incidents' as SettingsTab, label: 'Incident categories' },
+        ]
+      : []),
+  ]
+
   return (
-    <Box>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>Settings</Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
-          sx={{ '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', minHeight: 48 } }}>
-          <Tab value="profile" icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
-          {user && <Tab value="security" icon={<SecurityIcon />} iconPosition="start" label="Security" />}
-          <Tab value="appearance" icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
-          {canManage && <Tab value="org" icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
-          {canManage && <Tab value="compliance" icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
-          {isOrgAdmin && <Tab value="delegations" icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
-          {isOrgAdmin && <Tab value="ai" icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
-          {isOrgAdmin && <Tab value="sms" icon={<PhoneIcon />} iconPosition="start" label="SMS" />}
-          {canManage && <Tab value="leave" icon={<LeaveIcon />} iconPosition="start" label="Leave" />}
-          {canManage && <Tab value="incidents" icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
-        </Tabs>
-      </Paper>
-      {tab === 'profile' && renderProfileTab()}
-      {user && tab === 'security' && renderSecurityTab()}
-      {tab === 'appearance' && renderAppearanceTab()}
-      {tab === 'org' && renderOrgSettingsTab()}
-      {tab === 'compliance' && renderComplianceTab()}
-      {isOrgAdmin && tab === 'delegations' && renderDelegationsTab()}
-      {isOrgAdmin && tab === 'ai' && renderAITab()}
-      {isOrgAdmin && tab === 'sms' && renderSMSTab()}
-      {tab === 'leave' && <LeaveTypesSettings staffCount={staffList.length} />}
-      {tab === 'incidents' && <IncidentCategoriesSettings />}
+    <Box className="set-page">
+      <Typography className="set-crumbs">Settings</Typography>
+
+      <header className="set-header">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="h1" className="set-header__title">Settings</Typography>
+          <Typography className="set-header__copy">Your account, and how MeticleCare works for your organisation.</Typography>
+        </Box>
+        {tab === 'profile' && (
+          <Box className="set-header__actions">
+            <Button variant="contained" className="set-button set-button--primary" onClick={handleSaveProfile} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </Box>
+        )}
+        {tab === 'org' && (
+          <Box className="set-header__actions">
+            <Button variant="contained" className="set-button set-button--primary" onClick={saveOrgDetails}>
+              Save changes
+            </Button>
+          </Box>
+        )}
+      </header>
+
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+
+      <nav className="set-tabs" aria-label="Settings sections">
+        {tabs.map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className={`set-tab${tab === item.id ? ' set-tab--active' : ''}`}
+            aria-current={tab === item.id ? 'page' : undefined}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <Box className="set-body">
+        {tab === 'profile' && renderProfileTab()}
+        {tab === 'notifications' && <NotificationPreferencesSection />}
+        {user && tab === 'security' && renderSecurityTab()}
+        {tab === 'appearance' && renderAppearanceTab()}
+        {tab === 'org' && renderOrgSettingsTab()}
+        {tab === 'compliance' && renderComplianceTab()}
+        {isOrgAdmin && tab === 'delegations' && renderDelegationsTab()}
+        {isOrgAdmin && tab === 'ai' && renderAITab()}
+        {isOrgAdmin && tab === 'sms' && renderSMSTab()}
+        {tab === 'leave' && <LeaveTypesSettings staffCount={staffList.length} />}
+        {tab === 'incidents' && <IncidentCategoriesSettings />}
+      </Box>
     </Box>
   )
 }
@@ -2780,17 +3077,29 @@ function PushNotificationsSection() {
     finally { setBusy(false) }
   }
 
-  return <Paper sx={{ p: 4 }}>
-    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}><NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Browser visit reminders</Typography>
-    <Typography variant="body2" color="#51637A" sx={{ mb: 2 }}>
-      Get a browser alert before an assigned domiciliary visit enters its travel window. Location permission is not required for notifications, and tracking is not continuous.
-    </Typography>
-    {state === 'subscribed' && <Alert severity="success" sx={{ mb: 2 }}>Browser reminders are enabled on this device.</Alert>}
-    {state === 'disabled' && <Alert severity="warning" sx={{ mb: 2 }}>Notifications are blocked in this browser. Allow them in the browser site settings, then try again.</Alert>}
-    {state === 'unsupported' && <Alert severity="info" sx={{ mb: 2 }}>This browser or device does not support web push notifications.</Alert>}
-    {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-    {state === 'subscribed' ? <Button variant="outlined" onClick={disable} disabled={busy}>{busy ? 'Updating…' : 'Disable on this device'}</Button> : state !== 'unsupported' && state !== 'disabled' && <Button variant="contained" onClick={enable} disabled={busy}>{busy ? 'Enabling…' : 'Enable browser reminders'}</Button>}
-  </Paper>
+  return (
+    <Paper className="set-card">
+      <Box className="set-card__head">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="h2" className="set-card__title">Browser visit reminders</Typography>
+          <Typography className="set-card__copy">
+            Get a browser alert before a visit you’re assigned to reaches its travel time. We don’t need your location, and you’re never tracked.
+          </Typography>
+        </Box>
+        <Box className="set-card__actions">
+          {state === 'subscribed'
+            ? <Button variant="outlined" className="set-button set-button--quiet" onClick={disable} disabled={busy}>{busy ? 'Updating…' : 'Turn off on this device'}</Button>
+            : state !== 'unsupported' && state !== 'disabled'
+              ? <Button variant="contained" className="set-button set-button--primary" onClick={enable} disabled={busy}>{busy ? 'Turning on…' : 'Turn on browser reminders'}</Button>
+              : null}
+        </Box>
+      </Box>
+      {state === 'subscribed' && <Alert severity="success">Browser reminders are on for this device.</Alert>}
+      {state === 'disabled' && <Alert severity="warning">Notifications are blocked in this browser. Allow them in the browser’s site settings, then try again.</Alert>}
+      {state === 'unsupported' && <Alert severity="info">This browser or device does not support web push notifications.</Alert>}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+    </Paper>
+  )
 }
 
 function NotificationPreferencesSection() {
@@ -2841,76 +3150,102 @@ function NotificationPreferencesSection() {
   const labels: Record<string, string> = {
     compliance: 'Compliance alerts', training: 'Training reminders', documents: 'Document expiry',
     leave: 'Leave requests', shift: 'Shift assignments', swap: 'Shift swaps',
-    overtime: 'Overtime claims', survey: 'Surveys & feedback', delegation: 'Delegation changes',
+    overtime: 'Overtime claims', survey: 'Surveys and feedback', delegation: 'Delegation changes',
     general: 'General announcements',
   }
 
   return (
-    <Paper sx={{ p: 4 }}>
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-        <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />My Notification Preferences
-      </Typography>
-      <Typography variant="caption" color="#51637A" sx={{ display: 'block', mb: 2 }}>
-        Choose which notifications you want to receive. Disabled types will not generate push or in-app alerts.
-      </Typography>
-      {prefError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPrefError('')}>{prefError}</Alert>}
-      <Grid container spacing={1}>
+    <Stack spacing={3}>
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">What we tell you about</Typography>
+            <Typography className="set-card__copy">
+              Turn off anything you don’t need. Turned-off types won’t send alerts. Changes save as soon as you switch them.
+            </Typography>
+          </Box>
+        </Box>
+        {prefError && <Alert severity="error" onClose={() => setPrefError('')}>{prefError}</Alert>}
         {prefs.length === 0 && !prefError ? (
-          <Grid item xs={12}>
-            <Typography variant="body2" color="#51637A">Loading your notification preferences...</Typography>
-          </Grid>
-        ) : (
-          prefs.map(p => (
-            <Grid item xs={12} sm={6} key={p.notification_type}>
-              <FormControlLabel
-                control={<Switch checked={p.enabled} disabled={loading}
-                  onChange={e => toggle(p.notification_type, e.target.checked)} />}
-                label={labels[p.notification_type] || p.notification_type}
-              />
-            </Grid>
-          ))
+          <Typography className="set-note">Loading your notification preferences…</Typography>
+        ) : prefs.map(p => (
+          <Box className="set-toggle-row" key={p.notification_type}>
+            <Typography className="set-toggle-row__label">{labels[p.notification_type] || p.notification_type}</Typography>
+            <Switch
+              checked={p.enabled}
+              disabled={loading}
+              onChange={e => toggle(p.notification_type, e.target.checked)}
+              inputProps={{ 'aria-label': labels[p.notification_type] || p.notification_type }}
+            />
+          </Box>
+        ))}
+      </Paper>
+
+      <Paper className="set-card">
+        <Box className="set-card__head">
+          <Box>
+            <Typography component="h2" className="set-card__title">Visit summary emails</Typography>
+            <Typography className="set-card__copy">
+              Get one summary of your calls each day instead of an email for every call. Switch each summary on or off on its own. Times use your time zone.
+            </Typography>
+            {canReceiveWeekly && (
+              <Typography className="set-card__copy" sx={{ mt: 0.5 }}>
+                The weekly summary covers your whole organisation — completion, lateness and missed calls — and arrives on Monday morning for the week before. It’s off until you turn it on.
+              </Typography>
+            )}
+          </Box>
+        </Box>
+        {digest && (
+          <>
+            <Box className="set-field" sx={{ maxWidth: 320 }}>
+              <Typography className="set-field__label">Time zone</Typography>
+              <FormControl fullWidth size="small">
+                <InputLabel id="homecare-digest-timezone-label">Time zone</InputLabel>
+                <Select
+                  labelId="homecare-digest-timezone-label"
+                  label="Time zone"
+                  value={digest.timezone || 'Europe/London'}
+                  disabled={digestLoading}
+                  onChange={e => updateDigest({ timezone: e.target.value })}
+                >
+                  {['Europe/London', 'Europe/Dublin', 'UTC', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Kolkata', 'Australia/Sydney'].map(zone => <MenuItem key={zone} value={zone}>{zone}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+            <Typography className="set-note">UK services should use Europe/London.</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: '12px', mt: 2 }}>
+              {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']]
+                .concat(canReceiveWeekly ? [['weekly', 'Weekly summary (Mondays)', 'weekly_time'] as [string, string, string]] : [])
+                .map(([key, label, timeKey]) => (
+                <Box key={key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', p: 2 }}>
+                  <Box className="set-toggle-row" sx={{ borderTop: 0, paddingTop: 0 }}>
+                    <Typography className="set-toggle-row__label">{label}</Typography>
+                    <Switch
+                      checked={Boolean(digest[`${key}_enabled`])}
+                      disabled={digestLoading}
+                      onChange={e => updateDigest({ [`${key}_enabled`]: e.target.checked })}
+                      inputProps={{ 'aria-label': label }}
+                    />
+                  </Box>
+                  <Typography className="set-field__label" sx={{ mt: 1 }}>Send at</Typography>
+                  <TextField
+                    type="time"
+                    size="small"
+                    fullWidth
+                    value={digest[timeKey] || ''}
+                    disabled={digestLoading}
+                    onChange={e => setDigest((d: any) => ({ ...d, [timeKey]: e.target.value }))}
+                    onBlur={e => updateDigest({ [timeKey]: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </>
         )}
-      </Grid>
-      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E3E9F0' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Domiciliary care summary emails</Typography>
-        <Typography variant="body2" color="#51637A" sx={{ mb: 2 }}>
-          Receive one summary for your own calls or organisation each day instead of an email for every call. Each summary can be switched on or off independently. Times use your selected timezone; UK users should use Europe/London.
-        </Typography>
-        {canReceiveWeekly && (
-          <Typography variant="body2" color="#51637A" sx={{ mb: 2 }}>
-            The weekly summary covers your whole organisation — completion, lateness and missed calls — and arrives on Monday morning for the week just gone. It is off until you turn it on.
-          </Typography>
-        )}
-        {digest && <Grid container spacing={1.5}>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="homecare-digest-timezone-label">Timezone</InputLabel>
-              <Select
-                labelId="homecare-digest-timezone-label"
-                label="Timezone"
-                value={digest.timezone || 'Europe/London'}
-                disabled={digestLoading}
-                onChange={e => updateDigest({ timezone: e.target.value })}
-              >
-                {['Europe/London', 'Europe/Dublin', 'UTC', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Kolkata', 'Australia/Sydney'].map(zone => <MenuItem key={zone} value={zone}>{zone}</MenuItem>)}
-              </Select>
-            </FormControl>
-          </Grid>
-          {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']]
-            .concat(canReceiveWeekly ? [['weekly', 'Weekly summary (Mondays)', 'weekly_time'] as [string, string, string]] : [])
-            .map(([key, label, timeKey]) => (
-            <Grid item xs={12} md={4} key={key}>
-              <Paper variant="outlined" sx={{ p: 1.5 }}>
-                <FormControlLabel
-                  control={<Switch checked={Boolean(digest[`${key}_enabled`])} disabled={digestLoading} onChange={e => updateDigest({ [`${key}_enabled`]: e.target.checked })} />}
-                  label={label}
-                />
-                <TextField label="Send at" type="time" size="small" fullWidth value={digest[timeKey] || ''} disabled={digestLoading} onChange={e => setDigest((d: any) => ({ ...d, [timeKey]: e.target.value }))} onBlur={e => updateDigest({ [timeKey]: e.target.value })} InputLabelProps={{ shrink: true }} />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>}
-      </Box>
-    </Paper>
+      </Paper>
+
+      <PushNotificationsSection />
+    </Stack>
   )
 }

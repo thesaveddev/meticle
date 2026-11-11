@@ -1,29 +1,30 @@
 import { useState, useMemo, useEffect } from 'react'
 import {
-  Box, Typography, Paper, Stack, TextField, InputAdornment, IconButton,
-  ListItemButton, ListItemText, ListItemIcon, Collapse,
-  Chip, Divider, Drawer, AppBar, Toolbar, useMediaQuery, useTheme,
+  Box, Typography, TextField, Button, Dialog, DialogContent, DialogActions,
+  Alert, CircularProgress, FormControlLabel, Checkbox, InputAdornment,
 } from '@mui/material'
-import {
-  Search as SearchIcon, Menu as MenuIcon, Close as CloseIcon,
-  ExpandMore, ExpandLess, School as LearnIcon, } from '@mui/icons-material'
-import { getLearnSections, type LearnSection } from '../../data/learn-content'
+import { Search as SearchIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material'
+import { getLearnSections } from '../../data/learn-content'
 import PageMeta from '../../components/PageMeta'
+import FigDialogHeader from '../people/dialogHeader'
 import { useSearchParams } from 'react-router-dom'
+import api from '../../services/api'
+import './learn.css'
 
-const DRAWER_WIDTH = 300
+function readMinutes(html: string) {
+  const words = html.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(words / 200))
+}
 
 export default function LearningCenterPage() {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile)
+  const sections = useMemo(() => getLearnSections(), [])
   const [search, setSearch] = useState('')
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [activeSubsection, setActiveSubsection] = useState<string | null>(null)
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
+  const [searchDialog, setSearchDialog] = useState(false)
+  const [searchDraft, setSearchDraft] = useState('')
+  const [supportDialog, setSupportDialog] = useState(false)
   const [searchParams] = useSearchParams()
-
-  const sections = useMemo(() => getLearnSections(), [])
 
   useEffect(() => {
     const topic = searchParams.get('topic')
@@ -32,246 +33,293 @@ export default function LearningCenterPage() {
     if (match) {
       setActiveSection(match.id)
       setActiveSubsection(topic)
-      setExpandedCategories(previous => ({ ...previous, [match.id]: true }))
     }
   }, [searchParams, sections])
+
+  // Open the first guide when the page is reached without a topic, rather than
+  // asking the visitor to choose before they can see what a guide looks like.
+  useEffect(() => {
+    if (activeSection || sections.length === 0) return
+    setActiveSection(sections[0].id)
+    setActiveSubsection(sections[0].subsections[0]?.id || null)
+  }, [activeSection, sections])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sections
     const q = search.toLowerCase()
     return sections
-      .map(s => ({
-        ...s,
-        subsections: s.subsections.filter(
-          ss => ss.title.toLowerCase().includes(q) || ss.content.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
-        )
+      .map(section => ({
+        ...section,
+        subsections: section.subsections.filter(
+          subsection => subsection.title.toLowerCase().includes(q) || subsection.content.toLowerCase().includes(q) || section.title.toLowerCase().includes(q),
+        ),
       }))
-      .filter(s => s.subsections.length > 0)
+      .filter(section => section.subsections.length > 0)
   }, [search, sections])
-
-  const toggleCategory = (id: string) => {
-    setExpandedCategories(p => ({ ...p, [id]: !p[id] }))
-  }
-
-  const selectSection = (sectionId: string, subsectionId: string) => {
-    setActiveSection(sectionId)
-    setActiveSubsection(subsectionId)
-    if (!expandedCategories[sectionId]) {
-      setExpandedCategories(p => ({ ...p, [sectionId]: true }))
-    }
-    if (isMobile) setDrawerOpen(false)
-  }
 
   const currentSection = sections.find(s => s.id === activeSection)
   const currentSubsection = currentSection?.subsections.find(ss => ss.id === activeSubsection)
   const currentCategory = currentSection?.category || ''
 
-  const groupedByCategory = useMemo(() => {
-    const map: Record<string, LearnSection[]> = {}
-    filtered.forEach(s => {
-      if (!map[s.category]) map[s.category] = []
-      map[s.category].push(s)
-    })
-    return map
-  }, [filtered])
-
-  const sidebar = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2 }}>
-        <TextField
-          fullWidth size="small" placeholder="Search modules..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
-            endAdornment: search ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearch('')}><CloseIcon fontSize="small" /></IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-        />
-      </Box>
-
-      <Box sx={{ flex: 1, overflow: 'auto', pb: 12 }}>
-        {Object.entries(groupedByCategory).map(([category, cats]) => (
-          <Box key={category}>
-            <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 600, textTransform: 'none', letterSpacing: 1, fontSize: '0.65rem' }}>
-              {category}
-            </Typography>
-            {cats.map(section => {
-              const isExpanded = expandedCategories[section.id] !== false // default expanded
-              const isSelected = activeSection === section.id
-              return (
-                <Box key={section.id}>
-                  <ListItemButton
-                    onClick={() => toggleCategory(section.id)}
-                    sx={{
-                      px: 2, py: 0.5,
-                      borderLeft: isSelected ? '3px solid #0164C8' : '3px solid transparent',
-                      bgcolor: isSelected ? '#EAF3FF' : 'transparent',
-                      '&:hover': { bgcolor: 'notice.muted.bg' },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 28, fontSize: 18 }}>{section.icon}</ListItemIcon>
-                    <ListItemText
-                      primary={section.title}
-                      primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: isSelected ? 700 : 500 }}
-                    />
-                    {isExpanded ? <ExpandLess fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMore fontSize="small" sx={{ color: 'text.secondary' }} />}
-                  </ListItemButton>
-                  <Collapse in={isExpanded}>
-                    {section.subsections.map(ss => {
-                      const subSelected = activeSection === section.id && activeSubsection === ss.id
-                      return (
-                        <ListItemButton
-                          key={ss.id}
-                          onClick={() => selectSection(section.id, ss.id)}
-                          sx={{
-                            pl: 5, py: 0.25,
-                            borderLeft: subSelected ? '3px solid #0164C8' : '3px solid transparent',
-                            bgcolor: subSelected ? '#EAF3FF' : 'transparent',
-                            '&:hover': { bgcolor: 'notice.muted.bg' },
-                          }}
-                        >
-                          <ListItemText
-                            primary={ss.title}
-                            primaryTypographyProps={{ fontSize: '0.78rem', fontWeight: subSelected ? 600 : 400, color: subSelected ? '#0164C8' : '#3A4551' }}
-                          />
-                        </ListItemButton>
-                      )
-                    })}
-                  </Collapse>
-                </Box>
-              )
-            })}
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  )
-
-  // Default to first section if none selected
-  if (!activeSection && sections.length > 0 && sections[0].subsections.length > 0) {
-    setTimeout(() => selectSection(sections[0].id, sections[0].subsections[0].id), 0)
+  const selectSection = (sectionId: string, subsectionId: string) => {
+    setActiveSection(sectionId)
+    setActiveSubsection(subsectionId)
   }
+
+  const openGuide = (section: typeof sections[number]) => {
+    const firstMatch = filtered.find(s => s.id === section.id)?.subsections[0]
+    selectSection(section.id, firstMatch?.id || section.subsections[0].id)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const applySearch = () => {
+    setSearch(searchDraft.trim())
+    setSearchDialog(false)
+  }
+
+  const clearSearch = () => {
+    setSearch('')
+    setSearchDraft('')
+  }
+
+  const previous = (() => {
+    if (!currentSection || !currentSubsection) return null
+    const index = currentSection.subsections.findIndex(ss => ss.id === currentSubsection.id)
+    return index > 0 ? currentSection.subsections[index - 1] : null
+  })()
+  const next = (() => {
+    if (!currentSection || !currentSubsection) return null
+    const index = currentSection.subsections.findIndex(ss => ss.id === currentSubsection.id)
+    return index < currentSection.subsections.length - 1 ? currentSection.subsections[index + 1] : null
+  })()
 
   return (
     <>
       <PageMeta title="Learning Center | Meticle Care" description="Learn how to use Meticle Care for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
-      {/* Mobile app bar */}
-      {isMobile && (
-        <AppBar position="fixed" sx={{ bgcolor: '#0164C8', zIndex: 1201 }}>
-          <Toolbar>
-            <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ mr: 1 }}>
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem' }}>Meticle Care Learning Center</Typography>
-          </Toolbar>
-        </AppBar>
-      )}
+      <Box className="learn-page">
+        <div className="learn-inner">
+          <Typography className="learn-crumbs">
+            Learn{currentCategory ? ` / ${currentCategory}` : ''}
+          </Typography>
 
-      {/* Sidebar Drawer */}
-      {isMobile ? (
-        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}>
-          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E3E9F0' }}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <LearnIcon sx={{ color: '#0164C8' }} />
-              <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
-            </Stack>
-            <IconButton size="small" onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
-          </Box>
-          {sidebar}
-        </Drawer>
-      ) : (
-        <Paper sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRadius: 0, borderRight: '1px solid #E3E9F0', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
-          <Box sx={{ p: 2, borderBottom: '1px solid #E3E9F0', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LearnIcon sx={{ color: '#0164C8' }} />
-            <Typography fontWeight={600} fontSize="0.95rem">Learning Center</Typography>
-          </Box>
-          {sidebar}
-        </Paper>
-      )}
+          <header className="learn-header">
+            <Box sx={{ minWidth: 0 }}>
+              <Typography component="h1" className="learn-header__title">Learning Center</Typography>
+              <Typography className="learn-header__copy">Step-by-step help for every part of MeticleCare.</Typography>
+            </Box>
+            <Box className="learn-header__actions">
+              <Button variant="outlined" className="learn-button learn-button--quiet" onClick={() => { setSearchDraft(search); setSearchDialog(true) }}>
+                Search guides
+              </Button>
+              <Button variant="contained" className="learn-button learn-button--primary" onClick={() => setSupportDialog(true)}>
+                Contact support
+              </Button>
+            </Box>
+          </header>
 
-      {/* Main Content */}
-      <Box sx={{ flex: 1, pt: isMobile ? 8 : 3, px: isMobile ? 2 : 4, pb: 8, maxWidth: 'var(--container-narrow)', mx: 'auto', width: '100%' }}>
-        {currentSection && currentSubsection ? (
-          <>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <Chip label={currentCategory} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
-              <Chip label={currentSection.title} size="small" color="primary" variant="outlined" />
-            </Stack>
+          <Box className="learn-layout">
+            <aside className="learn-rail" aria-label="Guides">
+              <div className="learn-rail__head">
+                <Typography component="h2" className="learn-rail__title">Guides</Typography>
+                <Typography className="learn-rail__count">
+                  {search ? `${filtered.length} of ${sections.length} modules` : `${sections.length} modules`}
+                </Typography>
+              </div>
+              <div className="learn-rail__list">
+                {filtered.map(section => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`learn-rail__row${activeSection === section.id ? ' learn-rail__row--active' : ''}`}
+                    aria-current={activeSection === section.id ? 'true' : undefined}
+                    onClick={() => openGuide(section)}
+                  >
+                    <span className="learn-rail__icon" aria-hidden="true">{section.icon}</span>
+                    <span className="learn-rail__label">{section.title}</span>
+                    <ChevronRightIcon className="learn-rail__chevron" />
+                  </button>
+                ))}
+                {filtered.length === 0 && (
+                  <div className="learn-rail__empty">
+                    <Typography className="learn-rail__empty-title">No guides match “{search}”</Typography>
+                    <Typography className="learn-rail__empty-copy">Try a shorter word, or browse every module.</Typography>
+                    <Button className="learn-button learn-button--quiet" variant="outlined" onClick={clearSearch}>Clear search</Button>
+                  </div>
+                )}
+              </div>
+            </aside>
 
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#0164C8' }}>
-              {currentSubsection.title}
-            </Typography>
+            <main className="learn-main">
+              {currentSection && currentSubsection ? (
+                <article className="learn-card">
+                  <Typography component="h2" className="learn-card__title">{currentSubsection.title}</Typography>
+                  <Typography className="learn-card__meta">
+                    {currentCategory} · {readMinutes(currentSubsection.content)} min read
+                  </Typography>
 
-            <Divider sx={{ mb: 3 }} />
+                  {currentSection.subsections.length > 1 && (
+                    <Box className="learn-topics" aria-label="In this module">
+                      {currentSection.subsections.map(subsection => (
+                        <button
+                          key={subsection.id}
+                          type="button"
+                          className={`learn-topic${subsection.id === currentSubsection.id ? ' learn-topic--on' : ''}`}
+                          aria-pressed={subsection.id === currentSubsection.id}
+                          onClick={() => selectSection(currentSection.id, subsection.id)}
+                        >
+                          {subsection.title}
+                        </button>
+                      ))}
+                    </Box>
+                  )}
 
-            <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
-              <Box
-                className="learn-content"
-                dangerouslySetInnerHTML={{ __html: currentSubsection.content }}
-                sx={{
-                  '& h2': { fontSize: '1.3rem', fontWeight: 600, color: '#0164C8', mt: 4, mb: 1.5 },
-                  '& h3': { fontSize: '1.1rem', fontWeight: 600, mt: 3, mb: 1 },
-                  '& p': { lineHeight: 1.8, mb: 1.5, color: 'text.primary', fontSize: '0.95rem' },
-                  '& strong': { color: '#0C1B2E' },
-                  '& ul, & ol': { pl: 2.5, mb: 2 },
-                  '& li': { mb: 0.5, lineHeight: 1.7, color: 'text.primary', fontSize: '0.95rem' },
-                  '& ul li strong': { color: '#0164C8' },
-                  '& code': { bgcolor: 'notice.muted.bg', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
-                  '& em': { fontStyle: 'italic', color: 'text.secondary' },
-                }}
-              />
-            </Paper>
+                  <div className="learn-divider" />
+                  <div className="learn-content" dangerouslySetInnerHTML={{ __html: currentSubsection.content }} />
 
-            {/* Previous / Next navigation */}
-            {currentSection && (
-              <Stack direction="row" justifyContent="space-between" sx={{ mt: 3 }}>
-                {(() => {
-                  const idx = currentSection.subsections.findIndex(ss => ss.id === currentSubsection.id)
-                  const prev = idx > 0 ? currentSection.subsections[idx - 1] : null
-                  const next = idx < currentSection.subsections.length - 1 ? currentSection.subsections[idx + 1] : null
-                  return (
-                    <>
-                      {prev ? (
-                        <Chip
-                          label={`← ${prev.title}`}
-                          variant="outlined"
-                          clickable
-                          onClick={() => selectSection(currentSection.id, prev.id)}
-                        />
-                      ) : <Box />}
+                  {(previous || next) && (
+                    <div className="learn-pager">
+                      {previous ? (
+                        <button type="button" className="learn-pager__link" onClick={() => selectSection(currentSection.id, previous.id)}>
+                          ← {previous.title}
+                        </button>
+                      ) : <span />}
                       {next ? (
-                        <Chip
-                          label={`${next.title} →`}
-                          variant="outlined"
-                          clickable
-                          onClick={() => selectSection(currentSection.id, next.id)}
-                        />
-                      ) : <Box />}
-                    </>
-                  )
-                })()}
-              </Stack>
-            )}
-          </>
-        ) : (
-          <Box sx={{ textAlign: 'center', py: 10 }}>
-            <LearnIcon sx={{ fontSize: 64, color: '#D6E2EE', mb: 2 }} />
-            <Typography variant="h5" fontWeight={600} color="#0164C8" sx={{ mb: 1 }}>
-              Welcome to the Meticle Care Learning Center
-            </Typography>
-            <Typography color="#51637A" sx={{ maxWidth: 500, mx: 'auto' }}>
-              Select a topic from the sidebar to learn about Meticle Care features, workflows, and best practices.
-              Use the search bar to quickly find what you're looking for.
-            </Typography>
+                        <button type="button" className="learn-pager__link" onClick={() => selectSection(currentSection.id, next.id)}>
+                          {next.title} →
+                        </button>
+                      ) : <span />}
+                    </div>
+                  )}
+                </article>
+              ) : (
+                <article className="learn-card">
+                  <Typography component="h2" className="learn-card__title">Welcome to MeticleCare</Typography>
+                  <div className="learn-content">
+                    <p>Pick a guide from the list and it opens here. Each one walks through the screens, the buttons and the rules behind them.</p>
+                    <p>Use <strong>Search guides</strong> to find a topic by name instead of browsing.</p>
+                  </div>
+                </article>
+              )}
+            </main>
           </Box>
-        )}
+
+          <Typography className="learn-footnote">Content summarised from the live Learning Center.</Typography>
+        </div>
       </Box>
-    </Box>
+
+      <Dialog className="learn-dialog" open={searchDialog} onClose={() => setSearchDialog(false)} maxWidth="sm" fullWidth>
+        <FigDialogHeader
+          eyebrow="LEARN"
+          title="Search guides"
+          subtitle="Search every guide."
+          onClose={() => setSearchDialog(false)}
+        />
+        <DialogContent>
+          <Typography className="learn-field-label" component="label" htmlFor="learn-search">Search</Typography>
+          <TextField
+            id="learn-search"
+            fullWidth
+            autoFocus
+            placeholder="For example, rota, medication, leave"
+            value={searchDraft}
+            onChange={e => setSearchDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') applySearch() }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSearchDialog(false)}>Cancel</Button>
+          <Button variant="contained" className="learn-button learn-button--primary" onClick={applySearch}>Search</Button>
+        </DialogActions>
+      </Dialog>
+
+      <ContactSupportDialog open={supportDialog} onClose={() => setSupportDialog(false)} />
     </>
+  )
+}
+
+function ContactSupportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const close = () => {
+    onClose()
+    setTimeout(() => { setSent(false); setError('') }, 200)
+  }
+
+  const send = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await api.post('/contact', {
+        name,
+        email,
+        message,
+        source: 'learning_center',
+        privacyConsent: consent,
+      })
+      setSent(true)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Could not send your message. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Dialog className="learn-dialog" open={open} onClose={close} maxWidth="sm" fullWidth>
+      <FigDialogHeader
+        eyebrow="LEARN"
+        title={sent ? 'Message sent' : 'Contact support'}
+        subtitle={sent ? undefined : 'Tell us where you are stuck and we’ll reply within one business day.'}
+        onClose={close}
+      />
+      <DialogContent>
+        {error && <Alert severity="error">{error}</Alert>}
+        {sent ? (
+          <Typography className="learn-consent">
+            Thanks — your message is with the team. A reply goes to {email || 'the address you gave us'}.
+          </Typography>
+        ) : (
+          <>
+            <Box sx={{ mt: 1 }}>
+              <Typography className="learn-field-label" component="label" htmlFor="learn-support-name">Your name</Typography>
+              <TextField id="learn-support-name" fullWidth size="small" value={name} onChange={e => setName(e.target.value)} />
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <Typography className="learn-field-label" component="label" htmlFor="learn-support-email">Email</Typography>
+              <TextField id="learn-support-email" fullWidth size="small" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <Typography className="learn-field-label" component="label" htmlFor="learn-support-message">What do you need help with?</Typography>
+              <TextField id="learn-support-message" fullWidth multiline minRows={4} value={message} onChange={e => setMessage(e.target.value)} />
+            </Box>
+            <FormControlLabel
+              sx={{ mt: 1 }}
+              control={<Checkbox checked={consent} onChange={e => setConsent(e.target.checked)} size="small" />}
+              label={<span className="learn-consent">You can store this message and reply to me by email.</span>}
+            />
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={close}>{sent ? 'Close' : 'Cancel'}</Button>
+        {!sent && (
+          <Button
+            variant="contained"
+            className="learn-button learn-button--primary"
+            onClick={send}
+            disabled={busy || !name.trim() || !email.trim() || !message.trim() || !consent}
+          >
+            {busy ? <CircularProgress size={18} color="inherit" /> : 'Send message'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   )
 }

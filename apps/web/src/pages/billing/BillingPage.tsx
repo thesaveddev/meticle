@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react'
 import {
-  Box, Button, Typography, Stack, Paper, Card, CardContent, Alert, CircularProgress,
+  Box, Button, Typography, Stack, Paper, Alert, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, Grid, TextField,
-  IconButton, Switch, FormControlLabel,
+  Dialog, DialogContent, DialogActions, TextField, FormControlLabel, Switch,
 } from '@mui/material'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Plan } from '@meticle/shared'
 import {
-  CreditCard, Add as AddIcon, Star as StarIcon,
-  DeleteOutline as DeleteIcon, Download as DownloadIcon,
+  CreditCard as CreditCardIcon, Add as AddIcon, Download as DownloadIcon,
+  Insights as PlanIcon, CheckCircle as CheckIcon, CalendarMonth as CalendarIcon,
+  WarningAmber as WarningIcon, PeopleOutline as StarterIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
-import { EmptyState } from '../../components/design/EmptyState'
-import { EXTERNAL_BRAND } from '../../styles/tokens'
+import { P } from '../../styles/tokens'
+import FigDialogHeader from '../people/dialogHeader'
+import './billing.css'
 
 const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || ''
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
@@ -37,10 +38,50 @@ type BillingConfig = {
   [key: string]: any
 }
 
-function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
+function planDef(id: string | null | undefined) { return PLANS.find(plan => plan.id === id) }
+function planName(id: string | null | undefined) {
+  const def = planDef(id)
+  if (def) return def.name
+  return id ? id.charAt(0).toUpperCase() + id.slice(1) : '—'
+}
+function planPrice(id: string | null | undefined) {
+  const def = planDef(id)
+  return def ? `£${def.price} a month` : null
+}
+function formatDate(value: string | null | undefined) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+function brandLabel(brand: string | null | undefined) {
+  if (!brand) return 'Card'
+  if (brand === 'amex') return 'American Express'
+  return brand.charAt(0).toUpperCase() + brand.slice(1)
+}
+
+function SectionCard({ title, copy, actions, children, footnote }: { title: string; copy?: string; actions?: React.ReactNode; children: React.ReactNode; footnote?: React.ReactNode }) {
+  return (
+    <Paper elevation={0} className="bill-card">
+      <Box className="bill-card__head">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="h2" className="bill-card__title">{title}</Typography>
+          {copy && <Typography className="bill-card__copy">{copy}</Typography>}
+        </Box>
+        {actions && <Box className="bill-card__actions">{actions}</Box>}
+      </Box>
+      {children}
+      {footnote && <Box className="bill-card__foot">{footnote}</Box>}
+    </Paper>
+  )
+}
+
+function StripeCardForm({ cardholderName, setCardholderName, postalCode, setPostalCode, onSuccess, onCancel }: {
   cardholderName: string
   setCardholderName: React.Dispatch<React.SetStateAction<string>>
+  postalCode: string
+  setPostalCode: React.Dispatch<React.SetStateAction<string>>
   onSuccess: () => void
+  onCancel: () => void
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -59,108 +100,243 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
         setProcessing(false)
         return
       }
-      const result = await stripe.confirmCardSetup(data.clientSecret, {          payment_method: { card: cardElement, billing_details: { name: cardholderName || undefined } },
+      const result = await stripe.confirmCardSetup(data.clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: { name: cardholderName || undefined, address: { postal_code: postalCode || undefined } },
+        },
       })
-      if (result.error) { setError(result.error.message || 'Failed'); setProcessing(false) }
+      if (result.error) { setError(result.error.message || 'The card could not be saved.'); setProcessing(false) }
       else {
         await api.post('/billing/payment-methods', { payment_method_id: result.setupIntent?.payment_method })
         onSuccess()
       }
-    } catch (err: any) { setError(err.response?.data?.message || 'Failed'); setProcessing(false) }
+    } catch (err: any) { setError(err.response?.data?.message || 'The card could not be saved.'); setProcessing(false) }
   }
 
   return (
-    <Box>
-
-      <Box sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid', borderColor: '#E3E9F0' }}>
-        <CardElement options={{
-          style: { base: { fontSize: '16px', color: 'text.primary', '::placeholder': { color: 'text.secondary' } } },
-          hidePostalCode: true,
-        }} />
-      </Box>
-      <TextField fullWidth size="small" label="Cardholder Name (optional)" value={cardholderName}
-        onChange={e => setCardholderName(e.target.value)} sx={{ mb: 1.5 }} />
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      <Stack direction="row" spacing={1}>
-        <Button variant="contained" onClick={handleStripeSubmit} disabled={processing || !stripe}
-          sx={{ bgcolor: '#0164C8', textTransform: 'none', flex: 1 }}>
-          {processing ? <CircularProgress size={20} /> : 'Save Card'}
+    <>
+      <DialogContent sx={{ pt: 1.5 }}>
+        {error && <Alert severity="error" className="bill-alert">{error}</Alert>}
+        <Stack spacing={2}>
+          <Box>
+            <Typography className="bill-field-label">Name on card</Typography>
+            <TextField fullWidth size="small" value={cardholderName} onChange={e => setCardholderName(e.target.value)}
+              placeholder="As it appears on the card" inputProps={{ maxLength: 120 }} autoFocus />
+          </Box>
+          <Box>
+            <Typography className="bill-field-label">Card number</Typography>
+            <Box className="bill-secure-field">
+              <CardElement options={{
+                style: { base: { fontSize: '16px', color: P.navy, '::placeholder': { color: P.muted } } },
+                hidePostalCode: true,
+              }} />
+            </Box>
+            <Typography className="bill-field-hint">Card number, expiry and security code are entered in a secure field from our payment provider.</Typography>
+          </Box>
+          <Box>
+            <Typography className="bill-field-label">Billing postcode</Typography>
+            <TextField fullWidth size="small" value={postalCode} onChange={e => setPostalCode(e.target.value.toUpperCase())}
+              placeholder="For example, B16 8PE" inputProps={{ maxLength: 12 }} />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button variant="contained" className="bill-button bill-button--primary" onClick={handleStripeSubmit} disabled={processing || !stripe}>
+          {processing ? <CircularProgress size={18} color="inherit" /> : 'Save card'}
         </Button>
-
-      </Stack>
-    </Box>
+      </DialogActions>
+    </>
   )
 }
 
 function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boolean; onClose: () => void; onAdded: () => void; stripeAvailable: boolean }) {
   const [cardholderName, setCardholderName] = useState('')
+  const [postalCode, setPostalCode] = useState('')
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
-      <DialogContent sx={{ pt: '8px !important' }}>
-        {stripeAvailable ? <StripeCardForm cardholderName={cardholderName} setCardholderName={setCardholderName} onSuccess={onAdded} /> : <Alert severity="error">Secure card collection is unavailable. Configure Stripe Elements before adding a payment method.</Alert>}
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Your card details are collected by Stripe and never handled or stored by Meticle Care.</Typography>
-      </DialogContent>
+    <Dialog className="bill-dialog" open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <FigDialogHeader
+        eyebrow="BILLING"
+        title="Add a card"
+        subtitle="Payments are handled securely by our payment provider. We never see your full card number."
+        onClose={onClose}
+      />
+      {stripeAvailable
+        ? <StripeCardForm
+            cardholderName={cardholderName}
+            setCardholderName={setCardholderName}
+            postalCode={postalCode}
+            setPostalCode={setPostalCode}
+            onSuccess={onAdded}
+            onCancel={onClose}
+          />
+        : <>
+            <DialogContent sx={{ pt: 1.5 }}>
+              <Alert severity="error">Secure card collection is unavailable. Configure Stripe Elements before adding a payment method.</Alert>
+            </DialogContent>
+            <DialogActions><Button onClick={onClose}>Close</Button></DialogActions>
+          </>}
     </Dialog>
   )
 }
 
-function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: () => void; onRemove: () => void }) {
-  const bg = pm.card_brand === 'amex' ? `linear-gradient(135deg, ${EXTERNAL_BRAND.amex}, ${EXTERNAL_BRAND.amexAlt})` :
-    pm.card_brand === 'mastercard' ? `linear-gradient(135deg, ${EXTERNAL_BRAND.mastercardRed}, ${EXTERNAL_BRAND.mastercardGold})` :
-    'linear-gradient(135deg, #0164C8, #0164C8)'
-
+function MetricCard({ label, value, detail, icon, tone }: { label: string; value: string; detail?: string; icon: React.ReactNode; tone?: 'ok' }) {
   return (
-    <Box sx={{
-      width: 360, p: '20px 24px', py: '28px', borderRadius: 2.5, position: 'relative', overflow: 'hidden',
-      background: bg, color: 'white', boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
-      border: pm.is_default ? '1.5px solid #F59E0B' : 'none',
-      '&:hover .card-remove': { opacity: 1 },
-    }}>
-      {/* Top row: chip + default badge */}
-      <Box sx={{ mb: 3.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box sx={{ width: 42, height: 32, borderRadius: 1.5, bgcolor: 'rgba(255,215,0,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CreditCard sx={{ fontSize: 18, color: 'rgba(255,215,0,0.7)' }} />
-        </Box>
-        {pm.is_default && (
-          <Chip icon={<StarIcon sx={{ fontSize: 12 }} />} label="Default" size="small"
-            sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600, height: 24, fontSize: '0.7rem', backdropFilter: 'blur(4px)' }} />
-        )}
+    <Box className="bill-metric">
+      <Box className="bill-metric__top">
+        <Typography className="bill-metric__label">{label}</Typography>
+        <Box className={`bill-metric__icon${tone === 'ok' ? ' bill-metric__icon--ok' : ''}`}>{icon}</Box>
       </Box>
-
-      {/* Card Number */}
-      <Typography sx={{ fontSize: '1.35rem', letterSpacing: 4, mb: 2.5, opacity: 0.95, fontFamily: '"Courier New", monospace' }}>
-        •••• •••• •••• {pm.card_last_four || '****'}
-      </Typography>
-
-      {/* Bottom row: Expiry + Name + Remove */}
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
-        <Box>
-          <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.5rem', textTransform: 'none', letterSpacing: 1 }}>Expires</Typography>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: 1 }}>
-            {pm.expiry_month?.toString().padStart(2, '0')}/{String(pm.expiry_year).slice(-2)}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', letterSpacing: 1, opacity: 0.85 }}>
-            {pm.cardholder_name || (pm.card_brand ? pm.card_brand.toUpperCase() : '')}
-          </Typography>
-          <IconButton size="small" onClick={onRemove} className="card-remove"
-            sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'rgba(255,255,255,0.7)', p: 0.5, '&:hover': { color: 'white', bgcolor: 'rgba(255,0,0,0.25)' } }}>
-            <DeleteIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Stack>
-      </Stack>
-
-      {/* Set Default link */}
-      {!pm.is_default && (
-        <Button size="small" onClick={onSetDefault}
-          sx={{ mt: 1.5, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', textTransform: 'none', px: 1, minWidth: 0,
-            bgcolor: 'rgba(255,255,255,0.08)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)', color: 'white' } }}>
-          Make Default
-        </Button>
-      )}
+      <Typography className="bill-metric__value">{value}</Typography>
+      {detail && <Typography className="bill-metric__detail">{detail}</Typography>}
     </Box>
+  )
+}
+
+function PaymentMethodsCard({ paymentMethods, onAdd, onSetDefault, onRemove }: any) {
+  return (
+    <SectionCard
+      title="Payment method"
+      actions={<Button className="bill-button bill-button--quiet" variant="outlined" startIcon={<AddIcon />} onClick={onAdd}>{paymentMethods.length ? 'Change card' : 'Add card'}</Button>}
+    >
+      {paymentMethods.length === 0 ? (
+        <Box className="bill-empty">
+          <Box className="bill-empty__icon"><CreditCardIcon /></Box>
+          <Typography className="bill-empty__title">No payment method on file</Typography>
+          <Typography className="bill-empty__copy">Add a card so your plan keeps running without a break.</Typography>
+        </Box>
+      ) : paymentMethods.map((pm: any) => (
+        <Box className="bill-row" key={pm.id}>
+          <Box className="bill-row__icon"><CreditCardIcon fontSize="small" /></Box>
+          <Box className="bill-row__body">
+            <Typography className="bill-row__title">{brandLabel(pm.card_brand)} ending {pm.card_last_four || '****'}</Typography>
+            <Typography className="bill-row__copy">
+              Expires {String(pm.expiry_month || '').padStart(2, '0')} / {pm.expiry_year}
+              {pm.cardholder_name ? ` · ${pm.cardholder_name}` : ''}
+            </Typography>
+          </Box>
+          <Box className="bill-row__actions">
+            {pm.is_default && <Chip className="bill-chip" size="small" label="Default" />}
+            {!pm.is_default && <Button size="small" className="bill-plan__action" onClick={() => onSetDefault(pm.id)}>Make default</Button>}
+            <Button size="small" color="error" onClick={() => onRemove(pm.id)}>Remove</Button>
+          </Box>
+        </Box>
+      ))}
+    </SectionCard>
+  )
+}
+
+function PlansCard({ currentPlan, isActive, updating, onSwitch }: any) {
+  return (
+    <SectionCard title="Plans" copy="Change at any time. Prices exclude VAT.">
+      <Box className="bill-plans">
+        {PLANS.map(plan => {
+          const current = currentPlan === plan.id
+          return (
+            <Box className={`bill-plan${current && isActive ? ' bill-plan--current' : ''}`} key={plan.id}>
+              <Box className="bill-plan__top">
+                <Box className="bill-plan__icon">{plan.id === Plan.PROFESSIONAL ? <PlanIcon fontSize="small" /> : <StarterIcon fontSize="small" />}</Box>
+                {current && isActive && <Chip className="bill-chip" size="small" label="Your plan" />}
+              </Box>
+              <Typography className="bill-plan__name">{plan.name} · £{plan.price} a month</Typography>
+              <Typography className="bill-plan__desc">{plan.description}</Typography>
+              {!(current && isActive) && (
+                <Button className="bill-plan__action" disabled={updating} onClick={() => onSwitch(plan.id)}>
+                  {!isActive ? 'Switch and renew' : `Switch to ${plan.name}`} →
+                </Button>
+              )}
+            </Box>
+          )
+        })}
+      </Box>
+    </SectionCard>
+  )
+}
+
+function AddonsCard({ addons, isOrgAdmin, isActive, addonBusy, onPurchase, onCancelAddon }: any) {
+  return (
+    <SectionCard title="Add-ons" copy="Optional extras, billed monthly together with your plan from the next billing date.">
+      {!addons ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+      ) : addons.catalog.length === 0 ? (
+        <Box className="bill-empty">
+          <Box className="bill-empty__icon"><AddIcon /></Box>
+          <Typography className="bill-empty__title">No add-ons available</Typography>
+          <Typography className="bill-empty__copy">Optional extras will appear here.</Typography>
+        </Box>
+      ) : addons.catalog.map((addon: any) => {
+        const active = addons.active.includes(addon.slug)
+        const busy = addonBusy === addon.slug
+        return (
+          <Box className="bill-row bill-row--stacked" key={addon.slug}>
+            <Box className="bill-row__body">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography className="bill-row__title">{addon.name}</Typography>
+                {active && <Chip className="bill-chip" size="small" label="Active" />}
+              </Stack>
+              <Typography className="bill-row__copy">{addon.description}</Typography>
+              <Typography className="bill-row__copy" sx={{ color: 'var(--bill-accent) !important', fontWeight: 600 }}>{addon.amountDisplay}</Typography>
+            </Box>
+            {isOrgAdmin && (
+              <Box className="bill-row__actions">
+                {active ? (
+                  <Button size="small" variant="outlined" color="error" disabled={busy} onClick={() => onCancelAddon(addon.slug)}>
+                    {busy ? <CircularProgress size={16} /> : 'Cancel'}
+                  </Button>
+                ) : (
+                  <Button size="small" variant="contained" className="bill-button bill-button--primary" disabled={busy || !isActive} onClick={() => onPurchase(addon.slug)}>
+                    {busy ? <CircularProgress size={16} color="inherit" /> : 'Purchase'}
+                  </Button>
+                )}
+              </Box>
+            )}
+          </Box>
+        )
+      })}
+      {!isActive && addons?.catalog.length > 0 && (
+        <Typography className="bill-note">Add-ons need an active plan subscription — renew your plan first.</Typography>
+      )}
+    </SectionCard>
+  )
+}
+
+function InvoicesCard({ invoices, downloadingId, onDownload }: any) {
+  return (
+    <SectionCard title="Invoices" copy={invoices.length ? 'Download for your accounts' : undefined}>
+      {invoices.length === 0 ? (
+        <Box className="bill-empty">
+          <Box className="bill-empty__icon"><DownloadIcon /></Box>
+          <Typography className="bill-empty__title">No invoices yet</Typography>
+          <Typography className="bill-empty__copy">Your invoices will appear here each month, ready to download for your accounts.</Typography>
+        </Box>
+      ) : (
+        <TableContainer className="bill-table-wrap">
+          <Table className="bill-table" size="small" aria-label="Invoices">
+            <TableHead>
+              <TableRow>{['Date', 'Invoice', 'Amount', ''].map((label, index) => <TableCell key={label || index}>{label}</TableCell>)}</TableRow>
+            </TableHead>
+            <TableBody>
+              {invoices.map((inv: any) => (
+                <TableRow key={inv.id} hover>
+                  <TableCell>{formatDate(inv.issued_at) || '—'}</TableCell>
+                  <TableCell>
+                    <Typography className="bill-table__strong">{inv.invoice_number}</Typography>
+                    <Typography className="bill-row__copy">{inv.description}</Typography>
+                  </TableCell>
+                  <TableCell className="bill-table__amount">£{parseFloat(inv.amount).toFixed(2)}</TableCell>
+                  <TableCell align="right">
+                    <Button size="small" variant="outlined" className="bill-button bill-button--quiet" disabled={downloadingId === inv.id} onClick={() => onDownload(inv)}>
+                      {downloadingId === inv.id ? <CircularProgress size={16} /> : 'Download'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </SectionCard>
   )
 }
 
@@ -307,7 +483,7 @@ function BillingPageInner() {
       await api.patch(`/billing/payment-methods/${id}/default`)
       loadBillingData()
       setMessage('Default card updated.')
-    } catch { setMessage('Failed.') }
+    } catch { setMessage('Failed to update the default card.') }
   }
 
   const handleRemoveCard = async (id: string) => {
@@ -351,7 +527,7 @@ function BillingPageInner() {
     setUpdating(true); setConfirmOpen(false)
     try {
       const { data } = await api.patch('/billing/subscription', { plan: selectedPlan })
-      setMessage(data?.message || `Plan updated to ${PLANS.find(p => p.id === selectedPlan)?.name}.`)
+      setMessage(data?.message || `Plan updated to ${planName(selectedPlan)}.`)
       loadBillingData()
       window.dispatchEvent(new Event('subscriptionUpdated'))
     } catch (err: any) {
@@ -360,7 +536,7 @@ function BillingPageInner() {
     } finally { setUpdating(false); setSelectedPlan(null) }
   }
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+  if (loading) return <Box className="bill-page" sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
   const redirectReason = localStorage.getItem('redirectReason')
   const subMessage = localStorage.getItem('subscriptionMessage')
@@ -377,29 +553,55 @@ function BillingPageInner() {
   const isActive = subStatus === 'active' || !!isTrialActive
 
   let statusLabel: string
-  let statusColor: 'success' | 'warning' | 'error' | 'default' = 'default'
-  if (subStatus === 'active') { statusLabel = 'Active'; statusColor = 'success' }
-  else if (isTrialActive) { statusLabel = `Trial (${daysRemaining}d left)`; statusColor = 'warning' }
-  else if (subStatus === 'trial') { statusLabel = 'Trial Expired'; statusColor = 'error' }
-  else { statusLabel = subStatus ? subStatus.charAt(0).toUpperCase() + subStatus.slice(1) : 'Inactive'; statusColor = 'error' }
+  if (subStatus === 'active') statusLabel = 'Active'
+  else if (isTrialActive) statusLabel = 'Trial'
+  else if (subStatus === 'trial') statusLabel = 'Trial ended'
+  else statusLabel = subStatus ? subStatus.charAt(0).toUpperCase() + subStatus.slice(1) : 'Inactive'
+
+  const hasCard = paymentMethods.length > 0
+  const nextPaymentDate = formatDate(subscription?.currentPeriodEnd || subscription?.trialEndsAt)
+  const currentPlanLabel = isDomiciliary ? 'Sales-led agreement' : planName(subscription?.plan)
+  const currentPlanDetail = isDomiciliary
+    ? (subscription?.domiciliaryActiveMonthlyPricePence ?? subscription?.domiciliaryMonthlyPricePence)
+      ? `£${(((subscription?.domiciliaryActiveMonthlyPricePence ?? subscription?.domiciliaryMonthlyPricePence) || 0) / 100).toFixed(2)} a month`
+      : 'Agreed with our team'
+    : planPrice(subscription?.plan)
+  const statusDetail = isTrialActive ? `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} left`
+    : subStatus === 'past_due' ? 'Payment needs attention'
+    : !isActive ? 'Access is limited until renewed'
+    : undefined
+  const nextPaymentDetail = !hasCard && !isDomiciliary
+    ? 'Add a card to set this'
+    : !isActive
+      ? 'Renew to restart billing'
+      : isDomiciliary
+        ? 'Agreed monthly subscription'
+        : `${planPrice(subscription?.plan) || 'Plan price'}, excluding VAT`
 
   return (
-    <Box>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 4 }}>Billing</Typography>
+    <Box className="bill-page">
+      <Typography className="bill-crumbs">Billing</Typography>
+
+      <header className="bill-header">
+        <Typography component="h1" className="bill-header__title">Billing</Typography>
+        <Typography className="bill-header__copy">Your plan, payment method and invoices.</Typography>
+      </header>
 
       {subscription?.stripeUnavailable && (
-        <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+        <Alert severity="error" className="bill-alert">
           <Typography variant="subtitle2" fontWeight={600}>Stripe billing is not configured on the server</Typography>
           <Typography variant="body2">Payment cards, subscriptions and invoices are unavailable until the administrator adds a valid live Stripe key and webhook secret. Please contact your system administrator.</Typography>
         </Alert>
       )}
 
       {message && (
-        <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 4, borderRadius: 2 }} onClose={() => setMessage('')}>
+        <Alert severity={/\b(failed|error|could not)\b/i.test(message) ? 'error' : 'success'} className="bill-alert" onClose={() => setMessage('')}>
           {message}
         </Alert>
-      )}      {isRedirectedFromBlock && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FFF7E6' }}>
+      )}
+
+      {isRedirectedFromBlock && (
+        <Alert severity="warning" className="bill-alert">
           <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2">
             {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
@@ -407,380 +609,277 @@ function BillingPageInner() {
         </Alert>
       )}
 
+      {isOrgAdmin && !isDomiciliary && !hasCard && (
+        <Box className="bill-banner" role="status">
+          <Box className="bill-banner__icon"><CreditCardIcon /></Box>
+          <Box className="bill-banner__body">
+            <Typography className="bill-banner__title">No payment method on file</Typography>
+            <Typography className="bill-banner__copy">Add a card so your {currentPlanLabel === '—' ? 'Meticle Care' : currentPlanLabel} plan keeps running without a break.</Typography>
+          </Box>
+          <Box className="bill-banner__actions">
+            <Button className="bill-button bill-button--primary" variant="contained" onClick={() => setAddCardOpen(true)}>Add card</Button>
+          </Box>
+        </Box>
+      )}
+
       {!isActive && !isDomiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEF0F0', bgcolor: 'notice.error.bg' }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} color='notice.error.fg' sx={{ mb: 0.5 }}>
-                {subStatus === 'canceled' ? 'Your subscription has been canceled' : subStatus === 'trial' ? 'Your trial has ended' : 'Your subscription has ended'}
-              </Typography>
-              <Typography variant="body2" color='notice.error.fg'>
-                {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
-                  ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
-                  : 'Add a payment card and switch your plan to restore full access to Meticle Care.'}
-              </Typography>
-              {subscription?.hasUnpaidInvoice && (
-                <Typography variant="caption" color='notice.error.fg' sx={{ mt: 0.5, display: 'block' }}>
-                  Unpaid invoice: {invoices.find(i => i.status === 'open')?.description || 'subscription invoice'}
-                </Typography>
-              )}
-            </Box>
-            <Stack direction="row" spacing={2} flexShrink={0}>
-              {(subStatus === 'past_due' || subscription?.hasUnpaidInvoice) && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={retrying}
-                  sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 600 }}
-                  onClick={async () => {
-                    setRetrying(true)
-                    setMessage('')
-                    try {
-                      const { data } = await api.post('/billing/retry-payment')
-                      if (data.requiresAction && data.clientSecret && stripePromise) {
-                        setMessage('Your bank requires you to confirm this payment — please complete the pop-up.')
-                        const stripe = await stripePromise
-                        if (!stripe) { setMessage('Payment not confirmed — try again in a moment.'); return }
-                        const result = await stripe.confirmCardPayment(data.clientSecret)
-                        if (result.error) {
-                          setMessage(`Payment not confirmed: ${result.error.message}`)
-                        } else {
-                          setMessage('Payment successful!')
-                          loadBillingData()
-                          window.dispatchEvent(new Event('subscriptionUpdated'))
-                        }
+        <Box className="bill-banner" role="status">
+          <Box className="bill-banner__icon"><WarningIcon /></Box>
+          <Box className="bill-banner__body">
+            <Typography className="bill-banner__title">
+              {subStatus === 'canceled' ? 'Your subscription has been canceled' : subStatus === 'trial' ? 'Your trial has ended' : 'Your subscription has ended'}
+            </Typography>
+            <Typography className="bill-banner__copy">
+              {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
+                ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
+                : 'Add a payment card and switch your plan to restore full access to Meticle Care.'}
+            </Typography>
+            {subscription?.hasUnpaidInvoice && (
+              <Typography className="bill-banner__copy">Unpaid invoice: {invoices.find(i => i.status === 'open')?.description || 'subscription invoice'}</Typography>
+            )}
+          </Box>
+          <Box className="bill-banner__actions">
+            {(subStatus === 'past_due' || subscription?.hasUnpaidInvoice) && (
+              <Button
+                variant="contained"
+                color="error"
+                className="bill-button"
+                disabled={retrying}
+                onClick={async () => {
+                  setRetrying(true)
+                  setMessage('')
+                  try {
+                    const { data } = await api.post('/billing/retry-payment')
+                    if (data.requiresAction && data.clientSecret && stripePromise) {
+                      setMessage('Your bank requires you to confirm this payment — please complete the pop-up.')
+                      const stripe = await stripePromise
+                      if (!stripe) { setMessage('Payment not confirmed — try again in a moment.'); return }
+                      const result = await stripe.confirmCardPayment(data.clientSecret)
+                      if (result.error) {
+                        setMessage(`Payment not confirmed: ${result.error.message}`)
                       } else {
                         setMessage('Payment successful!')
                         loadBillingData()
                         window.dispatchEvent(new Event('subscriptionUpdated'))
                       }
-                    } catch (err: any) {
-                      setMessage(err?.response?.data?.message || 'Retry failed — check your payment method.')
-                    } finally {
-                      setRetrying(false)
+                    } else {
+                      setMessage('Payment successful!')
+                      loadBillingData()
+                      window.dispatchEvent(new Event('subscriptionUpdated'))
                     }
-                  }}
-                >
-                  {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry Payment'}
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                size="small"
-                disabled={updating}
-                sx={{ bgcolor: '#0164C8', '&:hover': { bgcolor: '#0251B3' }, textTransform: 'none', fontWeight: 600 }}
-                onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
+                  } catch (err: any) {
+                    setMessage(err?.response?.data?.message || 'Retry failed — check your payment method.')
+                  } finally {
+                    setRetrying(false)
+                  }
+                }}
               >
-                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
+                {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry payment'}
               </Button>
-            </Stack>
-          </Stack>
-        </Paper>
+            )}
+            <Button className="bill-button bill-button--primary" variant="contained" disabled={updating} onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}>
+              {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew subscription' : subStatus === 'trial' ? 'Subscribe now' : 'Renew now')}
+            </Button>
+          </Box>
+        </Box>
       )}
 
       {isTrialActive && (
-        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.info.bg', border: '1px solid #EAF3FF' }}>
+        <Alert severity="info" className="bill-alert">
           <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>Trial limitations</Typography>
-          <Typography variant="body2" color='notice.info.fg'>
+          <Typography variant="body2">
             Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
           </Typography>
         </Alert>
       )}
 
+      <section className="bill-metrics" aria-label="Subscription summary">
+        <MetricCard label="Current plan" value={currentPlanLabel} detail={currentPlanDetail || undefined} icon={<PlanIcon fontSize="small" />} />
+        <MetricCard label="Status" value={statusLabel} detail={statusDetail} icon={<CheckIcon fontSize="small" />} tone={isActive ? 'ok' : undefined} />
+        <MetricCard
+          label="Next payment"
+          value={isActive && nextPaymentDate ? nextPaymentDate : '—'}
+          detail={isActive ? nextPaymentDetail : 'Renew to restart billing'}
+          icon={<CalendarIcon fontSize="small" />}
+        />
+      </section>
 
       {isDomiciliary && (
-        <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Domiciliary subscription</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-            Pricing is agreed with our team for your organisation. Your care-package billing profiles are separate and do not affect this platform subscription.
-          </Typography>
-          {subscription?.domiciliaryMonthlyPricePence ? (
-            <Stack spacing={1} sx={{ mb: 2 }}>
-              <Typography variant="h5" fontWeight={600}>
-                Quote: £{(subscription.domiciliaryMonthlyPricePence / 100).toFixed(2)} / month
-                <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                  {subscription.domiciliaryPriceVatBehavior === 'inclusive' ? 'VAT included' : 'VAT added where applicable'}
-                </Typography>
-              </Typography>
-              {subscription.domiciliaryActiveMonthlyPricePence != null && (
-                <Typography variant="body2" color="text.secondary">
-                  Currently billed: £{(subscription.domiciliaryActiveMonthlyPricePence / 100).toFixed(2)} / month
-                </Typography>
-              )}
-              <Typography variant="body2" color="text.secondary">
-                {subscription.domiciliaryQuoteAcceptedAt && subscription.domiciliaryStripeSubscriptionId && subscription.subscriptionStatus !== 'canceled'
-                  ? `Agreed and active${subscription.currentPeriodEnd ? ` · next billing date ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB')}` : ''}`
-                  : 'Draft quote for review. It will not be charged until an organisation admin accepts it.'}
-              </Typography>
-            </Stack>
-          ) : (
-            <Alert severity="info" sx={{ mb: 2 }}>No monthly subscription quote is on file yet. Contact the MeticleCare team to agree your price.</Alert>
-          )}
-          {subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus === 'canceled' && (
-            <Alert severity="warning" sx={{ mb: 2 }}>The previous domiciliary subscription has been cancelled. Your current quote remains available for review and activation.</Alert>
-          )}
-          {isOrgAdmin && subscription?.domiciliaryMonthlyPricePence && (
-            <Stack spacing={2}>
-              <Typography variant="subtitle2" fontWeight={600}>UK billing address for VAT invoices</Typography>
-              <Grid container spacing={1.5}>
-                <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 1" value={billingAddress.line1} onChange={e => setBillingAddress({ ...billingAddress, line1: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 2 (optional)" value={billingAddress.line2 || ''} onChange={e => setBillingAddress({ ...billingAddress, line2: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Town / city" value={billingAddress.city} onChange={e => setBillingAddress({ ...billingAddress, city: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Postcode" value={billingAddress.postal_code} onChange={e => setBillingAddress({ ...billingAddress, postal_code: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Country" value="United Kingdom" disabled /></Grid>
-              </Grid>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <Button variant="outlined" onClick={saveDomiciliaryAddress} disabled={savingAddress || !billingAddress.line1 || !billingAddress.city || !billingAddress.postal_code}>
-                  {savingAddress ? <CircularProgress size={18} /> : 'Save billing address'}
-                </Button>
-                {!paymentMethods.length && <Button variant="outlined" onClick={() => setAddCardOpen(true)}>Add payment card</Button>}
-                {!!paymentMethods.length && !subscription?.domiciliaryBillingAddress?.line1 && <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>Save the address before accepting the quote.</Typography>}
-                {!(subscription?.domiciliaryQuoteAcceptedAt && subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus !== 'canceled') && (
-                  <Button variant="contained" onClick={acceptDomiciliaryQuote}
-                    disabled={acceptingQuote || !paymentMethods.length || !subscription?.domiciliaryBillingAddress?.line1 || !subscription?.domiciliaryBillingAddress?.city || !subscription?.domiciliaryBillingAddress?.postal_code}>
-                    {acceptingQuote ? <CircularProgress size={18} color="inherit" /> : 'Accept quote & activate subscription'}
-                  </Button>
-                )}
-              </Stack>
-            </Stack>
-          )}
-        </Paper>
-      )}
-
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#51637A">Current Plan</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>{isDomiciliary ? 'Sales-led agreement' : subscription?.plan || '—'}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#51637A">Status</Typography>
-            <Chip label={statusLabel} color={statusColor} size="small" sx={{ fontWeight: 600, textTransform: 'capitalize', mt: 0.5 }} />
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#51637A">{!isActive ? 'Expired On' : 'Next Billing Date'}</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {!isActive
-                ? (subscription?.trialEndsAt || subscription?.currentPeriodEnd)
-                  ? new Date(subscription.trialEndsAt || subscription.currentPeriodEnd!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '—'
-                : (subscription?.currentPeriodEnd || subscription?.trialEndsAt)
-                  ? new Date(subscription.currentPeriodEnd || subscription.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '—'
-              }
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {isOrgAdmin && isDomiciliary && billingConfig?.domiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: '#E3E9F0' }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>Domiciliary VAT & travel settings</Typography>
-              <Typography variant="body2" color="#51637A" sx={{ mt: 0.5 }}>
-                Client charges are calculated from each care package’s billing profile or package override in Visits & Packages. These settings control invoice VAT and paid travel policy; they do not change your MeticleCare subscription.
-              </Typography>
-            </Box>
-            <Button variant="contained" onClick={saveBillingConfig} disabled={savingBillingConfig} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, bgcolor: '#0164C8', textTransform: 'none' }}>
-              {savingBillingConfig ? <CircularProgress size={18} color="inherit" /> : 'Save settings'}
-            </Button>
-          </Stack>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth size="small" type="number" label="VAT rate (%)" inputProps={{ min: 0, max: 100, step: 0.1 }}
-                value={billingConfig.domiciliary.vat_rate ?? 20}
-                onChange={(e) => updateDomiciliaryConfig('vat_rate', Math.min(100, Math.max(0, Number(e.target.value || 0))))} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel sx={{ ml: 0, mt: 0.5 }}
-                control={<Switch checked={!!billingConfig.domiciliary.vat_inclusive} onChange={(e) => updateDomiciliaryConfig('vat_inclusive', e.target.checked)} />}
-                label={billingConfig.domiciliary.vat_inclusive ? 'Rates include VAT' : 'Rates exclude VAT'} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel sx={{ ml: 0 }}
-                control={<Switch checked={billingConfig.domiciliary.travel_time_paid ?? billingConfig.domiciliary.travel_pay_included ?? true} onChange={(e) => updateDomiciliaryConfig('travel_time_paid', e.target.checked)} />}
-                label="Pay carers for travel time" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel sx={{ ml: 0 }}
-                control={<Switch checked={billingConfig.domiciliary.pay_inter_client_travel ?? true} onChange={(e) => updateDomiciliaryConfig('pay_inter_client_travel', e.target.checked)} />}
-                label="Include travel between client visits" />
-            </Grid>
-          </Grid>
-        </Paper>
-      )}
-
-      {/* Payment Methods */}
-      {isOrgAdmin && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Payment Methods</Typography>            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
-              sx={{ bgcolor: '#0164C8', textTransform: 'none',}}>
-            Add Card
-          </Button>
-        </Stack>
-
-        {paymentMethods.length === 0 ? (
-          <EmptyState title="No payment method on file" description="Add a card to manage your subscription" variant="default" />
-        ) : (
-          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-            {paymentMethods.map(pm => (
-              <CardDisplay key={pm.id} pm={pm} onSetDefault={() => handleSetDefault(pm.id)} onRemove={() => setRemoveCardDialog(pm.id)} />
-            ))}
-          </Stack>
-        )}
-      </Paper>}
-
-      {/* Plans */}
-      {!isDomiciliary && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 4 }}>Choose a Plan</Typography>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
-          {PLANS.map((plan) => (
-            <Card key={plan.id} sx={{
-              flex: 1, position: 'relative', overflow: 'visible',
-              border: subscription?.plan === plan.id ? '2px solid #0164C8' : '1px solid #E3E9F0', borderRadius: 3,
-            }}>
-              {plan.popular && (
-                <Box sx={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', bgcolor: '#0164C8', color: 'white', px: 2, py: 0.5, borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600, zIndex: 10 }}>
-                  Most Popular
+        <>
+          <SectionCard
+            title="Domiciliary subscription"
+            copy="Pricing is agreed with our team for your organisation. Your care-package billing profiles are separate and do not affect this platform subscription."
+          >
+            {subscription?.domiciliaryMonthlyPricePence ? (
+              <>
+                <Box className="bill-quote">
+                  <Typography className="bill-quote__price">
+                    Quote: £{(subscription.domiciliaryMonthlyPricePence / 100).toFixed(2)} / month
+                    <Typography component="span" className="bill-row__copy" sx={{ ml: 1 }}>
+                      {subscription.domiciliaryPriceVatBehavior === 'inclusive' ? 'VAT included' : 'VAT added where applicable'}
+                    </Typography>
+                  </Typography>
+                  {subscription.domiciliaryActiveMonthlyPricePence != null && (
+                    <Typography className="bill-row__copy">Currently billed: £{(subscription.domiciliaryActiveMonthlyPricePence / 100).toFixed(2)} / month</Typography>
+                  )}
+                  <Typography className="bill-row__copy">
+                    {subscription.domiciliaryQuoteAcceptedAt && subscription.domiciliaryStripeSubscriptionId && subscription.subscriptionStatus !== 'canceled'
+                      ? `Agreed and active${subscription.currentPeriodEnd ? ` · next billing date ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB')}` : ''}`
+                      : 'Draft quote for review. It will not be charged until an organisation admin accepts it.'}
+                  </Typography>
                 </Box>
-              )}
-              <CardContent sx={{ pt: plan.popular ? 5 : 3, pb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>{plan.name}</Typography>
-                <Typography sx={{ color: '#0164C8', fontSize: '2.5rem', fontWeight: 600 }}>
-                  £{plan.price}<Typography component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 400 }}>/month</Typography>
-                </Typography>
-                <Typography variant="body2" color="#51637A" sx={{ mt: 1, mb: 2 }}>{plan.description}</Typography>
-                <Stack spacing={1}>
-                  {plan.features.map((f) => <Typography key={f} variant="body2" color="#3A4551">✓ {f}</Typography>)}
-                </Stack>
-              </CardContent>
-              <Box sx={{ px: 3, pb: 3 }}>
-                <Button fullWidth variant={subscription?.plan === plan.id && isActive ? 'outlined' : 'contained'}
-                  disabled={(subscription?.plan === plan.id && isActive) || updating}
-                  onClick={() => handleUpgradeClick(plan.id)} sx={{ py: 1.5, fontWeight: 600 }}>
-                  {subscription?.plan === plan.id && isActive ? 'Current Plan' : !isActive ? (updating ? 'Switching...' : 'Switch and Renew') : updating ? 'Updating...' : 'Switch Plan'}
-                </Button>
-              </Box>
-            </Card>
-          ))}
-        </Stack>
-      </Paper>}
+              </>
+            ) : (
+              <Box sx={{ px: 3, pb: 3 }}><Alert severity="info">No monthly subscription quote is on file yet. Contact the MeticleCare team to agree your price.</Alert></Box>
+            )}
+            {subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus === 'canceled' && (
+              <Box sx={{ px: 3, pb: 3 }}><Alert severity="warning">The previous domiciliary subscription has been cancelled. Your current quote remains available for review and activation.</Alert></Box>
+            )}
+            {isOrgAdmin && subscription?.domiciliaryMonthlyPricePence && (
+              <>
+                <Box sx={{ px: 3, pt: 1 }}><Typography variant="subtitle2" fontWeight={600}>UK billing address for VAT invoices</Typography></Box>
+                <Box className="bill-fields" sx={{ pt: 1.5 }}>
+                  <TextField fullWidth size="small" label="Address line 1" value={billingAddress.line1} onChange={e => setBillingAddress({ ...billingAddress, line1: e.target.value })} />
+                  <TextField fullWidth size="small" label="Address line 2 (optional)" value={billingAddress.line2 || ''} onChange={e => setBillingAddress({ ...billingAddress, line2: e.target.value })} />
+                  <TextField fullWidth size="small" label="Town / city" value={billingAddress.city} onChange={e => setBillingAddress({ ...billingAddress, city: e.target.value })} />
+                  <TextField fullWidth size="small" label="Postcode" value={billingAddress.postal_code} onChange={e => setBillingAddress({ ...billingAddress, postal_code: e.target.value })} />
+                  <TextField fullWidth size="small" label="Country" value="United Kingdom" disabled />
+                </Box>
+                <Box className="bill-note" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                  <Button variant="outlined" className="bill-button bill-button--quiet" onClick={saveDomiciliaryAddress} disabled={savingAddress || !billingAddress.line1 || !billingAddress.city || !billingAddress.postal_code}>
+                    {savingAddress ? <CircularProgress size={18} /> : 'Save billing address'}
+                  </Button>
+                  {!paymentMethods.length && <Button variant="outlined" className="bill-button bill-button--quiet" onClick={() => setAddCardOpen(true)}>Add payment card</Button>}
+                  {!!paymentMethods.length && !subscription?.domiciliaryBillingAddress?.line1 && (
+                    <Typography className="bill-row__copy">Save the address before accepting the quote.</Typography>
+                  )}
+                  {!(subscription?.domiciliaryQuoteAcceptedAt && subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus !== 'canceled') && (
+                    <Button variant="contained" className="bill-button bill-button--primary" onClick={acceptDomiciliaryQuote}
+                      disabled={acceptingQuote || !paymentMethods.length || !subscription?.domiciliaryBillingAddress?.line1 || !subscription?.domiciliaryBillingAddress?.city || !subscription?.domiciliaryBillingAddress?.postal_code}>
+                      {acceptingQuote ? <CircularProgress size={18} color="inherit" /> : 'Accept quote & activate subscription'}
+                    </Button>
+                  )}
+                </Box>
+              </>
+            )}
+          </SectionCard>
 
-      {/* Add-ons */}
-      {!isDomiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Add-ons</Typography>
-          <Typography variant="body2" color="#51637A" sx={{ mt: 0.5, mb: 3 }}>
-            Optional extras, billed monthly together with your plan from the next billing date.
-          </Typography>
-          {!addons ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress /></Box>
-          ) : addons.catalog.length === 0 ? (
-            <EmptyState title="No add-ons available" description="Optional extras will appear here" variant="default" />
-          ) : (
-            <Stack spacing={2}>
-              {addons.catalog.map((addon) => {
-                const active = addons.active.includes(addon.slug)
-                const busy = addonBusy === addon.slug
-                return (
-                  <Stack key={addon.slug} direction={{ xs: 'column', sm: 'row' }} spacing={2}
-                    alignItems={{ xs: 'stretch', sm: 'center' }}
-                    sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: active ? '#0164C8' : '#E3E9F0' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="subtitle1" fontWeight={600}>{addon.name}</Typography>
-                        {active && <Chip label="Active" color="success" size="small" sx={{ fontWeight: 600 }} />}
-                      </Stack>
-                      <Typography variant="body2" color="#51637A" sx={{ mt: 0.5 }}>{addon.description}</Typography>
-                      <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5, color: '#0164C8' }}>{addon.amountDisplay}</Typography>
-                    </Box>
-                    {isOrgAdmin && (active ? (
-                      <Button variant="outlined" color="error" disabled={busy}
-                        onClick={() => handleAddonCancel(addon.slug)} sx={{ textTransform: 'none', alignSelf: { xs: 'stretch', sm: 'center' } }}>
-                        {busy ? <CircularProgress size={18} /> : 'Cancel'}
-                      </Button>
-                    ) : (
-                      <Button variant="contained" disabled={busy || !isActive}
-                        onClick={() => setAddonConfirm(addon.slug)}
-                        sx={{ bgcolor: '#0164C8', textTransform: 'none', alignSelf: { xs: 'stretch', sm: 'center' } }}>
-                        {busy ? <CircularProgress size={18} color="inherit" /> : 'Purchase'}
-                      </Button>
-                    ))}
-                  </Stack>
-                )
-              })}
-              {!isActive && (
-                <Typography variant="caption" color="text.secondary">Add-ons need an active plan subscription — renew your plan first.</Typography>
+          {isOrgAdmin && billingConfig?.domiciliary && (
+            <SectionCard
+              title="VAT & travel settings"
+              copy="Client charges come from each package’s billing profile. These settings control invoice VAT and paid travel policy; they do not change your MeticleCare subscription."
+              actions={(
+                <Button variant="contained" className="bill-button bill-button--primary" onClick={saveBillingConfig} disabled={savingBillingConfig}>
+                  {savingBillingConfig ? <CircularProgress size={18} color="inherit" /> : 'Save settings'}
+                </Button>
               )}
-            </Stack>
+            >
+              <Box className="bill-fields" sx={{ py: 2 }}>
+                <TextField fullWidth size="small" type="number" label="VAT rate (%)" inputProps={{ min: 0, max: 100, step: 0.1 }}
+                  value={billingConfig.domiciliary.vat_rate ?? 20}
+                  onChange={(e) => updateDomiciliaryConfig('vat_rate', Math.min(100, Math.max(0, Number(e.target.value || 0))))} />
+                <FormControlLabel sx={{ ml: 0 }} control={<Switch checked={!!billingConfig.domiciliary.vat_inclusive} onChange={(e) => updateDomiciliaryConfig('vat_inclusive', e.target.checked)} />}
+                  label={billingConfig.domiciliary.vat_inclusive ? 'Rates include VAT' : 'Rates exclude VAT'} />
+                <FormControlLabel sx={{ ml: 0 }} control={<Switch checked={billingConfig.domiciliary.travel_time_paid ?? billingConfig.domiciliary.travel_pay_included ?? true} onChange={(e) => updateDomiciliaryConfig('travel_time_paid', e.target.checked)} />}
+                  label="Pay carers for travel time" />
+                <FormControlLabel sx={{ ml: 0 }} control={<Switch checked={billingConfig.domiciliary.pay_inter_client_travel ?? true} onChange={(e) => updateDomiciliaryConfig('pay_inter_client_travel', e.target.checked)} />}
+                  label="Include travel between client visits" />
+              </Box>
+            </SectionCard>
           )}
-        </Paper>
+        </>
       )}
 
-      {isDomiciliary && isOrgAdmin && <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />}
+      {isOrgAdmin && (
+        <PaymentMethodsCard
+          paymentMethods={paymentMethods}
+          onAdd={() => setAddCardOpen(true)}
+          onSetDefault={handleSetDefault}
+          onRemove={setRemoveCardDialog}
+        />
+      )}
 
-      {/* Billing History */}
-      <Paper sx={{ p: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Subscription Billing History</Typography>
-        {invoices.length === 0 ? (
-          <EmptyState title="No invoices yet" description="Billing history will appear here" variant="default" />
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead><TableRow>
-                <TableCell>Invoice</TableCell><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell>Amount</TableCell><TableCell>Status</TableCell><TableCell align="right">Download</TableCell>
-              </TableRow></TableHead>
-              <TableBody>
-                {invoices.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell><Typography variant="body2" fontWeight={600}>{inv.invoice_number}</Typography></TableCell>
-                    <TableCell>{inv.issued_at ? new Date(inv.issued_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</TableCell>
-                    <TableCell>{inv.description}</TableCell>
-                    <TableCell>£{parseFloat(inv.amount).toFixed(2)}</TableCell>
-                    <TableCell><Chip label={String(inv.status || 'open').replace(/_/g, ' ')} size="small" color={inv.status === 'paid' ? 'success' : ['past_due', 'uncollectible'].includes(inv.status) ? 'error' : ['void', 'deleted'].includes(inv.status) ? 'default' : 'warning'} sx={{ textTransform: 'capitalize' }} /></TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        title={`Download ${inv.invoice_number}`}
-                        disabled={downloadingId === inv.id}
-                        onClick={(e) => { e.stopPropagation(); handleDownloadInvoice(inv) }}
-                      >
-                        {downloadingId === inv.id ? <CircularProgress size={16} /> : <DownloadIcon fontSize="small" />}
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+      {!isDomiciliary && (
+        <PlansCard currentPlan={subscription?.plan} isActive={isActive} updating={updating} onSwitch={handleUpgradeClick} />
+      )}
 
-      {/* Add-on Purchase Confirmation */}
-      <Dialog open={!!addonConfirm} onClose={() => setAddonConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Add {addons?.catalog.find(a => a.slug === addonConfirm)?.name}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="#51637A">
-            Add this to your subscription for {addons?.catalog.find(a => a.slug === addonConfirm)?.amountDisplay}?
-            It is billed together with your plan from the next billing date.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddonConfirm(null)}>Cancel</Button>
-          <Button onClick={handleAddonPurchase} variant="contained" disabled={!!addonBusy}>{addonBusy ? 'Adding...' : 'Confirm'}</Button>
-        </DialogActions>
+      {!isDomiciliary && (
+        <AddonsCard
+          addons={addons}
+          isOrgAdmin={isOrgAdmin}
+          isActive={isActive}
+          addonBusy={addonBusy}
+          onPurchase={setAddonConfirm}
+          onCancelAddon={handleAddonCancel}
+        />
+      )}
+
+      <InvoicesCard invoices={invoices} downloadingId={downloadingId} onDownload={handleDownloadInvoice} />
+
+      {invoices.length === 0 && (
+        <Typography className="bill-footnote">Plan, status and prices are from the live account.</Typography>
+      )}
+
+      {isOrgAdmin && <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />}
+
+      <Dialog className="bill-dialog" open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
+        {selectedPlan && (() => {
+          const target = planDef(selectedPlan)
+          const current = planDef(subscription?.plan)
+          const raisingPrice = Number(target?.price || 0) > Number(current?.price || 0)
+          const lost = current ? current.features.filter(feature => !feature.startsWith('Everything in') && !(target?.features || []).includes(feature)) : []
+          const gained = (target?.features || []).filter(feature => !feature.startsWith('Everything in'))
+          const changeDate = formatDate(subscription?.currentPeriodEnd)
+          return (
+            <>
+              <FigDialogHeader
+                eyebrow="BILLING"
+                title={`Switch to ${target?.name || 'this plan'}?`}
+                subtitle={target ? `£${target.price} a month from your next billing date.` : undefined}
+                onClose={() => setConfirmOpen(false)}
+              />
+              <DialogContent sx={{ pt: 1.5 }}>
+                {isActive && lost.length > 0 ? (
+                  <Box className="bill-band">
+                    <Box className="bill-band__icon"><WarningIcon fontSize="small" /></Box>
+                    <Box>
+                      <Typography className="bill-band__title">You’ll lose some features</Typography>
+                      <Typography className="bill-band__copy">{lost.join(', ')}. Your data stays safe.</Typography>
+                    </Box>
+                  </Box>
+                ) : raisingPrice ? (
+                  <Box className="bill-band">
+                    <Box className="bill-band__icon"><CheckIcon fontSize="small" /></Box>
+                    <Box>
+                      <Typography className="bill-band__title">You’ll get more</Typography>
+                      <Typography className="bill-band__copy">{gained.join(', ')}.</Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+                <Typography className="bill-dialog__note">
+                  {isActive
+                    ? `The change starts on ${changeDate || 'your next billing date'}. You can switch back at any time.`
+                    : 'Switching and renewing restores full access immediately.'}
+                </Typography>
+                {!isActive && paymentMethods.length === 0 && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>No payment card on file. Please add a card before renewing.</Alert>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+                <Button variant="contained" className="bill-button bill-button--primary" onClick={handleConfirmUpgrade} disabled={updating || (!isActive && paymentMethods.length === 0)}>
+                  {updating ? <CircularProgress size={18} color="inherit" /> : 'Switch plan'}
+                </Button>
+              </DialogActions>
+            </>
+          )
+        })()}
       </Dialog>
 
-      {/* Remove Card Confirmation */}
-      <Dialog open={!!removeCardDialog} onClose={() => setRemoveCardDialog('')} maxWidth="xs" fullWidth>
-        <DialogTitle>Remove Card</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="#51637A">Are you sure you want to remove this card?</Typography>
+      <Dialog className="bill-dialog" open={!!removeCardDialog} onClose={() => setRemoveCardDialog('')} maxWidth="xs" fullWidth>
+        <FigDialogHeader eyebrow="BILLING" title="Remove this card?" subtitle="Your plan will keep running until its next payment." onClose={() => setRemoveCardDialog('')} />
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography className="bill-dialog__note">If this is the only card on file, add another before the next billing date so the subscription does not lapse.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRemoveCardDialog('')}>Cancel</Button>
@@ -788,25 +887,23 @@ function BillingPageInner() {
         </DialogActions>
       </Dialog>
 
-      {/* Upgrade Confirmation */}
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{!isActive ? 'Switch and Renew' : subscription?.plan && selectedPlan !== subscription.plan ? 'Switch Plan' : 'Change Plan'}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="#51637A">
-            {!isActive
-              ? <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan and renew your subscription?</>
-              : <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan?</>
-            }
+      <Dialog className="bill-dialog" open={!!addonConfirm} onClose={() => setAddonConfirm(null)} maxWidth="xs" fullWidth>
+        <FigDialogHeader
+          eyebrow="BILLING"
+          title={`Add ${addons?.catalog.find(a => a.slug === addonConfirm)?.name || 'this add-on'}?`}
+          onClose={() => setAddonConfirm(null)}
+        />
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography className="bill-dialog__note">
+            Add this to your subscription for {addons?.catalog.find(a => a.slug === addonConfirm)?.amountDisplay}?
+            It is billed together with your plan from the next billing date.
           </Typography>
-          {!isActive && paymentMethods.length === 0 && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              No payment card on file. Please add a card before renewing.
-            </Alert>
-          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirmUpgrade} variant="contained" disabled={updating || (!isActive && paymentMethods.length === 0)}>{updating ? 'Updating...' : (!isActive ? 'Switch and Renew' : 'Confirm')}</Button>
+          <Button onClick={() => setAddonConfirm(null)}>Cancel</Button>
+          <Button onClick={handleAddonPurchase} variant="contained" className="bill-button bill-button--primary" disabled={!!addonBusy}>
+            {addonBusy ? <CircularProgress size={18} color="inherit" /> : 'Confirm'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

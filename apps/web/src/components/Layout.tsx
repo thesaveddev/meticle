@@ -166,7 +166,7 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
-        { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
+        { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'nutrition', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
       ],
     },
     {

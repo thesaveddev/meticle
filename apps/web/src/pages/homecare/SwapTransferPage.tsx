@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  Box, Typography, Paper, Chip, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert,
-  CircularProgress, Autocomplete, Avatar,
+  Box, Typography, Button, Dialog, DialogContent, DialogActions, TextField,
+  FormControl, InputLabel, Select, MenuItem, Alert, CircularProgress, Autocomplete,
 } from '@mui/material'
 import {
   SwapHoriz as SwapIcon,
@@ -12,14 +11,12 @@ import {
   Add as AddIcon,
   Person as PersonIcon,
   AccessTime as TimeIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import { MICA_RECORD_PARAMS } from '@meticle/shared'
-import PageContainer from '../../components/design/PageContainer'
-import { NOTICE_COLORS } from '../../theme/noticeTokens'
+import FigDialogHeader from '../people/dialogHeader'
 import api from '../../services/api'
-import AppButton from '../../components/design/AppButton'
+import './myspace.css'
 
 interface SwapRequest {
   id: string
@@ -41,6 +38,18 @@ function time(v: string) {
   return new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+function initials(name?: string) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '—'
+  return `${parts[0][0]}${parts.length > 1 ? parts[parts.length - 1][0] : ''}`.toUpperCase()
+}
+
+function statusChip(status: string, received: boolean) {
+  if (status === 'pending') return { label: received ? 'Waiting for you' : 'Waiting', className: received ? 'ms-chip--accent' : 'ms-chip--warn' }
+  if (status === 'accepted') return { label: 'Approved', className: 'ms-chip--ok' }
+  return { label: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Declined', className: 'ms-chip--neutral' }
+}
+
 export default function SwapTransferPage() {
   const [requests, setRequests] = useState<SwapRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,6 +62,7 @@ export default function SwapTransferPage() {
   const [targetStaff, setTargetStaff] = useState<any>(null)
   const [reqMessage, setReqMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [myVisits, setMyVisits] = useState<any[]>([])
   const [team, setTeam] = useState<any[]>([])
   // The one request a swap email or a notification can name: `?swap=<id>`, the
@@ -86,13 +96,6 @@ export default function SwapTransferPage() {
   // a colleague is being told about can be in the other half of it — the row is
   // not on screen to be clicked. Guarded by the id, so a refetch cannot re-open a
   // dialog the carer has closed.
-  //
-  // The search is against the requests this caller can see, which is the whole set
-  // the page loads (`listSwapRequests` returns every request visible to them, and
-  // nothing here paginates). There is deliberately no fetch-one fallback: the API
-  // has no single-request read to ask, so a link to a request outside this set is a
-  // link to a request this caller was never given, and a call to a route that does
-  // not exist would only hide that.
   useEffect(() => {
     if (!linkedSwapId || openedLinkedSwapRef.current === linkedSwapId) return
     if (loading) return
@@ -112,8 +115,6 @@ export default function SwapTransferPage() {
     setSearchParams(next, { replace: true })
   }
 
-  // The decisions a pending request waits on, from the detail dialog: the record
-  // closes once the answer has been sent and the list has been reloaded.
   const respondAndClose = async (swapId: string, status: 'accepted' | 'rejected') => {
     await handleRespond(swapId, status)
     closeView()
@@ -123,6 +124,7 @@ export default function SwapTransferPage() {
     if (!selectedVisit) return
     try {
       setSubmitting(true)
+      setSubmitError('')
       await api.post('/homecare/swap-requests', {
         visit_id: selectedVisit.id,
         request_type: requestType,
@@ -136,7 +138,7 @@ export default function SwapTransferPage() {
       setReqMessage('')
       await load()
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Could not submit')
+      setSubmitError(e.response?.data?.message || 'Could not submit')
     } finally { setSubmitting(false) }
   }
 
@@ -155,224 +157,311 @@ export default function SwapTransferPage() {
     return true
   })
 
-  const pending = requests.filter(r => r.status === 'pending')
+  const counts = {
+    all: requests.length,
+    sent: requests.filter(r => r.is_requested_by_me === true).length,
+    received: requests.filter(r => r.is_target_for_me === true).length,
+  }
+  const waitingForMe = requests.filter(r => r.status === 'pending' && r.is_target_for_me === true).length
 
-  if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
+  if (loading) return <Box className="myspace" sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
   return (
-    <PageContainer>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" fontWeight={600} mb={0.5}>Swap & Transfer</Typography>
-          <Typography variant="body2" color="text.secondary">{pending.length} pending request{pending.length !== 1 ? 's' : ''}</Typography>
+    <Box className="myspace">
+      <Typography className="ms-crumbs">My space / Swap &amp; Transfer</Typography>
+
+      <header className="ms-header">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="h1" className="ms-header__title">Swap &amp; Transfer</Typography>
+          <Typography className="ms-header__copy">Ask to swap a shift or visit, or hand it to a colleague.</Typography>
         </Box>
-        <AppButton startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
-          New request
-        </AppButton>
-      </Box>
+        <Box className="ms-header__actions">
+          <Button
+            variant="contained"
+            className="ms-button ms-button--primary"
+            startIcon={<AddIcon />}
+            onClick={() => { setSubmitError(''); setMessage(''); setDialogOpen(true) }}
+          >
+            New request
+          </Button>
+        </Box>
+      </header>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {message && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>{message}</Alert>}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+      {message && <Alert severity="success" onClose={() => setMessage('')}>{message}</Alert>}
 
-      {/* Filter */}
-      <Stack direction="row" alignItems="center" gap={1.5} mb={3}>
-        <FilterIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-        {(['all', 'sent', 'received'] as const).map(f => (
-          <Chip key={f} label={f.charAt(0).toUpperCase() + f.slice(1)} onClick={() => setFilter(f)} variant={filter === f ? 'filled' : 'outlined'} color={filter === f ? 'primary' : 'default'} />
+      <nav className="ms-tabs" aria-label="Request filters">
+        {(['all', 'sent', 'received'] as const).map(value => (
+          <button
+            key={value}
+            type="button"
+            className={`ms-tab${filter === value ? ' ms-tab--active' : ''}`}
+            aria-pressed={filter === value}
+            onClick={() => setFilter(value)}
+          >
+            {value === 'all' ? 'All' : value === 'sent' ? 'Sent' : 'Received'}
+            <span className="ms-tab__count" aria-hidden="true">{counts[value]}</span>
+          </button>
         ))}
-      </Stack>
+      </nav>
 
-      {/* Requests */}
-      {filtered.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center' }} variant="outlined">
-          <SwapIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" mb={1}>No requests</Typography>
-          <Typography color="text.secondary">Swap and transfer requests will appear here.</Typography>
-        </Paper>
-      ) : (
-        <Stack spacing={1.5}>
-          {filtered.map((req: any) => (
-            <Paper key={req.id} variant="outlined" onClick={() => setViewing(req)} sx={{ p: 2.5, borderRadius: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' } }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  {req.request_type === 'swap' ? (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAF3FF', color: '#004085' }}>
-                      <SwapIcon sx={{ fontSize: 18 }} />
-                    </Avatar>
-                  ) : (
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#EAFBF5', color: NOTICE_COLORS.success.fg }}>
-                      <TransferIcon sx={{ fontSize: 18 }} />
-                    </Avatar>
-                  )}
-                  <Chip
-                    label={req.request_type === 'swap' ? 'Swap' : 'Transfer'}
-                    size="small"
-                    color={req.request_type === 'swap' ? 'primary' : 'info'}
-                    sx={{ fontWeight: 600 }}
-                  />
-                  <Chip
-                    label={req.status}
-                    size="small"
-                    color={req.status === 'pending' ? 'warning' : req.status === 'accepted' ? 'success' : 'error'}
-                    sx={{ fontWeight: 600 }}
-                  />
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {new Date(req.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                </Typography>
-              </Box>
+      <section className="ms-card">
+        <div className="ms-card__head">
+          <Typography component="h2" className="ms-card__title">Requests</Typography>
+          <Typography className="ms-card__copy">
+            {waitingForMe > 0 ? `${waitingForMe} waiting for you` : 'Nothing waiting for you'}
+          </Typography>
+        </div>
 
-              <Typography fontWeight={600} mb={0.5}>{req.visit_label}</Typography>
-              <Stack direction="row" alignItems="center" gap={0.5} mb={0.5}>
-                <PersonIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">{req.client_name}</Typography>
-                <TimeIcon sx={{ fontSize: 14, color: 'text.secondary', ml: 1 }} />
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(req.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} {time(req.scheduled_start)}–{time(req.scheduled_end)}
-                </Typography>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                By {req.requested_by_name}{req.target_name ? ` → ${req.target_name}` : ''}
-              </Typography>
-              {req.message && <Typography variant="body2" fontStyle="italic" mt={0.5} color="text.secondary">"{req.message}"</Typography>}
+        {filtered.length === 0 ? (
+          <div style={{ borderTop: '1px solid var(--ms-rule)' }}>
+            <Box className="ms-empty-card" sx={{ border: 0, boxShadow: 'none' }}>
+              <span className="ms-empty__icon"><SwapIcon /></span>
+              <Typography className="ms-empty__title">No requests</Typography>
+              <Typography className="ms-empty__copy">Swap and transfer requests will appear here.</Typography>
+            </Box>
+          </div>
+        ) : (
+          <>
+            <div className="ms-request ms-request--head" aria-hidden="true">
+              <span className="ms-request__col">Request</span>
+              <span className="ms-request__col">With</span>
+              <span className="ms-request__col">Status</span>
+              <span />
+            </div>
+            {filtered.map(req => {
+              const received = req.is_target_for_me === true
+              const chip = statusChip(req.status, received)
+              const otherParty = received ? req.requested_by_name : (req.target_name || 'Any colleague')
+              return (
+                <div
+                  key={req.id}
+                  className="ms-request"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setViewing(req)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setViewing(req)
+                    }
+                  }}
+                >
+                  <div>
+                    <p className="ms-request__title">
+                      <span className="ms-visit__time">{req.request_type === 'swap' ? 'Swap' : 'Transfer'} · </span>
+                      <span>{req.visit_label}</span>
+                    </p>
+                    <p className="ms-request__meta">
+                      {received ? 'Received' : 'Sent'} {req.created_at ? new Date(req.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                      {' · '}
+                      {new Date(req.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {' '}
+                      {time(req.scheduled_start)}–{time(req.scheduled_end)}
+                      {req.client_name ? ` · ${req.client_name}` : ''}
+                    </p>
+                    <p className="ms-request__meta">
+                      By {req.requested_by_name}{req.target_name ? ` → ${req.target_name}` : ''}
+                    </p>
+                  </div>
+                  <div className="ms-request__person">
+                    <span className="ms-avatar" aria-hidden="true">{initials(otherParty)}</span>
+                    <span className="ms-request__name">{otherParty}</span>
+                  </div>
+                  <div className="ms-request__status">
+                    <span className={`ms-chip ${chip.className}`}>{chip.label}</span>
+                  </div>
+                  <div className="ms-request__actions">
+                    <Button
+                      variant="outlined"
+                      className="ms-row-button ms-button--quiet"
+                      onClick={event => { event.stopPropagation(); setViewing(req) }}
+                    >
+                      Review
+                    </Button>
+                    {req.status === 'pending' && received && (
+                      <Button
+                        variant="contained"
+                        className="ms-row-button ms-button--primary"
+                        onClick={event => { event.stopPropagation(); handleRespond(req.id, 'accepted') }}
+                      >
+                        Accept
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </>
+        )}
+      </section>
 
-              {req.status === 'pending' && req.is_target_for_me === true && (
-                <Stack direction="row" spacing={1} mt={1.5}>
-                  <AppButton size="small" startIcon={<AcceptIcon />} onClick={e => { e.stopPropagation(); handleRespond(req.id, 'accepted') }}>Accept</AppButton>
-                  <AppButton variant="danger" size="small" startIcon={<DeclineIcon />} onClick={e => { e.stopPropagation(); handleRespond(req.id, 'rejected') }}>Decline</AppButton>
-                </Stack>
-              )}
-            </Paper>
-          ))}
-        </Stack>
-      )}
+      <Typography className="ms-footnote">Requests you sent and requests sent to you, from the live record.</Typography>
 
       {/* The one request a link or a row names — read-only, with the two answers a
-          request of your own is waiting on. Nothing here edits the request: it is
-          what somebody else asked for, and the only moves are to accept or decline
-          it. */}
-      <Dialog open={Boolean(viewing)} onClose={closeView} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight={600}>
-          {viewing?.request_type === 'transfer' ? 'Transfer request' : 'Swap request'}
-        </DialogTitle>
-        <DialogContent>
-          {viewing && (
-            <Stack spacing={2} mt={1}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Chip
-                  label={viewing.status}
-                  size="small"
-                  color={viewing.status === 'pending' ? 'warning' : viewing.status === 'accepted' ? 'success' : 'error'}
-                  sx={{ fontWeight: 600 }}
-                />
-                {viewing.created_at && (
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(viewing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+          request of your own is waiting on. Nothing here edits the request. */}
+      <Dialog className="ms-dialog" open={Boolean(viewing)} onClose={closeView} maxWidth="sm" fullWidth>
+        {viewing && (
+          <>
+            <FigDialogHeader
+              eyebrow="SWAP & TRANSFER"
+              title={viewing.request_type === 'transfer' ? 'Transfer request' : 'Swap request'}
+              subtitle={`From ${viewing.requested_by_name} · ${viewing.visit_label} · ${new Date(viewing.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} ${time(viewing.scheduled_start)}–${time(viewing.scheduled_end)}`}
+              onClose={closeView}
+            />
+            <DialogContent>
+              <div className="ms-detail">
+                <div className="ms-detail__row">
+                  <span className={`ms-chip ${statusChip(viewing.status, viewing.is_target_for_me === true).className}`}>
+                    {statusChip(viewing.status, viewing.is_target_for_me === true).label}
+                  </span>
+                  {viewing.created_at && (
+                    <Typography component="span" className="ms-request__meta">
+                      {new Date(viewing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                    </Typography>
+                  )}
+                </div>
+                <div className="ms-detail__row">
+                  <PersonIcon className="ms-detail__icon" />
+                  <span>{viewing.client_name}</span>
+                </div>
+                <div className="ms-detail__row">
+                  <TimeIcon className="ms-detail__icon" />
+                  <span>
+                    {new Date(viewing.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} {time(viewing.scheduled_start)}–{time(viewing.scheduled_end)}
+                  </span>
+                </div>
+                <div>
+                  <Typography className="ms-detail__label">Requested by</Typography>
+                  <Typography className="ms-detail__value">
+                    {viewing.requested_by_name}{viewing.target_name ? ` → ${viewing.target_name}` : ''}
+                  </Typography>
+                </div>
+                <Typography className="ms-dialog__note">Your manager can see this request.</Typography>
+                {viewing.message && (
+                  <Typography className="ms-dialog__note" sx={{ fontStyle: 'italic' }}>
+                    “{viewing.message}”
                   </Typography>
                 )}
-              </Stack>
-
-              <Stack spacing={0.5}>
-                <Typography variant="caption" color="text.secondary">Call</Typography>
-                <Typography fontWeight={600}>{viewing.visit_label}</Typography>
-                <Stack direction="row" alignItems="center" gap={0.5}>
-                  <PersonIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">{viewing.client_name}</Typography>
-                  <TimeIcon sx={{ fontSize: 14, color: 'text.secondary', ml: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date(viewing.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} {time(viewing.scheduled_start)}–{time(viewing.scheduled_end)}
-                  </Typography>
-                </Stack>
-              </Stack>
-
-              <Stack spacing={0.5}>
-                <Typography variant="caption" color="text.secondary">Requested by</Typography>
-                <Typography variant="body2">
-                  {viewing.requested_by_name}{viewing.target_name ? ` → ${viewing.target_name}` : ''}
-                </Typography>
-              </Stack>
-
-              {viewing.message && (
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" color="text.secondary">Message</Typography>
-                  <Typography variant="body2" fontStyle="italic">{viewing.message}</Typography>
-                </Stack>
-              )}
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <AppButton variant="quiet" onClick={closeView}>Close</AppButton>
-          {viewing?.status === 'pending' && viewing?.is_target_for_me === true && (
-            <>
-              <AppButton variant="danger" startIcon={<DeclineIcon />} onClick={() => respondAndClose(viewing.id, 'rejected')}>Decline</AppButton>
-              <AppButton startIcon={<AcceptIcon />} onClick={() => respondAndClose(viewing.id, 'accepted')}>Accept</AppButton>
-            </>
-          )}
-        </DialogActions>
+              </div>
+            </DialogContent>
+            {viewing.status === 'pending' && viewing.is_target_for_me === true && (
+              <DialogActions>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeclineIcon />}
+                  onClick={() => respondAndClose(viewing.id, 'rejected')}
+                >
+                  Decline
+                </Button>
+                <Button
+                  variant="contained"
+                  className="ms-button ms-button--primary"
+                  startIcon={<AcceptIcon />}
+                  onClick={() => respondAndClose(viewing.id, 'accepted')}
+                >
+                  Accept
+                </Button>
+              </DialogActions>
+            )}
+          </>
+        )}
       </Dialog>
 
-      {/* New request dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight={600}>New request</DialogTitle>
+      <Dialog className="ms-dialog" open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+        <FigDialogHeader
+          eyebrow="SWAP & TRANSFER"
+          title="New request"
+          subtitle="Ask a colleague to take this call, or hand it over."
+          onClose={() => setDialogOpen(false)}
+        />
         <DialogContent>
-          <Stack spacing={2.5} mt={1}>
-            <FormControl fullWidth>
-              <InputLabel>Request type</InputLabel>
-              <Select value={requestType} label="Request type" onChange={e => setRequestType(e.target.value as any)}>
-                <MenuItem value="swap"><Stack direction="row" alignItems="center" gap={1}><SwapIcon sx={{ fontSize: 18, color: 'primary.main' }} />Swap</Stack></MenuItem>
-                <MenuItem value="transfer"><Stack direction="row" alignItems="center" gap={1}><TransferIcon sx={{ fontSize: 18, color: 'info.main' }} />Transfer</Stack></MenuItem>
-              </Select>
-            </FormControl>
+          {submitError && <Alert severity="error">{submitError}</Alert>}
+          <div className="ms-field-label">Request type</div>
+          <div className="ms-seg" role="group" aria-label="Request type">
+            <button
+              type="button"
+              className={`ms-seg__btn${requestType === 'swap' ? ' ms-seg__btn--on' : ''}`}
+              aria-pressed={requestType === 'swap'}
+              onClick={() => setRequestType('swap')}
+            >
+              <SwapIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />Swap
+            </button>
+            <button
+              type="button"
+              className={`ms-seg__btn${requestType === 'transfer' ? ' ms-seg__btn--on' : ''}`}
+              aria-pressed={requestType === 'transfer'}
+              onClick={() => setRequestType('transfer')}
+            >
+              <TransferIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />Transfer
+            </button>
+          </div>
 
-            <FormControl fullWidth>
-              <InputLabel>Select a call</InputLabel>
-              <Select
-                value={selectedVisit?.id || ''}
-                label="Select a call"
-                displayEmpty
-                renderValue={(value) => {
-                  if (value) {
-                    const visit: any = myVisits.find((v: any) => v.id === value)
-                    return <Typography variant="body2">{visit ? `${visit.label} — ${visit.person_name} · ${new Date(visit.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}` : ''}</Typography>
-                  }
-                  return (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                      {myVisits.length === 0 ? `No calls available to ${requestType}` : 'Select a call'}
-                    </Typography>
-                  )
-                }}
-                onChange={e => setSelectedVisit(myVisits.find((v: any) => v.id === e.target.value) || null)}
-              >
-                {myVisits.length === 0 && (
-                  <MenuItem disabled value=""><em>No calls available to {requestType}</em></MenuItem>
-                )}
-                {myVisits.map((v: any) => (
-                  <MenuItem key={v.id} value={v.id}>
-                    {v.label} — {v.person_name} · {new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <FormControl fullWidth size="small" sx={{ mt: 2.5 }}>
+            <InputLabel>Select a call</InputLabel>
+            <Select
+              value={selectedVisit?.id || ''}
+              label="Select a call"
+              displayEmpty
+              renderValue={(value) => {
+                if (value) {
+                  const visit: any = myVisits.find((v: any) => v.id === value)
+                  return <Typography variant="body2">{visit ? `${visit.label} — ${visit.person_name} · ${new Date(visit.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}` : ''}</Typography>
+                }
+                return (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    {myVisits.length === 0 ? `No calls available to ${requestType}` : 'Select a call'}
+                  </Typography>
+                )
+              }}
+              onChange={e => setSelectedVisit(myVisits.find((v: any) => v.id === e.target.value) || null)}
+            >
+              {myVisits.length === 0 && (
+                <MenuItem disabled value=""><em>No calls available to {requestType}</em></MenuItem>
+              )}
+              {myVisits.map((v: any) => (
+                <MenuItem key={v.id} value={v.id}>
+                  {v.label} — {v.person_name} · {new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
+          <Box sx={{ mt: 2 }}>
             <Autocomplete
               options={team}
               getOptionLabel={(o: any) => `${o.first_name || ''} ${o.last_name || ''}`}
               value={targetStaff}
               onChange={(_, v) => setTargetStaff(v)}
-              renderInput={params => <TextField {...params} label={requestType === 'swap' ? 'Swap with (optional)' : 'Transfer to *'} />}
+              renderInput={params => <TextField {...params} size="small" label={requestType === 'swap' ? 'Swap with (optional)' : 'Transfer to *'} />}
             />
+          </Box>
 
-            <TextField label="Message (optional)" multiline rows={2} value={reqMessage} onChange={e => setReqMessage(e.target.value)} placeholder="Why are you requesting this?" />
-          </Stack>
+          <TextField
+            sx={{ mt: 2 }}
+            label="Message (optional)"
+            size="small"
+            multiline
+            rows={2}
+            fullWidth
+            value={reqMessage}
+            onChange={e => setReqMessage(e.target.value)}
+            placeholder="Why are you requesting this?"
+          />
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <AppButton variant="quiet" onClick={() => setDialogOpen(false)}>Cancel</AppButton>
-          <AppButton loading={submitting} onClick={handleSubmit} disabled={!selectedVisit || (requestType === 'transfer' && !targetStaff)}>
-            Submit
-          </AppButton>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            className="ms-button ms-button--primary"
+            onClick={handleSubmit}
+            disabled={submitting || !selectedVisit || (requestType === 'transfer' && !targetStaff)}
+          >
+            {submitting ? <CircularProgress size={18} color="inherit" /> : 'Submit'}
+          </Button>
         </DialogActions>
       </Dialog>
-    </PageContainer>
+    </Box>
   )
 }

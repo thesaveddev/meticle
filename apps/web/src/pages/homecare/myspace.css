@@ -1,0 +1,697 @@
+/* Figma 11.6 (My Space): My week's metric cards, day cards and visit rows, and
+ * Swap & Transfer's underlined filters and request table. One stylesheet for
+ * the two screens so their chips, cards and spacing cannot drift apart.
+ */
+
+html:has(.myspace),
+body:has(.myspace) {
+  overflow-x: clip;
+}
+
+.myspace {
+  --ms-ink: oklch(24% 0.025 260);
+  --ms-ink-soft: oklch(43% 0.025 260);
+  --ms-muted: oklch(58% 0.025 260);
+  --ms-paper: oklch(100% 0 0);
+  --ms-paper-subtle: oklch(97.6% 0.007 245);
+  --ms-rule: oklch(91% 0.012 250);
+  --ms-rule-strong: oklch(84% 0.02 250);
+  --ms-accent: oklch(48% 0.16 255);
+  --ms-accent-dark: oklch(40% 0.14 255);
+  --ms-accent-soft: oklch(95% 0.035 255);
+  --ms-on-accent: oklch(99% 0.005 255);
+  --ms-positive: oklch(48% 0.11 165);
+  --ms-positive-soft: oklch(95% 0.05 165);
+  --ms-warning: oklch(52% 0.12 70);
+  --ms-warning-soft: oklch(96% 0.045 85);
+  --ms-danger: oklch(50% 0.17 25);
+  --ms-danger-soft: oklch(96% 0.035 25);
+  --ms-radius: 14px;
+  --ms-shadow: 0 1px 2px oklch(20% 0.02 260 / 0.04), 0 10px 24px oklch(20% 0.02 260 / 0.04);
+  min-width: 0;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 3vw, 40px) 48px;
+  color: var(--ms-ink);
+  overflow-x: clip;
+}
+
+.myspace *,
+.myspace *::before,
+.myspace *::after {
+  box-sizing: border-box;
+}
+
+.ms-crumbs {
+  color: var(--ms-accent) !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase;
+  margin-bottom: 6px !important;
+}
+
+.ms-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.ms-header__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ms-ink);
+}
+
+.ms-header__copy {
+  margin: 8px 0 0 !important;
+  color: var(--ms-ink-soft);
+  font-size: 0.95rem;
+}
+
+.ms-header__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.ms-button {
+  border-radius: 10px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  padding: 8px 16px !important;
+  white-space: nowrap;
+}
+
+.ms-button--primary {
+  background: var(--ms-accent) !important;
+  color: var(--ms-on-accent) !important;
+  box-shadow: none !important;
+}
+
+.ms-button--primary:hover {
+  background: var(--ms-accent-dark) !important;
+}
+
+.ms-button--primary.Mui-disabled {
+  background: var(--ms-rule-strong) !important;
+  color: var(--ms-paper) !important;
+}
+
+.ms-button--quiet {
+  border-color: var(--ms-rule-strong) !important;
+  color: var(--ms-ink) !important;
+  background: var(--ms-paper) !important;
+}
+
+.ms-button--quiet:hover {
+  border-color: var(--ms-accent) !important;
+  background: var(--ms-accent-soft) !important;
+}
+
+.myspace .MuiAlert-root {
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+/* ── Week switcher ───────────────────────────────────────── */
+
+.ms-weekbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.ms-weekpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ms-paper);
+  border: 1px solid var(--ms-rule);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: 0 1px 2px oklch(20% 0.02 260 / 0.04);
+}
+
+.ms-weekpill__label {
+  min-width: 150px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ms-ink);
+}
+
+.ms-weekpill__icon {
+  font-size: 18px !important;
+  color: var(--ms-muted);
+}
+
+.ms-icon-button {
+  border-radius: 8px !important;
+  padding: 4px !important;
+  color: var(--ms-ink-soft) !important;
+}
+
+.ms-icon-button:hover {
+  background: var(--ms-accent-soft) !important;
+  color: var(--ms-accent) !important;
+}
+
+/* ── Metric cards ────────────────────────────────────────── */
+
+.ms-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.ms-metric {
+  background: var(--ms-paper);
+  border: 1px solid var(--ms-rule);
+  border-radius: var(--ms-radius);
+  box-shadow: var(--ms-shadow);
+  padding: 18px 20px;
+  min-width: 0;
+}
+
+.ms-metric__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ms-metric__label {
+  color: var(--ms-ink-soft);
+  font-size: 0.85rem;
+}
+
+.ms-metric__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--ms-accent-soft);
+  color: var(--ms-accent);
+  flex-shrink: 0;
+}
+
+.ms-metric__icon--ok {
+  background: var(--ms-positive-soft);
+  color: var(--ms-positive);
+}
+
+.ms-metric__value {
+  margin: 10px 0 0 !important;
+  color: var(--ms-ink);
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.ms-metric__detail {
+  margin: 4px 0 0 !important;
+  color: var(--ms-muted);
+  font-size: 0.8rem;
+}
+
+/* ── Day cards and visit rows ────────────────────────────── */
+
+.ms-days {
+  display: grid;
+  gap: 16px;
+}
+
+.ms-day {
+  background: var(--ms-paper);
+  border: 1px solid var(--ms-rule);
+  border-radius: var(--ms-radius);
+  box-shadow: var(--ms-shadow);
+  overflow: hidden;
+}
+
+.ms-day__title {
+  margin: 0;
+  padding: 16px 20px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ms-ink);
+}
+
+.ms-visit {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ms-rule);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.ms-visit:hover {
+  background: var(--ms-paper-subtle);
+}
+
+.ms-visit:focus-visible {
+  outline: 2px solid var(--ms-accent);
+  outline-offset: -2px;
+}
+
+.ms-visit__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ms-accent-soft);
+  color: var(--ms-accent);
+  flex-shrink: 0;
+}
+
+.ms-visit__icon--done {
+  background: var(--ms-positive-soft);
+  color: var(--ms-positive);
+}
+
+.ms-visit__icon--missed {
+  background: var(--ms-danger-soft);
+  color: var(--ms-danger);
+}
+
+.ms-visit__body {
+  min-width: 0;
+}
+
+.ms-visit__line {
+  margin: 0;
+  font-size: 0.93rem;
+  color: var(--ms-ink);
+  overflow-wrap: anywhere;
+}
+
+.ms-visit__time {
+  color: var(--ms-ink-soft);
+  font-weight: 500;
+}
+
+.ms-visit__name {
+  font-weight: 600;
+}
+
+.ms-visit__meta {
+  margin: 2px 0 0 !important;
+  color: var(--ms-ink-soft);
+  font-size: 0.82rem;
+}
+
+.ms-visit__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.ms-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.ms-chip--ok {
+  background: var(--ms-positive-soft);
+  color: var(--ms-positive);
+}
+
+.ms-chip--accent {
+  background: var(--ms-accent-soft);
+  color: var(--ms-accent);
+}
+
+.ms-chip--warn {
+  background: var(--ms-warning-soft);
+  color: var(--ms-warning);
+}
+
+.ms-chip--danger {
+  background: var(--ms-danger-soft);
+  color: var(--ms-danger);
+}
+
+.ms-chip--neutral {
+  background: var(--ms-paper-subtle);
+  color: var(--ms-ink-soft);
+}
+
+/* ── Empty states ────────────────────────────────────────── */
+
+.ms-empty-card {
+  background: var(--ms-paper);
+  border: 1px solid var(--ms-rule);
+  border-radius: var(--ms-radius);
+  box-shadow: var(--ms-shadow);
+  padding: 44px 24px 40px;
+  text-align: center;
+}
+
+.ms-empty__icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--ms-accent-soft);
+  color: var(--ms-accent);
+}
+
+.ms-empty__title {
+  color: var(--ms-ink);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.ms-empty__copy {
+  color: var(--ms-ink-soft);
+  font-size: 0.88rem;
+  max-width: 420px;
+  margin: 6px auto 0 !important;
+  line-height: 1.6;
+}
+
+.ms-empty__action {
+  margin-top: 16px !important;
+}
+
+.ms-footnote {
+  color: var(--ms-muted);
+  font-size: 0.78rem;
+  margin-top: 16px !important;
+}
+
+/* ── Swap & Transfer ─────────────────────────────────────── */
+
+.ms-tabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--ms-rule);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ms-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ms-tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 2px 12px;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ms-ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ms-tab:hover {
+  color: var(--ms-ink);
+}
+
+.ms-tab--active {
+  color: var(--ms-accent);
+  border-bottom-color: var(--ms-accent);
+  font-weight: 600;
+}
+
+.ms-tab__count {
+  color: var(--ms-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ms-tab--active .ms-tab__count {
+  color: var(--ms-accent);
+}
+
+.ms-card {
+  background: var(--ms-paper);
+  border: 1px solid var(--ms-rule);
+  border-radius: var(--ms-radius);
+  box-shadow: var(--ms-shadow);
+  overflow: hidden;
+}
+
+.ms-card__head {
+  padding: 18px 20px 14px;
+}
+
+.ms-card__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ms-card__copy {
+  margin: 2px 0 0 !important;
+  color: var(--ms-ink-soft);
+  font-size: 0.84rem;
+}
+
+.ms-request {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(130px, 0.9fr) minmax(120px, 0.7fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ms-rule);
+  cursor: pointer;
+}
+
+.ms-request--head {
+  background: var(--ms-paper-subtle);
+  padding: 9px 20px;
+  cursor: default;
+}
+
+.ms-request--head .ms-request__col {
+  color: var(--ms-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.ms-request:hover:not(.ms-request--head) {
+  background: var(--ms-paper-subtle);
+}
+
+.ms-request__title {
+  margin: 0;
+  font-size: 0.93rem;
+  font-weight: 600;
+  color: var(--ms-ink);
+  overflow-wrap: anywhere;
+}
+
+.ms-request__meta {
+  margin: 3px 0 0 !important;
+  color: var(--ms-ink-soft);
+  font-size: 0.81rem;
+}
+
+.ms-request__person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ms-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ms-accent-soft);
+  color: var(--ms-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ms-request__name {
+  color: var(--ms-ink);
+  font-size: 0.87rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-request__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ms-row-button {
+  border-radius: 8px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  padding: 5px 12px !important;
+  min-width: 0 !important;
+  white-space: nowrap;
+}
+
+/* ── Dialogs ─────────────────────────────────────────────── */
+
+.ms-dialog .MuiDialog-paper {
+  border-radius: 16px;
+}
+
+.ms-dialog__note {
+  color: var(--ms-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.ms-detail {
+  display: grid;
+  gap: 8px;
+}
+
+.ms-detail__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ms-ink);
+  font-size: 0.9rem;
+}
+
+.ms-detail__label {
+  color: var(--ms-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px !important;
+}
+
+.ms-detail__value {
+  color: var(--ms-ink);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ms-detail__icon {
+  font-size: 18px !important;
+  color: var(--ms-muted);
+  margin-top: 2px;
+}
+
+.ms-field-label {
+  display: block;
+  color: var(--ms-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 7px !important;
+}
+
+.ms-seg {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ms-seg__btn {
+  appearance: none;
+  border: 1px solid var(--ms-rule-strong);
+  background: var(--ms-paper);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--ms-ink);
+  cursor: pointer;
+}
+
+.ms-seg__btn--on {
+  border-color: var(--ms-accent);
+  color: var(--ms-accent);
+  background: var(--ms-accent-soft);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .myspace {
+    padding: 20px 14px 40px;
+  }
+
+  .ms-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ms-request {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .ms-request--head {
+    display: none;
+  }
+
+  .ms-request__person,
+  .ms-request__status {
+    grid-column: 1;
+  }
+
+  .ms-request__actions {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-items: center;
+  }
+
+  .ms-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ms-header__actions {
+    padding-top: 0;
+  }
+
+  .ms-visit {
+    grid-template-columns: 32px minmax(0, 1fr);
+    padding: 12px 16px;
+  }
+
+  .ms-visit__actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

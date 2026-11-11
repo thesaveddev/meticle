@@ -1,0 +1,728 @@
+/* Hallmark · macrostructure: Directory · tone: calm/clinical · anchor hue: navy
+ * Figma 6.1 (Care › People): eyebrow + title with a location pill and Add person,
+ * underlined status tabs, four metric cards, then one work card holding the
+ * filters and the table. Colour carries status only; the surface is the paper.
+ *
+ * The token block is deliberately the same one Settings, Expenses, Billing and My
+ * Space use, so this page stops reading as a different product beside them.
+ */
+
+html:has(.people-page),
+body:has(.people-page) {
+  overflow-x: clip;
+}
+
+.people-page {
+  --pl-ink: oklch(24% 0.025 260);
+  --pl-ink-soft: oklch(43% 0.025 260);
+  --pl-muted: oklch(58% 0.025 260);
+  --pl-paper: oklch(100% 0 0);
+  --pl-paper-subtle: oklch(97.6% 0.007 245);
+  --pl-rule: oklch(91% 0.012 250);
+  --pl-rule-strong: oklch(84% 0.02 250);
+  --pl-accent: oklch(48% 0.16 255);
+  --pl-accent-dark: oklch(40% 0.14 255);
+  --pl-accent-soft: oklch(95% 0.035 255);
+  --pl-on-accent: oklch(99% 0.005 255);
+  --pl-positive: oklch(48% 0.11 165);
+  --pl-positive-soft: oklch(95% 0.05 165);
+  --pl-warning: oklch(55% 0.12 75);
+  --pl-warning-soft: oklch(96% 0.045 85);
+  --pl-danger: oklch(50% 0.17 25);
+  --pl-danger-soft: oklch(96% 0.035 25);
+  --pl-radius: 14px;
+  --pl-shadow: 0 1px 2px oklch(20% 0.02 260 / 0.04), 0 10px 24px oklch(20% 0.02 260 / 0.04);
+  min-width: 0;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 3vw, 40px) 48px;
+  color: var(--pl-ink);
+  overflow-x: clip;
+}
+
+.people-page *,
+.people-page *::before,
+.people-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+.pl-crumbs {
+  color: var(--pl-accent) !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase;
+  margin-bottom: 6px !important;
+}
+
+.pl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+
+.pl-header__title {
+  margin: 0;
+  color: var(--pl-ink);
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.pl-header__copy {
+  margin: 8px 0 0 !important;
+  color: var(--pl-ink-soft);
+  font-size: 0.95rem;
+  max-width: 640px;
+}
+
+.pl-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.pl-button {
+  border-radius: 10px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  padding: 8px 16px !important;
+  white-space: nowrap;
+}
+
+.pl-button--primary {
+  background: var(--pl-accent) !important;
+  color: var(--pl-on-accent) !important;
+  box-shadow: none !important;
+}
+
+.pl-button--primary:hover {
+  background: var(--pl-accent-dark) !important;
+}
+
+.pl-button--quiet {
+  border-color: var(--pl-rule-strong) !important;
+  color: var(--pl-ink) !important;
+  background: var(--pl-paper) !important;
+}
+
+.pl-button--quiet:hover {
+  border-color: var(--pl-accent) !important;
+  background: var(--pl-accent-soft) !important;
+}
+
+/* The location pill in the header. */
+.pl-select .MuiOutlinedInput-root {
+  border-radius: 999px;
+  background: var(--pl-paper);
+  font-size: 0.9rem;
+  min-width: 190px;
+  height: 42px;
+}
+
+.pl-select .MuiOutlinedInput-notchedOutline {
+  border-color: var(--pl-rule) !important;
+}
+
+.pl-select .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--pl-rule-strong) !important;
+}
+
+.pl-select .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--pl-accent) !important;
+}
+
+.pl-select .MuiInputAdornment-root .MuiSvgIcon-root {
+  font-size: 18px;
+  color: var(--pl-accent);
+}
+
+.pl-select .MuiSelect-select {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* ── Underlined status tabs ──────────────────────────────── */
+
+.pl-tabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--pl-rule);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pl-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pl-tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 9px 2px 11px;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--pl-ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl-tab:hover {
+  color: var(--pl-ink);
+}
+
+.pl-tab--active {
+  color: var(--pl-accent);
+  border-bottom-color: var(--pl-accent);
+  font-weight: 600;
+}
+
+.pl-tab__count {
+  color: var(--pl-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pl-tab--active .pl-tab__count {
+  color: var(--pl-accent);
+}
+
+/* ── Metric cards ────────────────────────────────────────── */
+
+.pl-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pl-metric {
+  background: var(--pl-paper);
+  border: 1px solid var(--pl-rule);
+  border-radius: var(--pl-radius);
+  box-shadow: var(--pl-shadow);
+  padding: 16px 18px 18px;
+  min-width: 0;
+}
+
+.pl-metric__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pl-metric__label {
+  color: var(--pl-ink-soft);
+  font-size: 0.85rem;
+}
+
+.pl-metric__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--pl-accent-soft);
+  color: var(--pl-accent);
+  flex-shrink: 0;
+}
+
+.pl-metric__icon--danger {
+  background: var(--pl-danger-soft);
+  color: var(--pl-danger);
+}
+
+.pl-metric__value {
+  margin: 14px 0 0 !important;
+  color: var(--pl-ink);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-metric__value--danger {
+  color: var(--pl-danger);
+}
+
+.pl-metric__detail {
+  margin: 6px 0 0 !important;
+  color: var(--pl-muted);
+  font-size: 0.8rem;
+}
+
+/* ── Work card ───────────────────────────────────────────── */
+
+.pl-card {
+  background: var(--pl-paper);
+  border: 1px solid var(--pl-rule);
+  border-radius: var(--pl-radius);
+  box-shadow: var(--pl-shadow);
+  overflow: hidden;
+}
+
+.pl-card__head {
+  padding: 18px 20px 14px;
+}
+
+.pl-card__title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pl-ink);
+}
+
+.pl-card__copy {
+  margin: 3px 0 0 !important;
+  color: var(--pl-ink-soft);
+  font-size: 0.85rem;
+}
+
+.pl-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 0 20px 16px;
+}
+
+.pl-search {
+  flex: 1 1 280px;
+  max-width: 360px;
+}
+
+.pl-search .MuiOutlinedInput-root {
+  border-radius: 999px;
+  background: var(--pl-paper);
+  font-size: 0.88rem;
+  height: 40px;
+}
+
+.pl-search .MuiOutlinedInput-notchedOutline {
+  border-color: var(--pl-rule) !important;
+}
+
+.pl-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--pl-accent) !important;
+}
+
+.pl-filters .pl-select .MuiOutlinedInput-root {
+  height: 40px;
+  min-width: 170px;
+  font-size: 0.86rem;
+}
+
+.pl-clear {
+  color: var(--pl-ink-soft) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  padding: 6px 10px !important;
+}
+
+.pl-clear:hover {
+  background: var(--pl-accent-soft) !important;
+  color: var(--pl-accent) !important;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+
+.pl-tablewrap {
+  border-top: 1px solid var(--pl-rule);
+}
+
+.pl-table {
+  border-collapse: collapse;
+}
+
+.pl-table .MuiTableCell-root {
+  border-bottom: 1px solid var(--pl-rule);
+  padding: 12px 14px;
+  font-size: 0.87rem;
+  color: var(--pl-ink);
+}
+
+.pl-table thead .MuiTableCell-root {
+  background: var(--pl-paper-subtle);
+  color: var(--pl-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pl-rule);
+}
+
+.pl-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pl-row:hover {
+  background: var(--pl-paper-subtle);
+}
+
+.pl-row:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: -2px;
+}
+
+.pl-table tbody tr:last-child .MuiTableCell-root {
+  border-bottom: 0;
+}
+
+.pl-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pl-person__avatar.MuiAvatar-root {
+  width: 32px;
+  height: 32px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--pl-accent-soft);
+  color: var(--pl-accent);
+  flex-shrink: 0;
+}
+
+.pl-person__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--pl-ink);
+  line-height: 1.25;
+}
+
+.pl-person__meta {
+  color: var(--pl-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.pl-muted {
+  color: var(--pl-muted) !important;
+}
+
+.pl-nhs {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.pl-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--pl-ink-soft);
+}
+
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pl-chip--ok {
+  background: var(--pl-positive-soft);
+  color: var(--pl-positive);
+}
+
+.pl-chip--danger {
+  background: var(--pl-danger-soft);
+  color: var(--pl-danger);
+}
+
+.pl-chip--neutral {
+  background: var(--pl-paper-subtle);
+  color: var(--pl-ink-soft);
+  border: 1px solid var(--pl-rule);
+}
+
+.pl-statusstack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.pl-statusstack__date {
+  color: var(--pl-muted);
+  font-size: 0.74rem;
+}
+
+.pl-table .MuiCheckbox-root {
+  color: var(--pl-rule-strong);
+  padding: 4px;
+}
+
+.pl-table .MuiCheckbox-root.Mui-checked {
+  color: var(--pl-accent);
+}
+
+.pl-pagination.MuiTablePagination-root {
+  border-top: 1px solid var(--pl-rule);
+  background: var(--pl-paper);
+  color: var(--pl-ink-soft);
+  font-size: 0.84rem;
+}
+
+.pl-pagination .MuiTablePagination-toolbar {
+  min-height: 52px;
+  padding-left: 20px;
+  padding-right: 14px;
+}
+
+.pl-pagination .MuiTablePagination-selectLabel,
+.pl-pagination .MuiTablePagination-displayedRows {
+  font-size: 0.82rem;
+  color: var(--pl-muted);
+  margin: 0;
+}
+
+/* ── Empty states ────────────────────────────────────────── */
+
+.pl-empty {
+  padding: 46px 24px 50px;
+  text-align: center;
+}
+
+.pl-empty__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--pl-accent-soft);
+  color: var(--pl-accent);
+}
+
+.pl-empty__title {
+  color: var(--pl-ink);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.pl-empty__copy {
+  color: var(--pl-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  max-width: 430px;
+  margin: 6px auto 0 !important;
+}
+
+.pl-empty__action {
+  margin-top: 18px !important;
+}
+
+/* ── Dialogs ─────────────────────────────────────────────── */
+
+.pl-dialog .MuiDialog-paper {
+  border-radius: 16px;
+}
+
+.pl-dialog .MuiOutlinedInput-root {
+  border-radius: 10px;
+}
+
+.pl-dialog .MuiButton-root {
+  text-transform: none;
+  font-weight: 600;
+}
+
+.pl-dialog__note {
+  color: var(--pl-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* ── Wizard ──────────────────────────────────────────────── */
+
+.pl-steps {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+
+.pl-step {
+  flex: 1;
+  cursor: pointer;
+}
+
+.pl-step__bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pl-rule);
+  margin-bottom: 6px;
+}
+
+.pl-step__bar--on {
+  background: var(--pl-accent);
+}
+
+.pl-step__label {
+  color: var(--pl-muted) !important;
+  font-size: 0.74rem !important;
+  line-height: 1.3;
+}
+
+.pl-step__label--on {
+  color: var(--pl-accent) !important;
+  font-weight: 600 !important;
+}
+
+.pl-pill {
+  appearance: none;
+  border: 1px solid var(--pl-rule-strong);
+  background: var(--pl-paper);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--pl-ink);
+  cursor: pointer;
+  text-transform: none;
+}
+
+.pl-pill:hover {
+  border-color: var(--pl-accent);
+}
+
+.pl-pill--on {
+  border-color: var(--pl-accent);
+  color: var(--pl-accent);
+  background: var(--pl-accent-soft);
+  font-weight: 600;
+}
+
+.pl-field-label {
+  display: block;
+  color: var(--pl-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 7px !important;
+}
+
+.pl-field-hint {
+  color: var(--pl-muted);
+  font-size: 0.74rem;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.pl-dialog__cancel {
+  color: var(--pl-ink-soft) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .pl-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .people-page {
+    padding: 20px 14px 40px;
+  }
+
+  .pl-header {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .pl-header__actions {
+    width: 100%;
+    justify-content: stretch;
+    padding-top: 0;
+  }
+
+  .pl-header__actions .pl-select {
+    flex: 1 1 auto;
+  }
+
+  .pl-header__actions .pl-select .MuiOutlinedInput-root {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pl-header__actions .pl-button--primary {
+    flex: 1 1 100%;
+  }
+
+  .pl-tabs {
+    gap: 20px;
+  }
+
+  .pl-card__head {
+    padding: 16px 16px 12px;
+  }
+
+  .pl-filters {
+    padding: 0 16px 14px;
+  }
+
+  .pl-search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .pl-table thead {
+    display: none;
+  }
+
+  .pl-table .pl-col-check,
+  .pl-table .pl-col-dob,
+  .pl-table .pl-col-nhs,
+  .pl-table .pl-col-plans,
+  .pl-table .pl-col-status {
+    display: none;
+  }
+
+  .pl-table .MuiTableCell-root {
+    padding: 12px 10px;
+  }
+
+  .pl-table .pl-col-person {
+    padding-left: 16px;
+  }
+
+  .pl-table .pl-col-risks {
+    padding-right: 16px;
+    text-align: right;
+  }
+
+  .pl-pagination .MuiTablePagination-toolbar {
+    padding-left: 12px;
+    padding-right: 8px;
+  }
+}
