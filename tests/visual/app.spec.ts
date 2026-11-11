@@ -83,7 +83,7 @@ const ORGANIZATION = {
  * part of the frame, which is the failure mode this file exists to avoid.
  */
 const MODULES = [
-  'dashboard', 'people', 'care', 'staffing', 'medication', 'emedication', 'tasks',
+  'dashboard', 'people', 'care', 'staffing', 'medication', 'emedication', 'nutrition', 'tasks',
   'staff_directory', 'leave', 'billing', 'compliance', 'reporting', 'incidents',
   'training', 'finance', 'communication', 'my_space', 'settings',
 ]
