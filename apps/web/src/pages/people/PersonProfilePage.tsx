@@ -1193,7 +1193,7 @@ export default function PersonProfilePage() {
       )}
 
       {/* Tab: Timeline */}
-      {tab === 1 && <TimelineTab personId={id!} />}
+      {tab === 1 && (<Box className="p-card"><TimelineTab personId={id!} /></Box>)}
 
       {/* Tab: Care Plans */}
       {tab === 2 && (
@@ -1441,7 +1441,7 @@ export default function PersonProfilePage() {
 
       {/* Tab: Family & Contacts (with portal access status) */}
       {tab === 5 && (
-        <Box>
+        <Box className="p-card">
           <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 1 }}>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>Family & contacts</Typography>
@@ -1549,16 +1549,16 @@ export default function PersonProfilePage() {
       )}
 
       {/* Tab: Health */}
-      {tab === 6 && <HealthTab personId={id!} fluidTarget={user?.fluid_daily_target} />}
+      {tab === 6 && (<Box className="p-card"><HealthTab personId={id!} fluidTarget={user?.fluid_daily_target} /></Box>)}
 
       {/* Tab: Nutrition */}
-      {tab === 21 && <NutritionTab personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : undefined} />}
+      {tab === 21 && (<Box className="p-card"><NutritionTab personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : undefined} /></Box>)}
 
       {/* Tab: Body Map */}
-      {tab === 7 && <BodyMapTab personId={id!} />}
+      {tab === 7 && (<Box className="p-card"><BodyMapTab personId={id!} /></Box>)}
 
       {/* Tab: Memory Book */}
-      {tab === 8 && <MemoryBookTab personId={id!} />}
+      {tab === 8 && (<Box className="p-card"><MemoryBookTab personId={id!} /></Box>)}
 
       {/* Tab: Goals */}
       {tab === 9 && (<Box className="p-card"><GoalsPage embedded personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} carePlans={user?.care_plans} /></Box>)}
@@ -1567,38 +1567,38 @@ export default function PersonProfilePage() {
       {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
 
       {/* Tab: Room Checks */}
-      {tab === 11 && <RoomChecksTab roomNumber={user.room_number} locationId={user.location_id || null} />}
+      {tab === 11 && (<Box className="p-card"><RoomChecksTab roomNumber={user.room_number} locationId={user.location_id || null} /></Box>)}
 
       {/* Tab: Clinical Scores */}
-      {tab === 12 && <ClinicalScoresTab personId={id!} />}
+      {tab === 12 && (<Box className="p-card"><ClinicalScoresTab personId={id!} /></Box>)}
 
       {/* Tab: Documents */}
-      {tab === 13 && <DocumentsTab personId={id!} />}
+      {tab === 13 && (<Box className="p-card"><DocumentsTab personId={id!} /></Box>)}
 
       {/* Tab: Wellbeing */}
-      {tab === 14 && <WellbeingTabInline personId={id!} />}
+      {tab === 14 && (<Box className="p-card"><WellbeingTabInline personId={id!} /></Box>)}
 
       {/* Tab: Communication Log */}
-      {tab === 15 && <CommunicationLogTabInline personId={id!} />}
+      {tab === 15 && (<Box className="p-card"><CommunicationLogTabInline personId={id!} /></Box>)}
 
       {/* Tab: MCA / Capacity */}
-      {tab === 16 && <CapacityMcaTabInline personId={id!} />}
+      {tab === 16 && (<Box className="p-card"><CapacityMcaTabInline personId={id!} /></Box>)}
 
       {/* Tab: Care Pathways */}
       {tab === 17 && <CarePathwaysTabInline personId={id!} />}
 
       {/* Tab: Time Away */}
-      {tab === 18 && <TimeAwayTabInline personId={id!} />}
+      {tab === 18 && (<Box className="p-card"><TimeAwayTabInline personId={id!} /></Box>)}
 
       {/* Tab: Mood Chart */}
-      {tab === 19 && <MoodChartTabInline personId={id!} />}
+      {tab === 19 && (<Box className="p-card"><MoodChartTabInline personId={id!} /></Box>)}
 
       {/* Tab: Audit Trail */}
-      {tab === 20 && <AuditTrailTabInline personId={id!} />}
+      {tab === 20 && (<Box className="p-card"><AuditTrailTabInline personId={id!} /></Box>)}
 
       {/* Tab: Billing & Rates */}
       {tab === 22 && (
-        <BillingRatesTabInline personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} />
+        <Box className="p-card"><BillingRatesTabInline personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} /></Box>
       )}
 
       {/* Edit Dialog */}

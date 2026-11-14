@@ -44,7 +44,7 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, icon, subtitle, action, accent = NAVY }: SectionHeaderProps) {
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 2, minHeight: 36 }}>
+    <Stack className="p-section-head" direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 2, minHeight: 36 }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
         {icon && <Box sx={{ display: 'flex', color: accent, flexShrink: 0 }}>{icon}</Box>}
         <Box sx={{ minWidth: 0 }}>
