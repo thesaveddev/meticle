@@ -1,0 +1,565 @@
+/* Figma 6.2–6.3 (People › Profile): one card per subject, a pill category switch,
+ * an underlined child-tab strip, and rows that read as records rather than as
+ * MUI defaults. The token block is the same one Settings, Expenses, Billing,
+ * People and My Space use, so the profile no longer looks like a different app.
+ */
+
+html:has(.person-page),
+body:has(.person-page) {
+  overflow-x: clip;
+}
+
+.person-page {
+  --p-ink: oklch(24% 0.025 260);
+  --p-ink-soft: oklch(43% 0.025 260);
+  --p-muted: oklch(58% 0.025 260);
+  --p-paper: oklch(100% 0 0);
+  --p-paper-subtle: oklch(97.6% 0.007 245);
+  --p-rule: oklch(91% 0.012 250);
+  --p-rule-strong: oklch(84% 0.02 250);
+  --p-accent: oklch(48% 0.16 255);
+  --p-accent-dark: oklch(40% 0.14 255);
+  --p-accent-soft: oklch(95% 0.035 255);
+  --p-on-accent: oklch(99% 0.005 255);
+  --p-positive: oklch(48% 0.11 165);
+  --p-positive-soft: oklch(95% 0.05 165);
+  --p-warning: oklch(55% 0.12 75);
+  --p-warning-soft: oklch(96% 0.045 85);
+  --p-danger: oklch(50% 0.17 25);
+  --p-danger-soft: oklch(96% 0.035 25);
+  --p-radius: 14px;
+  --p-shadow: 0 1px 2px oklch(20% 0.02 260 / 0.04), 0 10px 24px oklch(20% 0.02 260 / 0.04);
+  min-width: 0;
+  width: 100%;
+  color: var(--p-ink);
+}
+
+.person-page *,
+.person-page *::before,
+.person-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Shared MUI normalisation ────────────────────────────── */
+
+.person-page .MuiPaper-root {
+  border-color: var(--p-rule) !important;
+  border-radius: var(--p-radius) !important;
+}
+
+.person-page .MuiTableCell-root {
+  border-bottom-color: var(--p-rule);
+  font-size: 0.87rem;
+  color: var(--p-ink);
+}
+
+.person-page .MuiTableHead-root .MuiTableCell-root {
+  background: var(--p-paper-subtle);
+  color: var(--p-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.person-page .MuiTableRow-root:hover {
+  background: var(--p-paper-subtle);
+}
+
+.person-page .MuiChip-root {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.person-page .MuiChip-outlined {
+  border-color: transparent;
+  background: var(--p-paper-subtle);
+  color: var(--p-ink-soft);
+}
+
+.person-page .MuiButton-contained,
+.person-page .MuiButton-containedPrimary {
+  background: var(--p-accent) !important;
+  color: var(--p-on-accent) !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+}
+
+.person-page .MuiButton-contained:hover,
+.person-page .MuiButton-containedPrimary:hover {
+  background: var(--p-accent-dark) !important;
+}
+
+.person-page .MuiButton-outlined {
+  border-color: var(--p-rule-strong) !important;
+  color: var(--p-ink) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  background: var(--p-paper) !important;
+}
+
+.person-page .MuiTabs-indicator {
+  background: var(--p-accent) !important;
+  height: 2px !important;
+}
+
+.person-page .MuiTab-root {
+  text-transform: none;
+  color: var(--p-ink-soft);
+  font-weight: 500;
+}
+
+.person-page .MuiTab-root.Mui-selected {
+  color: var(--p-accent);
+}
+
+.person-page .MuiLinearProgress-root {
+  border-radius: 999px;
+  background: var(--p-rule) !important;
+}
+
+.person-page .MuiLinearProgress-bar {
+  border-radius: 999px;
+  background: var(--p-accent) !important;
+}
+
+/* ── Header (Figma 6.2) ──────────────────────────────────── */
+
+.p-header {
+  border: 1px solid var(--p-rule) !important;
+  border-radius: var(--p-radius) !important;
+  box-shadow: var(--p-shadow) !important;
+  background: var(--p-paper) !important;
+}
+
+.p-header .MuiChip-root {
+  height: 26px;
+}
+
+.p-header .MuiChip-outlined {
+  background: var(--p-paper-subtle);
+  color: var(--p-ink-soft);
+}
+
+/* Category switch: pills on the page, not a filled toolbar. */
+.person-cat {
+  color: var(--p-ink-soft);
+}
+
+.person-cat--on {
+  background: var(--p-paper) !important;
+  color: var(--p-accent) !important;
+  box-shadow: 0 1px 2px oklch(20% 0.02 260 / 0.06);
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+
+.p-card {
+  background: var(--p-paper);
+  border: 1px solid var(--p-rule);
+  border-radius: var(--p-radius);
+  box-shadow: var(--p-shadow);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.p-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.p-card__title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--p-ink);
+}
+
+.p-card__copy {
+  margin: 3px 0 0 !important;
+  color: var(--p-ink-soft);
+  font-size: 0.85rem;
+}
+
+.p-btn {
+  border-radius: 10px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+}
+
+.p-ai-button {
+  background: oklch(96% 0.03 290) !important;
+  color: oklch(52% 0.15 290) !important;
+  border-radius: 10px !important;
+}
+
+.p-ai-button:hover {
+  background: oklch(93% 0.045 290) !important;
+}
+
+/* ── Filters ─────────────────────────────────────────────── */
+
+.p-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 18px;
+}
+
+.p-filter .MuiOutlinedInput-root {
+  border-radius: 999px;
+  height: 38px;
+  font-size: 0.86rem;
+  background: var(--p-paper);
+}
+
+.p-filter .MuiOutlinedInput-notchedOutline {
+  border-color: var(--p-rule) !important;
+}
+
+.p-filter .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--p-accent) !important;
+}
+
+.p-filter .MuiInputLabel-root {
+  font-size: 0.86rem;
+}
+
+/* ── Daily notes ─────────────────────────────────────────── */
+
+.p-note-groups {
+  display: grid;
+  gap: 18px;
+}
+
+.p-note-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.p-note-group__title {
+  color: var(--p-ink);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.p-note-group__count {
+  color: var(--p-muted);
+  font-size: 0.8rem;
+}
+
+.p-note {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--p-rule);
+  padding: 12px 2px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.p-note:hover {
+  background: var(--p-paper-subtle);
+}
+
+.p-note:focus-visible {
+  outline: 2px solid var(--p-accent);
+  outline-offset: 2px;
+}
+
+.p-note__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--p-accent-soft);
+  color: var(--p-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.p-note__body {
+  min-width: 0;
+}
+
+.p-note__title {
+  display: block;
+  color: var(--p-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-note__meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--p-ink-soft);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.p-chip--ok {
+  background: var(--p-positive-soft);
+  color: var(--p-positive);
+}
+
+.p-chip--warn {
+  background: var(--p-warning-soft);
+  color: var(--p-warning);
+}
+
+.p-chip--danger {
+  background: var(--p-danger-soft);
+  color: var(--p-danger);
+}
+
+.p-chip--neutral {
+  background: var(--p-accent-soft);
+  color: var(--p-accent);
+}
+
+.p-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 30px 0 20px;
+}
+
+.p-empty__copy {
+  color: var(--p-muted) !important;
+  font-size: 0.9rem;
+}
+
+/* ── Goals (Figma 6.3) ────────────────────────────────────── */
+
+.p-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.p-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--p-rule);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--p-paper);
+}
+
+.p-goal__icon,
+.p-path__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--p-accent-soft);
+  color: var(--p-accent);
+  flex: none;
+}
+
+.p-goal__title {
+  color: var(--p-ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.p-goal__copy {
+  color: var(--p-ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.p-goal__bar {
+  margin-top: 4px;
+}
+
+.p-goal__bar .MuiLinearProgress-root {
+  flex: 1;
+  height: 6px;
+  background: var(--p-rule) !important;
+}
+
+.p-goal__pct {
+  min-width: 34px;
+  text-align: right;
+  color: var(--p-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.p-goal__meta {
+  color: var(--p-muted);
+  font-size: 0.76rem;
+}
+
+.p-goal__foot {
+  margin-top: auto;
+  padding-top: 8px;
+  gap: 8px;
+}
+
+.p-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--p-accent);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.p-link:hover {
+  color: var(--p-accent-dark);
+  text-decoration: underline;
+}
+
+.p-cell-title {
+  color: var(--p-ink) !important;
+  font-size: 0.87rem !important;
+  font-weight: 600 !important;
+  text-transform: capitalize;
+}
+
+.p-cell-sub {
+  color: var(--p-ink-soft) !important;
+  font-size: 0.78rem !important;
+}
+
+.p-due {
+  color: var(--p-ink-soft) !important;
+  font-size: 0.85rem !important;
+}
+
+.p-due--late {
+  color: var(--p-danger) !important;
+  font-weight: 600 !important;
+}
+
+.p-card__foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--p-rule);
+  color: var(--p-muted);
+}
+
+/* ── Care pathways (Figma 6.3) ────────────────────────────── */
+
+.p-list {
+  display: grid;
+}
+
+.p-path {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 2px;
+  border-top: 1px solid var(--p-rule);
+  cursor: pointer;
+  text-align: left;
+}
+
+.p-path:first-child {
+  border-top: 0;
+}
+
+.p-path:hover {
+  background: var(--p-paper-subtle);
+}
+
+.p-path:focus-visible {
+  outline: 2px solid var(--p-accent);
+  outline-offset: 2px;
+}
+
+.p-path__title {
+  color: var(--p-ink);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.p-path__meta {
+  color: var(--p-ink-soft);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .p-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .p-card {
+    padding: 16px;
+  }
+
+  .p-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .p-note {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .p-note__avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.62rem;
+  }
+
+  .p-note__title,
+  .p-note__meta {
+    white-space: normal;
+  }
+}

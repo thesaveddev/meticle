@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ElementType } from 'react'
 import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert, Collapse, Divider, Tooltip, Checkbox, FormControlLabel } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon, FavoriteBorder as HeartIcon, PlaceOutlined as PlaceIcon, DescriptionOutlined as NoteIcon, FlagOutlined as FlagIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import FigDialogHeader, { PillOptions } from '../people/dialogHeader'
@@ -54,7 +54,7 @@ function freqLabel(f: string) {
   return m[f] || f
 }
 
-export default function GoalsPage({ personId, personName, carePlans }: { personId?: string; personName?: string; carePlans?: any[] }) {
+export default function GoalsPage({ personId, personName, carePlans, embedded = false }: { personId?: string; personName?: string; carePlans?: any[]; embedded?: boolean }) {
   const [searchParams] = useSearchParams()
   const preselectedSu = personId || searchParams.get('su') || ''
   const preselectedPersonName = personName || ''
@@ -83,6 +83,8 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
   const { showSnackbar } = useSnackbar()
   const eyebrow = preselectedPersonName ? `${preselectedPersonName.toUpperCase()} / CARE` : 'GOAL / CARE'
   const carePlanList = carePlans || []
+  // Embedded on the person profile the page is one card of goal cards, not a table.
+  const Shell = (embedded ? Box : PageContainer) as ElementType
 
   const fetchGoals = async () => {
     setFetchError('')
@@ -227,12 +229,80 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
     return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 600, fontSize: '0.7rem' }} />
   }
 
+  const goalIcon = (g: Goal) => {
+    const category = (g.goal_category || '').toLowerCase()
+    if (category.includes('health') || category.includes('wellbeing')) return <HeartIcon sx={{ fontSize: 18 }} />
+    if (category.includes('independence') || category.includes('mobility')) return <PlaceIcon sx={{ fontSize: 18 }} />
+    if (category.includes('education') || category.includes('communication')) return <NoteIcon sx={{ fontSize: 18 }} />
+    return <FlagIcon sx={{ fontSize: 18 }} />
+  }
+
+  const goalDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+
+  const renderGoalCards = () => (
+    <Box className="p-grid">
+      {goals.length === 0 ? (
+        <Box className="p-empty">
+          <Typography className="p-empty__copy">No goals yet</Typography>
+        </Box>
+      ) : goals.map(g => (
+        <Box key={g.id} className="p-goal">
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Box className="p-goal__icon">{goalIcon(g)}</Box>
+            <Stack direction="row" spacing={0} onClick={e => e.stopPropagation()}>
+              <IconButton size="small" aria-label={'Edit ' + g.title} onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
+              <IconButton size="small" color="error" aria-label={'Delete ' + g.title} onClick={() => setDeleteGoalId(g.id)}><DeleteIcon fontSize="small" /></IconButton>
+            </Stack>
+          </Stack>
+          <Typography className="p-goal__title">{g.title}</Typography>
+          {g.description && <Typography className="p-goal__copy">{g.description}</Typography>}
+          <Stack direction="row" alignItems="center" spacing={1} className="p-goal__bar">
+            <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6 }} />
+            <Typography className="p-goal__pct">{g.progress}%</Typography>
+          </Stack>
+          <Typography className="p-goal__meta">
+            {g.started_at ? 'Started ' + goalDate(g.started_at) : g.target_date ? 'Target ' + goalDate(g.target_date) : 'No start date'}
+            {g.review_date ? ' · next check ' + goalDate(g.review_date) : ''}
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1} className="p-goal__foot">
+            {g.status !== 'active' && (
+              <span className={'p-chip ' + (g.status === 'completed' ? 'p-chip--ok' : g.status === 'cancelled' ? 'p-chip--danger' : 'p-chip--warn')}>{g.status.replace('_', ' ')}</span>
+            )}
+            <Button className="p-link" disableRipple onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressNote(''); setProgressDialogOpen(true) }}>
+              Update progress →
+            </Button>
+          </Stack>
+        </Box>
+      ))}
+    </Box>
+  )
+
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <PageContainer>
+    <Shell>
 
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
+      {embedded ? (
+        <Box className="p-card__head">
+          <Box>
+            <Typography className="p-card__title">Goals</Typography>
+            <Typography className="p-card__copy">
+              {goals.length === 0 ? 'No goals yet' : goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' · ' + goals.filter(g => g.status === 'active').length + ' active'}
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Status Filter</InputLabel>
+              <Select value={statusFilter} label="Status Filter" onChange={e => setStatusFilter(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} className="p-btn">Add a goal</Button>
+          </Stack>
+        </Box>
+      ) : (
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Goals</Typography>
@@ -251,7 +321,8 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0164C8', textTransform: 'none' }}>New goal</Button>
         </Stack>
       </Stack>
-
+      )}
+      {embedded ? renderGoalCards() : (
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
         <Table>
           <TableHead><TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
@@ -364,6 +435,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
         </Table>
         <TablePagination component="div" count={goals.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
+      )}
 
       {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -494,6 +566,6 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
           <Button variant="contained" color="error" onClick={() => deleteGoalId && handleDelete(deleteGoalId)}>Delete</Button>
         </DialogActions>
       </Dialog>
-    </PageContainer>
+    </Shell>
   )
 }

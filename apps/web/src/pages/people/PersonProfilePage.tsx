@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
-import { useTheme } from '@mui/material/styles'
 import {
   Box, Typography, Paper, Stack, Chip, Button, Tabs, Tab, Avatar,
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
@@ -22,6 +21,7 @@ import {
   OpenInNew as OpenInNewIcon, Luggage as LuggageIcon, Place as PlaceIcon,
   CalendarMonth as CalendarMonthIcon, Chat as ChatIcon, Shield as ShieldIcon,
   Search as SearchIcon, Login as LoginIcon, Logout as LogoutIcon,
+  AltRoute as RouteIcon, ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
@@ -116,6 +116,22 @@ const toDateInput = (v: any) => {
 
 const EDIT_DATE_FIELDS = ['date_of_birth', 'admission_date', 'dnacpr_date', 'dnacpr_review_date', 'advance_decision_date', 'discharge_date']
 
+function noteDayLabel(day: string) {
+  if (day === 'undated') return 'Undated'
+  const today = localDate()
+  const yesterdayDate = new Date()
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  if (day === today) return 'Today'
+  if (day === localDate(yesterdayDate)) return 'Yesterday'
+  const parsed = new Date(day)
+  return Number.isNaN(parsed.getTime()) ? day : parsed.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+function noteExcerpt(content?: string | null) {
+  const text = String(content || '').replace(/\s+/g, ' ').trim()
+  return text.length > 140 ? `${text.slice(0, 137).trimEnd()}…` : text
+}
+
 const TAB_SLUGS: Record<number, string> = {
   0: 'overview', 1: 'timeline', 2: 'care-plans', 3: 'daily-notes', 4: 'risk-assessments',
   5: 'family-contacts', 6: 'health', 7: 'body-map', 8: 'memory-book', 9: 'goals',
@@ -125,8 +141,9 @@ const TAB_SLUGS: Record<number, string> = {
 }
 const SLUG_TO_TAB: Record<string, number> = { ...Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)])), discharge: 18 }
 
+import './profile.css'
+
 export default function PersonProfilePage() {
-  const theme = useTheme()
   const { id } = useParams()
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
@@ -176,6 +193,9 @@ export default function PersonProfilePage() {
   const [invitePortalForm, setInvitePortalForm] = useState({ name: '', email: '', relationship: '', phone: '' })
   const [invitePortalError, setInvitePortalError] = useState('')
   const [planStatusFilter, setPlanStatusFilter] = useState<string>('all')
+  const [noteDateFilter, setNoteDateFilter] = useState<'today' | 'week' | 'all'>('today')
+  const [noteShiftFilter, setNoteShiftFilter] = useState('')
+  const [noteCategoryFilter, setNoteCategoryFilter] = useState('')
   const [editPlanId, setEditPlanId] = useState<string | null>(null)
   const [editRiskId, setEditRiskId] = useState<string | null>(null)
   const [viewRisk, setViewRisk] = useState<any>(null)
@@ -722,6 +742,23 @@ export default function PersonProfilePage() {
     22: 'Billing & Rates',
   }
 
+  const recentNotes: any[] = Array.isArray(user.recent_notes) ? user.recent_notes : []
+  const weekStartDate = (() => { const d = new Date(); d.setDate(d.getDate() - 6); return localDate(d) })()
+  const visibleNotes = recentNotes.filter((n: any) => {
+    const day = n.note_date ? String(n.note_date).slice(0, 10) : ''
+    if (noteDateFilter === 'today' && day !== localDate()) return false
+    if (noteDateFilter === 'week' && day && day < weekStartDate) return false
+    if (noteShiftFilter && n.shift !== noteShiftFilter) return false
+    if (noteCategoryFilter && n.category !== noteCategoryFilter) return false
+    return true
+  })
+  const noteGroups: Record<string, any[]> = visibleNotes.reduce((groups: Record<string, any[]>, n: any) => {
+    const day = n.note_date ? String(n.note_date).slice(0, 10) : 'undated'
+    groups[day] = groups[day] || []
+    groups[day].push(n)
+    return groups
+  }, {})
+
   const handleReadmit = async () => {
     try {
       await api.patch(`/people/${id}`, { status: 'active' })
@@ -733,7 +770,7 @@ export default function PersonProfilePage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="person-page">
 
       {/* Breadcrumb (Figma 6.2) */}
       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -752,7 +789,7 @@ export default function PersonProfilePage() {
         </Alert>
       )}
       {/* Profile Header */}
-      <PremiumCard noBorder sx={{ p: 3, mb: 3, mt: 0.5 }}>
+      <PremiumCard noBorder className="p-header" sx={{ p: 3, mb: 3, mt: 0.5 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>
           <Stack direction="row" spacing={2.5} alignItems="center">
             {/* Photo */}
@@ -919,14 +956,15 @@ export default function PersonProfilePage() {
         <Stack direction="row" sx={{ bgcolor: 'action.hover', px: 1, py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
           {CATEGORIES.map((cat, i) => (
             <Box key={cat.label}
+              className={`person-cat${activeCategory === i ? ' person-cat--on' : ''}`}
               onClick={() => handleTabChange(cat.tabs[0])}
               sx={{
                 px: 1.5, py: 0.75, cursor: 'pointer', borderRadius: 1.5,
-                bgcolor: activeCategory === i ? METICLE_COLORS.primary : 'transparent',
-                color: activeCategory === i ? '#FFFFFF' : theme.palette.text.primary,
+                bgcolor: 'transparent',
+                color: 'inherit',
                 fontWeight: 600, fontSize: 12, textTransform: 'none',
                 transition: 'all 0.15s',
-                '&:hover': { bgcolor: activeCategory === i ? METICLE_COLORS.primary : 'action.selected' },
+                '&:hover': { bgcolor: 'action.selected' },
               }}>
               {cat.label}
             </Box>
@@ -1159,7 +1197,7 @@ export default function PersonProfilePage() {
 
       {/* Tab: Care Plans */}
       {tab === 2 && (
-        <Box sx={{ pb: { xs: 10, sm: 5 } }}>
+        <Box className="p-card" sx={{ pb: { xs: 10, sm: 5 } }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>Care plans</Typography>
@@ -1217,7 +1255,7 @@ export default function PersonProfilePage() {
                   setEditPlanId(plan.id); setPlanTab(0); setError(''); setAddPlanOpen(true)
                 }
                 return (
-                  <Grid item xs={12} md={6} key={cp.id}>
+                  <Grid item xs={12} md={4} key={cp.id}>
                     <CarePlanCardView
                       plan={cp}
                       onView={viewCarePlan}
@@ -1237,62 +1275,106 @@ export default function PersonProfilePage() {
 
       {/* Tab: Daily Notes */}
       {tab === 3 && (
-        <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Daily Notes</Typography>
-            <Stack direction="row" spacing={1}>
+        <Box className="p-card">
+          <div className="p-card__head">
+            <div>
+              <Typography component="h2" className="p-card__title">Daily notes</Typography>
+              <Typography className="p-card__copy">
+                {recentNotes.length === 0
+                  ? 'Observations, activities and wellbeing'
+                  : `${noteGroups[localDate()] ? 'Today' : 'Recent'} · ${visibleNotes.length} ${visibleNotes.length === 1 ? 'note' : 'notes'}`}
+              </Typography>
+            </div>
+            <Stack direction="row" spacing={1} alignItems="center">
               <Tooltip title="Write with AI">
                 <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
-                  sx={{ bgcolor: '#8B7CF6', color: '#FFFFFF', borderRadius: 1.5, width: 32, height: 32, '&:hover': { bgcolor: '#8B7CF6' } }}>
+                  className="p-ai-button">
                   <AiIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetAiMode(); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
-                sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none', px: 2 }}>Add Note</Button>
+              <Button variant="contained" className="p-btn" startIcon={<AddIcon />}
+                onClick={() => { resetAiMode(); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}>
+                Add a note
+              </Button>
             </Stack>
-          </Stack>
-          {(!user.recent_notes || user.recent_notes.length === 0) ? (
+          </div>
+
+          {recentNotes.length > 0 && (
+            <div className="p-filters">
+              <TextField select size="small" className="p-filter" label="Date" value={noteDateFilter}
+                onChange={e => setNoteDateFilter(e.target.value as typeof noteDateFilter)}>
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="week">Last 7 days</MenuItem>
+                <MenuItem value="all">All notes</MenuItem>
+              </TextField>
+              <TextField select size="small" className="p-filter" label="Shift" value={noteShiftFilter}
+                onChange={e => setNoteShiftFilter(e.target.value)}>
+                <MenuItem value="">All shifts</MenuItem>
+                {Array.from(new Set(recentNotes.map((n: any) => n.shift).filter(Boolean))).map((shift: any) => (
+                  <MenuItem key={String(shift)} value={shift}>{String(shift).charAt(0).toUpperCase() + String(shift).slice(1)}</MenuItem>
+                ))}
+              </TextField>
+              <TextField select size="small" className="p-filter" label="Category" value={noteCategoryFilter}
+                onChange={e => setNoteCategoryFilter(e.target.value)}>
+                <MenuItem value="">All categories</MenuItem>
+                {Array.from(new Set(recentNotes.map((n: any) => n.category).filter(Boolean))).map((category: any) => (
+                  <MenuItem key={String(category)} value={category}>{String(category).replace(/_/g, ' ')}</MenuItem>
+                ))}
+              </TextField>
+            </div>
+          )}
+
+          {recentNotes.length === 0 ? (
             <EmptyState
               icon={<NoteIcon />}
               title="No daily notes yet"
               description="Record observations, activities, and wellbeing notes for this person."
-              action={{ label: 'Add Note', onClick: () => { setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setAddNoteOpen(true) } }}
+              action={{ label: 'Add a note', onClick: () => { setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setAddNoteOpen(true) } }}
             />
+          ) : visibleNotes.length === 0 ? (
+            <div className="p-empty">
+              <Typography className="p-empty__copy">No notes match these filters.</Typography>
+              <Button className="p-btn" variant="outlined" onClick={() => { setNoteDateFilter('all'); setNoteShiftFilter(''); setNoteCategoryFilter('') }}>
+                Clear filters
+              </Button>
+            </div>
           ) : (
-            <Stack spacing={1.5}>
-              {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D6E2EE' } }} onClick={() => setViewNote(n)}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
-                        sx={{ textTransform: 'capitalize', fontWeight: 600, height: 22, fontSize: 11 }} />
-                      <Chip label={n.category?.replace(/_/g, ' ')} size="small" variant="outlined"
-                        sx={{ textTransform: 'capitalize', height: 22, fontSize: 11 }} />
-                      {n.support_level && SUPPORT_LEVEL_LABELS[n.support_level] && (
-                        <Chip label={SUPPORT_LEVEL_LABELS[n.support_level]} size="small" color={SUPPORT_LEVEL_COLORS[n.support_level] || 'default'}
-                          sx={{ height: 20, fontSize: 10 }} />
-                      )}
-                      {n.generated_by_ai && (
-                        <Chip icon={<AiIcon sx={{ fontSize: 12 }} />} label="AI" size="small"
-                          sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#8B7CF6', fontWeight: 600, '& .MuiChip-icon': { color: '#8B7CF6' } }} />
-                      )}
-                      <Typography variant="caption" color="text.secondary">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
-                    </Stack>
-                    <Typography variant="caption" color="text.muted" sx={{ fontWeight: 500 }}>{n.author_name || ''}</Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', lineHeight: 1.6 }}>{n.content}</Typography>
-                  {n.generated_by_ai && n.ai_risk_level && (
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }}>
-                      {n.ai_mood_analysis && <Typography variant="caption" color="#8B7CF6">{getMoodEmoji(n.ai_mood_analysis.mood_score)} Mood {n.ai_mood_analysis.mood_score}/10</Typography>}
-                      <Chip label={`${n.ai_risk_level} risk`} size="small" color={n.ai_risk_level === 'high' || n.ai_risk_level === 'critical' ? 'error' : n.ai_risk_level === 'medium' ? 'warning' : 'success'}
-                        sx={{ height: 18, fontSize: 10 }} />
-                      {n.ai_safeguarding_flags?.length > 0 && <Chip label={`${n.ai_safeguarding_flags.length} safeguarding`} size="small" color="error" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                      {n.ai_follow_up_required && <Chip label="follow-up" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                    </Stack>
-                  )}
-                </Paper>
+            <div className="p-note-groups">
+              {Object.keys(noteGroups).sort().reverse().map(day => (
+                <section className="p-note-group" key={day}>
+                  <div className="p-note-group__head">
+                    <Typography className="p-note-group__title">{noteDayLabel(day)}</Typography>
+                    <Typography className="p-note-group__count">
+                      {noteGroups[day].length} {noteGroups[day].length === 1 ? 'note' : 'notes'}
+                    </Typography>
+                  </div>
+                  {noteGroups[day].map((n: any) => {
+                    const tone = n.ai_risk_level === 'high' || n.ai_risk_level === 'critical' || n.ai_follow_up_required
+                      ? 'danger'
+                      : SUPPORT_LEVEL_COLORS[n.support_level] === 'success' ? 'ok' : SUPPORT_LEVEL_COLORS[n.support_level] === 'warning' ? 'warn' : 'neutral'
+                    const label = SUPPORT_LEVEL_LABELS[n.support_level] || (n.category ? String(n.category).replace(/_/g, ' ') : 'Note')
+                    const initials = String(n.author_name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase() || '—'
+                    return (
+                      <button type="button" className="p-note" key={n.id} onClick={() => setViewNote(n)}>
+                        <span className="p-note__avatar" aria-hidden="true">{initials}</span>
+                        <span className="p-note__body">
+                          <span className="p-note__title">{noteExcerpt(n.content)}</span>
+                          <span className="p-note__meta">
+                            {[
+                              n.created_at ? new Date(n.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+                              n.author_name || '',
+                              n.shift ? String(n.shift).charAt(0).toUpperCase() + String(n.shift).slice(1) : '',
+                              n.generated_by_ai ? 'AI draft' : '',
+                            ].filter(Boolean).join(' · ')}
+                          </span>
+                        </span>
+                        <span className={`p-chip p-chip--${tone}`}>{label}</span>
+                      </button>
+                    )
+                  })}
+                </section>
               ))}
-            </Stack>
+            </div>
           )}
         </Box>
       )}
@@ -1325,7 +1407,7 @@ export default function PersonProfilePage() {
                   <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Risk Level</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Details</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>How we reduce it</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Review Date</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
@@ -1338,7 +1420,7 @@ export default function PersonProfilePage() {
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
                           sx={{ bgcolor: `${RISK_COLORS[ra.risk_level] || '#51637A'}18`, color: RISK_COLORS[ra.risk_level] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} />
                       </TableCell>
-                      <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.details || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.mitigation_actions || ra.details || '—'}</Typography></TableCell>
                       <TableCell>{ra.review_date ? new Date(ra.review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRiskForm({ type: ra.type, risk_level: ra.risk_level, details: ra.details || '', mitigation_actions: ra.mitigation_actions || '', review_date: ra.review_date ? ra.review_date.slice(0, 10) : '', file_url: ra.file_url || '', file_name: ra.file_name || '' }); setEditRiskId(ra.id); setAddRiskOpen(true) }} title="Edit">
@@ -1479,7 +1561,7 @@ export default function PersonProfilePage() {
       {tab === 8 && <MemoryBookTab personId={id!} />}
 
       {/* Tab: Goals */}
-      {tab === 9 && <GoalsPage personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} carePlans={user?.care_plans} />}
+      {tab === 9 && (<Box className="p-card"><GoalsPage embedded personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} carePlans={user?.care_plans} /></Box>)}
 
       {/* Tab: Care Assessments */}
       {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
@@ -2758,54 +2840,61 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   }
   if (isError) return <Alert severity="error">Failed to load assessments</Alert>
   return (
-    <Box>
-      <SectionHeader title="Care assessments"
-        subtitle={assessments?.length > 0 ? `${assessments.length} assessment${assessments.length === 1 ? '' : 's'} · ${assessments.filter((a: any) => a.next_review_date && new Date(a.next_review_date).getFullYear() === new Date().getFullYear() && new Date(a.next_review_date).getMonth() === new Date().getMonth()).length} due this month` : undefined}
-        action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>Start assessment</Button>} />
+    <Box className="p-card">
+      <Box className="p-card__head">
+        <Box>
+          <Typography className="p-card__title">Care assessments</Typography>
+          <Typography className="p-card__copy">{assessments?.length || 0} assessment{(assessments?.length || 0) === 1 ? '' : 's'}{assessments?.length ? ' · ' + assessments.filter((a: any) => a.next_review_date && new Date(a.next_review_date).getFullYear() === new Date().getFullYear() && new Date(a.next_review_date).getMonth() === new Date().getMonth()).length + ' due this month' : ''}</Typography>
+        </Box>
+        <Button size="small" variant="contained" startIcon={<AddIcon />} className="p-btn" onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}>Start assessment</Button>
+      </Box>
       {(!assessments || assessments.length === 0) ? (
-        <EmptyRow message="No assessments yet" />
+        <Box className="p-empty">
+          <Typography className="p-empty__copy">No assessments yet</Typography>
+        </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Assessment</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Completed</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Next due</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Attachment</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {assessments.map((a: any) => (
-                <TableRow key={a.id} hover sx={{ cursor: 'pointer' }} onClick={() => { setSelected(a); setViewOpen(true) }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
-                    {a.assessor_name && <Typography variant="caption" color="text.secondary">{a.assessor_name}</Typography>}
-                  </TableCell>
-                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#51637A'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#51637A', fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
-                  <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell>
-                    {a.file_url ? (
-                      <Stack direction="row" spacing={0.5} alignItems="center" onClick={e => e.stopPropagation()}>
-                        <IconButton size="small" title={a.file_name || 'Open file'} onClick={() => openFileInNewTab(a.file_url)}><FileIcon fontSize="small" /></IconButton>
-                        <Typography variant="caption" sx={{ maxWidth: 120 }} noWrap>{a.file_name || a.file_url.split('/').pop()}</Typography>
-                      </Stack>
-                    ) : '—'}
-                  </TableCell>
-                  <TableCell align="right" onClick={e => e.stopPropagation()}>
-                    <IconButton size="small" onClick={() => openEdit(a)}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => setDeleteAssessmentId(a.id)}><DeleteIcon fontSize="small" /></IconButton>
-                  </TableCell>
+        <>
+          <TableContainer sx={{ border: 0, background: 'transparent' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: '34%' }}>Assessment</TableCell>
+                  <TableCell sx={{ width: '16%' }}>Outcome</TableCell>
+                  <TableCell sx={{ width: '19%' }}>Completed</TableCell>
+                  <TableCell sx={{ width: '19%' }}>Next due</TableCell>
+                  <TableCell align="right" sx={{ width: '12%' }}>Open</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {assessments.map((a: any) => {
+                  const late = a.next_review_date && new Date(a.next_review_date).getTime() < Date.now()
+                  return (
+                    <TableRow key={a.id} hover sx={{ cursor: 'pointer' }} onClick={() => { setSelected(a); setViewOpen(true) }}>
+                      <TableCell>
+                        <Typography className="p-cell-title">{a.assessment_type?.replace(/_/g, ' ') || 'Assessment'}</Typography>
+                        {a.recommendations && <Typography className="p-cell-sub" noWrap>{a.recommendations}</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        <span className={'p-chip ' + (a.status === 'completed' || a.status === 'reviewed' ? 'p-chip--ok' : a.status === 'draft' ? 'p-chip--warn' : 'p-chip--neutral')}>{String(a.status || 'draft').replace(/_/g, ' ')}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Typography className="p-cell-title">{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</Typography>
+                        {a.assessor_name && <Typography className="p-cell-sub">{a.assessor_name}</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        <Typography className={late ? 'p-due p-due--late' : 'p-due'}>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography>
+                      </TableCell>
+                      <TableCell align="right"><Box component="span" className="p-link">Open →</Box></TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Box className="p-card__foot"><Typography variant="caption">{assessments.length} of {assessments.length}</Typography></Box>
+        </>
       )}
+
 
       {/* View Dialog */}
       <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
@@ -2839,6 +2928,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
             onClick={() => { const a = selected; setViewOpen(false); setTimeout(() => openEdit(a), 100) }}>
             Edit
           </Button>
+          <Button color="error" sx={{ textTransform: 'none', mr: 'auto' }} onClick={() => { const target = selected?.id; setViewOpen(false); setSelected(null); if (target) setDeleteAssessmentId(target) }}>Delete</Button>
           <Button variant="contained" sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }} onClick={downloadAssessment}>Download PDF</Button>
           <Button onClick={() => setViewOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
         </DialogActions>
@@ -4301,70 +4391,59 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   const completed = pathways.filter((p: any) => p.status === 'completed' || p.status === 'cancelled')
   const viewPathway = pathways.find((p: any) => p.id === viewId)
 
-  const renderCard = (p: any) => (
-    <Paper key={p.id} onClick={() => setViewId(p.id)}
-      sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', '&:hover': { borderColor: METICLE_COLORS.primary, boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-        <Box sx={{ flex: 1 }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-            <Typography variant="subtitle2" fontWeight={600}>{p.title}</Typography>
-            <Chip label={p.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[p.pathway_type] || '#51637A'}20`, color: PATHWAY_TYPE_COLORS[p.pathway_type] || '#51637A', fontWeight: 600 }} />
-            <Chip label={p.status} size="small" color={p.status === 'active' ? 'success' : p.status === 'completed' ? 'info' : 'error'} />
-          </Stack>
-          <Stack direction="row" spacing={2} sx={{ mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">{p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '—'}{p.end_date ? ` → ${new Date(p.end_date).toLocaleDateString('en-GB')}` : ''}</Typography>
-            {p.location_name && <Typography variant="caption" color="text.secondary">{p.location_name}</Typography>}
-          </Stack>
-          {p.referral_reason && <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.referral_reason}</Typography>}
-          {p.discharge_notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.discharge_notes}</Typography>}
-          {p.file_url && (
-            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }} onClick={e => e.stopPropagation()}>
-              <IconButton size="small" title={p.file_name || 'Open file'} onClick={() => openFileInNewTab(p.file_url)} sx={{ p: 0.25 }}>
-                <FileIcon sx={{ fontSize: 15, color: METICLE_COLORS.primary }} />
-              </IconButton>
-              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 240 }} noWrap>{p.file_name || p.file_url.split('/').pop()}</Typography>
-            </Stack>
-          )}
-        </Box>
-        <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-          <IconButton size="small" onClick={() => {
-            setForm({
-              pathway_type: p.pathway_type || 'hospital_admission', title: p.title || '',
-              start_date: p.start_date?.split('T')[0] || '', end_date: p.end_date?.split('T')[0] || '',
-              location_name: p.location_name || '', referral_reason: p.referral_reason || '',
-              discharge_notes: p.discharge_notes || '', status: p.status || 'active',
-              file_url: p.file_url || '', file_name: p.file_name || '',
-            }); setEditId(p.id); setAddOpen(true)
-          }}><EditIcon fontSize="small" /></IconButton>
-          <IconButton size="small" color="error" onClick={() => setDeleteTarget(p.id)}><DeleteIcon fontSize="small" /></IconButton>
-        </Stack>
-      </Stack>
-    </Paper>
-  )
+  const pathwayMeta = (p: any) => {
+    const date = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    const when = p.status === 'active'
+      ? (p.start_date ? 'Started ' + date(p.start_date) : '')
+      : (p.end_date ? 'Finished ' + date(p.end_date) : '')
+    return [when, p.location_name, p.referral_reason].filter(Boolean).join(' · ')
+  }
+
+  const openEdit = (p: any) => {
+    setForm({
+      pathway_type: p.pathway_type || 'hospital_admission', title: p.title || '',
+      start_date: p.start_date?.split('T')[0] || '', end_date: p.end_date?.split('T')[0] || '',
+      location_name: p.location_name || '', referral_reason: p.referral_reason || '',
+      discharge_notes: p.discharge_notes || '', status: p.status || 'active',
+      file_url: p.file_url || '', file_name: p.file_name || '',
+    }); setEditId(p.id); setAddOpen(true)
+  }
 
   return (
-    <Box>
-      <SectionHeader title="Care pathways"
-        subtitle={pathways?.length > 0 ? `${pathways.filter((p: any) => p.status === 'active').length} active · ${pathways.filter((p: any) => p.status !== 'active').length} completed` : undefined}
-        action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-        sx={{ bgcolor: METICLE_COLORS.primary, textTransform: 'none' }}>New pathway</Button>} />
+    <Box className="p-card">
+      <Box className="p-card__head">
+        <Box>
+          <Typography className="p-card__title">Care pathways</Typography>
+          <Typography className="p-card__copy">Planned routes of care with clear steps</Typography>
+        </Box>
+        <Button size="small" variant="contained" startIcon={<AddIcon />} className="p-btn" onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}>Start a pathway</Button>
+      </Box>
       {pathways.length === 0 ? (
-        <EmptyRow message="No care pathways recorded" />
+        <Box className="p-empty">
+          <Typography className="p-empty__copy">No care pathways recorded</Typography>
+        </Box>
       ) : (
-        <Stack spacing={3}>
-          {active.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Active</Typography>
-              <Stack spacing={1.5}>{active.map(renderCard)}</Stack>
+        <Box className="p-list">
+          {[...active, ...completed].map((p: any) => (
+            <Box key={p.id} className="p-path" role="button" tabIndex={0}
+              onClick={() => setViewId(p.id)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewId(p.id) } }}>
+              <Box className="p-path__icon"><RouteIcon sx={{ fontSize: 18 }} /></Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography className="p-path__title">{p.title}</Typography>
+                <Typography className="p-path__meta">{pathwayMeta(p) || p.pathway_type?.replace(/_/g, ' ') || '—'}</Typography>
+              </Box>
+              <Stack direction="row" alignItems="center" spacing={0.5} onClick={e => e.stopPropagation()}>
+                <IconButton size="small" aria-label={'Edit ' + p.title} onClick={() => openEdit(p)}><EditIcon fontSize="small" /></IconButton>
+                <IconButton size="small" color="error" aria-label={'Delete ' + p.title} onClick={() => setDeleteTarget(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+              </Stack>
+              <span className={'p-chip ' + (p.status === 'active' ? 'p-chip--neutral' : p.status === 'completed' ? 'p-chip--ok' : 'p-chip--danger')}>
+                {p.status === 'active' ? 'In progress' : p.status === 'completed' ? 'Completed' : 'Cancelled'}
+              </span>
+              <ChevronRightIcon sx={{ fontSize: 18, color: 'var(--p-muted)' }} />
             </Box>
-          )}
-          {completed.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>Completed / Cancelled</Typography>
-              <Stack spacing={1.5}>{completed.map(renderCard)}</Stack>
-            </Box>
-          )}
-        </Stack>
+          ))}
+        </Box>
       )}
 
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
