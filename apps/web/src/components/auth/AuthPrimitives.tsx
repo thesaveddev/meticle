@@ -63,6 +63,9 @@ export function AuthInput({
   disabled,
   error,
   inputMode,
+  multiline,
+  rows,
+  onKeyDown,
   'aria-describedby': describedBy,
 }: {
   id: string
@@ -76,6 +79,9 @@ export function AuthInput({
   disabled?: boolean
   error?: boolean
   inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'url'
+  multiline?: boolean
+  rows?: number
+  onKeyDown?: (e: React.KeyboardEvent) => void
   'aria-describedby'?: string
 }) {
   return (
@@ -84,6 +90,9 @@ export function AuthInput({
       fullWidth
       size="medium"
       type={type}
+      multiline={multiline}
+      rows={rows}
+      onKeyDown={onKeyDown}
       placeholder={placeholder}
       value={value}
       onChange={e => onChange(e.target.value)}

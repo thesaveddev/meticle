@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import OnboardingFlow from './OnboardingFlow'
@@ -43,6 +43,13 @@ const blankOrg = {
   onboarding_step: 1,
 }
 
+/**
+ * The wizard now lives inside the app's shared auth canvas, whose marketing
+ * header also names the four service types. Queries below are scoped to the
+ * wizard's own landmark so they read the card, not the header menu.
+ */
+const wiz = () => within(screen.getByRole('main', { name: 'Organisation setup' }))
+
 const renderHydrated = async (ui: React.ReactElement) => {
   const result = render(<MemoryRouter>{ui}</MemoryRouter>)
   // The spinner carries role="status" and is only rendered while `hydrating`
@@ -56,7 +63,7 @@ const renderHydrated = async (ui: React.ReactElement) => {
 /** Renders and waits for step 1 specifically, for the fresh-signup cases. */
 const renderWithRouter = async (ui: React.ReactElement) => {
   const result = await renderHydrated(ui)
-  await screen.findByText('What kind of care do you provide?')
+  await wiz().findByText('What kind of care do you provide?')
   return result
 }
 
@@ -71,10 +78,10 @@ describe('OnboardingFlow', () => {
   it('renders step 1 with all four service type cards', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    expect(screen.getByText('Domiciliary Care')).toBeTruthy()
-    expect(screen.getByText('Supported Living')).toBeTruthy()
-    expect(screen.getByText('Care Home')).toBeTruthy()
-    expect(screen.getByText('Live-in Care')).toBeTruthy()
+    expect(wiz().getByText('Domiciliary Care')).toBeTruthy()
+    expect(wiz().getByText('Supported Living')).toBeTruthy()
+    expect(wiz().getByText('Care Home')).toBeTruthy()
+    expect(wiz().getByText('Live-in Care')).toBeTruthy()
   })
 
   it('loads the saved organisation for the signed-in user', async () => {
@@ -86,29 +93,29 @@ describe('OnboardingFlow', () => {
   it('allows multi-selecting service types', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    fireEvent.click(screen.getByText('Domiciliary Care'))
-    fireEvent.click(screen.getByText('Supported Living'))
+    fireEvent.click(wiz().getByText('Domiciliary Care'))
+    fireEvent.click(wiz().getByText('Supported Living'))
 
     // Both are selected, so Continue is enabled.
-    const continueBtn = screen.getByText('Continue')
+    const continueBtn = wiz().getByText('Continue')
     expect((continueBtn as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('disables Continue when no types selected', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    const continueBtn = screen.getByText('Continue')
+    const continueBtn = wiz().getByText('Continue')
     expect((continueBtn as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('navigates to step 2 when Continue is clicked', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    fireEvent.click(screen.getByText('Domiciliary Care'))
-    fireEvent.click(screen.getByText('Continue'))
+    fireEvent.click(wiz().getByText('Domiciliary Care'))
+    fireEvent.click(wiz().getByText('Continue'))
 
     // Step 2 renders after the awaited PATCH resolves.
-    expect(await screen.findByText('Tell us about your organisation')).toBeTruthy()
+    expect(await wiz().findByText('Tell us about your organisation')).toBeTruthy()
     expect(mockPatch).toHaveBeenCalledWith('/organizations/test-org', expect.objectContaining({
       service_types: ['domiciliary'],
       onboarding_step: 1,
@@ -118,26 +125,26 @@ describe('OnboardingFlow', () => {
   it('shows selected types as chips in step 2', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    fireEvent.click(screen.getByText('Domiciliary Care'))
-    fireEvent.click(screen.getByText('Care Home'))
-    fireEvent.click(screen.getByText('Continue'))
+    fireEvent.click(wiz().getByText('Domiciliary Care'))
+    fireEvent.click(wiz().getByText('Care Home'))
+    fireEvent.click(wiz().getByText('Continue'))
 
-    await screen.findByText('Tell us about your organisation')
+    await wiz().findByText('Tell us about your organisation')
     // Both still on screen as the summary chips.
-    expect(screen.getByText('Domiciliary Care')).toBeTruthy()
-    expect(screen.getByText('Care Home')).toBeTruthy()
+    expect(wiz().getByText('Domiciliary Care')).toBeTruthy()
+    expect(wiz().getByText('Care Home')).toBeTruthy()
   })
 
   it('allows going back from step 2 to step 1', async () => {
     await renderWithRouter(<OnboardingFlow />)
 
-    fireEvent.click(screen.getByText('Domiciliary Care'))
-    fireEvent.click(screen.getByText('Continue'))
-    await screen.findByText('Tell us about your organisation')
+    fireEvent.click(wiz().getByText('Domiciliary Care'))
+    fireEvent.click(wiz().getByText('Continue'))
+    await wiz().findByText('Tell us about your organisation')
 
-    fireEvent.click(screen.getByText('Back'))
+    fireEvent.click(wiz().getByText('Back'))
 
-    expect(await screen.findByText('What kind of care do you provide?')).toBeTruthy()
+    expect(await wiz().findByText('What kind of care do you provide?')).toBeTruthy()
   })
 
   // The case the broken mock was hiding: a user who abandoned onboarding part
@@ -156,8 +163,8 @@ describe('OnboardingFlow', () => {
     await renderHydrated(<OnboardingFlow />)
 
     // Straight to step 2, with the name they already typed.
-    expect(await screen.findByText('Tell us about your organisation')).toBeTruthy()
-    const nameField = screen.getByLabelText('Organization Name') as HTMLInputElement
+    expect(await wiz().findByText('Tell us about your organisation')).toBeTruthy()
+    const nameField = wiz().getByLabelText('Organization Name') as HTMLInputElement
     expect(nameField.value).toBe('Orbis House')
   })
 
@@ -176,8 +183,8 @@ describe('OnboardingFlow', () => {
     // A user who has already finished onboarding is sent onwards, not shown
     // the wizard again — and specifically not shown step 1, which would let
     // them silently overwrite service types that are in use.
-    expect(await screen.findByText('Go to Dashboard')).toBeTruthy()
-    expect(screen.queryByText('What kind of care do you provide?')).toBeNull()
+    expect(await wiz().findByText('Go to Dashboard')).toBeTruthy()
+    expect(wiz().queryByText('What kind of care do you provide?')).toBeNull()
   })
 
   // A failed load must not leave someone staring at a spinner with no way
@@ -188,6 +195,9 @@ describe('OnboardingFlow', () => {
 
     render(<MemoryRouter><OnboardingFlow /></MemoryRouter>)
 
+    // The failure copy lives only in the wizard, so the global query is
+    // unambiguous here — and the wizard landmark cannot be queried until
+    // the rejected load has settled, which is exactly what this awaits.
     expect(await screen.findByText(
       'We could not load your saved onboarding progress. Please refresh and try again.'
     )).toBeTruthy()
