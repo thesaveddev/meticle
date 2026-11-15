@@ -1308,14 +1308,18 @@ export default function PersonProfilePage() {
                 <MenuItem value="all">All notes</MenuItem>
               </TextField>
               <TextField select size="small" className="p-filter" label="Shift" value={noteShiftFilter}
-                onChange={e => setNoteShiftFilter(e.target.value)}>
+                onChange={e => setNoteShiftFilter(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : 'All shifts' }}>
                 <MenuItem value="">All shifts</MenuItem>
                 {Array.from(new Set(recentNotes.map((n: any) => n.shift).filter(Boolean))).map((shift: any) => (
                   <MenuItem key={String(shift)} value={shift}>{String(shift).charAt(0).toUpperCase() + String(shift).slice(1)}</MenuItem>
                 ))}
               </TextField>
               <TextField select size="small" className="p-filter" label="Category" value={noteCategoryFilter}
-                onChange={e => setNoteCategoryFilter(e.target.value)}>
+                onChange={e => setNoteCategoryFilter(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).replace(/_/g, ' ') : 'All categories' }}>
                 <MenuItem value="">All categories</MenuItem>
                 {Array.from(new Set(recentNotes.map((n: any) => n.category).filter(Boolean))).map((category: any) => (
                   <MenuItem key={String(category)} value={category}>{String(category).replace(/_/g, ' ')}</MenuItem>

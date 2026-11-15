@@ -131,6 +131,45 @@ describe('Overdue review notifications', () => {
     expect(await notificationsFor(site.admin.id, site.title)).toHaveLength(1)
   })
 
+  it('aggregates several overdue items into one notification and one email per recipient', async () => {
+    const site = await reviewSite()
+    const s = stamp()
+    const secondTitle = `Falls check ${s}`
+    await migrateQuery(
+      `INSERT INTO care_plans (person_id, title, category, review_date, status)
+       VALUES ($1, $2, 'personal_care', CURRENT_DATE - 5, 'active')`,
+      [site.person.id, secondTitle],
+    )
+    emailSpy.mockClear()
+
+    const count = await ReviewNotificationService.checkOverdueReviews(site.org.id)
+
+    // One notification per recipient, not one per item.
+    expect(count).toBe(2)
+    const managerRows = await migrateQuery(
+      'SELECT title, message FROM notifications WHERE user_id = $1',
+      [site.manager!.id],
+    )
+    expect(managerRows.rows).toHaveLength(1)
+    expect(managerRows.rows[0].title).toBe('2 overdue reviews')
+    expect(managerRows.rows[0].message).toContain(site.title)
+    expect(managerRows.rows[0].message).toContain(secondTitle)
+
+    const adminRows = await migrateQuery(
+      'SELECT title, message FROM notifications WHERE user_id = $1',
+      [site.admin.id],
+    )
+    expect(adminRows.rows).toHaveLength(1)
+
+    // One email per recipient, listing every overdue item.
+    const managerEmails = emailSpy.mock.calls.filter(([to]) => to === site.manager!.email)
+    expect(managerEmails).toHaveLength(1)
+    expect(managerEmails[0][1]).toContain('2 overdue reviews')
+    expect(managerEmails[0][2]).toContain(site.title)
+    expect(managerEmails[0][2]).toContain(secondTitle)
+    expect(managerEmails[0][3]).toBe('notifications')
+  })
+
   it('sweeps one organisation when asked for one, so a re-run cannot touch another provider', async () => {
     const one = await reviewSite()
     const two = await reviewSite()

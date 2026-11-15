@@ -644,6 +644,11 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
         })}
       </List>
       <Divider />
+      <Box sx={{ px: 2.75, pt: 1.5, pb: 0.25 }}>
+        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: theme.palette.text.secondary, letterSpacing: '0.08em' }}>
+          Account
+        </Typography>
+      </Box>
       <List sx={{ px: 1.5, py: 1.5, flexShrink: 0 }}>
         {userRole === UserRole.SUPER_ADMIN && (
           <ListItem disablePadding>

@@ -75,7 +75,15 @@ export class ReviewNotificationService {
     return notificationCount;
   }
 
-  /** One organisation's sweep. Runs inside that organisation's RLS context. */
+  /**
+   * One organisation's sweep. Runs inside that organisation's RLS context.
+   *
+   * One email per recipient per day, not one per overdue item: a manager with
+   * twelve overdue reviews gets a single list at 7 AM instead of twelve
+   * separate emails (and twelve bell notifications) every morning until every
+   * review is closed. A lone overdue item keeps the original single-item
+   * wording so it reads like the alert it is rather than a digest of one.
+   */
   private static async notifyForOrg(orgId: string): Promise<number> {
     let sent = 0;
     const overdue = await this.getOverdueReviews(orgId);
@@ -83,46 +91,56 @@ export class ReviewNotificationService {
 
     const orgAdmins = await this.getOrgAdmins(orgId);
 
+    // Bucket items per recipient first: the location manager owns their
+    // residents' items, and every active admin/manager sees the whole overdue
+    // list. One person never appears twice for the same item.
+    const buckets = new Map<string, { email: string | null; name: string; items: OverdueItem[] }>();
+    const bucket = (userId: string, email: string | null, name: string, item: OverdueItem) => {
+      const existing = buckets.get(userId);
+      if (existing) {
+        if (!existing.items.includes(item)) existing.items.push(item);
+        return;
+      }
+      buckets.set(userId, { email, name, items: [item] });
+    };
     for (const item of overdue) {
-      const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
-      const title = `${this.entityLabel(item.entity_type)} overdue`;
-      const message = `"${item.item_name}" for ${item.person_name} was due by ${friendlyDue}.`;
-
-      const notified = new Set<string>();
-
-      // Notify location manager
-      if (item.manager_user_id && !notified.has(item.manager_user_id)) {
-        notified.add(item.manager_user_id);
-        try {
-          await NotificationsController.createNotification(
-            item.manager_user_id, title, message, 'compliance'
-          );
-          sent++;
-          if (item.manager_email) {
-            await this.sendReviewEmail(
-              item.manager_email, item.manager_name || 'Manager',
-              item, friendlyDue
-            );
-          }
-        } catch (e) { /* non-critical */ }
+      if (item.manager_user_id) {
+        bucket(item.manager_user_id, item.manager_email, item.manager_name || 'Manager', item);
       }
-
-      // Notify org admins (skip already-notified manager)
       for (const admin of orgAdmins) {
-        if (notified.has(admin.user_id)) continue;
-        notified.add(admin.user_id);
-        try {
-          await NotificationsController.createNotification(
-            admin.user_id, title, message, 'compliance'
-          );
-          sent++;
-          if (admin.email) {
-            await this.sendReviewEmail(
-              admin.email, admin.name || 'Admin', item, friendlyDue
-            );
-          }
-        } catch (e) { /* non-critical */ }
+        if (admin.user_id === item.manager_user_id) continue;
+        bucket(admin.user_id, admin.email, admin.name || 'Admin', item);
       }
+    }
+
+    for (const [userId, { email, name, items }] of buckets) {
+      try {
+        if (items.length === 1) {
+          const item = items[0];
+          const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
+          const title = `${this.entityLabel(item.entity_type)} overdue`;
+          const message = `"${item.item_name}" for ${item.person_name} was due by ${friendlyDue}.`;
+          await NotificationsController.createNotification(userId, title, message, 'compliance');
+          sent++;
+          if (email) {
+            await this.sendReviewEmail(email, name, item, friendlyDue);
+          }
+        } else {
+          const lines = items.map((item) => {
+            const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
+            return { item, friendlyDue };
+          });
+          const title = `${items.length} overdue reviews`;
+          const message =
+            `${items.length} reviews are past their date:` +
+            lines.map(({ item, friendlyDue }) => `"${item.item_name}" (${this.entityLabel(item.entity_type)}) for ${item.person_name} was due by ${friendlyDue}.`).join(' ');
+          await NotificationsController.createNotification(userId, title, message, 'compliance');
+          sent++;
+          if (email) {
+            await this.sendAggregatedReviewEmail(email, name, lines);
+          }
+        }
+      } catch (e) { /* non-critical */ }
     }
 
     return sent;
@@ -308,6 +326,37 @@ export class ReviewNotificationService {
       </div>`;
     try {
       // A recurring operational notice, so it is one a manager may stop receiving.
+      await EmailService.sendEmail(to, subject, html, 'notifications');
+    } catch { /* email non-critical */ }
+  }
+
+  /**
+   * The daily digest of one recipient's whole overdue list: one subject line
+   * for N items instead of N emails. Same scope ('notifications') as the
+   * single-item alert so the same unsubscribe stops both.
+   */
+  private static async sendAggregatedReviewEmail(
+    to: string,
+    recipientName: string,
+    lines: Array<{ item: OverdueItem; friendlyDue: string }>
+  ): Promise<void> {
+    if (!to) return;
+    const subject = `${lines.length} overdue reviews need attention`;
+    const rows = lines.map(({ item, friendlyDue }) =>
+      `<li style="margin:0 0 6px 0">A <strong>${item.item_name}</strong> for <strong>${item.person_name}</strong>${item.location_name ? ` at <strong>${item.location_name}</strong>` : ''} was due for review by <strong>${friendlyDue}</strong>.</li>`
+    ).join('');
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid ${EMAIL_TEXT.line}; border-radius: 8px;">
+        <h2 style="color: ${EMAIL_TEXT.toneBad}; margin-top: 0;">Overdue Reviews (${lines.length})</h2>
+        <p>Hello ${recipientName},</p>
+        <p>The following reviews are now overdue:</p>
+        <ul style="padding-left: 20px; margin: 0;">${rows}</ul>
+        <p style="color: ${EMAIL_TEXT.secondary}; font-size: 14px;">
+          Please review and update these items at your earliest convenience.
+          Log in to <a href="https://meticlecare.com" style="color: ${EMAIL_BRAND.primaryDeep};">Meticle Care</a> to take action.
+        </p>
+      </div>`;
+    try {
       await EmailService.sendEmail(to, subject, html, 'notifications');
     } catch { /* email non-critical */ }
   }
