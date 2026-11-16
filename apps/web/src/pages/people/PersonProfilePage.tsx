@@ -44,6 +44,7 @@ import { PremiumCard } from '../../components/design/PremiumCard'
 import AppButton from '../../components/design/AppButton'
 import { CarePlanCardView } from './carePlanCardView'
 import FigDialogHeader, { PillOptions, nameFromEyebrow, usePersonEyebrow } from './dialogHeader'
+import { AI_SURFACES_ENABLED } from '../../aiFlag'
 
 const RISK_COLORS: Record<string, string> = { low: METICLE_COLORS.success, medium: METICLE_COLORS.warning, high: METICLE_COLORS.danger, critical: '#8B7CF6' }
 
@@ -52,9 +53,11 @@ const RISK_COLORS: Record<string, string> = { low: METICLE_COLORS.success, mediu
 const eyebrowFor = (u: any, area: string) =>
   `${(`${u?.first_name || ''} ${u?.last_name || ''}`.trim() || 'Resident').toUpperCase()} / ${area}`
 
-// Shift values the profile note form accepts. The server normalises these to
-// day/night, but the client keeps the richer labels the brief wants so the UI
-// can show "afternoon" etc. while Mica maps them to the stored enum.
+// Shift values the profile note form offers. The daily_notes table only stores
+// day/night, so the four care shifts are mapped on submit: everything but an
+// explicit night is a day shift.
+const noteShiftForApi = (shift: string) => (shift === 'night' ? 'night' : 'day')
+const withApiShift = (data: any) => ({ ...data, ...(data && data.shift ? { shift: noteShiftForApi(data.shift) } : {}) })
 const NOTE_SHIFT_OPTIONS = [
   { value: 'morning', label: 'Morning' },
   { value: 'afternoon', label: 'Afternoon' },
@@ -304,7 +307,7 @@ export default function PersonProfilePage() {
   })
 
   const addNoteMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/people/${id}/daily-notes`, data),
+    mutationFn: (data: any) => api.post(`/people/${id}/daily-notes`, withApiShift(data)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddNoteOpen(false); setNoteForm({ note_date: localDate(), shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add note'),
   })
@@ -340,7 +343,7 @@ export default function PersonProfilePage() {
   })
 
   const updateNoteMutation = useMutation({
-    mutationFn: ({ noteId, data }: { noteId: string; data: any }) => api.patch(`/people/daily-notes/${noteId}`, data),
+    mutationFn: ({ noteId, data }: { noteId: string; data: any }) => api.patch(`/people/daily-notes/${noteId}`, withApiShift(data)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditNoteId(null); setNoteForm({ note_date: localDate(), shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update note'),
   })
@@ -705,7 +708,7 @@ export default function PersonProfilePage() {
   }
 
   useEffect(() => {
-    if (isDomiciliary && ![0, 1, 2, 4, 5, 7, 8, 9, 13, 15, 17, 18, 20].includes(tab)) handleTabChange(0)
+    if (isDomiciliary && ![0, 1, 2, 3, 4, 5, 7, 8, 9, 13, 15, 17, 18, 20].includes(tab)) handleTabChange(0)
   }, [isDomiciliary, tab])
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
@@ -713,13 +716,13 @@ export default function PersonProfilePage() {
 
   const CATEGORIES = isDomiciliary ? [
     { label: 'Overview', tabs: [0] },
-    { label: 'Care', tabs: [2, 4, 9, 17] },
+    { label: 'Care', tabs: [3, 2, 4, 9, 17] },
     { label: 'People', tabs: [5, 15] },
     { label: 'Safety', tabs: [7] },
     { label: 'Records', tabs: [13, 8, 1, 18, 20] },
   ] : [
     { label: 'Overview', tabs: [0] },
-    { label: 'Care', tabs: [2, 3, 4, 9, 10, 17] },
+    { label: 'Care', tabs: [3, 2, 4, 9, 10, 17] },
     { label: 'Clinical', tabs: [6, 12, 14, 19, 21] },
     { label: 'People', tabs: [5, 15] },
     { label: 'Safety', tabs: [7, 16, 11] },
@@ -836,7 +839,7 @@ export default function PersonProfilePage() {
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1}>
             {isDomiciliary && <ContextualLearnLink topic="dom-carer-web" label="Learn about client files" />}
-            <Button startIcon={<MicIcon />} variant="outlined" size="small" onClick={() => {
+            {AI_SURFACES_ENABLED && <Button startIcon={<MicIcon />} variant="outlined" size="small" onClick={() => {
               setAddNoteOpen(true)
               setAiMode(true)
               setAiShowResults(false)
@@ -852,7 +855,7 @@ export default function PersonProfilePage() {
               startMicaVoiceNote()
             }} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
               Ask Mica to record a note
-            </Button>
+            </Button>}
           <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => {
             const f: any = { ...user }
             for (const k of EDIT_DATE_FIELDS) f[k] = toDateInput(f[k])
@@ -1285,48 +1288,47 @@ export default function PersonProfilePage() {
                   : `${noteGroups[localDate()] ? 'Today' : 'Recent'} · ${visibleNotes.length} ${visibleNotes.length === 1 ? 'note' : 'notes'}`}
               </Typography>
             </div>
+            {recentNotes.length > 0 && (
+              <div className="p-filters p-filters--inline">
+                <TextField select size="small" className="p-filter" label="Date" value={noteDateFilter}
+                  onChange={e => setNoteDateFilter(e.target.value as typeof noteDateFilter)}>
+                  <MenuItem value="today">Today</MenuItem>
+                  <MenuItem value="week">Last 7 days</MenuItem>
+                  <MenuItem value="all">All notes</MenuItem>
+                </TextField>
+                <TextField select size="small" className="p-filter" label="Shift" value={noteShiftFilter}
+                  onChange={e => setNoteShiftFilter(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : 'All shifts' }}>
+                  <MenuItem value="">All shifts</MenuItem>
+                  {Array.from(new Set(recentNotes.map((n: any) => n.shift).filter(Boolean))).map((shift: any) => (
+                    <MenuItem key={String(shift)} value={shift}>{String(shift).charAt(0).toUpperCase() + String(shift).slice(1)}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select size="small" className="p-filter" label="Category" value={noteCategoryFilter}
+                  onChange={e => setNoteCategoryFilter(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).replace(/_/g, ' ') : 'All categories' }}>
+                  <MenuItem value="">All categories</MenuItem>
+                  {Array.from(new Set(recentNotes.map((n: any) => n.category).filter(Boolean))).map((category: any) => (
+                    <MenuItem key={String(category)} value={category}>{String(category).replace(/_/g, ' ')}</MenuItem>
+                  ))}
+                </TextField>
+              </div>
+            )}
             <Stack direction="row" spacing={1} alignItems="center">
-              <Tooltip title="Write with AI">
+              {AI_SURFACES_ENABLED && <Tooltip title="Write with AI">
                 <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
                   className="p-ai-button">
                   <AiIcon sx={{ fontSize: 18 }} />
                 </IconButton>
-              </Tooltip>
+              </Tooltip>}
               <Button variant="contained" className="p-btn" startIcon={<AddIcon />}
                 onClick={() => { resetAiMode(); setNoteForm({ note_date: localDate(), shift: 'morning', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}>
                 Add a note
               </Button>
             </Stack>
           </div>
-
-          {recentNotes.length > 0 && (
-            <div className="p-filters">
-              <TextField select size="small" className="p-filter" label="Date" value={noteDateFilter}
-                onChange={e => setNoteDateFilter(e.target.value as typeof noteDateFilter)}>
-                <MenuItem value="today">Today</MenuItem>
-                <MenuItem value="week">Last 7 days</MenuItem>
-                <MenuItem value="all">All notes</MenuItem>
-              </TextField>
-              <TextField select size="small" className="p-filter" label="Shift" value={noteShiftFilter}
-                onChange={e => setNoteShiftFilter(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : 'All shifts' }}>
-                <MenuItem value="">All shifts</MenuItem>
-                {Array.from(new Set(recentNotes.map((n: any) => n.shift).filter(Boolean))).map((shift: any) => (
-                  <MenuItem key={String(shift)} value={shift}>{String(shift).charAt(0).toUpperCase() + String(shift).slice(1)}</MenuItem>
-                ))}
-              </TextField>
-              <TextField select size="small" className="p-filter" label="Category" value={noteCategoryFilter}
-                onChange={e => setNoteCategoryFilter(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                SelectProps={{ displayEmpty: true, renderValue: (v) => v ? String(v).replace(/_/g, ' ') : 'All categories' }}>
-                <MenuItem value="">All categories</MenuItem>
-                {Array.from(new Set(recentNotes.map((n: any) => n.category).filter(Boolean))).map((category: any) => (
-                  <MenuItem key={String(category)} value={category}>{String(category).replace(/_/g, ' ')}</MenuItem>
-                ))}
-              </TextField>
-            </div>
-          )}
 
           {recentNotes.length === 0 ? (
             <EmptyState
@@ -2544,7 +2546,7 @@ export default function PersonProfilePage() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          {viewNote && !viewNote.ai_risk_level && (
+          {AI_SURFACES_ENABLED && viewNote && !viewNote.ai_risk_level && (
             <Button startIcon={aiAnalyzeNoteMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <AiIcon />}
               onClick={() => aiAnalyzeNoteMutation.mutate(viewNote.id)}
               disabled={aiAnalyzeNoteMutation.isPending}

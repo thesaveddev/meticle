@@ -22,6 +22,7 @@ import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon2 from '@mui/icons-material/Schedule'
 import PageContainer from '../../components/design/PageContainer'
 import MicaAssistant from '../../components/mica/MicaAssistant'
+import { AI_SURFACES_ENABLED } from '../../aiFlag'
 import { useDailyOverview, PeopleOverviewCard, TodaysTasks, AlertsPanel, UpcomingAppointments, CareNotesActivity, MedicationOverview, QuickActions } from './DailyOverview'
 import { useQuery } from '@tanstack/react-query'
 import Skeleton from '@mui/material/Skeleton'
@@ -571,8 +572,8 @@ export default function DashboardPage() {
         </Grid>
       )}
 
-      {/* Mica assistant banner (brief §21/§22) — bottom of the main flow, never overlaying content. */}
-      <MicaAssistant />
+      {/* Mica assistant banner (brief §21/§22) — bottom of the main flow, never overlaying content. Hidden while AI is revisited — see aiFlag.ts. */}
+      {AI_SURFACES_ENABLED && <MicaAssistant />}
 
       {/* Overview Section */}
       {!isStaff && stats && (stats.open_incidents > 0) && (

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
@@ -7,11 +8,14 @@ import { markAllNotificationsReadSchema } from '../../shared/validation/schemas'
 
 const router = Router();
 
+const uuid = z.string().uuid();
+const notificationIdSchema = z.object({ id: uuid });
+
 router.use(authenticate);
 
 router.get('/', asyncHandler(NotificationsController.getMyNotifications));
 router.get('/unread-count', asyncHandler(NotificationsController.getUnreadCount));
-router.patch('/:id/read', asyncHandler(NotificationsController.markAsRead));
+router.patch('/:id/read', validate(notificationIdSchema, 'params'), asyncHandler(NotificationsController.markAsRead));
 router.patch('/read-all', validate(markAllNotificationsReadSchema), asyncHandler(NotificationsController.markAllAsRead));
 router.get('/preferences', asyncHandler(NotificationsController.getPreferences));
 router.patch('/preferences', asyncHandler(NotificationsController.updatePreference));

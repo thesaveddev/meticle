@@ -198,6 +198,13 @@ const SUPPORTED_LIVING_ACTIONS = [
   { label: 'Settings', path: '/settings', icon: <TodayIcon fontSize="small" />, module: 'settings' },
 ]
 
+/**
+ * Tab queries stay fresh for a minute. Switching tabs back within that window
+ * renders the cached rows instantly (with a background revalidate) instead of
+ * flashing skeletons and refetching every mount.
+ */
+const MC_STALE_TIME = 60_000
+
 /** Selected-day window in local wall time; the API filters visit timestamps against these bounds. */
 function dayWindow(date: string) {
   const from = `${date}T00:00:00`
@@ -211,6 +218,7 @@ function dayWindow(date: string) {
 function useDayVisits(date: string) {
   return useQuery({
     queryKey: ['mission-control-calls', date, 'all'],
+    staleTime: MC_STALE_TIME,
     queryFn: () => {
       const { from, to } = dayWindow(date)
       return api.get('/homecare/visits', { params: new URLSearchParams({ from, to }), timeout: 15000 }).then(res => Array.isArray(res.data) ? res.data : [])
@@ -550,6 +558,7 @@ function HandoverGapsPanel() {
   const [page, setPage] = useState(0)
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['mission-control-handover-gaps'],
+    staleTime: MC_STALE_TIME,
     queryFn: () => api.get('/mission-control/handover-gaps', { timeout: 15000 }).then(res => res.data as HandoverGaps),
   })
 
@@ -960,6 +969,7 @@ export function MissionControlTodayView() {
   const navigateToday = useNavigate()
   const alertsQuery = useQuery({
     queryKey: ['mission-control-alerts', 'today'],
+    staleTime: MC_STALE_TIME,
     queryFn: () => api.get('/mission-control/alerts', { params: { limit: 50 }, timeout: 15000 }).then(res => (Array.isArray(res.data) ? res.data : []) as TodayAlert[]),
     enabled: serviceModel === 'supported_living',
   })
@@ -1116,6 +1126,7 @@ const shiftRole = (shift: RotaShift, minimum: number) =>
 function useShiftRange(from: string, to: string, enabled: boolean) {
   return useQuery({
     queryKey: ['mission-control-shifts', from, to],
+    staleTime: MC_STALE_TIME,
     queryFn: () => api.get('/shifts', { params: { startDate: `${from}T00:00:00`, endDate: `${to}T00:00:00` }, timeout: 15000 })
       .then(res => (Array.isArray(res.data) ? res.data : []) as RotaShift[]),
     enabled,
@@ -1125,6 +1136,7 @@ function useShiftRange(from: string, to: string, enabled: boolean) {
 function useRotaLocations(enabled: boolean) {
   return useQuery({
     queryKey: ['mission-control-rota-locations'],
+    staleTime: MC_STALE_TIME,
     queryFn: () => api.get('/settings/locations', { timeout: 15000 })
       .then(res => (Array.isArray(res.data) ? res.data : []) as Array<{ id: string; name: string }>),
     enabled,
@@ -1134,6 +1146,7 @@ function useRotaLocations(enabled: boolean) {
 function useMinStaff(enabled: boolean) {
   return useQuery({
     queryKey: ['mission-control-min-staff'],
+    staleTime: MC_STALE_TIME,
     queryFn: () => api.get('/shifts/min-staff', { timeout: 15000 })
       .then(res => (Array.isArray(res.data) ? res.data : []) as MinStaffRule[]),
     enabled,

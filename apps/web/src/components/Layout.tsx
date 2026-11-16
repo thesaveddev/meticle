@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import MicaFab from './mica/MicaFab'
+import { AI_SURFACES_ENABLED } from '../aiFlag'
 import { MicaProvider } from './mica/MicaProvider'
 import GlobalSearch from './GlobalSearch'
 import SearchIcon from '@mui/icons-material/Search'
@@ -874,8 +875,8 @@ function LayoutShell({ children }: { children?: React.ReactNode }) {
         {children || <Outlet />}
       </Box>
 
-      {/* Mica: the floating assistant orb + voice overlay (authenticated pages only). */}
-      <MicaFab />
+      {/* Mica: the floating assistant orb + voice overlay (authenticated pages only). Hidden while AI is revisited — see aiFlag.ts. */}
+      {AI_SURFACES_ENABLED && <MicaFab />}
 
       {/* Global search palette (⌘K / Ctrl-K). */}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />

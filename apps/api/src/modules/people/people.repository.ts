@@ -374,7 +374,7 @@ export class PersonRepository {
     const encrypted = encryptUpdate('risk_assessments', { details, mitigation_actions }, orgId as string);
     const result = await query(
       `INSERT INTO risk_assessments (person_id, type, risk_level, details, mitigation_actions, review_date, file_url, file_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [person_id, type, risk_level, encrypted.details, encrypted.mitigation_actions, review_date, file_url || null, file_name || null]
+      [person_id, type, risk_level, encrypted.details, encrypted.mitigation_actions, review_date || null, file_url || null, file_name || null]
     );
     return decryptRowForOrg('risk_assessments', result.rows[0], orgId as string);
   }

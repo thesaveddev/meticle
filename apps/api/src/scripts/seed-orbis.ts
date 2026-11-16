@@ -1107,6 +1107,22 @@ async function seed() {
   }
   console.log('  ✓ 2 low-stock lines (at/below reorder) created with usage history')
 
+  // Medication governance: without a named responsible clinician and
+  // competent carers, every administration attempt 403s and the demo's MAR
+  // round cannot run. Appoint a manager as the accountable nurse and mark
+  // the care workers competent, mirroring the in-app governance flow.
+  const nurse = staff.find(s => s.role === 'MANAGER') ?? staff[1]
+  await pool.query(`INSERT INTO medication_responsible_clinicians (id,organization_id,staff_id,profession,registration_number,appointed_by,notes) VALUES ($1,$2,$3,'registered_nurse','NMC-DEMO-001',$4,'Seeded accountable nurse for demo MAR rounds')`,
+    [uuid(), orgId, nurse.profileId, staff[0].userId])
+  console.log('  ✓ responsible clinician appointed for medicines')
+  const carers = staff.filter(s => s.role === 'CARE_WORKER')
+  for (const c of carers) {
+    await pool.query(`INSERT INTO medication_competences (id,organization_id,staff_id,scope,framework,assessed_by,assessed_at,expires_at,notes) VALUES ($1,$2,$3,'administration','mca_england',$4,NOW() - INTERVAL '30 days',NOW() + INTERVAL '335 days','Seeded competence so demo carers can run MAR rounds')`,
+      [uuid(), orgId, c.profileId, nurse.userId])
+  }
+  await pool.query(`UPDATE staff_profiles SET medication_competent = TRUE WHERE id = ANY($1)`, [carers.map(c => c.profileId)])
+  console.log(`  ✓ ${carers.length} care workers marked medication-competent`)
+
   // Today's shifts are already generated for d >= 0 with random 80%
   // assignment; force at least one OPEN and two ASSIGNED today so the
   // "who is on shift" tool has data and "open shifts" tick on the dashboard

@@ -237,6 +237,14 @@ body:has(.person-page) {
   margin: 2px 0 18px;
 }
 
+/* Filters sharing the card-head row with the title (daily notes). The head
+   already wraps, so this just drops the block margins and lets the selects
+   sit on the title line until space runs out. */
+.p-card__head .p-filters {
+  margin: 0;
+  align-items: center;
+}
+
 .p-filter .MuiOutlinedInput-root {
   border-radius: 999px;
   height: 38px;
